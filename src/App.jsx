@@ -9,10 +9,8 @@ import {
   CheckCircle, 
   Flame, 
   Users, 
-  Calendar, 
   Copy, 
   Play, 
-  ExternalLink, 
   Heart, 
   Save, 
   RefreshCw, 
@@ -22,6 +20,7 @@ import {
   Download,
   Filter
 } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 const getPlacementPoints = (placement) => {
   const p = parseInt(placement, 10);
@@ -59,107 +58,62 @@ const DEFAULT_TEAMS = [
   { id: 'tm_16', name: 'Rampage Pro', tag: 'RPG' }
 ];
 
-const DEFAULT_SCRIMS = [
-  {
-    id: 'scrim_001',
-    title: 'SEA Elite Tier-1 Night Scrim',
-    tier: 'Tier 1 (Pro)',
-    description: 'Sesi latihan jemputan pasukan rasmi PMSL & PMGC wilayah Asia Tenggara.',
-    date: '2026-05-12',
-    totalMatches: 2,
-    matches: [
-      {
-        matchNo: 1,
-        map: 'Erangel',
-        results: [
-          { teamId: 'tm_1', teamName: 'Geek Fam MY', tag: 'GEEK', placement: 1, kills: 12, placePts: 10, totalPts: 22, wwcd: 1 },
-          { teamId: 'tm_2', teamName: 'Yoodo Alliance', tag: 'YALL', placement: 2, kills: 8, placePts: 6, totalPts: 14, wwcd: 0 },
-          { teamId: 'tm_4', teamName: 'Vampire Esports', tag: 'VPE', placement: 3, kills: 7, placePts: 5, totalPts: 12, wwcd: 0 },
-          { teamId: 'tm_5', teamName: 'Bigetron RA', tag: 'BTR', placement: 4, kills: 5, placePts: 4, totalPts: 9, wwcd: 0 },
-          { teamId: 'tm_3', teamName: 'SEM9 Esports', tag: 'SEM9', placement: 5, kills: 4, placePts: 3, totalPts: 7, wwcd: 0 }
-        ]
-      },
-      {
-        matchNo: 2,
-        map: 'Miramar',
-        results: [
-          { teamId: 'tm_4', teamName: 'Vampire Esports', tag: 'VPE', placement: 1, kills: 14, placePts: 10, totalPts: 24, wwcd: 1 },
-          { teamId: 'tm_1', teamName: 'Geek Fam MY', tag: 'GEEK', placement: 2, kills: 6, placePts: 6, totalPts: 12, wwcd: 0 },
-          { teamId: 'tm_3', teamName: 'SEM9 Esports', tag: 'SEM9', placement: 3, kills: 8, placePts: 5, totalPts: 13, wwcd: 0 },
-          { teamId: 'tm_2', teamName: 'Yoodo Alliance', tag: 'YALL', placement: 4, kills: 4, placePts: 4, totalPts: 8, wwcd: 0 }
-        ]
-      }
-    ]
-  }
-];
-
-const DEFAULT_POSTS = [
-  {
-    id: 'post_1',
-    author: 'DamRUDE',
-    playerRole: 'IGL & Rusher',
-    teamName: 'Geek Fam MY',
-    teamTag: 'GEEK',
-    type: 'achievement',
-    title: 'CHAMPION: PMSL SEA Spring Qualifier Grand Final',
-    tournament: 'PMSL SEA Spring',
-    rank: '1st Place (Champion)',
-    caption: 'Back-to-back WWCD secured our championship slot! Big thanks to all fans for the support.',
-    mediaType: 'image',
-    mediaUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
-    likes: 184,
-    liked: false,
-    date: '2 days ago',
-    tags: ['#PMSL', '#GeekFam', '#WWCD']
-  },
-  {
-    id: 'post_2',
-    author: 'uHigh',
-    playerRole: 'Entry Fragger',
-    teamName: 'SEM9 Esports',
-    teamTag: 'SEM9',
-    type: 'clip',
-    title: '1v4 Clutch vs Vampire Esports in Miramar Final Circle',
-    tournament: 'Tier 1 Pro Scrim Match 2',
-    rank: 'WWCD Clutch',
-    caption: 'M416 + DMR spray down when all teammates wiped early.',
-    mediaType: 'video',
-    mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    likes: 342,
-    liked: true,
-    date: '3 days ago',
-    tags: ['#Clutch', '#1v4', '#PUBGMobile']
-  }
-];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('admin');
-  const [scrims, setScrims] = useState(() => {
-    const saved = localStorage.getItem('pubgm_scrims_v2');
-    return saved ? JSON.parse(saved) : DEFAULT_SCRIMS;
-  });
-  const [posts, setPosts] = useState(() => {
-    const saved = localStorage.getItem('pubgm_posts_v2');
-    return saved ? JSON.parse(saved) : DEFAULT_POSTS;
-  });
-  const [selectedScrimId, setSelectedScrimId] = useState(scrims[0]?.id || '');
+  const [scrims, setScrims] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [selectedScrimId, setSelectedScrimId] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   const [tierFilter, setTierFilter] = useState('All');
-
-  useEffect(() => {
-    localStorage.setItem('pubgm_scrims_v2', JSON.stringify(scrims));
-  }, [scrims]);
-
-  useEffect(() => {
-    localStorage.setItem('pubgm_posts_v2', JSON.stringify(posts));
-  }, [posts]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 1. SCRIM ADMIN & FORM
+  // ============================================================
+  // 1. TARIK DATA DARI SUPABASE SEMASA MULA BUKA WEB (ASYNCHRONOUS)
+  // ============================================================
+  useEffect(() => {
+    async function loadCloudData() {
+      setIsLoading(true);
+      try {
+        // Tarik data Scrims dari cloud
+        const { data: scrimData, error: scrimError } = await supabase
+          .from('scrims')
+          .select('*')
+          .order('date', { ascending: false });
+
+        if (scrimError) {
+          console.error('Error tarik scrims:', scrimError);
+        } else if (scrimData && scrimData.length > 0) {
+          setScrims(scrimData);
+          setSelectedScrimId(scrimData[0].id);
+        }
+
+        // Tarik data Showcase Posts dari cloud
+        const { data: postData, error: postError } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (postError) {
+          console.error('Error tarik posts:', postError);
+        } else if (postData && postData.length > 0) {
+          setPosts(postData);
+        }
+      } catch (err) {
+        console.error('Connection error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadCloudData();
+  }, []);
+
+  // 1. Form Cipta Scrim
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
@@ -238,8 +192,14 @@ export default function App() {
     showToast('Randomized Match Data Generated!');
   };
 
-  const handleSaveMatchScore = () => {
-    if (!activeScrim) return;
+  // ============================================================
+  // 2. SIMPAN SKOR MATCH KE SUPABASE (ASYNCHRONOUS)
+  // ============================================================
+  const handleSaveMatchScore = async () => {
+    if (!activeScrim) {
+      showToast('⚠️ Sila cipta atau pilih satu sesi scrim dahulu!');
+      return;
+    }
 
     const compiledResults = matchSlots.map(s => ({
       teamId: s.teamId || 'tm_' + s.teamName,
@@ -252,57 +212,71 @@ export default function App() {
       wwcd: Number(s.placement) === 1 ? 1 : 0
     }));
 
-    setScrims(prev => {
-      return prev.map(s => {
-        if (s.id !== activeScrim.id) return s;
-        const existingMatches = s.matches ? [...s.matches] : [];
-        const matchData = {
-          matchNo: selectedMatchIdx + 1,
-          map: inputMap,
-          results: compiledResults
-        };
+    const existingMatches = activeScrim.matches ? [...activeScrim.matches] : [];
+    const matchData = {
+      matchNo: selectedMatchIdx + 1,
+      map: inputMap,
+      results: compiledResults
+    };
 
-        if (existingMatches[selectedMatchIdx]) {
-          existingMatches[selectedMatchIdx] = matchData;
-        } else {
-          existingMatches.push(matchData);
-        }
+    if (existingMatches[selectedMatchIdx]) {
+      existingMatches[selectedMatchIdx] = matchData;
+    } else {
+      existingMatches.push(matchData);
+    }
 
-        return {
-          ...s,
-          matches: existingMatches,
-          totalMatches: existingMatches.length
-        };
-      });
-    });
+    const updatedScrim = {
+      ...activeScrim,
+      matches: existingMatches,
+      total_matches: existingMatches.length
+    };
 
-    showToast('Match ' + (selectedMatchIdx + 1) + ' (' + inputMap + ') berjaya disimpan!');
+    // Hantar data ke cloud Supabase
+    const { error } = await supabase.from('scrims').upsert(updatedScrim);
+
+    if (error) {
+      console.error(error);
+      showToast('❌ Ralat simpan ke cloud: ' + error.message);
+    } else {
+      setScrims(scrims.map(s => s.id === activeScrim.id ? updatedScrim : s));
+      showToast('✅ Match ' + (selectedMatchIdx + 1) + ' berjaya disimpan ke Supabase Cloud!');
+    }
   };
 
-  const handleCreateNewScrim = (e) => {
+  // ============================================================
+  // 3. CIPTA SCRIM BAHARU KE SUPABASE (ASYNCHRONOUS)
+  // ============================================================
+  const handleCreateNewScrim = async (e) => {
     e.preventDefault();
     if (!newScrimTitle.trim()) return;
 
-    const newId = 'scrim_' + Date.now();
     const newSession = {
-      id: newId,
+      id: 'scrim_' + Date.now(),
       title: newScrimTitle.trim(),
       tier: newScrimTier,
       description: newScrimDesc.trim() || 'Tiada description.',
       date: newScrimDate || new Date().toISOString().split('T')[0],
-      totalMatches: 0,
+      total_matches: 0,
       matches: []
     };
 
-    setScrims([newSession, ...scrims]);
-    setSelectedScrimId(newId);
-    setSelectedMatchIdx(0);
-    setNewScrimTitle('');
-    setNewScrimDesc('');
-    showToast('Scrim baru berjaya dicipta!');
+    // Masukkan rekod baru ke jadual scrims di Supabase
+    const { error } = await supabase.from('scrims').insert([newSession]);
+
+    if (error) {
+      console.error(error);
+      showToast('❌ Ralat cipta scrim: ' + error.message);
+    } else {
+      setScrims([newSession, ...scrims]);
+      setSelectedScrimId(newSession.id);
+      setSelectedMatchIdx(0);
+      setNewScrimTitle('');
+      setNewScrimDesc('');
+      showToast('🏆 Scrim baru berjaya disimpan di Supabase Cloud!');
+    }
   };
 
-  // 2. LEADERBOARD & POSTER
+  // Leaderboard logic
   const [leaderboardFilter, setLeaderboardFilter] = useState('overall');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
@@ -391,7 +365,7 @@ export default function App() {
 
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
-      showToast('Tiada data untuk download poster!');
+      showToast('⚠️ Tiada data untuk download poster!');
       return;
     }
 
@@ -401,7 +375,6 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background
     const bg = ctx.createLinearGradient(0, 0, 0, 1480);
     bg.addColorStop(0, '#020617');
     bg.addColorStop(0.5, '#0f172a');
@@ -409,11 +382,9 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1480);
 
-    // Accent line
     ctx.fillStyle = '#f59e0b';
     ctx.fillRect(0, 0, 1080, 14);
 
-    // Header
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 22px sans-serif';
     ctx.fillText('PUBGM TOURNAMENT LEADERBOARD', 60, 80);
@@ -431,7 +402,6 @@ export default function App() {
     ctx.font = '500 18px sans-serif';
     ctx.fillText('Tarikh: ' + (activeScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 175);
 
-    // Header bar
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(60, 205, 960, 48);
 
@@ -485,10 +455,10 @@ export default function App() {
     link.download = 'scrim-leaderboard.png';
     link.href = image;
     link.click();
-    showToast('Poster PNG berjaya dimuat turun!');
+    showToast('📸 Poster PNG berjaya dimuat turun!');
   };
 
-  // 3. TEAM DATABASE
+  // Team Database
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
@@ -554,7 +524,7 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // 4. SHOWCASE
+  // Showcase
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -568,52 +538,46 @@ export default function App() {
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newCaption, setNewCaption] = useState('');
 
-  const handleLikePost = (postId) => {
-    setPosts(prev => prev.map(p => {
-      if (p.id === postId) {
-        return {
-          ...p,
-          liked: !p.liked,
-          likes: p.liked ? p.likes - 1 : p.likes + 1
-        };
-      }
-      return p;
-    }));
-  };
-
-  const handleCreatePost = (e) => {
+  // ============================================================
+  // 4. CIPTA POST SHOWCASE KE SUPABASE (ASYNCHRONOUS)
+  // ============================================================
+  const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newPostTitle.trim()) return;
 
     const newPost = {
       id: 'post_' + Date.now(),
       author: newAuthor || 'Pro Player',
-      playerRole: newPlayerRole,
-      teamName: newTeamTag,
-      teamTag: newTeamTag,
+      player_role: newPlayerRole,
+      team_tag: newTeamTag,
       type: newPostType,
       title: newPostTitle,
       tournament: newTournament || 'Community Scrim Tournament',
       rank: newRankBadge,
       caption: newCaption || 'Check out this match highlight!',
-      mediaType: newPostType === 'clip' ? 'video' : 'image',
-      mediaUrl: newMediaUrl || (newPostType === 'clip' 
+      media_type: newPostType === 'clip' ? 'video' : 'image',
+      media_url: newMediaUrl || (newPostType === 'clip' 
         ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' 
         : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80'),
       likes: 1,
-      liked: true,
       date: 'Just now',
       tags: ['#PUBGM', '#' + newTeamTag, '#Portfolio']
     };
 
-    setPosts([newPost, ...posts]);
-    setIsModalOpen(false);
-    showToast('Showcase berjaya diterbitkan!');
+    const { error } = await supabase.from('posts').insert([newPost]);
 
-    setNewPostTitle('');
-    setNewTournament('');
-    setNewMediaUrl('');
-    setNewCaption('');
+    if (error) {
+      console.error(error);
+      showToast('❌ Ralat simpan post: ' + error.message);
+    } else {
+      setPosts([newPost, ...posts]);
+      setIsModalOpen(false);
+      showToast('✨ Showcase berjaya diterbitkan di Supabase!');
+      setNewPostTitle('');
+      setNewTournament('');
+      setNewMediaUrl('');
+      setNewCaption('');
+    }
   };
 
   return (
@@ -635,12 +599,11 @@ export default function App() {
                 <Swords className="w-6 h-6 text-slate-950 font-black" />
               </div>
               <div>
-                <span className="text-lg font-black tracking-wider text-amber-400">
-                  PUBGM SCRIMHUB
-                </span>
-                <span className="text-xs block text-slate-400 -mt-1 font-medium">
-                  Point Engine, Poster & History
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-black tracking-wider text-amber-400">PUBGM SCRIMHUB</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">CLOUD LIVE</span>
+                </div>
+                <span className="text-xs block text-slate-400 -mt-1 font-medium">Point Engine, Poster & History</span>
               </div>
             </div>
 
@@ -689,11 +652,10 @@ export default function App() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Select Active Scrim */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Pilih Sesi Scrim
+                    Pilih Sesi Scrim (Cloud)
                   </label>
                   <div className="flex items-center space-x-1 text-[11px] text-slate-400">
                     <Filter className="w-3 h-3 text-amber-500" />
@@ -715,11 +677,15 @@ export default function App() {
                   onChange={(e) => setSelectedScrimId(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
                 >
-                  {filteredScrims.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      [{s.tier || 'Tier 1'}] {s.title} ({s.date})
-                    </option>
-                  ))}
+                  {filteredScrims.length === 0 ? (
+                    <option value="">Belum ada scrim di cloud. Sila cipta baru di sebelah.</option>
+                  ) : (
+                    filteredScrims.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        [{s.tier || 'Tier 1'}] {s.title} ({s.date})
+                      </option>
+                    ))
+                  )}
                 </select>
 
                 {activeScrim && (
@@ -742,7 +708,7 @@ export default function App() {
                 <div className="flex items-center space-x-2 mb-3">
                   <Plus className="w-4 h-4 text-amber-500" />
                   <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Cipta Sesi Scrim Baharu
+                    Cipta Sesi Scrim Baharu (Auto-Save ke Cloud)
                   </h3>
                 </div>
 
@@ -785,7 +751,7 @@ export default function App() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Contoh: 16 pasukan rasmi pro, 4 perlawanan standard point."
+                        placeholder="Contoh: 16 pasukan jemputan pro, standard scoring."
                         value={newScrimDesc}
                         onChange={(e) => setNewScrimDesc(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
@@ -862,7 +828,7 @@ export default function App() {
                     className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded-lg flex items-center space-x-1.5 shadow-md"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>Save Match {selectedMatchIdx + 1}</span>
+                    <span>Save Match {selectedMatchIdx + 1} to Cloud</span>
                   </button>
                 </div>
               </div>
@@ -948,7 +914,7 @@ export default function App() {
                   </span>
                 </div>
                 <h1 className="text-xl sm:text-2xl font-black text-slate-100 mt-1">
-                  {activeScrim?.title}
+                  {activeScrim?.title || 'Tiada Scrim Dipilih'}
                 </h1>
                 {activeScrim?.description && (
                   <p className="text-xs text-slate-400 mt-0.5">{activeScrim.description}</p>
@@ -1008,7 +974,7 @@ export default function App() {
               {leaderboardData.length === 0 ? (
                 <div className="p-12 text-center text-slate-500">
                   <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-bold text-slate-400">Belum ada match data untuk scrim ini.</p>
+                  <p className="font-bold text-slate-400">Belum ada match data tersimpan untuk scrim ini.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1066,7 +1032,7 @@ export default function App() {
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
                   <h2 className="text-lg font-black text-slate-100">Database & Sejarah Pasukan</h2>
-                  <p className="text-xs text-slate-400">Pilih pasukan untuk melihat rekod keputusan scrim, ranking dan mata terkumpul.</p>
+                  <p className="text-xs text-slate-400">Pilih pasukan untuk melihat rekod keputusan scrim, ranking dan mata terkumpul dari cloud.</p>
                 </div>
                 
                 <div className="relative w-full md:w-72">
@@ -1109,7 +1075,7 @@ export default function App() {
                           [{activeTeamData.tag}]
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400">Pangkalan data rasmi kejohanan</p>
+                      <p className="text-xs text-slate-400">Rekod data rasmi kejohanan</p>
                     </div>
                   </div>
 
@@ -1188,7 +1154,7 @@ export default function App() {
                   <h1 className="text-xl font-black text-slate-100">Gamer Portfolio & Highlight Feed</h1>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Platform ala Behance untuk pamerkan pencapaian trofi dan gameplay clip.
+                  Platform ala Behance untuk pamerkan pencapaian trofi dan gameplay clip (Disimpan ke Cloud).
                 </p>
               </div>
 
@@ -1225,85 +1191,88 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {posts
-                .filter(p => showcaseFilter === 'all' || p.type === showcaseFilter)
-                .map((post) => (
-                  <div key={post.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-lg">
-                    <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
-                      {post.mediaType === 'video' ? (
-                        <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
-                      ) : (
-                        <img src={post.mediaUrl} alt={post.title} className="w-full h-full object-cover" />
-                      )}
-
-                      <div className="absolute top-3 left-3 flex items-center space-x-2">
-                        <span className={'px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide flex items-center space-x-1 ' + (post.type === 'achievement' ? 'bg-amber-500 text-slate-950' : 'bg-red-600 text-white')}>
-                          {post.type === 'achievement' ? <Trophy className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                          <span>{post.type === 'achievement' ? 'Achievement' : 'Highlight'}</span>
-                        </span>
-                        {post.rank && (
-                          <span className="bg-slate-950/80 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
-                            {post.rank}
-                          </span>
+              {posts.length === 0 ? (
+                <div className="col-span-2 p-12 text-center text-slate-500 border border-slate-800 rounded-xl">
+                  Belum ada post showcase dalam database cloud. Klik "Post Highlight" untuk mula!
+                </div>
+              ) : (
+                posts
+                  .filter(p => showcaseFilter === 'all' || p.type === showcaseFilter)
+                  .map((post) => (
+                    <div key={post.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-lg">
+                      <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
+                        {post.media_type === 'video' ? (
+                          <video src={post.media_url} controls className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
                         )}
-                      </div>
-                    </div>
 
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-400">
-                              {post.teamTag?.slice(0, 2) || 'PG'}
-                            </div>
-                            <div>
-                              <div className="text-xs font-bold text-slate-200">
-                                {post.author} <span className="text-slate-500 font-normal">({post.teamTag})</span>
-                              </div>
-                              <div className="text-[10px] text-slate-400">{post.playerRole} • {post.date}</div>
-                            </div>
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-medium bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                            {post.tournament}
+                        <div className="absolute top-3 left-3 flex items-center space-x-2">
+                          <span className={'px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide flex items-center space-x-1 ' + (post.type === 'achievement' ? 'bg-amber-500 text-slate-950' : 'bg-red-600 text-white')}>
+                            {post.type === 'achievement' ? <Trophy className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                            <span>{post.type === 'achievement' ? 'Achievement' : 'Highlight'}</span>
                           </span>
+                          {post.rank && (
+                            <span className="bg-slate-950/80 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                              {post.rank}
+                            </span>
+                          )}
                         </div>
-
-                        <h3 className="font-bold text-base text-slate-100 mb-2">{post.title}</h3>
-                        <p className="text-xs text-slate-400 line-clamp-3 mb-4 leading-relaxed">{post.caption}</p>
                       </div>
 
-                      <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-                        <div className="flex flex-wrap gap-1">
-                          {post.tags?.map((tg, idx) => (
-                            <span key={idx} className="text-[10px] text-amber-500/80 font-mono">{tg}</span>
-                          ))}
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-400">
+                                {post.team_tag?.slice(0, 2) || 'PG'}
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-slate-200">
+                                  {post.author} <span className="text-slate-500 font-normal">({post.team_tag})</span>
+                                </div>
+                                <div className="text-[10px] text-slate-400">{post.player_role} • {post.date}</div>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                              {post.tournament}
+                            </span>
+                          </div>
+
+                          <h3 className="font-bold text-base text-slate-100 mb-2">{post.title}</h3>
+                          <p className="text-xs text-slate-400 line-clamp-3 mb-4 leading-relaxed">{post.caption}</p>
                         </div>
 
-                        <button
-                          onClick={() => handleLikePost(post.id)}
-                          className={'flex items-center space-x-1.5 px-2.5 py-1 rounded ' + (post.liked ? 'text-red-400 bg-red-500/10' : 'text-slate-400 hover:text-slate-200')}
-                        >
-                          <Heart className={'w-3.5 h-3.5 ' + (post.liked ? 'fill-current text-red-500' : '')} />
-                          <span className="font-bold">{post.likes}</span>
-                        </button>
+                        <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                          <div className="flex flex-wrap gap-1">
+                            {post.tags?.map((tg, idx) => (
+                              <span key={idx} className="text-[10px] text-amber-500/80 font-mono">{tg}</span>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded text-red-400 bg-red-500/10">
+                            <Heart className="w-3.5 h-3.5 fill-current text-red-500" />
+                            <span className="font-bold">{post.likes || 1}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+              )}
             </div>
           </div>
         )}
 
       </main>
 
-      {/* MODAL */}
+      {/* MODAL SHOWCASE */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
               <div className="flex items-center space-x-2">
                 <Trophy className="w-5 h-5 text-amber-400" />
-                <h3 className="text-lg font-bold text-slate-100">Publish to Gamer Portfolio</h3>
+                <h3 className="text-lg font-bold text-slate-100">Publish to Cloud Portfolio</h3>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-200 text-lg font-bold">✕</button>
             </div>
@@ -1415,7 +1384,7 @@ export default function App() {
                   type="submit"
                   className="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
                 >
-                  Publish
+                  Publish to Cloud
                 </button>
               </div>
             </form>
@@ -1427,7 +1396,7 @@ export default function App() {
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>PUBGM Scrim Management & Player Showcase Hub</span>
-          <span className="font-mono text-[11px] text-slate-600">Scoring Rules 10-6-5-4-3-2-1</span>
+          <span className="font-mono text-[11px] text-slate-600">Connected to Supabase PostgreSQL</span>
         </div>
       </footer>
 
