@@ -22,9 +22,14 @@ import {
   User, 
   Lock, 
   Mail,
-  ChevronRight,
   Flame,
-  Award
+  MessageCircle,
+  Share2,
+  ExternalLink,
+  Crosshair,
+  Calendar,
+  Image as ImageIcon,
+  Send
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -70,7 +75,10 @@ export default function App() {
   const [posts, setPosts] = useState([]);
   const [selectedScrimId, setSelectedScrimId] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
+  
+  // Search & Filters
   const [tierFilter, setTierFilter] = useState('All');
+  const [searchScrimQuery, setSearchScrimQuery] = useState('');
 
   // Auth State
   const [currentUser, setCurrentUser] = useState(null);
@@ -81,13 +89,15 @@ export default function App() {
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
+  // Initial Load & Co-Host Claim Handshake
   useEffect(() => {
     async function initApp() {
       const { data: { session } } = await supabase.auth.getSession();
-      setCurrentUser(session?.user || null);
+      const user = session?.user || null;
+      setCurrentUser(user);
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setCurrentUser(session?.user || null);
@@ -101,6 +111,28 @@ export default function App() {
       if (scrimData && scrimData.length > 0) {
         setScrims(scrimData);
         setSelectedScrimId(scrimData[0].id);
+
+        // Feature 4: Semak jika pautan dibuka dengan token claim co-host (?claim_scrim=xxx&token=yyy)
+        const params = new URLSearchParams(window.location.search);
+        const claimId = params.get('claim_scrim');
+        const claimToken = params.get('token');
+
+        if (claimId && claimToken && user) {
+          const targetScrim = scrimData.find(s => s.id === claimId);
+          if (targetScrim && targetScrim.claim_token === claimToken) {
+            const currentCoHosts = targetScrim.co_hosts || [];
+            if (!currentCoHosts.includes(user.id)) {
+              const updatedCoHosts = [...currentCoHosts, user.id];
+              await supabase
+                .from('scrims')
+                .update({ co_hosts: updatedCoHosts })
+                .eq('id', claimId);
+              
+              showToast('Admin access granted! You are now a verified co-host.');
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          }
+        }
       }
 
       const { data: postData } = await supabase
@@ -131,7 +163,7 @@ export default function App() {
       if (error) {
         showToast('Registration Error: ' + error.message);
       } else {
-        showToast('Registration successful! Check email or sign in.');
+        showToast('Registration complete! Please sign in.');
         setIsRegisterMode(false);
       }
     } else {
@@ -144,7 +176,7 @@ export default function App() {
         showToast('Login Failed: ' + error.message);
       } else {
         setCurrentUser(data.user);
-        showToast('Welcome Admin ' + data.user.email);
+        showToast('Welcome back, ' + data.user.email);
         setAuthPassword('');
       }
     }
@@ -157,16 +189,28 @@ export default function App() {
     showToast('Signed out successfully.');
   };
 
+  // Semak hak cipta (Pemilik asal atau Co-Host)
+  const isAuthorizedAdmin = (scrim) => {
+    if (!currentUser || !scrim) return false;
+    const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
+    const isCoHost = scrim.co_hosts && scrim.co_hosts.includes(currentUser.id);
+    return isOwner || isCoHost;
+  };
+
   const adminHostedScrims = useMemo(() => {
     if (!currentUser) return [];
-    return scrims.filter(s => s.created_by === currentUser.id || s.created_by === currentUser.email);
+    return scrims.filter(s => isAuthorizedAdmin(s));
   }, [scrims, currentUser]);
 
-  // Scrim Creation & Match Slots
+  // Scrim Creation Form State
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newScrimLogo, setNewScrimLogo] = useState('');
+  const [newHostName, setNewHostName] = useState('');
+  const [newHostContact, setNewHostContact] = useState('');
+  const [newMaxMatches, setNewMaxMatches] = useState(5);
 
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [inputMap, setInputMap] = useState('Erangel');
@@ -188,10 +232,15 @@ export default function App() {
     return scrims.find(s => s.id === selectedScrimId) || scrims[0];
   }, [scrims, selectedScrimId]);
 
+  // Feature 5: Tapis Scrims mengikut Tier dan Carian Kata Kunci
   const filteredScrims = useMemo(() => {
-    if (tierFilter === 'All') return scrims;
-    return scrims.filter(s => s.tier === tierFilter);
-  }, [scrims, tierFilter]);
+    return scrims.filter(s => {
+      const matchTier = tierFilter === 'All' || s.tier === tierFilter;
+      const matchSearch = s.title.toLowerCase().includes(searchScrimQuery.toLowerCase()) || 
+                          (s.tier && s.tier.toLowerCase().includes(searchScrimQuery.toLowerCase()));
+      return matchTier && matchSearch;
+    });
+  }, [scrims, tierFilter, searchScrimQuery]);
 
   const handleSlotChange = (index, field, value) => {
     setMatchSlots(prev => {
@@ -224,8 +273,7 @@ export default function App() {
 
   const handleAdjustKills = (index, delta) => {
     const current = matchSlots[index].kills;
-    const nextVal = Math.max(0, current + delta);
-    handleSlotChange(index, 'kills', nextVal);
+    handleSlotChange(index, 'kills', Math.max(0, current + delta));
   };
 
   const handleRandomizeTestData = () => {
@@ -244,12 +292,13 @@ export default function App() {
         };
       });
     });
-    showToast('Random test values populated!');
+    showToast('Randomized values populated!');
   };
 
+  // Simpan Skor Perlawanan
   const handleSaveMatchScore = async () => {
     if (!currentUser) {
-      showToast('Please sign in as Admin to save scores!');
+      showToast('Please sign in as Admin to save match scores!');
       return;
     }
     if (!activeScrim) {
@@ -284,8 +333,7 @@ export default function App() {
     const updatedScrim = {
       ...activeScrim,
       matches: existingMatches,
-      total_matches: existingMatches.length,
-      created_by: activeScrim.created_by || currentUser.id
+      total_matches: existingMatches.length
     };
 
     const { error } = await supabase.from('scrims').upsert(updatedScrim);
@@ -294,27 +342,36 @@ export default function App() {
       showToast('Error: ' + error.message);
     } else {
       setScrims(scrims.map(s => s.id === activeScrim.id ? updatedScrim : s));
-      showToast('Match ' + (selectedMatchIdx + 1) + ' synced to Cloud!');
+      showToast('Match ' + (selectedMatchIdx + 1) + ' results synced to cloud!');
     }
   };
 
+  // Feature 2 & 3: Cipta Scrim Baharu dengan Logo, Kontak & Bilangan Map Boleh Laras
   const handleCreateNewScrim = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Only authorized admins can create scrims!');
+      showToast('Only verified organizers can host scrims!');
       return;
     }
     if (!newScrimTitle.trim()) return;
+
+    const generatedToken = 'token_' + Math.random().toString(36).substring(2, 10);
 
     const newSession = {
       id: 'scrim_' + Date.now(),
       title: newScrimTitle.trim(),
       tier: newScrimTier,
-      description: newScrimDesc.trim() || 'No description provided.',
+      description: newScrimDesc.trim() || 'Official PUBG Mobile Scrim Session.',
       date: newScrimDate || new Date().toISOString().split('T')[0],
+      logo_url: newScrimLogo.trim() || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+      host_name: newHostName.trim() || currentUser.email.split('@')[0],
+      host_contact: newHostContact.trim() || '',
+      max_matches: parseInt(newMaxMatches, 10) || 5,
       total_matches: 0,
       matches: [],
-      created_by: currentUser.id
+      created_by: currentUser.id,
+      co_hosts: [],
+      claim_token: generatedToken
     };
 
     const { error } = await supabase.from('scrims').insert([newSession]);
@@ -327,11 +384,22 @@ export default function App() {
       setSelectedMatchIdx(0);
       setNewScrimTitle('');
       setNewScrimDesc('');
-      showToast('Tournament session created!');
+      setNewHostContact('');
+      setNewScrimLogo('');
+      showToast('Tournament scrim created with custom logo and settings!');
     }
   };
 
-  // Leaderboard Engine
+  // Feature 4: Jana & Salin Pautan Akses Co-Host
+  const handleCopyHostShareLink = () => {
+    if (!activeScrim) return;
+    const shareUrl = `${window.location.origin}?claim_scrim=${activeScrim.id}&token=${activeScrim.claim_token || 'shared'}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      showToast('Co-Host invite link copied! Anyone with this link can manage this scrim.');
+    });
+  };
+
+  // Leaderboard Calculation
   const [leaderboardFilter, setLeaderboardFilter] = useState('overall');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
@@ -399,6 +467,7 @@ export default function App() {
 
     let output = '**' + (activeScrim?.title || 'SCRIM').toUpperCase() + '**\n';
     output += 'Tier: ' + (activeScrim?.tier || 'Tier 1') + ' | Date: ' + (activeScrim?.date || '') + '\n';
+    if (activeScrim?.host_contact) output += 'Contact Host: ' + activeScrim.host_contact + '\n';
     output += '============================\n';
     output += '# | TEAM | MATCH | WWCD | KILLS | TOTAL\n';
     output += '============================\n';
@@ -512,8 +581,8 @@ export default function App() {
     showToast('Poster PNG downloaded!');
   };
 
-  // Team History DB
-  const [searchQuery, setSearchQuery] = useState('');
+  // Feature 1: Statistik Prestasi Pasukan (Points, Kills & Breakdown Keseluruhan)
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
   const teamsStats = useMemo(() => {
@@ -523,7 +592,11 @@ export default function App() {
       stats[t.name] = {
         name: t.name,
         tag: t.tag,
-        scrimResults: []
+        scrimResults: [],
+        totalKills: 0,
+        totalPoints: 0,
+        totalWWCD: 0,
+        matchesCount: 0
       };
     });
 
@@ -536,10 +609,14 @@ export default function App() {
               teamName: r.teamName,
               tag: r.tag,
               totalPts: 0,
-              wwcd: 0
+              totalKills: 0,
+              wwcd: 0,
+              matches: 0
             };
           }
           scrimSummary[r.teamName].totalPts += r.totalPts;
+          scrimSummary[r.teamName].totalKills += r.kills;
+          scrimSummary[r.teamName].matches += 1;
           scrimSummary[r.teamName].wwcd += (r.wwcd || (r.placement === 1 ? 1 : 0));
         });
       });
@@ -552,15 +629,27 @@ export default function App() {
           stats[tName] = {
             name: tName,
             tag: teamRes.tag,
-            scrimResults: []
+            scrimResults: [],
+            totalKills: 0,
+            totalPoints: 0,
+            totalWWCD: 0,
+            matchesCount: 0
           };
         }
+
+        stats[tName].totalKills += teamRes.totalKills;
+        stats[tName].totalPoints += teamRes.totalPts;
+        stats[tName].totalWWCD += teamRes.wwcd;
+        stats[tName].matchesCount += teamRes.matches;
 
         stats[tName].scrimResults.push({
           scrimName: scrim.title,
           scrimTier: scrim.tier || 'Tier 1 (Pro)',
           ranking: idx + 1,
           points: teamRes.totalPts,
+          kills: teamRes.totalKills,
+          wwcd: teamRes.wwcd,
+          matches: teamRes.matches,
           date: scrim.date
         });
       });
@@ -571,18 +660,64 @@ export default function App() {
 
   const filteredTeamList = useMemo(() => {
     return Object.values(teamsStats).filter(t => 
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      t.tag.toLowerCase().includes(searchQuery.toLowerCase())
+      t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) || 
+      t.tag.toLowerCase().includes(teamSearchQuery.toLowerCase())
     );
-  }, [teamsStats, searchQuery]);
+  }, [teamsStats, teamSearchQuery]);
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // Showcase Filter
+  // Feature 6: Showcase Posting untuk Admin
   const [showcaseFilter, setShowcaseFilter] = useState('all');
+  const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postType, setPostType] = useState('poster'); // 'poster', 'tournament', 'clip'
+  const [postMediaUrl, setPostMediaUrl] = useState('');
+  const [postTournament, setPostTournament] = useState('');
+  const [postRankBadge, setPostRankBadge] = useState('Official Tournament');
+  const [postCaption, setPostCaption] = useState('');
+
+  const handleCreateShowcasePost = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      showToast('Only admins can publish tournament showcases!');
+      return;
+    }
+    if (!postTitle.trim()) return;
+
+    const newPost = {
+      id: 'post_' + Date.now(),
+      author: currentUser.email.split('@')[0],
+      player_role: 'Tournament Host',
+      team_tag: 'PUBGM',
+      type: postType === 'clip' ? 'clip' : 'achievement',
+      title: postTitle.trim(),
+      tournament: postTournament.trim() || activeScrim?.title || 'PUBGM Scrim Hub',
+      rank: postRankBadge,
+      caption: postCaption.trim() || 'Official announcement & match highlight.',
+      media_type: postType === 'clip' ? 'video' : 'image',
+      media_url: postMediaUrl.trim() || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
+      likes: 1,
+      date: 'Just now',
+      tags: ['#PUBGM', '#Tournament', '#EsportsHub']
+    };
+
+    const { error } = await supabase.from('posts').insert([newPost]);
+
+    if (error) {
+      showToast('Error publishing post: ' + error.message);
+    } else {
+      setPosts([newPost, ...posts]);
+      setIsShowcaseModalOpen(false);
+      setPostTitle('');
+      setPostMediaUrl('');
+      setPostCaption('');
+      showToast('Tournament post published to showcase feed!');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black pb-20 md:pb-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-400 selection:text-black pb-20 md:pb-6">
       
       {/* Toast Alert */}
       {toastMessage && (
@@ -592,7 +727,7 @@ export default function App() {
         </div>
       )}
 
-      {/* TOP DESKTOP & MOBILE COMPACT HEADER */}
+      {/* HEADER NAVBAR */}
       <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
@@ -604,14 +739,14 @@ export default function App() {
               <div className="flex items-center gap-1.5">
                 <span className="text-base font-black tracking-wider text-slate-100">SCRIMHUB</span>
                 <span className="text-[9px] bg-amber-400/20 text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded font-mono font-bold">
-                  PUBGM
+                  PRO
                 </span>
               </div>
-              <span className="text-[10px] block text-slate-400 -mt-0.5 font-medium">Live Point & Standings Engine</span>
+              <span className="text-[10px] block text-slate-400 -mt-0.5 font-medium">PUBG Mobile Point & League Hub</span>
             </div>
           </div>
 
-          {/* DESKTOP NAV TABS (HIDDEN ON MOBILE) */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
             <button
               onClick={() => setActiveTab('leaderboard')}
@@ -625,14 +760,14 @@ export default function App() {
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-slate-100')}
             >
               <Users className="w-4 h-4" />
-              <span>Team History</span>
+              <span>Team Stats</span>
             </button>
             <button
               onClick={() => setActiveTab('showcase')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'showcase' ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-slate-100')}
             >
               <Sparkles className="w-4 h-4" />
-              <span>Showcase</span>
+              <span>Showcase Feed</span>
             </button>
             <button
               onClick={() => setActiveTab('admin')}
@@ -643,12 +778,9 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Quick Indicator Header on Mobile */}
           <div className="flex md:hidden items-center gap-1.5">
-            {currentUser ? (
+            {currentUser && (
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" title="Admin Active" />
-            ) : (
-              <span className="text-[10px] text-slate-500 font-mono">PLAYER MODE</span>
             )}
           </div>
 
@@ -659,7 +791,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         {/* ========================================================= */}
-        {/* VIEW 1: ADMIN SCRIM (MOBILE TOUCH CARDS + DESKTOP TABLE)  */}
+        {/* VIEW 1: ADMIN SCRIM (CUSTOM LOGO, MAPS, CO-HOST LINK)     */}
         {/* ========================================================= */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
@@ -674,19 +806,19 @@ export default function App() {
                     {isRegisterMode ? 'Register Host Account' : 'Admin Scrim Sign In'}
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Tournament organizers can manage matches and record scores. Players can view standings without logging in.
+                    Host tournaments, manage live match points, and post to showcase.
                   </p>
                 </div>
 
                 <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
                   <div>
-                    <label className="block text-slate-400 uppercase font-bold mb-1">Email</label>
+                    <label className="block text-slate-400 uppercase font-bold mb-1">Official Email</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                       <input
                         type="email"
                         required
-                        placeholder="admin@esports.com"
+                        placeholder="host@esports.com"
                         value={authEmail}
                         onChange={(e) => setAuthEmail(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-400"
@@ -731,62 +863,63 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                {/* Admin Status Header */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+                {/* Admin Status & Co-Host Share Bar */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-amber-400 text-slate-950 font-black rounded-xl flex items-center justify-center">
                       <User className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-100 text-xs sm:text-sm truncate max-w-[180px] sm:max-w-xs">{currentUser.email}</span>
+                        <span className="font-bold text-slate-100 text-xs sm:text-sm">{currentUser.email}</span>
                         <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono font-bold">
-                          HOST
+                          VERIFIED HOST
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        Total Scrims Hosted: <strong className="text-amber-400 font-mono">{adminHostedScrims.length}</strong>
+                        Total Scrims in Profile: <strong className="text-amber-400 font-mono">{adminHostedScrims.length}</strong>
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 sm:px-3 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition flex items-center gap-1"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline">Log Out</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Feature 4: Share Co-Host Access Button */}
+                    {activeScrim && isAuthorizedAdmin(activeScrim) && (
+                      <button
+                        onClick={handleCopyHostShareLink}
+                        className="px-3 py-1.5 bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                        title="Generate link to give co-host access to another admin"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Share Host Access Link</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleLogout}
+                      className="p-2 sm:px-3 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition flex items-center gap-1"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="hidden sm:inline">Log Out</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Scrim Selector & Creator Form */}
+                {/* Scrim Setup Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  {/* Select Scrim */}
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Scrim</span>
-                      <div className="flex items-center space-x-1 text-[11px] text-slate-400">
-                        <Filter className="w-3 h-3 text-amber-400" />
-                        <select
-                          value={tierFilter}
-                          onChange={(e) => setTierFilter(e.target.value)}
-                          className="bg-slate-950 border border-slate-800 rounded-md px-1.5 py-0.5 text-slate-300 focus:outline-none"
-                        >
-                          <option value="All">All Tiers</option>
-                          {TIER_OPTIONS.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                  {/* Select Active Scrim */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Active Scrim Session
+                    </span>
 
                     <select
                       value={selectedScrimId}
                       onChange={(e) => setSelectedScrimId(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
                     >
-                      {filteredScrims.map((s) => (
+                      {scrims.map((s) => (
                         <option key={s.id} value={s.id}>
                           [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date})
                         </option>
@@ -794,28 +927,43 @@ export default function App() {
                     </select>
 
                     {activeScrim && (
-                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-amber-400">{activeScrim.tier || 'Tier 1'}</span>
-                        <span className="text-slate-400 font-mono">{activeScrim.date}</span>
+                      <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                        <div className="flex items-center space-x-3">
+                          {activeScrim.logo_url && (
+                            <img src={activeScrim.logo_url} alt="Logo" className="w-10 h-10 rounded-xl object-cover border border-slate-700" />
+                          )}
+                          <div>
+                            <div className="font-bold text-xs text-slate-200">{activeScrim.title}</div>
+                            <div className="text-[10px] text-amber-400">{activeScrim.tier} • {activeScrim.max_matches || 5} Maps</div>
+                          </div>
+                        </div>
+
+                        {activeScrim.host_contact && (
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="truncate">Contact: {activeScrim.host_contact}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Create New Scrim */}
+                  {/* Feature 2 & 3: Host New Scrim with Custom Logo, Contact, and Map Count */}
                   <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                    <div className="flex items-center space-x-2 mb-2.5">
+                    <div className="flex items-center space-x-2 mb-3">
                       <Plus className="w-4 h-4 text-amber-400" />
                       <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                         Host New Scrim Session
                       </h3>
                     </div>
 
-                    <form onSubmit={handleCreateNewScrim} className="space-y-2.5 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div className="sm:col-span-2">
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Scrim Title</label>
                           <input
                             type="text"
-                            placeholder="Scrim Title (e.g. PMSL SEA Night Scrim)"
+                            placeholder="e.g. PMSL SEA Pro Night Scrim"
                             value={newScrimTitle}
                             onChange={(e) => setNewScrimTitle(e.target.value)}
                             required
@@ -823,6 +971,7 @@ export default function App() {
                           />
                         </div>
                         <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Category / Tier</label>
                           <select
                             value={newScrimTier}
                             onChange={(e) => setNewScrimTier(e.target.value)}
@@ -835,28 +984,73 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
-                        <div className="sm:col-span-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {/* Custom Logo URL */}
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Logo URL (Image)</label>
                           <input
-                            type="text"
-                            placeholder="Brief Rules or Description"
-                            value={newScrimDesc}
-                            onChange={(e) => setNewScrimDesc(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-400"
+                            type="url"
+                            placeholder="https://... logo.png"
+                            value={newScrimLogo}
+                            onChange={(e) => setNewScrimLogo(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
                           />
                         </div>
-                        <div className="flex gap-2">
+
+                        {/* Contact Info (WhatsApp / Discord / Telegram) */}
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Host Contact (PM Tepi)</label>
                           <input
-                            type="date"
-                            value={newScrimDate}
-                            onChange={(e) => setNewScrimDate(e.target.value)}
-                            className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-slate-200 focus:outline-none text-[11px]"
+                            type="text"
+                            placeholder="e.g. +60123456789 or @discord"
+                            value={newHostContact}
+                            onChange={(e) => setNewHostContact(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
                           />
+                        </div>
+
+                        {/* Feature 2: Jumlah Map Laras (1 to 8 Maps) */}
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Total Maps / Match</label>
+                          <select
+                            value={newMaxMatches}
+                            onChange={(e) => setNewMaxMatches(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none"
+                          >
+                            {[3, 4, 5, 6, 7, 8].map(num => (
+                              <option key={num} value={num}>{num} Maps</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Description / Rules</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 16 Invited Pro Teams, mandatory live recording"
+                            value={newScrimDesc}
+                            onChange={(e) => setNewScrimDesc(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Date</label>
+                            <input
+                              type="date"
+                              value={newScrimDate}
+                              onChange={(e) => setNewScrimDate(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-slate-200 focus:outline-none text-[11px]"
+                            />
+                          </div>
                           <button
                             type="submit"
                             className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2 rounded-xl transition flex items-center justify-center shadow-md shadow-amber-400/20"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -865,10 +1059,10 @@ export default function App() {
 
                 </div>
 
-                {/* Match Switcher & Control Header */}
+                {/* Match Switcher Dynamic based on Scrim max_matches */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2.5">
                   <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
-                    {[0, 1, 2, 3, 4].map((idx) => (
+                    {Array.from({ length: activeScrim?.max_matches || 5 }, (_, idx) => (
                       <button
                         key={idx}
                         onClick={() => setSelectedMatchIdx(idx)}
@@ -894,7 +1088,6 @@ export default function App() {
                     <button
                       onClick={handleRandomizeTestData}
                       className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-950 hover:bg-slate-800 text-amber-400 border border-amber-400/20 rounded-xl text-xs font-bold transition flex items-center gap-1"
-                      title="Quick Fill Demo Values"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Quick Fill</span>
@@ -902,7 +1095,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* MOBILE VIEW: TOUCH-FRIENDLY SCORE CARDS */}
+                {/* Mobile Touch Score Matrix */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -941,7 +1134,6 @@ export default function App() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-xs">
-                          {/* Placement Input */}
                           <div className="flex items-center justify-between bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
                             <span className="text-[10px] text-slate-400 uppercase font-bold">Rank:</span>
                             <div className="flex items-center gap-1">
@@ -957,7 +1149,6 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Kills Stepper (+ / -) */}
                           <div className="flex items-center justify-between bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800">
                             <span className="text-[10px] text-slate-400 uppercase font-bold pl-1">Kills:</span>
                             <div className="flex items-center gap-1">
@@ -986,7 +1177,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* DESKTOP TABLE VIEW */}
+                {/* Desktop Score Table */}
                 <div className="hidden md:block bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-md">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -1053,7 +1244,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* STICKY ACTION BUTTON BAR */}
+                {/* Sticky Action Button Bar */}
                 <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-slate-950/90 md:bg-transparent backdrop-blur md:backdrop-blur-none border-t md:border-t-0 border-slate-800 z-30">
                   <button
                     onClick={handleSaveMatchScore}
@@ -1070,41 +1261,66 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 2: LEADERBOARD (ESPORTS RANKING CARDS & TABLE)       */}
+        {/* VIEW 2: LEADERBOARD (TIER SEARCH, LOGO, CONTACT PM TEPI)  */}
         {/* ========================================================= */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
             
-            {/* Scrim Info Card */}
+            {/* Scrim Info Card with Custom Logo & PM Tepi */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 uppercase font-mono">
-                      {activeScrim?.tier || 'Tier 1'}
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {activeScrim?.date}
-                    </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                
+                {/* Logo & Scrim Title */}
+                <div className="flex items-center space-x-3.5">
+                  {activeScrim?.logo_url ? (
+                    <img 
+                      src={activeScrim.logo_url} 
+                      alt="Scrim Logo" 
+                      className="w-14 h-14 rounded-2xl object-cover border border-amber-400/30 shadow-lg shadow-amber-500/10 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-xl flex-shrink-0">
+                      🏆
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 uppercase font-mono">
+                        {activeScrim?.tier || 'Tier 1'}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {activeScrim?.date}
+                      </span>
+                      {activeScrim?.max_matches && (
+                        <span className="text-[10px] bg-slate-950 border border-slate-700 px-2 py-0.5 rounded-full text-slate-300">
+                          {activeScrim.max_matches} Maps
+                        </span>
+                      )}
+                    </div>
+                    <h1 className="text-lg sm:text-2xl font-black text-slate-100 mt-1 leading-tight">
+                      {activeScrim?.title || 'No Scrim Session Available'}
+                    </h1>
                   </div>
-                  <h1 className="text-lg sm:text-2xl font-black text-slate-100 mt-1 leading-tight">
-                    {activeScrim?.title || 'No Scrim Session Available'}
-                  </h1>
                 </div>
 
-                {/* Switcher & Actions */}
-                <div className="flex items-center gap-2">
-                  <select
-                    value={selectedScrimId}
-                    onChange={(e) => setSelectedScrimId(e.target.value)}
-                    className="flex-1 sm:flex-none bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
-                  >
-                    {scrims.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title}
-                      </option>
-                    ))}
-                  </select>
+                {/* Feature 3: Butang PM Tepi / Contact Host */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {activeScrim?.host_contact && (
+                    <a
+                      href={activeScrim.host_contact.startsWith('http') 
+                        ? activeScrim.host_contact 
+                        : activeScrim.host_contact.replace(/\D/g, '').length >= 9
+                        ? `https://wa.me/${activeScrim.host_contact.replace(/\D/g, '')}` : `https://t.me/${activeScrim.host_contact.replace('@', '')}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>PM Host / Join Scrim</span>
+                    </a>
+                  )}
 
                   <button
                     onClick={handleDownloadPoster}
@@ -1124,9 +1340,36 @@ export default function App() {
                     <span className="hidden sm:inline">Copy Text</span>
                   </button>
                 </div>
+
               </div>
 
-              {/* Mode Filter Pills */}
+              {/* Feature 5: Search & Tier Category Filter Box */}
+              <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search scrim name..."
+                    value={searchScrimQuery}
+                    onChange={(e) => setSearchScrimQuery(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="flex gap-1.5 overflow-x-auto py-0.5">
+                  {['All', 'Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTierFilter(t)}
+                      className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (tierFilter === t ? 'bg-amber-400 text-slate-950 shadow' : 'bg-slate-950 text-slate-400 hover:text-slate-200')}
+                    >
+                      {t === 'All' ? 'All Tiers' : t.split(' ')[0] + ' ' + t.split(' ')[1]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Scrim Match Switcher Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto py-1">
                 <button
                   onClick={() => setLeaderboardFilter('overall')}
@@ -1156,7 +1399,6 @@ export default function App() {
               <div className="space-y-2">
                 {leaderboardData.map((row) => {
                   const isFirst = row.rank === 1;
-                  const isTopThree = row.rank <= 3;
                   return (
                     <div
                       key={row.teamId}
@@ -1170,147 +1412,11 @@ export default function App() {
                           : 'bg-slate-900/60 border-slate-800/80'
                       }`}
                     >
-                      {/* Left: Rank & Team */}
                       <div className="flex items-center space-x-3">
                         <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
-                            isFirst
-                              ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30'
-                              : row.rank === 2
-                              ? 'bg-slate-300 text-slate-950'
-                              : row.rank === 3
-                              ? 'bg-amber-700 text-slate-100'
-                              : 'bg-slate-950 text-slate-500 font-mono'
-                          }`}
-                        >
-                          {row.rank}
-                        </div>
-
-                        <div>
-                          <div className="font-black text-xs sm:text-sm text-slate-100 flex items-center gap-1.5">
-                            <span>{row.teamName}</span>
-                            {row.wwcd > 0 && (
-                              <span className="text-[10px] bg-amber-400/15 border border-amber-400/30 text-amber-400 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
-                                🍗 x{row.wwcd}
-                              </span>
-                            )}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${ isFirst ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30' : row.rank === 2 ? 'bg-slate-300 text-slate-950' : row.rank === 3 ? 'bg-amber-700 text-slate-100' : 'bg-slate-950 text-slate-500 font-mono' }`} > {row.rank} </div>  <div> <div className="font-black text-xs sm:text-sm text-slate-100 flex items-center gap-1.5"> <span>{row.teamName}</span> {row.wwcd > 0 && ( <span className="text-[10px] bg-amber-400/15 border border-amber-400/30 text-amber-400 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5"> 🍗 x{row.wwcd} </span> )} </div> <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5"> <span>Matches: {row.matchesPlayed}</span> <span>•</span> <span className="text-slate-300 font-semibold">Kills: {row.killPts}</span> <span>•</span> <span>Place: {row.placePts}</span> </div> </div> </div>  <div className="text-right"> <div className="text-base sm:text-xl font-black font-mono text-amber-400"> {row.totalPts} </div> <div className="text-[9px] text-slate-500 uppercase tracking-widest font-bold"> PTS </div> </div> </div> ); })} </div> )}  </div> )}  {/* ========================================================= */} {/* VIEW 3: TEAM STATS (FEATURE 1: DETAILED POINTS & KILLS)   */} {/* ========================================================= */} {activeTab === 'teams' && ( <div className="space-y-4">  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-3"> <div> <h2 className="text-base sm:text-lg font-black text-slate-100">Team Statistics & Performance</h2> <p className="text-xs text-slate-400">Aggregated tournament results, aggregate kills, and points.</p> </div>  <div className="relative"> <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" /> <input type="text" placeholder="Search team name or tag..." value={teamSearchQuery} onChange={(e) => setTeamSearchQuery(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400" /> </div>  <div className="flex gap-1.5 overflow-x-auto py-1"> {filteredTeamList.map(t => ( <button key={t.name} onClick={() => setSelectedTeamProfile(t.name)} className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (selectedTeamProfile === t.name ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400')} > [{t.tag}] {t.name} </button> ))} </div> </div>  {/* Team Detailed Performance Overview Cards */} {activeTeamData && ( <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-4"> <div className="flex items-center justify-between pb-3 border-b border-slate-800"> <div className="flex items-center space-x-3"> <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-lg"> {activeTeamData.tag} </div> <div> <h3 className="font-black text-base text-slate-100">{activeTeamData.name}</h3> <span className="text-xs text-slate-400">Verified Competitive Roster</span> </div> </div> </div>  {/* Feature 1: Stat Summary Cards */} <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"> <div className="bg-slate-950 border border-slate-800 p-3 rounded-2xl text-center"> <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Points</span> <span className="text-lg font-black font-mono text-amber-400">{activeTeamData.totalPoints}</span> </div> <div className="bg-slate-950 border border-slate-800 p-3 rounded-2xl text-center"> <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Kills</span> <span className="text-lg font-black font-mono text-red-400">{activeTeamData.totalKills}</span> </div> <div className="bg-slate-950 border border-slate-800 p-3 rounded-2xl text-center"> <span className="text-[10px] uppercase font-bold text-slate-500 block">Total WWCD</span> <span className="text-lg font-black font-mono text-emerald-400">{activeTeamData.totalWWCD}</span> </div> <div className="bg-slate-950 border border-slate-800 p-3 rounded-2xl text-center"> <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Scrims</span> <span className="text-lg font-black font-mono text-slate-200">{activeTeamData.scrimResults.length}</span> </div> </div>  {/* Scrim Performance Breakdown Table */} <div className="space-y-2 pt-2"> <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block"> Performance Log Per Scrim Session </span>  {activeTeamData.scrimResults && activeTeamData.scrimResults.length > 0 ? ( activeTeamData.scrimResults.map((item, idx) => ( <div key={idx} className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between" > <div> <div className="font-bold text-xs text-slate-200">{item.scrimName}</div> <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5"> <span className="text-amber-400 font-semibold">{item.scrimTier}</span> <span>•</span> <span>{item.date}</span> </div> </div>  <div className="flex items-center space-x-3 text-right"> <div> <span className="text-[9px] text-slate-500 uppercase font-bold block">Kills</span> <span className="text-xs font-mono font-bold text-slate-300">{item.kills} K</span> </div> <div> <span className="text-[9px] text-slate-500 uppercase font-bold block">Points</span> <span className="text-xs font-mono font-black text-amber-400">{item.points} PTS</span> </div> <div className="w-16 text-right"> <span className="text-xs font-black"> {item.ranking === 1 ? '👑 #1' : `#${item.ranking}`}
+                            </span>
                           </div>
-                          <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span>Matches: {row.matchesPlayed}</span>
-                            <span>•</span>
-                            <span>Kills: {row.killPts}</span>
-                            <span>•</span>
-                            <span>Place: {row.placePts}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Total Points Badge */}
-                      <div className="text-right">
-                        <div className="text-base sm:text-xl font-black font-mono text-amber-400">
-                          {row.totalPts}
-                        </div>
-                        <div className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
-                          PTS
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* VIEW 3: TEAM HISTORY (SIMPLIFIED MOBILE CARDS)            */}
-        {/* ========================================================= */}
-        {activeTab === 'teams' && (
-          <div className="space-y-4">
-            
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-100">Team Tournament Database</h2>
-                <p className="text-xs text-slate-400">Verified official scrim records and tournament rankings.</p>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  placeholder="Search team name or tag..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              {/* Team Pill Chips */}
-              <div className="flex gap-1.5 overflow-x-auto py-1">
-                {filteredTeamList.map(t => (
-                  <button
-                    key={t.name}
-                    onClick={() => setSelectedTeamProfile(t.name)}
-                    className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (selectedTeamProfile === t.name ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400')}
-                  >
-                    [{t.tag}] {t.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Selected Team Profile Card */}
-            {activeTeamData && (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-lg">
-                      {activeTeamData.tag}
-                    </div>
-                    <div>
-                      <h3 className="font-black text-base text-slate-100">{activeTeamData.name}</h3>
-                      <span className="text-xs text-slate-400">Official Roster</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-right">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Total Scrims</span>
-                    <span className="text-sm font-black font-mono text-amber-400">{activeTeamData.scrimResults?.length || 0}</span>
-                  </div>
-                </div>
-
-                {/* Scrim Results Only */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Tournament Placement History
-                  </span>
-
-                  {activeTeamData.scrimResults && activeTeamData.scrimResults.length > 0 ? (
-                    activeTeamData.scrimResults.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="font-bold text-xs text-slate-200">{item.scrimName}</div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
-                            <span className="text-amber-400 font-semibold">{item.scrimTier}</span>
-                            <span>•</span>
-                            <span>{item.date}</span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="font-black text-xs">
-                            {item.ranking === 1 ? (
-                              <span className="text-amber-400">👑 Champion</span>
-                            ) : (
-                              <span className="text-slate-300">Rank #{item.ranking}</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] font-mono text-slate-400 font-bold">{item.points} PTS</div>
                         </div>
                       </div>
                     ))
@@ -1327,33 +1433,52 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 4: SHOWCASE (FEED STYLE CARDS)                       */}
+        {/* VIEW 4: SHOWCASE (FEATURE 6: ADMIN TOURNAMENT POSTER FEED)*/}
         {/* ========================================================= */}
         {activeTab === 'showcase' && (
           <div className="space-y-4">
             
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-lg flex items-center justify-between">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-black text-slate-100 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Highlight Feed</span>
+                  <span>Showcase & Tournament Hub</span>
                 </h2>
-                <p className="text-[11px] text-slate-400">Watch clutch clips & tournament trophy moments.</p>
+                <p className="text-[11px] text-slate-400">Posters, registrations, and clutch gameplay clips.</p>
               </div>
 
-              <div className="flex items-center gap-1 text-xs">
-                <button
-                  onClick={() => setShowcaseFilter('all')}
-                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setShowcaseFilter('clip')}
-                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
-                >
-                  Clips
-                </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-1 text-xs">
+                  <button
+                    onClick={() => setShowcaseFilter('all')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setShowcaseFilter('achievement')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'achievement' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
+                  >
+                    Tournaments
+                  </button>
+                  <button
+                    onClick={() => setShowcaseFilter('clip')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
+                  >
+                    Clips
+                  </button>
+                </div>
+
+                {/* Feature 6: Admin Publish Post Button */}
+                {currentUser && (
+                  <button
+                    onClick={() => setIsShowcaseModalOpen(true)}
+                    className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-md"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Post Tournament</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1390,9 +1515,88 @@ export default function App() {
 
       </main>
 
-      {/* ========================================================= */}
-      {/* MOBILE BOTTOM NAVIGATION BAR (FIXED DOCK)                 */}
-      {/* ========================================================= */}
+      {/* Feature 6: Admin Tournament Poster Upload Modal */}
+      {isShowcaseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-black text-sm text-slate-100 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-amber-400" />
+                <span>Publish Tournament Poster / Clip</span>
+              </h3>
+              <button onClick={() => setIsShowcaseModalOpen(false)} className="text-slate-400 hover:text-slate-200 text-lg font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleCreateShowcasePost} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 uppercase font-bold mb-1">Post Type</label>
+                <select
+                  value={postType}
+                  onChange={(e) => setPostType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
+                >
+                  <option value="poster">Tournament Poster (Image)</option>
+                  <option value="tournament">Tournament Announcement (Image)</option>
+                  <option value="clip">Gameplay Highlight (Video MP4)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 uppercase font-bold mb-1">Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. PMSL SEA Spring Qualifier Open Registration"
+                  value={postTitle}
+                  onChange={(e) => setPostTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 uppercase font-bold mb-1">Poster Image or Clip URL</label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://... poster.jpg / video.mp4"
+                  value={postMediaUrl}
+                  onChange={(e) => setPostMediaUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 uppercase font-bold mb-1">Caption / Registration Link</label>
+                <textarea
+                  rows="3"
+                  placeholder="Describe slot availability, prize pool, registration link or rules..."
+                  value={postCaption}
+                  onChange={(e) => setPostCaption(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsShowcaseModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black"
+                >
+                  Publish Post
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE BOTTOM NAVIGATION DOCK */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 z-50 px-2 py-1.5 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => setActiveTab('leaderboard')}
