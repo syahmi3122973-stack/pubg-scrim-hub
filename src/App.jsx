@@ -629,7 +629,7 @@ export default function App() {
                 className={'flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-100')}
               >
                 <Users className="w-4 h-4" />
-                <span>Sejarah Team</span>
+                <span>History Team</span>
               </button>
 
               <button
@@ -1025,13 +1025,13 @@ export default function App() {
           </div>
         )}
 
-        {/* 3. SEJARAH TEAM */}
+        {/* 3. TEAM HISTORY */}
         {activeTab === 'teams' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-black text-slate-100">Database & Sejarah Pasukan</h2>
+                  <h2 className="text-lg font-black text-slate-100">Database & Team History</h2>
                   <p className="text-xs text-slate-400">Pilih pasukan untuk melihat rekod keputusan scrim, ranking dan mata terkumpul dari cloud.</p>
                 </div>
                 
