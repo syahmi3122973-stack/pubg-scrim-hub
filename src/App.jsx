@@ -4,10 +4,9 @@ import {
   Shield, 
   Swords, 
   Search, 
-  Video, 
   Plus, 
+  Minus,
   CheckCircle, 
-  Flame, 
   Users, 
   Copy, 
   Play, 
@@ -16,9 +15,16 @@ import {
   RefreshCw, 
   Layers, 
   Check, 
-  Sparkles,
-  Download,
-  Filter
+  Sparkles, 
+  Download, 
+  Filter, 
+  LogOut, 
+  User, 
+  Lock, 
+  Mail,
+  ChevronRight,
+  Flame,
+  Award
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -59,61 +65,104 @@ const DEFAULT_TEAMS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('admin');
+  const [activeTab, setActiveTab] = useState('leaderboard');
   const [scrims, setScrims] = useState([]);
   const [posts, setPosts] = useState([]);
   const [selectedScrimId, setSelectedScrimId] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   const [tierFilter, setTierFilter] = useState('All');
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Auth State
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // ============================================================
-  // 1. TARIK DATA DARI SUPABASE SEMASA MULA BUKA WEB (ASYNCHRONOUS)
-  // ============================================================
   useEffect(() => {
-    async function loadCloudData() {
-      setIsLoading(true);
-      try {
-        // Tarik data Scrims dari cloud
-        const { data: scrimData, error: scrimError } = await supabase
-          .from('scrims')
-          .select('*')
-          .order('date', { ascending: false });
+    async function initApp() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user || null);
 
-        if (scrimError) {
-          console.error('Error tarik scrims:', scrimError);
-        } else if (scrimData && scrimData.length > 0) {
-          setScrims(scrimData);
-          setSelectedScrimId(scrimData[0].id);
-        }
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setCurrentUser(session?.user || null);
+      });
 
-        // Tarik data Showcase Posts dari cloud
-        const { data: postData, error: postError } = await supabase
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false });
+      const { data: scrimData } = await supabase
+        .from('scrims')
+        .select('*')
+        .order('date', { ascending: false });
 
-        if (postError) {
-          console.error('Error tarik posts:', postError);
-        } else if (postData && postData.length > 0) {
-          setPosts(postData);
-        }
-      } catch (err) {
-        console.error('Connection error:', err);
-      } finally {
-        setIsLoading(false);
+      if (scrimData && scrimData.length > 0) {
+        setScrims(scrimData);
+        setSelectedScrimId(scrimData[0].id);
       }
+
+      const { data: postData } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (postData && postData.length > 0) {
+        setPosts(postData);
+      }
+
+      return () => subscription.unsubscribe();
     }
 
-    loadCloudData();
+    initApp();
   }, []);
 
-  // 1. Form Cipta Scrim
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+
+    if (isRegisterMode) {
+      const { error } = await supabase.auth.signUp({
+        email: authEmail,
+        password: authPassword
+      });
+
+      if (error) {
+        showToast('Registration Error: ' + error.message);
+      } else {
+        showToast('Registration successful! Check email or sign in.');
+        setIsRegisterMode(false);
+      }
+    } else {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword
+      });
+
+      if (error) {
+        showToast('Login Failed: ' + error.message);
+      } else {
+        setCurrentUser(data.user);
+        showToast('Welcome Admin ' + data.user.email);
+        setAuthPassword('');
+      }
+    }
+    setAuthLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    showToast('Signed out successfully.');
+  };
+
+  const adminHostedScrims = useMemo(() => {
+    if (!currentUser) return [];
+    return scrims.filter(s => s.created_by === currentUser.id || s.created_by === currentUser.email);
+  }, [scrims, currentUser]);
+
+  // Scrim Creation & Match Slots
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
@@ -173,6 +222,12 @@ export default function App() {
     });
   };
 
+  const handleAdjustKills = (index, delta) => {
+    const current = matchSlots[index].kills;
+    const nextVal = Math.max(0, current + delta);
+    handleSlotChange(index, 'kills', nextVal);
+  };
+
   const handleRandomizeTestData = () => {
     const placements = Array.from({ length: 16 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     setMatchSlots(prev => {
@@ -189,15 +244,16 @@ export default function App() {
         };
       });
     });
-    showToast('Randomized Match Data Generated!');
+    showToast('Random test values populated!');
   };
 
-  // ============================================================
-  // 2. SIMPAN SKOR MATCH KE SUPABASE (ASYNCHRONOUS)
-  // ============================================================
   const handleSaveMatchScore = async () => {
+    if (!currentUser) {
+      showToast('Please sign in as Admin to save scores!');
+      return;
+    }
     if (!activeScrim) {
-      showToast('⚠️ Sila cipta atau pilih satu sesi scrim dahulu!');
+      showToast('Please select or create a scrim session first!');
       return;
     }
 
@@ -228,55 +284,54 @@ export default function App() {
     const updatedScrim = {
       ...activeScrim,
       matches: existingMatches,
-      total_matches: existingMatches.length
+      total_matches: existingMatches.length,
+      created_by: activeScrim.created_by || currentUser.id
     };
 
-    // Hantar data ke cloud Supabase
     const { error } = await supabase.from('scrims').upsert(updatedScrim);
 
     if (error) {
-      console.error(error);
-      showToast('❌ Ralat simpan ke cloud: ' + error.message);
+      showToast('Error: ' + error.message);
     } else {
       setScrims(scrims.map(s => s.id === activeScrim.id ? updatedScrim : s));
-      showToast('✅ Match ' + (selectedMatchIdx + 1) + ' berjaya disimpan ke Supabase Cloud!');
+      showToast('Match ' + (selectedMatchIdx + 1) + ' synced to Cloud!');
     }
   };
 
-  // ============================================================
-  // 3. CIPTA SCRIM BAHARU KE SUPABASE (ASYNCHRONOUS)
-  // ============================================================
   const handleCreateNewScrim = async (e) => {
     e.preventDefault();
+    if (!currentUser) {
+      showToast('Only authorized admins can create scrims!');
+      return;
+    }
     if (!newScrimTitle.trim()) return;
 
     const newSession = {
       id: 'scrim_' + Date.now(),
       title: newScrimTitle.trim(),
       tier: newScrimTier,
-      description: newScrimDesc.trim() || 'Tiada description.',
+      description: newScrimDesc.trim() || 'No description provided.',
       date: newScrimDate || new Date().toISOString().split('T')[0],
       total_matches: 0,
-      matches: []
+      matches: [],
+      created_by: currentUser.id
     };
 
-    // Masukkan rekod baru ke jadual scrims di Supabase
     const { error } = await supabase.from('scrims').insert([newSession]);
 
     if (error) {
-      console.error(error);
-      showToast('❌ Ralat cipta scrim: ' + error.message);
+      showToast('Error: ' + error.message);
     } else {
       setScrims([newSession, ...scrims]);
       setSelectedScrimId(newSession.id);
       setSelectedMatchIdx(0);
       setNewScrimTitle('');
       setNewScrimDesc('');
-      showToast('🏆 Scrim baru berjaya disimpan di Supabase Cloud!');
+      showToast('Tournament session created!');
     }
   };
 
-  // Leaderboard logic
+  // Leaderboard Engine
   const [leaderboardFilter, setLeaderboardFilter] = useState('overall');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
@@ -344,28 +399,27 @@ export default function App() {
 
     let output = '**' + (activeScrim?.title || 'SCRIM').toUpperCase() + '**\n';
     output += 'Tier: ' + (activeScrim?.tier || 'Tier 1') + ' | Date: ' + (activeScrim?.date || '') + '\n';
-    output += 'Description: ' + (activeScrim?.description || '-') + '\n';
     output += '============================\n';
     output += '# | TEAM | MATCH | WWCD | KILLS | TOTAL\n';
     output += '============================\n';
 
     leaderboardData.forEach((row) => {
-      const badge = row.rank === 1 ? '1.' : row.rank === 2 ? '2.' : row.rank === 3 ? '3.' : row.rank + '.';
+      const badge = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : row.rank + '.';
       output += badge + ' [' + row.tag + '] ' + row.teamName + ' | ' + row.matchesPlayed + 'M | ' + row.wwcd + 'W | ' + row.killPts + 'K | ' + row.totalPts + ' PTS\n';
     });
 
-    output += '============================\n*Calculated by PUBGM Scrim Hub*';
+    output += '============================\n*Generated by PUBGM Scrim Hub*';
 
     navigator.clipboard.writeText(output).then(() => {
       setCopyFeedback(true);
-      showToast('Standings disalin ke clipboard!');
+      showToast('Standings copied to clipboard!');
       setTimeout(() => setCopyFeedback(false), 2500);
     });
   };
 
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
-      showToast('⚠️ Tiada data untuk download poster!');
+      showToast('No data available to render poster!');
       return;
     }
 
@@ -400,7 +454,7 @@ export default function App() {
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 18px sans-serif';
-    ctx.fillText('Tarikh: ' + (activeScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 175);
+    ctx.fillText('Date: ' + (activeScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 175);
 
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(60, 205, 960, 48);
@@ -455,10 +509,10 @@ export default function App() {
     link.download = 'scrim-leaderboard.png';
     link.href = image;
     link.click();
-    showToast('📸 Poster PNG berjaya dimuat turun!');
+    showToast('Poster PNG downloaded!');
   };
 
-  // Team Database
+  // Team History DB
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
@@ -524,881 +578,862 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // Showcase
+  // Showcase Filter
   const [showcaseFilter, setShowcaseFilter] = useState('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [newAuthor, setNewAuthor] = useState('');
-  const [newPlayerRole, setNewPlayerRole] = useState('Fragger');
-  const [newTeamTag, setNewTeamTag] = useState('GEEK');
-  const [newPostType, setNewPostType] = useState('clip');
-  const [newPostTitle, setNewPostTitle] = useState('');
-  const [newTournament, setNewTournament] = useState('');
-  const [newRankBadge, setNewRankBadge] = useState('1st Place');
-  const [newMediaUrl, setNewMediaUrl] = useState('');
-  const [newCaption, setNewCaption] = useState('');
-
-  // ============================================================
-  // 4. CIPTA POST SHOWCASE KE SUPABASE (ASYNCHRONOUS)
-  // ============================================================
-  const handleCreatePost = async (e) => {
-    e.preventDefault();
-    if (!newPostTitle.trim()) return;
-
-    const newPost = {
-      id: 'post_' + Date.now(),
-      author: newAuthor || 'Pro Player',
-      player_role: newPlayerRole,
-      team_tag: newTeamTag,
-      type: newPostType,
-      title: newPostTitle,
-      tournament: newTournament || 'Community Scrim Tournament',
-      rank: newRankBadge,
-      caption: newCaption || 'Check out this match highlight!',
-      media_type: newPostType === 'clip' ? 'video' : 'image',
-      media_url: newMediaUrl || (newPostType === 'clip' 
-        ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' 
-        : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80'),
-      likes: 1,
-      date: 'Just now',
-      tags: ['#PUBGM', '#' + newTeamTag, '#Portfolio']
-    };
-
-    const { error } = await supabase.from('posts').insert([newPost]);
-
-    if (error) {
-      console.error(error);
-      showToast('❌ Ralat simpan post: ' + error.message);
-    } else {
-      setPosts([newPost, ...posts]);
-      setIsModalOpen(false);
-      showToast('✨ Showcase berjaya diterbitkan di Supabase!');
-      setNewPostTitle('');
-      setNewTournament('');
-      setNewMediaUrl('');
-      setNewCaption('');
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black pb-20 md:pb-6">
       
+      {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-amber-500 text-slate-950 px-4 py-3 rounded-lg shadow-xl font-bold flex items-center space-x-2">
-          <CheckCircle className="w-5 h-5 text-slate-950" />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-400 text-slate-950 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-amber-300">
+          <CheckCircle className="w-4 h-4 text-slate-950" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* HEADER */}
-      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Swords className="w-6 h-6 text-slate-950 font-black" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-black tracking-wider text-amber-400">PUBGM SCRIMHUB</span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">CLOUD LIVE</span>
-                </div>
-                <span className="text-xs block text-slate-400 -mt-1 font-medium">Point Engine, Poster & History</span>
-              </div>
+      {/* TOP DESKTOP & MOBILE COMPACT HEADER */}
+      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20">
+              <Swords className="w-5 h-5 font-black" />
             </div>
-
-            <nav className="flex space-x-1 sm:space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-semibold">
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={'flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'admin' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-100')}
-              >
-                <Layers className="w-4 h-4" />
-                <span>Admin Scrim</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('leaderboard')}
-                className={'flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-100')}
-              >
-                <Trophy className="w-4 h-4" />
-                <span>Leaderboard</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('teams')}
-                className={'flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-100')}
-              >
-                <Users className="w-4 h-4" />
-                <span>History Team</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('showcase')}
-                className={'flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'showcase' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-100')}
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Showcase</span>
-              </button>
-            </nav>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base font-black tracking-wider text-slate-100">SCRIMHUB</span>
+                <span className="text-[9px] bg-amber-400/20 text-amber-300 border border-amber-400/40 px-1.5 py-0.2 rounded font-mono font-bold">
+                  PUBGM
+                </span>
+              </div>
+              <span className="text-[10px] block text-slate-400 -mt-0.5 font-medium">Live Point & Standings Engine</span>
+            </div>
           </div>
+
+          {/* DESKTOP NAV TABS (HIDDEN ON MOBILE) */}
+          <nav className="hidden md:flex space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-slate-100')}
+            >
+              <Trophy className="w-4 h-4" />
+              <span>Leaderboard</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('teams')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-slate-100')}
+            >
+              <Users className="w-4 h-4" />
+              <span>Team History</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('showcase')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'showcase' ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-slate-100')}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Showcase</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'admin' ? 'bg-amber-400 text-slate-950 shadow-md font-bold' : 'text-slate-400 hover:text-slate-100')}
+            >
+              {currentUser ? <User className="w-4 h-4 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-amber-500" />}
+              <span>Admin Scrim</span>
+            </button>
+          </nav>
+
+          {/* Quick Indicator Header on Mobile */}
+          <div className="flex md:hidden items-center gap-1.5">
+            {currentUser ? (
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" title="Admin Active" />
+            ) : (
+              <span className="text-[10px] text-slate-500 font-mono">PLAYER MODE</span>
+            )}
+          </div>
+
         </div>
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
-        {/* 1. ADMIN SCRIM */}
+        {/* ========================================================= */}
+        {/* VIEW 1: ADMIN SCRIM (MOBILE TOUCH CARDS + DESKTOP TABLE)  */}
+        {/* ========================================================= */}
         {activeTab === 'admin' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Pilih Sesi Scrim (Cloud)
-                  </label>
-                  <div className="flex items-center space-x-1 text-[11px] text-slate-400">
-                    <Filter className="w-3 h-3 text-amber-500" />
-                    <select
-                      value={tierFilter}
-                      onChange={(e) => setTierFilter(e.target.value)}
-                      className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 focus:outline-none"
-                    >
-                      <option value="All">Semua Tier</option>
-                      {TIER_OPTIONS.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+          <div className="space-y-4 sm:space-y-6">
+            
+            {!currentUser ? (
+              <div className="max-w-md mx-auto my-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+                <div className="text-center space-y-1.5">
+                  <div className="w-12 h-12 bg-amber-400/10 border border-amber-400/30 text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
+                    <Lock className="w-6 h-6" />
                   </div>
+                  <h2 className="text-lg font-black text-slate-100">
+                    {isRegisterMode ? 'Register Host Account' : 'Admin Scrim Sign In'}
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Tournament organizers can manage matches and record scores. Players can view standings without logging in.
+                  </p>
                 </div>
 
-                <select
-                  value={selectedScrimId}
-                  onChange={(e) => setSelectedScrimId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none"
-                >
-                  {filteredScrims.length === 0 ? (
-                    <option value="">Belum ada scrim di cloud. Sila cipta baru di sebelah.</option>
-                  ) : (
-                    filteredScrims.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        [{s.tier || 'Tier 1'}] {s.title} ({s.date})
-                      </option>
-                    ))
-                  )}
-                </select>
-
-                {activeScrim && (
-                  <div className="pt-3 border-t border-slate-800 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded">
-                        {activeScrim.tier || 'Tier 1'}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-mono">{activeScrim.date}</span>
-                    </div>
-                    <p className="text-xs text-slate-300 line-clamp-2 italic">
-                      "{activeScrim.description || 'Tiada penerangan.'}"
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Form Cipta Scrim Baharu */}
-              <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Plus className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Cipta Sesi Scrim Baharu (Auto-Save ke Cloud)
-                  </h3>
-                </div>
-
-                <form onSubmit={handleCreateNewScrim} className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Nama Scrim
-                      </label>
+                <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+                  <div>
+                    <label className="block text-slate-400 uppercase font-bold mb-1">Email</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                       <input
-                        type="text"
-                        placeholder="Contoh: PMSL SEA Tier 1 Night Scrim"
-                        value={newScrimTitle}
-                        onChange={(e) => setNewScrimTitle(e.target.value)}
+                        type="email"
                         required
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
+                        placeholder="admin@esports.com"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-400"
                       />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Level Tier (Category)
-                      </label>
-                      <select
-                        value={newScrimTier}
-                        onChange={(e) => setNewScrimTier(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
-                      >
-                        {TIER_OPTIONS.map(t => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                    <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Description / Penerangan Scrim
-                      </label>
+                  <div>
+                    <label className="block text-slate-400 uppercase font-bold mb-1">Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                       <input
-                        type="text"
-                        placeholder="Contoh: 16 pasukan jemputan pro, standard scoring."
-                        value={newScrimDesc}
-                        onChange={(e) => setNewScrimDesc(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-400"
                       />
                     </div>
+                  </div>
 
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Tarikh
-                        </label>
-                        <input
-                          type="date"
-                          value={newScrimDate}
-                          onChange={(e) => setNewScrimDate(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center justify-center space-x-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Cipta</span>
-                      </button>
-                    </div>
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl transition shadow-lg shadow-amber-400/20 text-xs uppercase tracking-wider"
+                  >
+                    {authLoading ? 'Please wait...' : isRegisterMode ? 'Register as Admin' : 'Sign In as Admin'}
+                  </button>
+
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsRegisterMode(!isRegisterMode)}
+                      className="text-xs text-amber-400 hover:underline"
+                    >
+                      {isRegisterMode ? 'Already have an account? Sign In' : "Don't have an admin account? Register"}
+                    </button>
                   </div>
                 </form>
               </div>
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
+                
+                {/* Admin Status Header */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-amber-400 text-slate-950 font-black rounded-xl flex items-center justify-center">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-100 text-xs sm:text-sm truncate max-w-[180px] sm:max-w-xs">{currentUser.email}</span>
+                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono font-bold">
+                          HOST
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Total Scrims Hosted: <strong className="text-amber-400 font-mono">{adminHostedScrims.length}</strong>
+                      </p>
+                    </div>
+                  </div>
 
-            </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 sm:px-3 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition flex items-center gap-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Log Out</span>
+                  </button>
+                </div>
 
-            {/* Match Slots Table */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
-              <div className="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 bg-slate-900/60">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase mr-2">Match:</span>
-                  {[0, 1, 2, 3, 4].map((idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedMatchIdx(idx)}
-                      className={'px-3 py-1 rounded-md text-xs font-bold transition-all ' + (selectedMatchIdx === idx ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-slate-200')}
+                {/* Scrim Selector & Creator Form */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  
+                  {/* Select Scrim */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Scrim</span>
+                      <div className="flex items-center space-x-1 text-[11px] text-slate-400">
+                        <Filter className="w-3 h-3 text-amber-400" />
+                        <select
+                          value={tierFilter}
+                          onChange={(e) => setTierFilter(e.target.value)}
+                          className="bg-slate-950 border border-slate-800 rounded-md px-1.5 py-0.5 text-slate-300 focus:outline-none"
+                        >
+                          <option value="All">All Tiers</option>
+                          {TIER_OPTIONS.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <select
+                      value={selectedScrimId}
+                      onChange={(e) => setSelectedScrimId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
                     >
-                      M{idx + 1}
+                      {filteredScrims.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date})
+                        </option>
+                      ))}
+                    </select>
+
+                    {activeScrim && (
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-amber-400">{activeScrim.tier || 'Tier 1'}</span>
+                        <span className="text-slate-400 font-mono">{activeScrim.date}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Create New Scrim */}
+                  <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                    <div className="flex items-center space-x-2 mb-2.5">
+                      <Plus className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                        Host New Scrim Session
+                      </h3>
+                    </div>
+
+                    <form onSubmit={handleCreateNewScrim} className="space-y-2.5 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="sm:col-span-2">
+                          <input
+                            type="text"
+                            placeholder="Scrim Title (e.g. PMSL SEA Night Scrim)"
+                            value={newScrimTitle}
+                            onChange={(e) => setNewScrimTitle(e.target.value)}
+                            required
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <select
+                            value={newScrimTier}
+                            onChange={(e) => setNewScrimTier(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none"
+                          >
+                            {TIER_OPTIONS.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                        <div className="sm:col-span-2">
+                          <input
+                            type="text"
+                            placeholder="Brief Rules or Description"
+                            value={newScrimDesc}
+                            onChange={(e) => setNewScrimDesc(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            value={newScrimDate}
+                            onChange={(e) => setNewScrimDate(e.target.value)}
+                            className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-slate-200 focus:outline-none text-[11px]"
+                          />
+                          <button
+                            type="submit"
+                            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2 rounded-xl transition flex items-center justify-center shadow-md shadow-amber-400/20"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+
+                </div>
+
+                {/* Match Switcher & Control Header */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
+                    {[0, 1, 2, 3, 4].map((idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedMatchIdx(idx)}
+                        className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (selectedMatchIdx === idx ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400 hover:text-slate-200')}
+                      >
+                        Match {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <select
+                      value={inputMap}
+                      onChange={(e) => setInputMap(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none font-bold"
+                    >
+                      <option value="Erangel">Erangel</option>
+                      <option value="Miramar">Miramar</option>
+                      <option value="Sanhok">Sanhok</option>
+                      <option value="Vikendi">Vikendi</option>
+                    </select>
+
+                    <button
+                      onClick={handleRandomizeTestData}
+                      className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-950 hover:bg-slate-800 text-amber-400 border border-amber-400/20 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                      title="Quick Fill Demo Values"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Quick Fill</span>
                     </button>
-                  ))}
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Map:</span>
-                  <select
-                    value={inputMap}
-                    onChange={(e) => setInputMap(e.target.value)}
-                    className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
-                  >
-                    <option value="Erangel">Erangel</option>
-                    <option value="Miramar">Miramar</option>
-                    <option value="Sanhok">Sanhok</option>
-                    <option value="Vikendi">Vikendi</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center space-x-2 ml-auto">
-                  <button
-                    onClick={handleRandomizeTestData}
-                    className="text-xs bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg flex items-center space-x-1 font-medium"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Quick Fill</span>
-                  </button>
-
-                  <button
-                    onClick={handleSaveMatchScore}
-                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded-lg flex items-center space-x-1.5 shadow-md"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Match {selectedMatchIdx + 1} to Cloud</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-950/80 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800">
-                    <tr>
-                      <th className="py-3 px-4 w-12 text-center">Slot</th>
-                      <th className="py-3 px-4 min-w-[200px]">Team Name</th>
-                      <th className="py-3 px-4 w-28 text-center">Placement</th>
-                      <th className="py-3 px-4 w-28 text-center">Kills</th>
-                      <th className="py-3 px-4 w-24 text-center">Place Pts</th>
-                      <th className="py-3 px-4 w-24 text-center text-amber-400">Total Pts</th>
-                      <th className="py-3 px-4 w-24 text-center">WWCD</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
-                    {matchSlots.map((row, idx) => {
-                      const isWWCD = Number(row.placement) === 1;
-                      return (
-                        <tr key={idx} className={isWWCD ? 'bg-amber-500/10' : 'hover:bg-slate-800/40'}>
-                          <td className="py-2.5 px-4 text-center text-slate-500 font-bold">#{row.slot}</td>
-                          <td className="py-2.5 px-4 font-sans">
+                {/* MOBILE VIEW: TOUCH-FRIENDLY SCORE CARDS */}
+                <div className="md:hidden space-y-2.5">
+                  {matchSlots.map((row, idx) => {
+                    const isWWCD = Number(row.placement) === 1;
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3.5 rounded-2xl border transition ${
+                          isWWCD 
+                            ? 'bg-amber-400/10 border-amber-400/40' 
+                            : 'bg-slate-900/90 border-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2 flex-1 mr-2">
+                            <span className="text-[10px] font-mono text-slate-500 font-bold bg-slate-950 px-2 py-0.5 rounded-md">
+                              #{row.slot}
+                            </span>
                             <input
                               type="text"
                               value={row.teamName}
                               onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                              className="w-full bg-slate-950/80 border border-slate-700 rounded px-2.5 py-1 text-slate-100 font-semibold focus:outline-none"
+                              className="bg-transparent font-bold text-slate-100 text-xs border-b border-transparent focus:border-amber-400 focus:outline-none flex-1 truncate"
                             />
-                          </td>
-                          <td className="py-2.5 px-4 text-center">
-                            <input
-                              type="number"
-                              min="1"
-                              max="16"
-                              value={row.placement}
-                              onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                              className="w-16 bg-slate-950 border border-slate-700 text-center rounded py-1 font-bold text-slate-200 focus:outline-none"
-                            />
-                          </td>
-                          <td className="py-2.5 px-4 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              value={row.kills}
-                              onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                              className="w-16 bg-slate-950 border border-slate-700 text-center rounded py-1 font-bold text-slate-200 focus:outline-none"
-                            />
-                          </td>
-                          <td className="py-2.5 px-4 text-center text-slate-400 font-bold">{row.placePts}</td>
-                          <td className="py-2.5 px-4 text-center text-amber-400 font-extrabold text-sm">{row.totalPts}</td>
-                          <td className="py-2.5 px-4 text-center font-sans">
-                            {isWWCD ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950">
+                          </div>
+
+                          <div className="text-right flex items-center gap-1.5">
+                            {isWWCD && (
+                              <span className="bg-amber-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
                                 WWCD
                               </span>
-                            ) : (
-                              <span className="text-slate-600">-</span>
                             )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2. LEADERBOARD */}
-        {activeTab === 'leaderboard' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-mono">
-                    {activeScrim?.tier || 'Tier 1'}
-                  </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                    {activeScrim?.date}
-                  </span>
-                </div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-100 mt-1">
-                  {activeScrim?.title || 'Tiada Scrim Dipilih'}
-                </h1>
-                {activeScrim?.description && (
-                  <p className="text-xs text-slate-400 mt-0.5">{activeScrim.description}</p>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={selectedScrimId}
-                  onChange={(e) => setSelectedScrimId(e.target.value)}
-                  className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
-                >
-                  {scrims.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      [{s.tier?.slice(0, 6) || 'Tier'}] {s.title}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-                  <button
-                    onClick={() => setLeaderboardFilter('overall')}
-                    className={'px-3 py-1 rounded font-bold transition-all ' + (leaderboardFilter === 'overall' ? 'bg-amber-500 text-slate-950' : 'text-slate-400')}
-                  >
-                    Overall
-                  </button>
-                  {activeScrim?.matches?.map((m, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setLeaderboardFilter(idx.toString())}
-                      className={'px-2.5 py-1 rounded font-bold transition-all ' + (leaderboardFilter === idx.toString() ? 'bg-amber-500 text-slate-950' : 'text-slate-400')}
-                    >
-                      M{m.matchNo}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleDownloadPoster}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-black flex items-center space-x-1.5 shadow-md"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Poster</span>
-                </button>
-
-                <button
-                  onClick={handleCopyDiscordText}
-                  className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5"
-                >
-                  {copyFeedback ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-amber-400" />}
-                  <span>{copyFeedback ? 'Copied!' : 'Copy WA/Discord'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-              {leaderboardData.length === 0 ? (
-                <div className="p-12 text-center text-slate-500">
-                  <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-bold text-slate-400">Belum ada match data tersimpan untuk scrim ini.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-950 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800">
-                      <tr>
-                        <th className="py-3 px-4 w-16 text-center">Rank</th>
-                        <th className="py-3 px-4 min-w-[220px]">Team</th>
-                        <th className="py-3 px-4 text-center">Matches</th>
-                        <th className="py-3 px-4 text-center">WWCD</th>
-                        <th className="py-3 px-4 text-center">Placement Pts</th>
-                        <th className="py-3 px-4 text-center">Kill Pts</th>
-                        <th className="py-3 px-4 text-center text-amber-400 font-extrabold text-sm">Total Points</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800 font-sans text-sm">
-                      {leaderboardData.map((row) => (
-                        <tr key={row.teamId} className={row.rank === 1 ? 'bg-amber-500/10' : 'hover:bg-slate-800/30'}>
-                          <td className="py-3 px-4 text-center font-bold">
-                            {row.rank === 1 ? (
-                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-black">
-                                1
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 font-mono">#{row.rank}</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center font-black text-xs text-amber-400">
-                                {row.tag || 'PG'}
-                              </div>
-                              <div className="font-bold text-slate-100">{row.teamName}</div>
+                            <div className="text-xs font-black font-mono text-amber-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                              {row.totalPts} <span className="text-[9px] text-slate-500">PTS</span>
                             </div>
-                          </td>
-                          <td className="py-3 px-4 text-center font-mono text-slate-300">{row.matchesPlayed}</td>
-                          <td className="py-3 px-4 text-center font-mono font-bold text-amber-400">{row.wwcd}</td>
-                          <td className="py-3 px-4 text-center font-mono text-slate-300">{row.placePts}</td>
-                          <td className="py-3 px-4 text-center font-mono text-slate-300">{row.killPts}</td>
-                          <td className="py-3 px-4 text-center font-mono font-black text-amber-400 text-base">{row.totalPts}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+                          </div>
+                        </div>
 
-        {/* 3. TEAM HISTORY */}
-        {activeTab === 'teams' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-black text-slate-100">Database & Team History</h2>
-                  <p className="text-xs text-slate-400">Pilih pasukan untuk melihat rekod keputusan scrim, ranking dan mata terkumpul dari cloud.</p>
-                </div>
-                
-                <div className="relative w-full md:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Cari nama atau tag pasukan..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none"
-                  />
-                </div>
-              </div>
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-xs">
+                          {/* Placement Input */}
+                          <div className="flex items-center justify-between bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <span className="text-[10px] text-slate-400 uppercase font-bold">Rank:</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-500">#</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="16"
+                                value={row.placement}
+                                onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
+                                className="w-10 bg-transparent text-center font-bold text-slate-100 focus:outline-none"
+                              />
+                            </div>
+                          </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-slate-800">
-                {filteredTeamList.map(t => (
-                  <button
-                    key={t.name}
-                    onClick={() => setSelectedTeamProfile(t.name)}
-                    className={'px-2.5 py-1 rounded text-xs font-semibold flex items-center space-x-1.5 transition-all ' + (selectedTeamProfile === t.name ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700')}
-                  >
-                    <span>[{t.tag}]</span>
-                    <span>{t.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {activeTeamData && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-                <div className="p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 bg-slate-900/60">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 font-black text-lg">
-                      {activeTeamData.tag}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h2 className="text-lg font-black text-slate-100">{activeTeamData.name}</h2>
-                        <span className="text-xs bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-amber-400 font-mono">
-                          [{activeTeamData.tag}]
-                        </span>
+                          {/* Kills Stepper (+ / -) */}
+                          <div className="flex items-center justify-between bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800">
+                            <span className="text-[10px] text-slate-400 uppercase font-bold pl-1">Kills:</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleAdjustKills(idx, -1)}
+                                className="w-6 h-6 rounded-lg bg-slate-800 active:bg-slate-700 text-slate-300 flex items-center justify-center font-black"
+                              >
+                                -
+                              </button>
+                              <span className="w-6 text-center font-mono font-bold text-slate-100 text-xs">
+                                {row.kills}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleAdjustKills(idx, 1)}
+                                className="w-6 h-6 rounded-lg bg-amber-400 active:bg-amber-300 text-slate-950 flex items-center justify-center font-black"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-400">Rekod data rasmi kejohanan</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-                    <span className="text-slate-400 mr-2">Jumlah Scrim:</span>
-                    <span className="font-bold text-amber-400 font-mono text-sm">
-                      {activeTeamData.scrimResults?.length || 0}
-                    </span>
-                  </div>
+                    );
+                  })}
                 </div>
 
-                <div className="p-5">
-                  <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center space-x-1.5">
-                    <Trophy className="w-4 h-4" />
-                    <span>Keputusan Scrim Pasukan ({activeTeamData.scrimResults?.length || 0})</span>
-                  </h3>
-
-                  {activeTeamData.scrimResults && activeTeamData.scrimResults.length > 0 ? (
-                    <div className="overflow-x-auto border border-slate-800 rounded-lg">
-                      <table className="w-full text-left text-xs font-sans">
-                        <thead className="bg-slate-950 text-slate-400 uppercase font-bold border-b border-slate-800">
-                          <tr>
-                            <th className="py-3 px-4 min-w-[200px]">Nama Scrim</th>
-                            <th className="py-3 px-4 w-36 text-center">Level Scrim (Tier)</th>
-                            <th className="py-3 px-4 w-32 text-center">Ranking</th>
-                            <th className="py-3 px-4 w-32 text-center text-amber-400 font-bold">Total Point</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/80 font-mono">
-                          {activeTeamData.scrimResults.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-slate-800/40">
-                              <td className="py-3 px-4 font-sans font-bold text-slate-200">
-                                <div>{item.scrimName}</div>
-                                <div className="text-[10px] text-slate-500 font-mono font-normal">{item.date}</div>
+                {/* DESKTOP TABLE VIEW */}
+                <div className="hidden md:block bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-md">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-950 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800">
+                        <tr>
+                          <th className="py-3 px-4 w-12 text-center">Slot</th>
+                          <th className="py-3 px-4 min-w-[200px]">Team Name</th>
+                          <th className="py-3 px-4 w-28 text-center">Placement</th>
+                          <th className="py-3 px-4 w-28 text-center">Kills</th>
+                          <th className="py-3 px-4 w-24 text-center">Place Pts</th>
+                          <th className="py-3 px-4 w-24 text-center text-amber-400">Total Pts</th>
+                          <th className="py-3 px-4 w-24 text-center">WWCD</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800 font-mono text-xs">
+                        {matchSlots.map((row, idx) => {
+                          const isWWCD = Number(row.placement) === 1;
+                          return (
+                            <tr key={idx} className={isWWCD ? 'bg-amber-400/10' : 'hover:bg-slate-800/40'}>
+                              <td className="py-2.5 px-4 text-center text-slate-500 font-bold">#{row.slot}</td>
+                              <td className="py-2.5 px-4 font-sans">
+                                <input
+                                  type="text"
+                                  value={row.teamName}
+                                  onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
+                                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-100 font-semibold focus:outline-none"
+                                />
                               </td>
-                              <td className="py-3 px-4 text-center font-sans">
-                                <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-slate-950 border border-slate-700 text-amber-400">
-                                  {item.scrimTier}
-                                </span>
+                              <td className="py-2.5 px-4 text-center">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="16"
+                                  value={row.placement}
+                                  onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
+                                  className="w-16 bg-slate-950 border border-slate-700 text-center rounded-lg py-1 font-bold text-slate-200 focus:outline-none"
+                                />
                               </td>
-                              <td className="py-3 px-4 text-center font-sans font-black">
-                                {item.ranking === 1 ? (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-xs font-black">
-                                    Champion (#1)
+                              <td className="py-2.5 px-4 text-center">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={row.kills}
+                                  onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
+                                  className="w-16 bg-slate-950 border border-slate-700 text-center rounded-lg py-1 font-bold text-slate-200 focus:outline-none"
+                                />
+                              </td>
+                              <td className="py-2.5 px-4 text-center text-slate-400 font-bold">{row.placePts}</td>
+                              <td className="py-2.5 px-4 text-center text-amber-400 font-extrabold text-sm">{row.totalPts}</td>
+                              <td className="py-2.5 px-4 text-center font-sans">
+                                {isWWCD ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-amber-400 text-slate-950">
+                                    WWCD
                                   </span>
                                 ) : (
-                                  <span className="text-slate-300">Rank #{item.ranking}</span>
+                                  <span className="text-slate-600">-</span>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-center text-amber-400 font-black text-sm">
-                                {item.points} PTS
-                              </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-slate-500 border border-dashed border-slate-800 rounded-lg text-xs">
-                      Tiada rekod keputusan scrim untuk pasukan ini lagi.
-                    </div>
-                  )}
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {/* STICKY ACTION BUTTON BAR */}
+                <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-slate-950/90 md:bg-transparent backdrop-blur md:backdrop-blur-none border-t md:border-t-0 border-slate-800 z-30">
+                  <button
+                    onClick={handleSaveMatchScore}
+                    className="w-full py-3 md:py-2.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black rounded-2xl md:rounded-xl shadow-xl shadow-emerald-500/20 text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Match {selectedMatchIdx + 1} Scores</span>
+                  </button>
+                </div>
+
               </div>
             )}
           </div>
         )}
 
-        {/* 4. SHOWCASE */}
-        {activeTab === 'showcase' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                  <h1 className="text-xl font-black text-slate-100">Gamer Portfolio & Highlight Feed</h1>
+        {/* ========================================================= */}
+        {/* VIEW 2: LEADERBOARD (ESPORTS RANKING CARDS & TABLE)       */}
+        {/* ========================================================= */}
+        {activeTab === 'leaderboard' && (
+          <div className="space-y-4">
+            
+            {/* Scrim Info Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 uppercase font-mono">
+                      {activeScrim?.tier || 'Tier 1'}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {activeScrim?.date}
+                    </span>
+                  </div>
+                  <h1 className="text-lg sm:text-2xl font-black text-slate-100 mt-1 leading-tight">
+                    {activeScrim?.title || 'No Scrim Session Available'}
+                  </h1>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Platform ala Behance untuk pamerkan pencapaian trofi dan gameplay clip (Disimpan ke Cloud).
-                </p>
+
+                {/* Switcher & Actions */}
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedScrimId}
+                    onChange={(e) => setSelectedScrimId(e.target.value)}
+                    className="flex-1 sm:flex-none bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                  >
+                    {scrims.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={handleDownloadPoster}
+                    className="p-2 sm:px-3 sm:py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-md shadow-amber-400/20"
+                    title="Download Poster PNG"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Poster</span>
+                  </button>
+
+                  <button
+                    onClick={handleCopyDiscordText}
+                    className="p-2 sm:px-3 sm:py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                    title="Copy Text to Clipboard"
+                  >
+                    {copyFeedback ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-amber-400" />}
+                    <span className="hidden sm:inline">Copy Text</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
-                <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              {/* Mode Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                <button
+                  onClick={() => setLeaderboardFilter('overall')}
+                  className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (leaderboardFilter === 'overall' ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400')}
+                >
+                  Overall Standings
+                </button>
+                {activeScrim?.matches?.map((m, idx) => (
                   <button
-                    onClick={() => setShowcaseFilter('all')}
-                    className={'px-3 py-1 rounded font-bold transition-all ' + (showcaseFilter === 'all' ? 'bg-amber-500 text-slate-950' : 'text-slate-400')}
+                    key={idx}
+                    onClick={() => setLeaderboardFilter(idx.toString())}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (leaderboardFilter === idx.toString() ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400')}
                   >
-                    All
+                    M{m.matchNo} ({m.map})
                   </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Standings List */}
+            {leaderboardData.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 bg-slate-900 border border-slate-800 rounded-3xl">
+                <Shield className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="font-bold text-xs text-slate-400">No match records saved for this scrim yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {leaderboardData.map((row) => {
+                  const isFirst = row.rank === 1;
+                  const isTopThree = row.rank <= 3;
+                  return (
+                    <div
+                      key={row.teamId}
+                      className={`p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ${
+                        isFirst
+                          ? 'bg-gradient-to-r from-amber-500/20 via-slate-900 to-slate-900 border-amber-400/50 shadow-lg shadow-amber-400/10'
+                          : row.rank === 2
+                          ? 'bg-slate-900/90 border-slate-400/40'
+                          : row.rank === 3
+                          ? 'bg-slate-900/90 border-amber-700/40'
+                          : 'bg-slate-900/60 border-slate-800/80'
+                      }`}
+                    >
+                      {/* Left: Rank & Team */}
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                            isFirst
+                              ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30'
+                              : row.rank === 2
+                              ? 'bg-slate-300 text-slate-950'
+                              : row.rank === 3
+                              ? 'bg-amber-700 text-slate-100'
+                              : 'bg-slate-950 text-slate-500 font-mono'
+                          }`}
+                        >
+                          {row.rank}
+                        </div>
+
+                        <div>
+                          <div className="font-black text-xs sm:text-sm text-slate-100 flex items-center gap-1.5">
+                            <span>{row.teamName}</span>
+                            {row.wwcd > 0 && (
+                              <span className="text-[10px] bg-amber-400/15 border border-amber-400/30 text-amber-400 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                                🍗 x{row.wwcd}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                            <span>Matches: {row.matchesPlayed}</span>
+                            <span>•</span>
+                            <span>Kills: {row.killPts}</span>
+                            <span>•</span>
+                            <span>Place: {row.placePts}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Total Points Badge */}
+                      <div className="text-right">
+                        <div className="text-base sm:text-xl font-black font-mono text-amber-400">
+                          {row.totalPts}
+                        </div>
+                        <div className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+                          PTS
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* VIEW 3: TEAM HISTORY (SIMPLIFIED MOBILE CARDS)            */}
+        {/* ========================================================= */}
+        {activeTab === 'teams' && (
+          <div className="space-y-4">
+            
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-3">
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-slate-100">Team Tournament Database</h2>
+                <p className="text-xs text-slate-400">Verified official scrim records and tournament rankings.</p>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search team name or tag..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              {/* Team Pill Chips */}
+              <div className="flex gap-1.5 overflow-x-auto py-1">
+                {filteredTeamList.map(t => (
                   <button
-                    onClick={() => setShowcaseFilter('achievement')}
-                    className={'px-3 py-1 rounded font-bold transition-all ' + (showcaseFilter === 'achievement' ? 'bg-amber-500 text-slate-950' : 'text-slate-400')}
+                    key={t.name}
+                    onClick={() => setSelectedTeamProfile(t.name)}
+                    className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (selectedTeamProfile === t.name ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400')}
                   >
-                    Tournaments
+                    [{t.tag}] {t.name}
                   </button>
-                  <button
-                    onClick={() => setShowcaseFilter('clip')}
-                    className={'px-3 py-1 rounded font-bold transition-all ' + (showcaseFilter === 'clip' ? 'bg-amber-500 text-slate-950' : 'text-slate-400')}
-                  >
-                    Clips
-                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selected Team Profile Card */}
+            {activeTeamData && (
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-lg">
+                      {activeTeamData.tag}
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base text-slate-100">{activeTeamData.name}</h3>
+                      <span className="text-xs text-slate-400">Official Roster</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-right">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Total Scrims</span>
+                    <span className="text-sm font-black font-mono text-amber-400">{activeTeamData.scrimResults?.length || 0}</span>
+                  </div>
                 </div>
 
+                {/* Scrim Results Only */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Tournament Placement History
+                  </span>
+
+                  {activeTeamData.scrimResults && activeTeamData.scrimResults.length > 0 ? (
+                    activeTeamData.scrimResults.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-bold text-xs text-slate-200">{item.scrimName}</div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                            <span className="text-amber-400 font-semibold">{item.scrimTier}</span>
+                            <span>•</span>
+                            <span>{item.date}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="font-black text-xs">
+                            {item.ranking === 1 ? (
+                              <span className="text-amber-400">👑 Champion</span>
+                            ) : (
+                              <span className="text-slate-300">Rank #{item.ranking}</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] font-mono text-slate-400 font-bold">{item.points} PTS</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-slate-500 text-xs">
+                      No recorded scrim finishes for this team.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* VIEW 4: SHOWCASE (FEED STYLE CARDS)                       */}
+        {/* ========================================================= */}
+        {activeTab === 'showcase' && (
+          <div className="space-y-4">
+            
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-lg flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-black text-slate-100 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Highlight Feed</span>
+                </h2>
+                <p className="text-[11px] text-slate-400">Watch clutch clips & tournament trophy moments.</p>
+              </div>
+
+              <div className="flex items-center gap-1 text-xs">
                 <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-md"
+                  onClick={() => setShowcaseFilter('all')}
+                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Post Highlight</span>
+                  All
+                </button>
+                <button
+                  onClick={() => setShowcaseFilter('clip')}
+                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-amber-400 text-slate-950' : 'text-slate-400')}
+                >
+                  Clips
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {posts.length === 0 ? (
-                <div className="col-span-2 p-12 text-center text-slate-500 border border-slate-800 rounded-xl">
-                  Belum ada post showcase dalam database cloud. Klik "Post Highlight" untuk mula!
-                </div>
-              ) : (
-                posts
-                  .filter(p => showcaseFilter === 'all' || p.type === showcaseFilter)
-                  .map((post) => (
-                    <div key={post.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-lg">
-                      <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
-                        {post.media_type === 'video' ? (
-                          <video src={post.media_url} controls className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
-                        )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {posts.map((post) => (
+                <div key={post.id} className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col justify-between">
+                  <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
+                    {post.media_type === 'video' ? (
+                      <video src={post.media_url} controls className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
+                    )}
 
-                        <div className="absolute top-3 left-3 flex items-center space-x-2">
-                          <span className={'px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide flex items-center space-x-1 ' + (post.type === 'achievement' ? 'bg-amber-500 text-slate-950' : 'bg-red-600 text-white')}>
-                            {post.type === 'achievement' ? <Trophy className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                            <span>{post.type === 'achievement' ? 'Achievement' : 'Highlight'}</span>
-                          </span>
-                          {post.rank && (
-                            <span className="bg-slate-950/80 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
-                              {post.rank}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                      {post.rank || 'Featured'}
+                    </span>
+                  </div>
 
-                      <div className="p-5 flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-400">
-                                {post.team_tag?.slice(0, 2) || 'PG'}
-                              </div>
-                              <div>
-                                <div className="text-xs font-bold text-slate-200">
-                                  {post.author} <span className="text-slate-500 font-normal">({post.team_tag})</span>
-                                </div>
-                                <div className="text-[10px] text-slate-400">{post.player_role} • {post.date}</div>
-                              </div>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-medium bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                              {post.tournament}
-                            </span>
-                          </div>
-
-                          <h3 className="font-bold text-base text-slate-100 mb-2">{post.title}</h3>
-                          <p className="text-xs text-slate-400 line-clamp-3 mb-4 leading-relaxed">{post.caption}</p>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-                          <div className="flex flex-wrap gap-1">
-                            {post.tags?.map((tg, idx) => (
-                              <span key={idx} className="text-[10px] text-amber-500/80 font-mono">{tg}</span>
-                            ))}
-                          </div>
-
-                          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded text-red-400 bg-red-500/10">
-                            <Heart className="w-3.5 h-3.5 fill-current text-red-500" />
-                            <span className="font-bold">{post.likes || 1}</span>
-                          </div>
-                        </div>
-                      </div>
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-200">[{post.team_tag}] {post.author}</span>
+                      <span className="text-[10px] text-slate-500">{post.tournament}</span>
                     </div>
-                  ))
-              )}
+
+                    <h3 className="font-bold text-sm text-slate-100 leading-snug">{post.title}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{post.caption}</p>
+                  </div>
+                </div>
+              ))}
             </div>
+
           </div>
         )}
 
       </main>
 
-      {/* MODAL SHOWCASE */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-              <div className="flex items-center space-x-2">
-                <Trophy className="w-5 h-5 text-amber-400" />
-                <h3 className="text-lg font-bold text-slate-100">Publish to Cloud Portfolio</h3>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-200 text-lg font-bold">✕</button>
-            </div>
+      {/* ========================================================= */}
+      {/* MOBILE BOTTOM NAVIGATION BAR (FIXED DOCK)                 */}
+      {/* ========================================================= */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 z-50 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+        <button
+          onClick={() => setActiveTab('leaderboard')}
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
+            activeTab === 'leaderboard' ? 'text-amber-400' : 'text-slate-400'
+          }`}
+        >
+          <Trophy className="w-5 h-5" />
+          <span className="text-[10px] font-bold mt-0.5">Standings</span>
+        </button>
 
-            <form onSubmit={handleCreatePost} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Player / IGN</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: uHigh / DamRUDE"
-                    value={newAuthor}
-                    onChange={(e) => setNewAuthor(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Team Tag</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: GEEK / YALL"
-                    value={newTeamTag}
-                    onChange={(e) => setNewTeamTag(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                  />
-                </div>
-              </div>
+        <button
+          onClick={() => setActiveTab('teams')}
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
+            activeTab === 'teams' ? 'text-amber-400' : 'text-slate-400'
+          }`}
+        >
+          <Users className="w-5 h-5" />
+          <span className="text-[10px] font-bold mt-0.5">Teams</span>
+        </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Jenis Post</label>
-                  <select
-                    value={newPostType}
-                    onChange={(e) => setNewPostType(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                  >
-                    <option value="clip">Gameplay Clip</option>
-                    <option value="achievement">Tournament Trophy</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Tournament / Event</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: PMSL SEA Qualifier"
-                    value={newTournament}
-                    onChange={(e) => setNewTournament(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                  />
-                </div>
-              </div>
+        <button
+          onClick={() => setActiveTab('showcase')}
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
+            activeTab === 'showcase' ? 'text-amber-400' : 'text-slate-400'
+          }`}
+        >
+          <Sparkles className="w-5 h-5" />
+          <span className="text-[10px] font-bold mt-0.5">Showcase</span>
+        </button>
 
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Tajuk Post</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: 1v4 Clutch vs Vampire Esports"
-                  value={newPostTitle}
-                  onChange={(e) => setNewPostTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Badge / Rank</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Champion / 1st Place / MVP"
-                  value={newRankBadge}
-                  onChange={(e) => setNewRankBadge(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Media URL</label>
-                <input
-                  type="url"
-                  placeholder="https://... (Biarkan kosong untuk demo video)"
-                  value={newMediaUrl}
-                  onChange={(e) => setNewMediaUrl(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Description</label>
-                <textarea
-                  rows="3"
-                  placeholder="Ceritakan tentang highlight ini..."
-                  value={newCaption}
-                  onChange={(e) => setNewCaption(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none"
-                ></textarea>
-              </div>
-
-              <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
-                >
-                  Publish to Cloud
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>PUBGM Scrim Management & Player Showcase Hub</span>
-          <span className="font-mono text-[11px] text-slate-600">Connected to Supabase PostgreSQL</span>
-        </div>
-      </footer>
+        <button
+          onClick={() => setActiveTab('admin')}
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
+            activeTab === 'admin' ? 'text-amber-400' : 'text-slate-400'
+          }`}
+        >
+          {currentUser ? <User className="w-5 h-5 text-emerald-400" /> : <Lock className="w-5 h-5" />}
+          <span className="text-[10px] font-bold mt-0.5">Admin</span>
+        </button>
+      </div>
 
     </div>
   );
