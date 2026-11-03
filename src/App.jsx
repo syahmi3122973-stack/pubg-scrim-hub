@@ -105,7 +105,7 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 export default function App() {
   const [activeTab, setActiveTab] = useState('teams');
   
-  // Teams State - Synced directly with Supabase
+  // Teams State - Synced from Supabase
   const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
 
   const [scrims, setScrims] = useState([]);
@@ -119,10 +119,10 @@ export default function App() {
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
 
-  // Team Stats Category Scope ('ALL' | 'Scrim' | 'Tour')
+  // Team Stats Category Filter ('ALL' | 'Scrim' | 'Tour')
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
-  // Authentication State
+  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -163,8 +163,8 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
-      // 1. Fetch Teams from Supabase
-      const { data: teamsData, error: teamsError } = await supabase
+      // Fetch dynamic teams
+      const { data: teamsData } = await supabase
         .from('teams')
         .select('*')
         .order('name', { ascending: true });
@@ -173,7 +173,7 @@ export default function App() {
         setTeams(teamsData);
       }
 
-      // 2. Fetch Scrims
+      // Fetch scrims
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
@@ -191,7 +191,7 @@ export default function App() {
         setAdminSelectedScrimId(sorted[0].id);
       }
 
-      // 3. Fetch Posts
+      // Fetch showcase posts
       const { data: postData } = await supabase
         .from('posts')
         .select('*')
@@ -201,7 +201,7 @@ export default function App() {
         setPosts(postData);
       }
 
-      // 4. Fetch Profiles
+      // Fetch profiles
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*');
@@ -368,7 +368,7 @@ export default function App() {
     }
   };
 
-  // Create Scrim / Tournament States
+  // Create Fixture States
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
@@ -378,7 +378,7 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // Edit Scrim States
+  // Edit Fixture States
   const [editTitle, setEditTitle] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
@@ -440,19 +440,30 @@ export default function App() {
     }));
   }, [activeAdminScrim, selectedMatchIdx, teams]);
 
+  // LEADERBOARD SCOPED STRICTLY TO LOGGED-IN ADMIN SESSIONS ONLY
   const filteredScrims = useMemo(() => {
+    if (!currentUser) return [];
+
     return scrims.filter(s => {
+      const isOwner = isAuthorizedAdmin(s);
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
       const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
       const matchSearch = s.title.toLowerCase().includes(searchScrimQuery.toLowerCase()) || 
                           (s.tier && s.tier.toLowerCase().includes(searchScrimQuery.toLowerCase()));
-      return matchTier && matchType && matchSearch;
+      return isOwner && matchTier && matchType && matchSearch;
     });
-  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery]);
+  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery, currentUser]);
 
   const activePublicScrim = useMemo(() => {
-    return scrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || scrims[0];
-  }, [scrims, selectedScrimId, filteredScrims]);
+    if (!filteredScrims.length) return null;
+    return filteredScrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || null;
+  }, [filteredScrims, selectedScrimId]);
+
+  useEffect(() => {
+    if (filteredScrims.length > 0 && !filteredScrims.some(s => s.id === selectedScrimId)) {
+      setSelectedScrimId(filteredScrims[0].id);
+    }
+  }, [filteredScrims, selectedScrimId]);
 
   const openEditScrimModal = () => {
     if (!activeAdminScrim) return;
@@ -500,7 +511,7 @@ export default function App() {
         const merged = { ...activeAdminScrim, ...updatedData };
         setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
         setIsEditScrimModalOpen(false);
-        showToast('Event settings and category saved successfully!');
+        showToast('Event settings saved successfully!');
       }
     } catch (err) {
       showToast('Failed to upload logo: ' + err.message);
@@ -718,7 +729,7 @@ export default function App() {
       const newSession = {
         id: 'scrim_' + Date.now(),
         title: newScrimTitle.trim(),
-        event_type: newEventType, // 'Scrim' | 'Tour'
+        event_type: newEventType,
         tier: newScrimTier,
         description: newScrimDesc.trim() || `Official PUBG Mobile ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} Session.`,
         date: newScrimDate || new Date().toISOString().split('T')[0],
@@ -1259,14 +1270,13 @@ export default function App() {
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState('');
 
-  // Set default selected team once teams are loaded
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamProfile) {
       setSelectedTeamProfile(teams[0].name);
     }
   }, [teams, selectedTeamProfile]);
 
-  // Dynamic Aggregation from Supabase Teams
+  // Aggregated Team Stats
   const teamsStats = useMemo(() => {
     const stats = {};
 
@@ -1357,7 +1367,6 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // Scoped Team Statistics (ALL | Scrim | Tour)
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
     const all = activeTeamData.scrimResults || [];
@@ -1613,7 +1622,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN CONTAINER */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         {/* VIEW 1: TEAM STATS */}
@@ -1635,7 +1644,7 @@ export default function App() {
                   <p className="text-xs text-slate-500">Filter career match records by Tournament (Tour) or Practice (Scrim) below.</p>
                 </div>
 
-                {/* Scope Filter Switcher */}
+                {/* Scope Switcher */}
                 <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
@@ -1822,267 +1831,297 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: LEADERBOARD */}
+        {/* VIEW 2: LEADERBOARD (SCOPED STRICTLY TO AUTHENTICATED ADMIN) */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
-            
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
-                    <Radio className="w-3.5 h-3.5 text-lime-600"/>
-                    Session:
-                  </span>
-                  <select
-                    value={activePublicScrim?.id || selectedScrimId}
-                    onChange={(e) => {
-                      setSelectedScrimId(e.target.value);
-                      setLeaderboardFilter('overall');
-                    }}
-                    className="flex-1 max-w-md bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 transition"
-                  >
-                    {filteredScrims.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        [{s.event_type || 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date}) {s.is_finished ? '🏁 Final' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {currentUser && isAuthorizedAdmin(activePublicScrim) && (
-                    <button
-                      onClick={() => {
-                        setAdminSelectedScrimId(activePublicScrim.id);
-                        setActiveTab('admin');
-                      }}
-                      className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
-                    >
-                      <Edit3 className="w-3.5 h-3.5"/>
-                      <span>Edit in Admin</span>
-                    </button>
-                  )}
-
-                  {activePublicScrim?.host_contact && (
-                    <a
-                      href={activePublicScrim.host_contact.startsWith('http') 
-                        ? activePublicScrim.host_contact 
-                        : (activePublicScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                          ? 'https://wa.me/' + activePublicScrim.host_contact.replace(/[^0-9]/g, '')
-                          : 'https://t.me/' + activePublicScrim.host_contact.replace('@', ''))
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
-                    >
-                      <MessageCircle className="w-4 h-4"/>
-                      <span>PM Host</span>
-                    </a>
-                  )}
-
-                  <button
-                    onClick={handleDownloadPoster}
-                    className="p-2 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs"
-                  >
-                    <Download className="w-4 h-4"/>
-                    <span className="hidden sm:inline">Poster PNG</span>
-                  </button>
-
-                  <button
-                    onClick={handleCopyDiscordText}
-                    className="p-2 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
-                  >
-                    {copyFeedback ? <Check className="w-4 h-4 text-lime-600"/> : <Copy className="w-4 h-4 text-slate-600"/>}
-                    <span className="hidden sm:inline">Copy Text</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3.5 pt-1">
-                {activePublicScrim?.logo_url ? (
-                  <img 
-                    src={activePublicScrim.logo_url} 
-                    alt="Logo" 
-                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-sm flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-lime-400 flex items-center justify-center text-slate-950 font-black text-xl flex-shrink-0 shadow-sm">
-                    🏆
-                  </div>
-                )}
-
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={'text-[10px] font-black px-2 py-0.5 rounded-full font-mono ' + (
-                      activePublicScrim?.event_type === 'Tour'
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                        : 'bg-lime-100 text-lime-800 border border-lime-300'
-                    )}>
-                      {(activePublicScrim?.event_type || 'Scrim').toUpperCase()}
-                    </span>
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
-                      {activePublicScrim?.tier || 'Tier 1'}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      {activePublicScrim?.date}
-                    </span>
-                    {activePublicScrim?.is_finished ? (
-                      <span className="text-[10px] bg-slate-900 text-lime-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        🏁 Official Final
-                      </span>
-                    ) : (
-                      <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full uppercase border border-slate-200">
-                        Live Standings
-                      </span>
-                    )}
-                  </div>
-                  <h1 className="text-lg sm:text-2xl font-black text-slate-950 mt-1 leading-tight">
-                    {activePublicScrim?.title || 'No Scrim Session Available'}
-                  </h1>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
-                  <input
-                    type="text"
-                    placeholder="Search tournament or scrim name..."
-                    value={searchScrimQuery}
-                    onChange={(e) => setSearchScrimQuery(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
-                  />
-                </div>
-
-                <div className="flex gap-1.5 overflow-x-auto py-0.5">
-                  {['All', 'Scrim', 'Tour'].map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setLeaderboardEventTypeFilter(type)}
-                      className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
-                        leaderboardEventTypeFilter === type 
-                          ? 'bg-slate-950 text-white shadow-xs' 
-                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      )}
-                    >
-                      {type === 'All' ? 'All Types' : type === 'Scrim' ? 'Scrims' : 'Tournaments'}
-                    </button>
-                  ))}
-
-                  {['All', 'Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setTierFilter(t)}
-                      className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
-                        tierFilter === t 
-                          ? 'bg-lime-400 text-slate-950 font-black shadow-xs' 
-                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      )}
-                    >
-                      {t === 'All' ? 'All Tiers' : t.split(' ')[0] + ' ' + t.split(' ')[1]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+            {!currentUser ? (
+              <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl shadow-sm space-y-3">
+                <Lock className="w-10 h-10 mx-auto text-slate-400 opacity-50"/>
+                <h3 className="font-black text-slate-900 text-base">Admin Authentication Required</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Please sign in to your host account to view and manage standings for your hosted events.
+                </p>
                 <button
-                  onClick={() => setLeaderboardFilter('overall')}
-                  className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (
-                    leaderboardFilter === 'overall' 
-                      ? 'bg-lime-400 text-slate-950 shadow-sm' 
-                      : 'bg-slate-100 text-slate-600 hover:text-slate-900'
-                  )}
+                  onClick={() => setActiveTab('admin')}
+                  className="px-4 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition shadow-sm"
                 >
-                  Overall Standings
+                  Go to Host Sign In
                 </button>
-                {activePublicScrim?.matches?.map((m, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setLeaderboardFilter(idx.toString())}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (
-                      leaderboardFilter === idx.toString() 
-                        ? 'bg-lime-400 text-slate-950 shadow-sm' 
-                        : 'bg-slate-100 text-slate-600 hover:text-slate-900'
-                    )}
-                  >
-                    M{m.matchNo} ({m.map})
-                  </button>
-                ))}
               </div>
-            </div>
-
-            {leaderboardData.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
-                <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
-                <p className="font-bold text-xs text-slate-600">No data found.</p>
+            ) : filteredScrims.length === 0 ? (
+              <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl shadow-sm space-y-3">
+                <Shield className="w-10 h-10 mx-auto opacity-30 text-slate-400"/>
+                <h3 className="font-black text-slate-900 text-base">No Hosted Sessions Found</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  You have not created any Scrim or Tournament sessions under this account yet.
+                </p>
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className="px-4 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition shadow-sm"
+                >
+                  Create Your First Match
+                </button>
               </div>
             ) : (
-              <div className="space-y-2">
-                {leaderboardData.map((row) => {
-                  const isFirst = row.rank === 1;
-                  return (
-                    <div
-                      key={row.teamId}
-                      className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
-                        isFirst
-                          ? 'bg-lime-50/70 border-lime-300 shadow-xs'
-                          : row.rank === 2
-                          ? 'bg-white border-slate-250 shadow-xs'
-                          : row.rank === 3
-                          ? 'bg-white border-slate-200'
-                          : 'bg-white/80 border-slate-100'
+              <>
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
+                        <Radio className="w-3.5 h-3.5 text-lime-600"/>
+                        Session:
+                      </span>
+                      <select
+                        value={activePublicScrim?.id || selectedScrimId}
+                        onChange={(e) => {
+                          setSelectedScrimId(e.target.value);
+                          setLeaderboardFilter('overall');
+                        }}
+                        className="flex-1 max-w-md bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 transition"
+                      >
+                        {filteredScrims.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            [{s.event_type || 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date}) {s.is_finished ? '🏁 Final' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => {
+                          if (activePublicScrim) {
+                            setAdminSelectedScrimId(activePublicScrim.id);
+                            setActiveTab('admin');
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                      >
+                        <Edit3 className="w-3.5 h-3.5"/>
+                        <span>Edit in Admin</span>
+                      </button>
+
+                      {activePublicScrim?.host_contact && (
+                        <a
+                          href={activePublicScrim.host_contact.startsWith('http') 
+                            ? activePublicScrim.host_contact 
+                            : (activePublicScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
+                              ? 'https://wa.me/' + activePublicScrim.host_contact.replace(/[^0-9]/g, '')
+                              : 'https://t.me/' + activePublicScrim.host_contact.replace('@', ''))
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
+                        >
+                          <MessageCircle className="w-4 h-4"/>
+                          <span>PM Host</span>
+                        </a>
                       )}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
-                            isFirst
-                              ? 'bg-lime-400 text-slate-950 shadow-xs'
-                              : row.rank === 2
-                              ? 'bg-slate-200 text-slate-800'
-                              : row.rank === 3
-                              ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                              : 'bg-slate-100 text-slate-500 font-mono'
+
+                      <button
+                        onClick={handleDownloadPoster}
+                        className="p-2 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs"
+                      >
+                        <Download className="w-4 h-4"/>
+                        <span className="hidden sm:inline">Poster PNG</span>
+                      </button>
+
+                      <button
+                        onClick={handleCopyDiscordText}
+                        className="p-2 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                      >
+                        {copyFeedback ? <Check className="w-4 h-4 text-lime-600"/> : <Copy className="w-4 h-4 text-slate-600"/>}
+                        <span className="hidden sm:inline">Copy Text</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3.5 pt-1">
+                    {activePublicScrim?.logo_url ? (
+                      <img 
+                        src={activePublicScrim.logo_url} 
+                        alt="Logo" 
+                        className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-sm flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-2xl bg-lime-400 flex items-center justify-center text-slate-950 font-black text-xl flex-shrink-0 shadow-sm">
+                        🏆
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={'text-[10px] font-black px-2 py-0.5 rounded-full font-mono ' + (
+                          activePublicScrim?.event_type === 'Tour'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : 'bg-lime-100 text-lime-800 border border-lime-300'
+                        )}>
+                          {(activePublicScrim?.event_type || 'Scrim').toUpperCase()}
+                        </span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                          {activePublicScrim?.tier || 'Tier 1'}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-mono">
+                          {activePublicScrim?.date}
+                        </span>
+                        {activePublicScrim?.is_finished ? (
+                          <span className="text-[10px] bg-slate-900 text-lime-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            🏁 Official Final
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full uppercase border border-slate-200">
+                            Live Standings
+                          </span>
+                        )}
+                      </div>
+                      <h1 className="text-lg sm:text-2xl font-black text-slate-950 mt-1 leading-tight">
+                        {activePublicScrim?.title || 'No Scrim Session Available'}
+                      </h1>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
+                      <input
+                        type="text"
+                        placeholder="Search tournament or scrim name..."
+                        value={searchScrimQuery}
+                        onChange={(e) => setSearchScrimQuery(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
+                      />
+                    </div>
+
+                    <div className="flex gap-1.5 overflow-x-auto py-0.5">
+                      {['All', 'Scrim', 'Tour'].map(type => (
+                        <button
+                          key={type}
+                          onClick={() => setLeaderboardEventTypeFilter(type)}
+                          className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
+                            leaderboardEventTypeFilter === type 
+                              ? 'bg-slate-950 text-white shadow-xs' 
+                              : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                           )}
                         >
-                          {row.rank}
-                        </div>
+                          {type === 'All' ? 'All Types' : type === 'Scrim' ? 'Scrims' : 'Tournaments'}
+                        </button>
+                      ))}
 
-                        <div>
-                          <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-                            <span>{row.teamName}</span>
-                            {row.wwcd > 0 && (
-                              <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
-                                🍗 x{row.wwcd}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
-                            <span>Matches: {row.matchesPlayed}</span>
-                            <span>•</span>
-                            <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
-                            <span>•</span>
-                            <span>Place: {row.placePts}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-base sm:text-xl font-black font-mono text-lime-700">
-                          {row.totalPts}
-                        </div>
-                        <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
-                          PTS
-                        </div>
-                      </div>
+                      {['All', 'Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'].map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setTierFilter(t)}
+                          className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
+                            tierFilter === t 
+                              ? 'bg-lime-400 text-slate-950 font-black shadow-xs' 
+                              : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                          )}
+                        >
+                          {t === 'All' ? 'All Tiers' : t.split(' ')[0] + ' ' + t.split(' ')[1]}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
 
+                  <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                    <button
+                      onClick={() => setLeaderboardFilter('overall')}
+                      className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (
+                        leaderboardFilter === 'overall' 
+                          ? 'bg-lime-400 text-slate-950 shadow-sm' 
+                          : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                      )}
+                    >
+                      Overall Standings
+                    </button>
+                    {activePublicScrim?.matches?.map((m, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setLeaderboardFilter(idx.toString())}
+                        className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (
+                          leaderboardFilter === idx.toString() 
+                            ? 'bg-lime-400 text-slate-950 shadow-sm' 
+                            : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                        )}
+                      >
+                        M{m.matchNo} ({m.map})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {leaderboardData.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
+                    <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
+                    <p className="font-bold text-xs text-slate-600">No match results saved for this round.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {leaderboardData.map((row) => {
+                      const isFirst = row.rank === 1;
+                      return (
+                        <div
+                          key={row.teamId}
+                          className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
+                            isFirst
+                              ? 'bg-lime-50/70 border-lime-300 shadow-xs'
+                              : row.rank === 2
+                              ? 'bg-white border-slate-250 shadow-xs'
+                              : row.rank === 3
+                              ? 'bg-white border-slate-200'
+                              : 'bg-white/80 border-slate-100'
+                          )}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
+                                isFirst
+                                  ? 'bg-lime-400 text-slate-950 shadow-xs'
+                                  : row.rank === 2
+                                  ? 'bg-slate-200 text-slate-800'
+                                  : row.rank === 3
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                  : 'bg-slate-100 text-slate-500 font-mono'
+                              )}
+                            >
+                              {row.rank}
+                            </div>
+
+                            <div>
+                              <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                                <span>{row.teamName}</span>
+                                {row.wwcd > 0 && (
+                                  <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                                    🍗 x{row.wwcd}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                <span>Matches: {row.matchesPlayed}</span>
+                                <span>•</span>
+                                <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
+                                <span>•</span>
+                                <span>Place: {row.placePts}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-base sm:text-xl font-black font-mono text-lime-700">
+                              {row.totalPts}
+                            </div>
+                            <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
+                              PTS
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -2426,7 +2465,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  {/* Current Sessions List */}
+                  {/* Sessions List */}
                   <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
@@ -2506,7 +2545,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* CREATE SESSION: SCRIM VS TOURNAMENT */}
+                  {/* FORM TO CREATE SCRIM / TOURNAMENT */}
                   <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
                       <div className="flex items-center space-x-2">
@@ -2717,7 +2756,7 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Mobile Score Input Cards */}
+                {/* Mobile Cards */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -2803,7 +2842,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Desktop Score Input Table */}
+                {/* Desktop Table */}
                 <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -3555,7 +3594,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MOBILE NAVIGATION BAR */}
+      {/* MOBILE NAV BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-lg">
         <button
           onClick={() => setActiveTab('teams')}
