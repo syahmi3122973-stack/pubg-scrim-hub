@@ -35,7 +35,11 @@ import {
   LockKeyhole,
   Unlock,
   CheckSquare,
-  Award
+  Award,
+  TrendingUp,
+  BarChart2,
+  Info,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -99,6 +103,7 @@ export default function App() {
   const [posts, setPosts] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [selectedScrimId, setSelectedScrimId] = useState('');
+  const [adminSelectedScrimId, setAdminSelectedScrimId] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   
   const [tierFilter, setTierFilter] = useState('All');
@@ -115,10 +120,11 @@ export default function App() {
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
+  const [performanceTeam, setPerformanceTeam] = useState(null);
 
-  // Filter Host Directory
+  // Host Directory Search
   const [searchHostQuery, setSearchHostQuery] = useState('');
-  const [selectedHostProfile, setSelectedHostProfile] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -207,6 +213,7 @@ export default function App() {
     showToast('Signed out successfully.');
   };
 
+  // Ciri 3: Semak hak penganjur (Strict Ownership)
   const isAuthorizedAdmin = (scrim) => {
     if (!currentUser || !scrim) return false;
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
@@ -214,12 +221,24 @@ export default function App() {
     return isOwner || isCoHost;
   };
 
+  // Scrims yang HANYA dimiliki atau di-cohost oleh admin ini
   const adminHostedScrims = useMemo(() => {
     if (!currentUser) return [];
     return scrims.filter(s => isAuthorizedAdmin(s));
   }, [scrims, currentUser]);
 
-  // Profile Edit Form State
+  // Tetapkan admin selected scrim secara automatik
+  useEffect(() => {
+    if (adminHostedScrims.length > 0 && !adminHostedScrims.some(s => s.id === adminSelectedScrimId)) {
+      setAdminSelectedScrimId(adminHostedScrims[0].id);
+    }
+  }, [adminHostedScrims, adminSelectedScrimId]);
+
+  const activeAdminScrim = useMemo(() => {
+    return adminHostedScrims.find(s => s.id === adminSelectedScrimId) || adminHostedScrims[0] || null;
+  }, [adminHostedScrims, adminSelectedScrimId]);
+
+  // Profile Edit State
   const [profileName, setProfileName] = useState('');
   const [profileContact, setProfileContact] = useState('');
   const [profileBio, setProfileBio] = useState('');
@@ -261,22 +280,20 @@ export default function App() {
     }
   };
 
-  // Creation State
+  // Scrim Creation Form State
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
   const [newHostContact, setNewHostContact] = useState('');
-  const [newMaxMatches, setNewMaxMatches] = useState(5);
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // Edit Scrim State
+  // Edit Scrim Form State
   const [editTitle, setEditTitle] = useState('');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
   const [editDesc, setEditDesc] = useState('');
   const [editContact, setEditContact] = useState('');
-  const [editMaxMatches, setEditMaxMatches] = useState(5);
   const [editLogoFile, setEditLogoFile] = useState(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -296,7 +313,39 @@ export default function App() {
     }));
   });
 
-  const activeScrim = useMemo(() => {
+  // Muat markah sedia ada jika match tersebut sudah pernah direkodkan
+  useEffect(() => {
+    if (activeAdminScrim && activeAdminScrim.matches && activeAdminScrim.matches[selectedMatchIdx]) {
+      const saved = activeAdminScrim.matches[selectedMatchIdx];
+      setInputMap(saved.map || 'Erangel');
+      if (saved.results && saved.results.length === 16) {
+        setMatchSlots(saved.results.map((r, i) => ({
+          slot: i + 1,
+          teamId: r.teamId,
+          teamName: r.teamName,
+          tag: r.tag,
+          placement: r.placement,
+          kills: r.kills,
+          placePts: r.placePts,
+          totalPts: r.totalPts
+        })));
+        return;
+      }
+    }
+    // Jika match kosong baru
+    setMatchSlots(DEFAULT_TEAMS.map((tm, idx) => ({
+      slot: idx + 1,
+      teamId: tm.id,
+      teamName: tm.name,
+      tag: tm.tag,
+      placement: idx + 1,
+      kills: 0,
+      placePts: getPlacementPoints(idx + 1),
+      totalPts: getPlacementPoints(idx + 1)
+    })));
+  }, [activeAdminScrim, selectedMatchIdx]);
+
+  const activePublicScrim = useMemo(() => {
     return scrims.find(s => s.id === selectedScrimId) || scrims[0];
   }, [scrims, selectedScrimId]);
 
@@ -310,26 +359,25 @@ export default function App() {
   }, [scrims, tierFilter, searchScrimQuery]);
 
   const openEditScrimModal = () => {
-    if (!activeScrim) return;
-    setEditTitle(activeScrim.title || '');
-    setEditTier(activeScrim.tier || 'Tier 1 (Pro)');
-    setEditDesc(activeScrim.description || '');
-    setEditContact(activeScrim.host_contact || '');
-    setEditMaxMatches(activeScrim.max_matches || 5);
+    if (!activeAdminScrim) return;
+    setEditTitle(activeAdminScrim.title || '');
+    setEditTier(activeAdminScrim.tier || 'Tier 1 (Pro)');
+    setEditDesc(activeAdminScrim.description || '');
+    setEditContact(activeAdminScrim.host_contact || '');
     setEditLogoFile(null);
     setIsEditScrimModalOpen(true);
   };
 
   const handleUpdateScrimSettings = async (e) => {
     e.preventDefault();
-    if (!activeScrim || !isAuthorizedAdmin(activeScrim)) {
-      showToast('Only the authorized host can edit this scrim!');
+    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
+      showToast('Unauthorized access!');
       return;
     }
 
     try {
       setIsSavingEdit(true);
-      let updatedLogoUrl = activeScrim.logo_url;
+      let updatedLogoUrl = activeAdminScrim.logo_url;
 
       if (editLogoFile) {
         updatedLogoUrl = await uploadMediaToSupabase(editLogoFile, 'logos');
@@ -340,20 +388,19 @@ export default function App() {
         tier: editTier,
         description: editDesc.trim(),
         host_contact: editContact.trim(),
-        max_matches: parseInt(editMaxMatches, 10) || 5,
         logo_url: updatedLogoUrl
       };
 
       const { error } = await supabase
         .from('scrims')
         .update(updatedData)
-        .eq('id', activeScrim.id);
+        .eq('id', activeAdminScrim.id);
 
       if (error) {
         showToast('Update failed: ' + error.message);
       } else {
-        const merged = { ...activeScrim, ...updatedData };
-        setScrims(scrims.map(s => s.id === activeScrim.id ? merged : s));
+        const merged = { ...activeAdminScrim, ...updatedData };
+        setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
         setIsEditScrimModalOpen(false);
         showToast('Scrim settings and logo updated!');
       }
@@ -364,29 +411,76 @@ export default function App() {
     }
   };
 
+  // Ciri 3: Scrim Finish & Lock
   const handleToggleFinishScrim = async () => {
-    if (!activeScrim || !isAuthorizedAdmin(activeScrim)) {
+    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
       showToast('Only host can toggle finish status!');
       return;
     }
 
-    const nextState = !activeScrim.is_finished;
+    const nextState = !activeAdminScrim.is_finished;
     const { error } = await supabase
       .from('scrims')
       .update({ is_finished: nextState })
-      .eq('id', activeScrim.id);
+      .eq('id', activeAdminScrim.id);
 
     if (error) {
       showToast('Error updating status: ' + error.message);
     } else {
-      const updated = { ...activeScrim, is_finished: nextState };
-      setScrims(scrims.map(s => s.id === activeScrim.id ? updated : s));
+      const updated = { ...activeAdminScrim, is_finished: nextState };
+      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       showToast(nextState ? '🏁 Scrim marked as FINISHED! Results are now locked.' : '🔓 Scrim reopened for editing.');
     }
   };
 
+  // Ciri 4: Tambah Match Dinamik
+  const handleAddNewMatch = () => {
+    if (activeAdminScrim?.is_finished) {
+      showToast('⚠️ Cannot add match to a finished scrim!');
+      return;
+    }
+    const currentTotal = activeAdminScrim?.matches?.length || 0;
+    const newMatchNumber = currentTotal + 1;
+    setSelectedMatchIdx(newMatchNumber - 1);
+    showToast('Match ' + newMatchNumber + ' slot ready for scoring!');
+  };
+
+  // Ciri 4: Buang Match Terakhir Dinamik
+  const handleRemoveLastMatch = async () => {
+    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
+    if (activeAdminScrim.is_finished) {
+      showToast('⚠️ Cannot remove match from a finished scrim!');
+      return;
+    }
+
+    const currentMatches = activeAdminScrim.matches || [];
+    if (currentMatches.length === 0) {
+      showToast('No saved matches to remove.');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to remove Match ' + currentMatches.length + '?')) return;
+
+    const trimmed = currentMatches.slice(0, -1);
+    const updated = {
+      ...activeAdminScrim,
+      matches: trimmed,
+      total_matches: trimmed.length
+    };
+
+    const { error } = await supabase.from('scrims').upsert(updated);
+
+    if (error) {
+      showToast('Error: ' + error.message);
+    } else {
+      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
+      setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
+      showToast('Last match removed.');
+    }
+  };
+
   const handleSlotChange = (index, field, value) => {
-    if (activeScrim?.is_finished) {
+    if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Results are locked because this scrim is marked as Finished!');
       return;
     }
@@ -420,7 +514,7 @@ export default function App() {
   };
 
   const handleAdjustKills = (index, delta) => {
-    if (activeScrim?.is_finished) {
+    if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Results are locked!');
       return;
     }
@@ -429,7 +523,7 @@ export default function App() {
   };
 
   const handleRandomizeTestData = () => {
-    if (activeScrim?.is_finished) {
+    if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Cannot edit locked scrim!');
       return;
     }
@@ -456,11 +550,11 @@ export default function App() {
       showToast('Please sign in as Admin to save match scores!');
       return;
     }
-    if (!activeScrim) {
-      showToast('Please select or create a scrim session first!');
+    if (!activeAdminScrim) {
+      showToast('Please create or select your scrim session first!');
       return;
     }
-    if (activeScrim.is_finished) {
+    if (activeAdminScrim.is_finished) {
       showToast('⛔ This scrim is locked as FINISHED. Reopen it to modify scores.');
       return;
     }
@@ -476,7 +570,7 @@ export default function App() {
       wwcd: Number(s.placement) === 1 ? 1 : 0
     }));
 
-    const existingMatches = activeScrim.matches ? [...activeScrim.matches] : [];
+    const existingMatches = activeAdminScrim.matches ? [...activeAdminScrim.matches] : [];
     const matchData = {
       matchNo: selectedMatchIdx + 1,
       map: inputMap,
@@ -490,7 +584,7 @@ export default function App() {
     }
 
     const updatedScrim = {
-      ...activeScrim,
+      ...activeAdminScrim,
       matches: existingMatches,
       total_matches: existingMatches.length
     };
@@ -500,7 +594,7 @@ export default function App() {
     if (error) {
       showToast('Error: ' + error.message);
     } else {
-      setScrims(scrims.map(s => s.id === activeScrim.id ? updatedScrim : s));
+      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
       showToast('Match ' + (selectedMatchIdx + 1) + ' results saved to cloud!');
     }
   };
@@ -533,7 +627,6 @@ export default function App() {
         logo_url: uploadedLogoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
         host_name: hostProfile?.display_name || currentUser.email.split('@')[0],
         host_contact: newHostContact.trim() || hostProfile?.contact || '',
-        max_matches: parseInt(newMaxMatches, 10) || 5,
         total_matches: 0,
         matches: [],
         created_by: currentUser.id,
@@ -548,24 +641,24 @@ export default function App() {
         showToast('Error: ' + error.message);
       } else {
         setScrims([newSession, ...scrims]);
-        setSelectedScrimId(newSession.id);
+        setAdminSelectedScrimId(newSession.id);
         setSelectedMatchIdx(0);
         setNewScrimTitle('');
         setNewScrimDesc('');
         setNewHostContact('');
         setLogoFile(null);
-        showToast('Tournament scrim created successfully!');
+        showToast('New tournament scrim created!');
       }
     } catch (err) {
-      showToast('Upload failed: ' + (err.message || 'Please check Supabase Storage.'));
+      showToast('Upload failed: ' + err.message);
     } finally {
       setIsUploadingLogo(false);
     }
   };
 
   const handleCopyHostShareLink = () => {
-    if (!activeScrim) return;
-    const shareUrl = window.location.origin + '?claim_scrim=' + activeScrim.id + '&token=' + (activeScrim.claim_token || 'shared');
+    if (!activeAdminScrim) return;
+    const shareUrl = window.location.origin + '?claim_scrim=' + activeAdminScrim.id + '&token=' + (activeAdminScrim.claim_token || 'shared');
     navigator.clipboard.writeText(shareUrl).then(() => {
       showToast('Co-Host invite link copied to clipboard!');
     });
@@ -634,16 +727,16 @@ export default function App() {
   };
 
   const leaderboardData = useMemo(() => {
-    return calculateLeaderboard(activeScrim, leaderboardFilter);
-  }, [activeScrim, leaderboardFilter]);
+    return calculateLeaderboard(activePublicScrim, leaderboardFilter);
+  }, [activePublicScrim, leaderboardFilter]);
 
   const handleCopyDiscordText = () => {
     if (!leaderboardData.length) return;
 
-    let output = '**' + (activeScrim?.title || 'SCRIM').toUpperCase() + '**\n';
-    output += 'Tier: ' + (activeScrim?.tier || 'Tier 1') + ' | Date: ' + (activeScrim?.date || '') + '\n';
-    if (activeScrim?.is_finished) output += 'STATUS: COMPLETED (FINAL STANDINGS)\n';
-    if (activeScrim?.host_contact) output += 'Contact Host: ' + activeScrim.host_contact + '\n';
+    let output = '**' + (activePublicScrim?.title || 'SCRIM').toUpperCase() + '**\n';
+    output += 'Tier: ' + (activePublicScrim?.tier || 'Tier 1') + ' | Date: ' + (activePublicScrim?.date || '') + '\n';
+    if (activePublicScrim?.is_finished) output += 'STATUS: COMPLETED (FINAL STANDINGS)\n';
+    if (activePublicScrim?.host_contact) output += 'Contact Host: ' + activePublicScrim.host_contact + '\n';
     output += '============================\n';
     output += '# | TEAM | MATCH | WWCD | KILLS | TOTAL\n';
     output += '============================\n';
@@ -681,25 +774,25 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1480);
 
-    ctx.fillStyle = activeScrim?.is_finished ? '#10b981' : '#f59e0b';
+    ctx.fillStyle = activePublicScrim?.is_finished ? '#10b981' : '#f59e0b';
     ctx.fillRect(0, 0, 1080, 14);
 
-    ctx.fillStyle = activeScrim?.is_finished ? '#10b981' : '#f59e0b';
+    ctx.fillStyle = activePublicScrim?.is_finished ? '#10b981' : '#f59e0b';
     ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(activeScrim?.is_finished ? 'PUBGM FINAL OFFICIAL LEADERBOARD' : 'PUBGM TOURNAMENT LEADERBOARD', 60, 80);
+    ctx.fillText(activePublicScrim?.is_finished ? 'PUBGM FINAL OFFICIAL LEADERBOARD' : 'PUBGM TOURNAMENT LEADERBOARD', 60, 80);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 38px sans-serif';
-    const mainTitle = (activeScrim?.title || 'PUBG MOBILE SCRIM').toUpperCase();
+    const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE SCRIM').toUpperCase();
     ctx.fillText(mainTitle.length > 30 ? mainTitle.slice(0, 28) + '...' : mainTitle, 60, 135);
 
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('[' + (activeScrim?.tier || 'Tier 1') + ']', 60, 175);
+    ctx.fillText('[' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 175);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 18px sans-serif';
-    ctx.fillText('Date: ' + (activeScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 175);
+    ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 175);
 
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(60, 205, 960, 48);
@@ -757,7 +850,7 @@ export default function App() {
     showToast('Poster PNG downloaded!');
   };
 
-  // Team History Calculation
+  // Team History & Aggregated Stats
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
@@ -846,7 +939,7 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // Organizers / Hosts Directory Calculation
+  // Organizers Directory Calculation
   const organizersList = useMemo(() => {
     const map = {};
 
@@ -871,7 +964,7 @@ export default function App() {
     );
   }, [scrims, profiles, searchHostQuery]);
 
-  // Showcase Delete & Post State
+  // Showcase Feed
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postTitle, setPostTitle] = useState('');
@@ -908,7 +1001,7 @@ export default function App() {
         team_tag: 'PUBGM',
         type: postType === 'clip' ? 'clip' : 'achievement',
         title: postTitle.trim(),
-        tournament: postTournament.trim() || activeScrim?.title || 'PUBGM Scrim Hub',
+        tournament: postTournament.trim() || activePublicScrim?.title || 'PUBGM Scrim Hub',
         rank: postRankBadge,
         caption: postCaption.trim() || 'Official tournament announcement & details.',
         media_type: postType === 'clip' ? 'video' : 'image',
@@ -931,7 +1024,7 @@ export default function App() {
         showToast('Tournament poster published to feed!');
       }
     } catch (err) {
-      showToast('Upload error: ' + (err.message || 'Check storage permissions.'));
+      showToast('Upload error: ' + err.message);
     } finally {
       setIsUploadingShowcase(false);
     }
@@ -955,6 +1048,9 @@ export default function App() {
       showToast('Post deleted successfully!');
     }
   };
+
+  // Jumlah pusingan bagi scrim admin semasa
+  const adminMatchCount = Math.max(1, (activeAdminScrim?.matches?.length || 0));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-amber-400 selection:text-black pb-20 md:pb-6">
@@ -1036,7 +1132,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         {/* ========================================================= */}
-        {/* VIEW 1: ADMIN SCRIM (EDIT SETTINGS & SCRIM FINISH BUTTON) */}
+        {/* VIEW 1: ADMIN SCRIM (STRICT ACCESS & DYNAMIC MATCH CONTROLS)*/}
         {/* ========================================================= */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
@@ -1048,10 +1144,10 @@ export default function App() {
                     <Lock className="w-6 h-6"/>
                   </div>
                   <h2 className="text-lg font-black text-slate-100">
-                    {isRegisterMode ? 'Register Host Account' : 'Admin Scrim Sign In'}
+                    Host Account Portal
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Host scrims, manage your custom profile, upload logos, and lock tournament results.
+                    Sign in to host tournaments, add custom match rounds, and manage your private scrim records.
                   </p>
                 </div>
 
@@ -1108,7 +1204,7 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                {/* Admin Status Bar & Profile Setting Button */}
+                {/* Admin Status Bar */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-amber-400 text-slate-950 font-black rounded-xl flex items-center justify-center">
@@ -1123,14 +1219,15 @@ export default function App() {
                           VERIFIED HOST
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400">
-                        {profileContact ? 'PM: ' + profileContact + ' • ' : ''}Hosted Scrims: <strong className="text-amber-400 font-mono">{adminHostedScrims.length}</strong>
+                      {/* Ciri 2: Ayat penerangan kecil */}
+                      <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <Info className="w-3 h-3 text-amber-400"/>
+                        <span>Private workspace: You can only view and manage scrims hosted by your account.</span>
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* 4) Edit Own Host Profile Button */}
                     <button
                       onClick={() => setIsProfileModalOpen(true)}
                       className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
@@ -1139,13 +1236,13 @@ export default function App() {
                       <span>My Host Profile</span>
                     </button>
 
-                    {activeScrim && isAuthorizedAdmin(activeScrim) && (
+                    {activeAdminScrim && isAuthorizedAdmin(activeAdminScrim) && (
                       <button
                         onClick={handleCopyHostShareLink}
                         className="px-3 py-1.5 bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
                       >
                         <Share2 className="w-3.5 h-3.5"/>
-                        <span className="hidden sm:inline">Share Host Link</span>
+                        <span className="hidden sm:inline">Share Co-Host Link</span>
                       </button>
                     )}
 
@@ -1161,75 +1258,81 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  {/* Select Scrim + Edit Scrim Settings & Finish Controls */}
+                  {/* Ciri 3: Dropdown HANYA Scrim Milik Admin Ini */}
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Active Scrim Session
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        My Hosted Scrims ({adminHostedScrims.length})
+                      </span>
+                    </div>
 
-                    <select
-                      value={selectedScrimId}
-                      onChange={(e) => setSelectedScrimId(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-                    >
-                      {scrims.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Finished)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                    {adminHostedScrims.length === 0 ? (
+                      <div className="p-4 bg-slate-950 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-500">
+                        No scrims registered under your account yet. Use the form on the right to host your first tournament!
+                      </div>
+                    ) : (
+                      <select
+                        value={adminSelectedScrimId}
+                        onChange={(e) => setSelectedMatchIdx(0) || setAdminSelectedScrimId(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+                      >
+                        {adminHostedScrims.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Locked)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
-                    {activeScrim && (
+                    {activeAdminScrim && (
                       <div className="pt-3 border-t border-slate-800/80 space-y-3">
                         <div className="flex items-center space-x-3">
-                          {activeScrim.logo_url && (
-                            <img src={activeScrim.logo_url} alt="Logo" className="w-11 h-11 rounded-xl object-cover border border-slate-700" />
+                          {activeAdminScrim.logo_url && (
+                            <img src={activeAdminScrim.logo_url} alt="Logo" className="w-11 h-11 rounded-xl object-cover border border-slate-700" />
                           )}
                           <div className="flex-1">
-                            <div className="font-bold text-xs text-slate-200">{activeScrim.title}</div>
-                            <div className="text-[10px] text-amber-400">{activeScrim.tier} • {activeScrim.max_matches || 5} Maps</div>
+                            <div className="font-bold text-xs text-slate-200">{activeAdminScrim.title}</div>
+                            <div className="text-[10px] text-amber-400">{activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Matches Played</div>
                           </div>
                         </div>
 
                         {/* Status Scrim Finished Indicator */}
-                        {activeScrim.is_finished ? (
+                        {activeAdminScrim.is_finished ? (
                           <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-400">
                             <span className="font-bold flex items-center gap-1">
-                              <LockKeyhole className="w-3.5 h-3.5"/> Scrim Finished (Locked)
+                              <LockKeyhole className="w-3.5 h-3.5"/> Scrim Finished (Score Entry Locked)
                             </span>
                           </div>
                         ) : (
                           <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-between text-xs text-amber-400">
                             <span className="font-bold flex items-center gap-1">
-                              <Unlock className="w-3.5 h-3.5"/> Active & Editable
+                              <Unlock className="w-3.5 h-3.5"/> Live & Score Editable
                             </span>
                           </div>
                         )}
 
-                        {/* 2 & 3) Action Buttons: Edit Settings & Scrim Finish Toggle */}
-                        {isAuthorizedAdmin(activeScrim) && (
-                          <div className="grid grid-cols-2 gap-2 pt-1">
-                            <button
-                              onClick={openEditScrimModal}
-                              className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-700"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-amber-400"/>
-                              <span>Edit Settings</span>
-                            </button>
+                        {/* Action Buttons: Edit Settings & Scrim Finish */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            onClick={openEditScrimModal}
+                            className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-700"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-400"/>
+                            <span>Edit Scrim</span>
+                          </button>
 
-                            <button
-                              onClick={handleToggleFinishScrim}
-                              className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow ' + (
-                                activeScrim.is_finished 
-                                  ? 'bg-slate-800 text-amber-400 border border-amber-400/30' 
-                                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-                              )}
-                            >
-                              {activeScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
-                              <span>{activeScrim.is_finished ? 'Reopen Scrim' : 'Finish Scrim'}</span>
-                            </button>
-                          </div>
-                        )}
+                          <button
+                            onClick={handleToggleFinishScrim}
+                            className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow ' + (
+                              activeAdminScrim.is_finished 
+                                ? 'bg-slate-800 text-amber-400 border border-amber-400/30' 
+                                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                            )}
+                          >
+                            {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
+                            <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Finish Scrim'}</span>
+                          </button>
+                        </div>
 
                       </div>
                     )}
@@ -1237,12 +1340,16 @@ export default function App() {
 
                   {/* Host New Scrim Session Form */}
                   <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                    <div className="flex items-center space-x-2 mb-3">
+                    <div className="flex items-center space-x-2 mb-2">
                       <Plus className="w-4 h-4 text-amber-400"/>
                       <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                        Host New Scrim Session
+                        Host New Tournament Scrim
                       </h3>
                     </div>
+                    {/* Ciri 2: Ayat penerangan kecil */}
+                    <p className="text-[11px] text-slate-400 mb-3">
+                      Fill up the tournament details. You can add or remove match rounds dynamically anytime during the event.
+                    </p>
 
                     <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -1271,12 +1378,12 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Upload Scrim Logo</label>
                           <label className="flex items-center justify-center gap-1.5 w-full bg-slate-950 hover:bg-slate-800 border border-dashed border-slate-700 rounded-xl px-3 py-2 text-slate-300 cursor-pointer transition">
                             <Upload className="w-3.5 h-3.5 text-amber-400"/>
-                            <span className="truncate">{logoFile ? logoFile.name : 'Choose Image'}</span>
+                            <span className="truncate">{logoFile ? logoFile.name : 'Choose Logo Image'}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -1290,24 +1397,11 @@ export default function App() {
                           <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Host Contact (PM Tepi)</label>
                           <input
                             type="text"
-                            placeholder="e.g. +60123456789"
+                            placeholder="e.g. +60123456789 or @discord"
                             value={newHostContact}
                             onChange={(e) => setNewHostContact(e.target.value)}
                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
                           />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Total Maps / Match</label>
-                          <select
-                            value={newMaxMatches}
-                            onChange={(e) => setNewMaxMatches(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none"
-                          >
-                            {[3, 4, 5, 6, 7, 8].map(num => (
-                              <option key={num} value={num}>{num} Maps</option>
-                            ))}
-                          </select>
                         </div>
                       </div>
 
@@ -1316,7 +1410,7 @@ export default function App() {
                           <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Description / Rules</label>
                           <input
                             type="text"
-                            placeholder="e.g. 16 Invited Pro Teams, mandatory POV recording"
+                            placeholder="e.g. 16 Invited Pro Teams, mandatory live recording"
                             value={newScrimDesc}
                             onChange={(e) => setNewScrimDesc(e.target.value)}
                             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
@@ -1347,41 +1441,84 @@ export default function App() {
 
                 </div>
 
-                {/* Match Switcher Control */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
-                    {Array.from({ length: activeScrim?.max_matches || 5 }, (_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setSelectedMatchIdx(idx)}
-                        className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (selectedMatchIdx === idx ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-950 text-slate-400 hover:text-slate-200')}
+                {/* Ciri 4: Dynamic Match Controller (+ Add Match & - Remove Match) */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    
+                    {/* Match Tabs */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
+                      {Array.from({ length: adminMatchCount }, (_, idx) => {
+                        const isSaved = activeAdminScrim?.matches && activeAdminScrim.matches[idx];
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedMatchIdx(idx)}
+                            className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap flex items-center gap-1 ' + (
+                              selectedMatchIdx === idx 
+                                ? 'bg-amber-400 text-slate-950 shadow-md' 
+                                : 'bg-slate-950 text-slate-400 hover:text-slate-200'
+                            )}
+                          >
+                            <span>Match {idx + 1}</span>
+                            {isSaved && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                          </button>
+                        );
+                      })}
+
+                      {/* Ciri 4: Butang Tambah Match Dinamik */}
+                      {!activeAdminScrim?.is_finished && (
+                        <button
+                          onClick={handleAddNewMatch}
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 border border-amber-400/30 transition flex items-center gap-1"
+                          title="Add an extra match round to this scrim"
+                        >
+                          <Plus className="w-3.5 h-3.5"/>
+                          <span>Add Match</span>
+                        </button>
+                      )}
+
+                      {/* Ciri 4: Butang Buang Match Terakhir Dinamik */}
+                      {!activeAdminScrim?.is_finished && (activeAdminScrim?.matches?.length > 1) && (
+                        <button
+                          onClick={handleRemoveLastMatch}
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition flex items-center gap-1"
+                          title="Remove the last match round"
+                        >
+                          <Minus className="w-3.5 h-3.5"/>
+                          <span>Remove Last</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                      <select
+                        value={inputMap}
+                        onChange={(e) => setInputMap(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none font-bold"
                       >
-                        Match {idx + 1}
+                        <option value="Erangel">Erangel</option>
+                        <option value="Miramar">Miramar</option>
+                        <option value="Sanhok">Sanhok</option>
+                        <option value="Vikendi">Vikendi</option>
+                      </select>
+
+                      <button
+                        onClick={handleRandomizeTestData}
+                        disabled={activeAdminScrim?.is_finished}
+                        className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-950 hover:bg-slate-800 text-amber-400 border border-amber-400/20 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5"/>
+                        <span className="hidden sm:inline">Quick Fill</span>
                       </button>
-                    ))}
+                    </div>
+
                   </div>
 
-                  <div className="flex items-center gap-2 ml-auto">
-                    <select
-                      value={inputMap}
-                      onChange={(e) => setInputMap(e.target.value)}
-                      className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none font-bold"
-                    >
-                      <option value="Erangel">Erangel</option>
-                      <option value="Miramar">Miramar</option>
-                      <option value="Sanhok">Sanhok</option>
-                      <option value="Vikendi">Vikendi</option>
-                    </select>
-
-                    <button
-                      onClick={handleRandomizeTestData}
-                      disabled={activeScrim?.is_finished}
-                      className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-950 hover:bg-slate-800 text-amber-400 border border-amber-400/20 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5"/>
-                      <span className="hidden sm:inline">Quick Fill</span>
-                    </button>
-                  </div>
+                  {/* Ciri 2: Ayat penerangan kecil */}
+                  <p className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                    <Info className="w-3 h-3 text-slate-400"/>
+                    <span>Currently scoring Match {selectedMatchIdx + 1} on {inputMap}. Adjust placement and kills, then hit save below.</span>
+                  </p>
                 </div>
 
                 {/* Mobile Score Matrix */}
@@ -1400,7 +1537,7 @@ export default function App() {
                             </span>
                             <input
                               type="text"
-                              disabled={activeScrim?.is_finished}
+                              disabled={activeAdminScrim?.is_finished}
                               value={row.teamName}
                               onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
                               className="bg-transparent font-bold text-slate-100 text-xs border-b border-transparent focus:border-amber-400 focus:outline-none flex-1 truncate"
@@ -1428,7 +1565,7 @@ export default function App() {
                                 type="number"
                                 min="1"
                                 max="16"
-                                disabled={activeScrim?.is_finished}
+                                disabled={activeAdminScrim?.is_finished}
                                 value={row.placement}
                                 onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                                 className="w-10 bg-transparent text-center font-bold text-slate-100 focus:outline-none"
@@ -1441,7 +1578,7 @@ export default function App() {
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
-                                disabled={activeScrim?.is_finished}
+                                disabled={activeAdminScrim?.is_finished}
                                 onClick={() => handleAdjustKills(idx, -1)}
                                 className="w-6 h-6 rounded-lg bg-slate-800 active:bg-slate-700 text-slate-300 flex items-center justify-center font-black disabled:opacity-50"
                               >
@@ -1452,7 +1589,7 @@ export default function App() {
                               </span>
                               <button
                                 type="button"
-                                disabled={activeScrim?.is_finished}
+                                disabled={activeAdminScrim?.is_finished}
                                 onClick={() => handleAdjustKills(idx, 1)}
                                 className="w-6 h-6 rounded-lg bg-amber-400 active:bg-amber-300 text-slate-950 flex items-center justify-center font-black disabled:opacity-50"
                               >
@@ -1490,7 +1627,7 @@ export default function App() {
                               <td className="py-2.5 px-4 font-sans">
                                 <input
                                   type="text"
-                                  disabled={activeScrim?.is_finished}
+                                  disabled={activeAdminScrim?.is_finished}
                                   value={row.teamName}
                                   onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
                                   className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-100 font-semibold focus:outline-none"
@@ -1501,7 +1638,7 @@ export default function App() {
                                   type="number"
                                   min="1"
                                   max="16"
-                                  disabled={activeScrim?.is_finished}
+                                  disabled={activeAdminScrim?.is_finished}
                                   value={row.placement}
                                   onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                                   className="w-16 bg-slate-950 border border-slate-700 text-center rounded-lg py-1 font-bold text-slate-200 focus:outline-none"
@@ -1511,7 +1648,7 @@ export default function App() {
                                 <input
                                   type="number"
                                   min="0"
-                                  disabled={activeScrim?.is_finished}
+                                  disabled={activeAdminScrim?.is_finished}
                                   value={row.kills}
                                   onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
                                   className="w-16 bg-slate-950 border border-slate-700 text-center rounded-lg py-1 font-bold text-slate-200 focus:outline-none"
@@ -1539,15 +1676,15 @@ export default function App() {
                 <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-slate-950/90 md:bg-transparent backdrop-blur md:backdrop-blur-none border-t md:border-t-0 border-slate-800 z-30">
                   <button
                     onClick={handleSaveMatchScore}
-                    disabled={activeScrim?.is_finished}
+                    disabled={activeAdminScrim?.is_finished}
                     className={'w-full py-3 md:py-2.5 font-black rounded-2xl md:rounded-xl shadow-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition ' + (
-                      activeScrim?.is_finished 
+                      activeAdminScrim?.is_finished 
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
                         : 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 shadow-emerald-500/20'
                     )}
                   >
                     <Save className="w-4 h-4"/>
-                    <span>{activeScrim?.is_finished ? 'Results Locked (Finished)' : 'Save Match ' + (selectedMatchIdx + 1) + ' Scores'}</span>
+                    <span>{activeAdminScrim?.is_finished ? 'Results Locked (Scrim Finished)' : 'Save Match ' + (selectedMatchIdx + 1) + ' Scores'}</span>
                   </button>
                 </div>
 
@@ -1557,7 +1694,7 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 2: LEADERBOARD                                       */}
+        {/* VIEW 2: LEADERBOARD (PUBLIC VIEW)                         */}
         {/* ========================================================= */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
@@ -1566,9 +1703,9 @@ export default function App() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 
                 <div className="flex items-center space-x-3.5">
-                  {activeScrim?.logo_url ? (
+                  {activePublicScrim?.logo_url ? (
                     <img 
-                      src={activeScrim.logo_url} 
+                      src={activePublicScrim.logo_url} 
                       alt="Scrim Logo" 
                       className="w-14 h-14 rounded-2xl object-cover border border-amber-400/30 shadow-lg shadow-amber-500/10 flex-shrink-0"
                     />
@@ -1581,31 +1718,31 @@ export default function App() {
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 uppercase font-mono">
-                        {activeScrim?.tier || 'Tier 1'}
+                        {activePublicScrim?.tier || 'Tier 1'}
                       </span>
                       <span className="text-[11px] text-slate-400 font-mono">
-                        {activeScrim?.date}
+                        {activePublicScrim?.date}
                       </span>
-                      {activeScrim?.is_finished && (
+                      {activePublicScrim?.is_finished && (
                         <span className="text-[10px] bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                           🏁 Official Final
                         </span>
                       )}
                     </div>
                     <h1 className="text-lg sm:text-2xl font-black text-slate-100 mt-1 leading-tight">
-                      {activeScrim?.title || 'No Scrim Session Available'}
+                      {activePublicScrim?.title || 'No Scrim Session Available'}
                     </h1>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  {activeScrim?.host_contact && (
+                  {activePublicScrim?.host_contact && (
                     <a
-                      href={activeScrim.host_contact.startsWith('http') 
-                        ? activeScrim.host_contact 
-                        : (activeScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                          ? 'https://wa.me/' + activeScrim.host_contact.replace(/[^0-9]/g, '')
-                          : 'https://t.me/' + activeScrim.host_contact.replace('@', ''))
+                      href={activePublicScrim.host_contact.startsWith('http') 
+                        ? activePublicScrim.host_contact 
+                        : (activePublicScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
+                          ? 'https://wa.me/' + activePublicScrim.host_contact.replace(/[^0-9]/g, '')
+                          : 'https://t.me/' + activePublicScrim.host_contact.replace('@', ''))
                       }
                       target="_blank"
                       rel="noopener noreferrer"
@@ -1635,12 +1772,13 @@ export default function App() {
 
               </div>
 
+              {/* Search & Tier Categories */}
               <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
                   <input
                     type="text"
-                    placeholder="Search scrim name..."
+                    placeholder="Search tournament name..."
                     value={searchScrimQuery}
                     onChange={(e) => setSearchScrimQuery(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
@@ -1660,6 +1798,7 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Match Switcher */}
               <div className="flex items-center gap-1.5 overflow-x-auto py-1">
                 <button
                   onClick={() => setLeaderboardFilter('overall')}
@@ -1667,7 +1806,7 @@ export default function App() {
                 >
                   Overall Standings
                 </button>
-                {activeScrim?.matches?.map((m, idx) => (
+                {activePublicScrim?.matches?.map((m, idx) => (
                   <button
                     key={idx}
                     onClick={() => setLeaderboardFilter(idx.toString())}
@@ -1677,6 +1816,12 @@ export default function App() {
                   </button>
                 ))}
               </div>
+
+              {/* Ciri 2: Ayat penerangan kecil */}
+              <p className="text-[10px] text-slate-500 flex items-center gap-1 pt-1 border-t border-slate-800/60 font-mono">
+                <Info className="w-3 h-3 text-slate-400"/>
+                <span>Official standard 10-6-5-4-3-2-1 placement point system + 1 kill = 1 pt. Select Overall or specific Match to view detailed breakdown.</span>
+              </p>
             </div>
 
             {leaderboardData.length === 0 ? (
@@ -1753,15 +1898,15 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 3: TEAM STATS                                        */}
+        {/* VIEW 3: TEAM STATS & TEAM PERFORMANCE INFO GRAPH          */}
         {/* ========================================================= */}
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-3">
               <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-100">Team Statistics & Performance</h2>
-                <p className="text-xs text-slate-400">Aggregated tournament results, aggregate kills, and full match logs.</p>
+                <h2 className="text-base sm:text-lg font-black text-slate-100">Team Statistics & Career Performance</h2>
+                <p className="text-xs text-slate-400">Aggregated tournament results, aggregate kills, and full match logs across all scrims.</p>
               </div>
 
               <div className="relative">
@@ -1790,16 +1935,28 @@ export default function App() {
 
             {activeTeamData && (
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-3">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-lg">
                       {activeTeamData.tag}
                     </div>
                     <div>
                       <h3 className="font-black text-base text-slate-100">{activeTeamData.name}</h3>
-                      <span className="text-xs text-slate-400">Verified Competitive Roster</span>
+                      <span className="text-xs text-slate-400">Official Tournament Profile</span>
                     </div>
                   </div>
+
+                  {/* Ciri 1: Butang Buka Graph "Team Performance Info" */}
+                  <button
+                    onClick={() => {
+                      setPerformanceTeam(activeTeamData);
+                      setIsPerformanceModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-400/20"
+                  >
+                    <TrendingUp className="w-4 h-4"/>
+                    <span>Team Performance Info</span>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -1824,7 +1981,7 @@ export default function App() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Scrim Performance Log (Click row for full breakdown)
+                      Scrim Performance Log (Click any row to inspect tournament standings)
                     </span>
                     <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
                       <Eye className="w-3 h-3"/> Public Details
@@ -1912,6 +2069,12 @@ export default function App() {
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
                 />
               </div>
+
+              {/* Ciri 2: Ayat penerangan kecil */}
+              <p className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                <Info className="w-3 h-3 text-slate-400"/>
+                <span>All listed hosts are registered tournament administrators. Click PM Host to contact organizers directly.</span>
+              </p>
             </div>
 
             {/* List of Organizers */}
@@ -1955,7 +2118,6 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Scrims Hosted by this Host */}
                   <div className="pt-3 border-t border-slate-800 space-y-1.5">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                       Hosted Tournaments:
@@ -1981,7 +2143,7 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 5: SHOWCASE (DELETE POSTING SENDIRI)                  */}
+        {/* VIEW 5: SHOWCASE                                          */}
         {/* ========================================================= */}
         {activeTab === 'showcase' && (
           <div className="space-y-4">
@@ -2046,7 +2208,6 @@ export default function App() {
                         {post.rank || 'Featured'}
                       </span>
 
-                      {/* 1) Delete Button for Post Owner */}
                       {isMyPost && (
                         <button
                           onClick={() => handleDeletePost(post.id, post.created_by)}
@@ -2078,8 +2239,130 @@ export default function App() {
       </main>
 
       {/* ========================================================= */}
-      {/* 2) MODAL: EDIT SCRIM SETTINGS & CHANGE LOGO              */}
+      {/* Ciri 1: MODAL GRAPH "TEAM PERFORMANCE INFO"               */}
       {/* ========================================================= */}
+      {isPerformanceModalOpen && performanceTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-base">
+                  {performanceTeam.tag}
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-slate-100 flex items-center gap-1.5">
+                    <span>{performanceTeam.name}</span>
+                    <span className="text-[10px] bg-amber-400/20 text-amber-400 px-2 py-0.5 rounded-full font-mono">
+                      Analytics Graph
+                    </span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400">Visual performance & career metric breakdown</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsPerformanceModalOpen(false)} 
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Metrics KPI */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Points / Scrim</span>
+                <span className="text-base font-black font-mono text-amber-400">
+                  {performanceTeam.scrimResults.length ? (performanceTeam.totalPoints / performanceTeam.scrimResults.length).toFixed(1) : 0}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Kills / Scrim</span>
+                <span className="text-base font-black font-mono text-red-400">
+                  {performanceTeam.scrimResults.length ? (performanceTeam.totalKills / performanceTeam.scrimResults.length).toFixed(1) : 0}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Win Rate (WWCD)</span>
+                <span className="text-base font-black font-mono text-emerald-400">
+                  {performanceTeam.matchesCount ? ((performanceTeam.totalWWCD / performanceTeam.matchesCount) * 100).toFixed(0) + '%' : '0%'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Total Played</span>
+                <span className="text-base font-black font-mono text-slate-200">
+                  {performanceTeam.scrimResults.length} Scrims
+                </span>
+              </div>
+            </div>
+
+            {/* Visual SVG Performance Graph */}
+            <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <BarChart2 className="w-4 h-4 text-amber-400"/>
+                  <span>Points & Kills per Scrim Event</span>
+                </span>
+                <div className="flex items-center gap-3 text-[10px] font-mono">
+                  <span className="flex items-center gap-1 text-amber-400">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block"></span> Points
+                  </span>
+                  <span className="flex items-center gap-1 text-red-400">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block"></span> Kills
+                  </span>
+                </div>
+              </div>
+
+              {performanceTeam.scrimResults.length === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs">
+                  No scrim history recorded yet to render chart.
+                </div>
+              ) : (
+                <div className="space-y-3 pt-2">
+                  {performanceTeam.scrimResults.map((item, idx) => {
+                    const maxPts = Math.max(...performanceTeam.scrimResults.map(s => s.points), 40);
+                    const ptsPct = Math.min(100, (item.points / maxPts) * 100);
+                    const killsPct = Math.min(100, (item.kills / maxPts) * 100);
+
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-300 truncate max-w-[200px] sm:max-w-xs">{item.scrimName}</span>
+                          <span className="font-mono text-slate-400 text-[10px]">
+                            {item.points} PTS • {item.kills} K ({item.date})
+                          </span>
+                        </div>
+                        
+                        {/* Dual Bar Graphic */}
+                        <div className="h-4 bg-slate-900 rounded-lg overflow-hidden flex flex-col justify-center gap-0.5 p-0.5">
+                          <div 
+                            style={{ width: `${Math.max(5, ptsPct)}\%` }} className="h-1.5 bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all" /> <div style={{ width: `${Math.max(5, killsPct)}%` }} 
+                            className="h-1 bg-gradient-to-r from-red-500 to-red-400 rounded-full transition-all"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 text-right">
+              <button
+                onClick={() => setIsPerformanceModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs"
+              >
+                Close Info
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT SCRIM SETTINGS */}
       {isEditScrimModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
@@ -2103,32 +2386,17 @@ export default function App() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-400 uppercase font-bold mb-1">Category / Tier</label>
-                  <select
-                    value={editTier}
-                    onChange={(e) => setEditTier(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
-                  >
-                    {TIER_OPTIONS.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 uppercase font-bold mb-1">Total Maps</label>
-                  <select
-                    value={editMaxMatches}
-                    onChange={(e) => setEditMaxMatches(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
-                  >
-                    {[3, 4, 5, 6, 7, 8].map(num => (
-                      <option key={num} value={num}>{num} Maps</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-slate-400 uppercase font-bold mb-1">Category / Tier</label>
+                <select
+                  value={editTier}
+                  onChange={(e) => setEditTier(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none"
+                >
+                  {TIER_OPTIONS.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -2187,9 +2455,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* 4) MODAL: EDIT HOST PROFILE                               */}
-      {/* ========================================================= */}
+      {/* MODAL: EDIT HOST PROFILE */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
