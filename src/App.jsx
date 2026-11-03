@@ -116,7 +116,7 @@ export default function App() {
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
 
-  // Filter Kategori Statistik Tim
+  // Filter Kategori Statistik Pasukan (ALL, Scrim, Tour)
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
   // Status Autentikasi
@@ -136,7 +136,7 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Modal Masukan / Laporan Bug
+  // Modal Maklum Balas
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -213,7 +213,7 @@ export default function App() {
       if (error) {
         showToast('Registration Error: ' + error.message);
       } else {
-        showToast('Pendaftaran selesai! Silakan masuk.');
+        showToast('Pendaftaran berjaya! Sila log masuk.');
         setIsRegisterMode(false);
       }
     } else {
@@ -226,7 +226,7 @@ export default function App() {
         showToast('Gagal Masuk: ' + error.message);
       } else {
         setCurrentUser(data.user);
-        showToast('Selamat datang kembali, ' + data.user.email);
+        showToast('Selamat kembali, ' + data.user.email);
         setAuthPassword('');
       }
     }
@@ -236,7 +236,7 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
-    showToast('Berhasil keluar.');
+    showToast('Berjaya log keluar.');
   };
 
   const isAuthorizedAdmin = (scrim) => {
@@ -313,10 +313,10 @@ export default function App() {
         setProfileAvatarUrl(newAvatarUrl);
         setAvatarFile(null);
         setIsProfileModalOpen(false);
-        showToast('Profil berhasil diperbarui!');
+        showToast('Profil berjaya dikemaskini!');
       }
     } catch (err) {
-      showToast('Gagal mengunggah foto profil: ' + err.message);
+      showToast('Gagal memuat naik avatar: ' + err.message);
     } finally {
       setIsSavingProfile(false);
     }
@@ -341,19 +341,20 @@ export default function App() {
       if (error) {
         showToast('Ralat: ' + error.message);
       } else {
-        showToast('Terima kasih! Masukan telah dikirim ke Developer ry.khor.');
+        showToast('Maklum balas dihantar terus kepada Developer ry.khor!');
         setFeedbackMessage('');
         setIsFeedbackModalOpen(false);
       }
     } catch (err) {
-      showToast('Gagal mengirim: ' + err.message);
+      showToast('Gagal menghantar: ' + err.message);
     } finally {
       setIsSendingFeedback(false);
     }
   };
 
+  // State Pendaftaran Sesi / Match Baharu
   const [newScrimTitle, setNewScrimTitle] = useState('');
-  const [newEventType, setNewEventType] = useState('Scrim');
+  const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
@@ -361,6 +362,7 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
+  // State Edit Sesi
   const [editTitle, setEditTitle] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
@@ -470,15 +472,15 @@ export default function App() {
         .eq('id', activeAdminScrim.id);
 
       if (error) {
-        showToast('Pembaruan gagal: ' + error.message);
+        showToast('Kemas kini gagal: ' + error.message);
       } else {
         const merged = { ...activeAdminScrim, ...updatedData };
         setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
         setIsEditScrimModalOpen(false);
-        showToast('Pengaturan dan kategori berhasil disimpan!');
+        showToast('Tetapan kategori berjaya dikemas kini!');
       }
     } catch (err) {
-      showToast('Gagal mengunggah logo: ' + err.message);
+      showToast('Gagal memuat naik logo: ' + err.message);
     } finally {
       setIsSavingEdit(false);
     }
@@ -486,7 +488,7 @@ export default function App() {
 
   const handleToggleFinishScrim = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
-      showToast('Hanya host yang dapat mengunci status!');
+      showToast('Hanya host boleh mengunci status!');
       return;
     }
 
@@ -497,40 +499,40 @@ export default function App() {
       .eq('id', activeAdminScrim.id);
 
     if (error) {
-      showToast('Gagal memperbarui status: ' + error.message);
+      showToast('Gagal kemas kini status: ' + error.message);
     } else {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast(nextState ? '🏁 Sesi ditandai SELESAI (Terkunci)!' : '🔓 Sesi dibuka kembali untuk diedit.');
+      showToast(nextState ? '🏁 Sesi ditandakan SELESAI (Dikunci)!' : '🔓 Sesi dibuka semula untuk disunting.');
     }
   };
 
   const handleAddNewMatch = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Tidak dapat menambah ronde pada sesi yang sudah selesai!');
+      showToast('⚠️ Tidak boleh menambah pusingan pada sesi yang sudah tamat!');
       return;
     }
     const currentTotal = activeAdminScrim?.matches?.length || 0;
     const newMatchNumber = currentTotal + 1;
     setSelectedMatchIdx(newMatchNumber - 1);
-    showToast('Match ' + newMatchNumber + ' siap diinput!');
+    showToast('Match ' + newMatchNumber + ' sedia diisi!');
   };
 
   const handleRemoveLastMatch = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
     if (activeAdminScrim.is_finished) {
-      showToast('⚠️ Tidak dapat menghapus ronde pada sesi yang sudah selesai!');
+      showToast('⚠️ Tidak boleh memadam pusingan pada sesi yang sudah tamat!');
       return;
     }
 
     const currentMatches = activeAdminScrim.matches || [];
     if (currentMatches.length === 0) {
-      showToast('Tidak ada ronde untuk dihapus.');
+      showToast('Tiada pusingan untuk dipadam.');
       return;
     }
 
-    if (!window.confirm('Yakin ingin menghapus Match ' + currentMatches.length + '?')) return;
+    if (!window.confirm('Pasti mahu memadam Match ' + currentMatches.length + '?')) return;
 
     const trimmed = currentMatches.slice(0, -1);
     const updated = {
@@ -546,13 +548,13 @@ export default function App() {
     } else {
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
-      showToast('Ronde terakhir berhasil dihapus.');
+      showToast('Pusingan terakhir berjaya dipadam.');
     }
   };
 
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Skor terkunci karena sesi ini telah selesai!');
+      showToast('⚠️ Skor dikunci kerana sesi ini telah selesai!');
       return;
     }
 
@@ -586,7 +588,7 @@ export default function App() {
 
   const handleAdjustKills = (index, delta) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Skor terkunci!');
+      showToast('⚠️ Skor dikunci!');
       return;
     }
     const current = matchSlots[index].kills;
@@ -613,16 +615,16 @@ export default function App() {
         };
       });
     });
-    showToast('Data simulasi berhasil diisi!');
+    showToast('Data simulasi berjaya dimasukkan!');
   };
 
   const handleSaveMatchScore = async () => {
     if (!currentUser) {
-      showToast('Silakan masuk sebagai Admin untuk menyimpan nilai!');
+      showToast('Sila log masuk sebagai Admin untuk menyimpan markah!');
       return;
     }
     if (!activeAdminScrim) {
-      showToast('Silakan buat atau pilih sesi terlebih dahulu!');
+      showToast('Sila cipta atau pilih sesi terlebih dahulu!');
       return;
     }
     if (activeAdminScrim.is_finished) {
@@ -667,14 +669,14 @@ export default function App() {
     } else {
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast('Nilai Match ' + (selectedMatchIdx + 1) + ' berhasil disimpan!');
+      showToast('Markah Match ' + (selectedMatchIdx + 1) + ' berjaya disimpan!');
     }
   };
 
   const handleCreateNewScrim = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Hanya host terverifikasi yang dapat membuat sesi!');
+      showToast('Hanya host berdaftar boleh membina perlawanan!');
       return;
     }
     if (!newScrimTitle.trim()) return;
@@ -721,10 +723,10 @@ export default function App() {
         setNewScrimDesc('');
         setNewHostContact('');
         setLogoFile(null);
-        showToast(`Sesi ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} berhasil dibuat!`);
+        showToast(`Sesi ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} berjaya dicipta!`);
       }
     } catch (err) {
-      showToast('Gagal mengunggah: ' + err.message);
+      showToast('Gagal memuat naik: ' + err.message);
     } finally {
       setIsUploadingLogo(false);
     }
@@ -734,7 +736,7 @@ export default function App() {
     if (!activeAdminScrim) return;
     const shareUrl = window.location.origin + '?claim_scrim=' + activeAdminScrim.id + '&token=' + (activeAdminScrim.claim_token || 'shared');
     navigator.clipboard.writeText(shareUrl).then(() => {
-      showToast('Tautan Co-Host berhasil disalin!');
+      showToast('Pautan Co-Host berjaya disalin!');
     });
   };
 
@@ -825,14 +827,14 @@ export default function App() {
 
     navigator.clipboard.writeText(output).then(() => {
       setCopyFeedback(true);
-      showToast('Peringkat disalin ke clipboard!');
+      showToast('Kedudukan disalin ke clipboard!');
       setTimeout(() => setCopyFeedback(false), 2500);
     });
   };
 
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
-      showToast('Tidak ada data untuk mengunduh poster!');
+      showToast('Tiada data untuk memuat turun poster!');
       return;
     }
 
@@ -922,7 +924,7 @@ export default function App() {
     link.download = 'scrim-hub-leaderboard.png';
     link.href = image;
     link.click();
-    showToast('Poster turnamen berhasil diunduh!');
+    showToast('Poster kejohanan berjaya dimuat turun!');
   };
 
   // ENGINE INSTAGRAM STORY INFOGRAFIS
@@ -953,7 +955,7 @@ export default function App() {
       for (let i = 0; i < 1080; i += 60) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
-        ctx.lineTo(i, 1920);
+        ctx.lineTo(1920);
         ctx.stroke();
       }
 
@@ -1211,7 +1213,7 @@ export default function App() {
               title: `[${team.tag}] ${eventTypeLabel} Stats Infographic`,
               text: `Semak infografik prestasi ${eventTypeLabel} pasukan kami di SCRIM HUB! (scrim.rykhor.my)`
             });
-            showToast('Infografik Instagram Story siap dibagikan!');
+            showToast('Infografik Instagram Story siap dikongsi!');
           } catch (err) {
             if (err.name !== 'AbortError') showToast('Ralat: ' + err.message);
           }
@@ -1220,7 +1222,7 @@ export default function App() {
           link.download = `${team.tag}-${eventTypeLabel.toLowerCase()}-stats.png`;
           link.href = URL.createObjectURL(blob);
           link.click();
-          showToast('Poster infografik berhasil diunduh!');
+          showToast('Poster infografik berjaya dimuat turun!');
         }
       }, 'image/png');
 
@@ -1234,6 +1236,7 @@ export default function App() {
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
+  // Agregasi Data Statistik Pasukan Berdasarkan Kejohanan / Scrim
   const teamsStats = useMemo(() => {
     const stats = {};
 
@@ -1324,6 +1327,7 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
+  // Penapisan Dinamik Team Stats (ALL, Scrim, Tour)
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
     const all = activeTeamData.scrimResults || [];
@@ -1413,7 +1417,7 @@ export default function App() {
   const handleCreateShowcasePost = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Hanya admin yang dapat menerbitkan poster!');
+      showToast('Hanya admin boleh menerbitkan poster!');
       return;
     }
     if (!postTitle.trim()) return;
@@ -1456,10 +1460,10 @@ export default function App() {
         setPostTitle('');
         setShowcaseFile(null);
         setPostCaption('');
-        showToast('Poster turnamen berhasil diterbitkan!');
+        showToast('Poster kejohanan berjaya diterbitkan!');
       }
     } catch (err) {
-      showToast('Ralat unggah: ' + err.message);
+      showToast('Ralat muat naik: ' + err.message);
     } finally {
       setIsUploadingShowcase(false);
     }
@@ -1468,19 +1472,19 @@ export default function App() {
   const handleDeletePost = async (postId, postOwnerId) => {
     if (!currentUser) return;
     if (postOwnerId && postOwnerId !== currentUser.id && postOwnerId !== currentUser.email) {
-      showToast('Anda hanya dapat menghapus kiriman milik sendiri!');
+      showToast('Anda hanya boleh memadam kiriman anda sendiri!');
       return;
     }
 
-    if (!window.confirm('Yakin ingin menghapus kiriman ini?')) return;
+    if (!window.confirm('Pasti mahu memadam kiriman ini?')) return;
 
     const { error } = await supabase.from('posts').delete().eq('id', postId);
 
     if (error) {
-      showToast('Gagal menghapus: ' + error.message);
+      showToast('Gagal memadam: ' + error.message);
     } else {
       setPosts(posts.filter(p => p.id !== postId));
-      showToast('Kiriman berhasil dihapus!');
+      showToast('Kiriman berjaya dipadam!');
     }
   };
 
@@ -1489,7 +1493,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
-      {/* Notifikasi Toast */}
+      {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
           <CheckCircle className="w-4 h-4 text-lime-400"/>
@@ -1563,7 +1567,7 @@ export default function App() {
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
               className="px-2.5 py-1 bg-slate-200/80 hover:bg-lime-100 hover:text-lime-800 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-300/80"
-              title="Laporkan Bug ke Developer ry.khor"
+              title="Hantar Maklum Balas ke Developer ry.khor"
             >
               <Bug className="w-3.5 h-3.5 text-lime-600"/>
               <span className="hidden sm:inline">Feedback</span>
@@ -1579,10 +1583,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* KONTEN UTAMA */}
+      {/* KANDUNGAN UTAMA */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
-        {/* VIEW 1: STATISTIK TIM */}
+        {/* VIEW 1: STATISTIK PASUKAN */}
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
@@ -1598,9 +1602,10 @@ export default function App() {
                     </span>
                   </div>
                   <h2 className="text-base sm:text-lg font-black text-slate-950">Team Statistics & Career Performance</h2>
-                  <p className="text-xs text-slate-500">Pilih tombol filter kategori di bawah untuk memisahkan catatan Scrim atau Tournament.</p>
+                  <p className="text-xs text-slate-500">Tapis data perlawanan berdasarkan Kejohanan (Tour) atau Latihan (Scrim).</p>
                 </div>
 
+                {/* Filter Kategori: ALL vs Scrim vs Tour */}
                 <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
@@ -1629,7 +1634,7 @@ export default function App() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
-                  placeholder="Cari nama atau tag tim (contoh: Geek Fam, SEM9, YALL)..."
+                  placeholder="Cari nama atau tag pasukan (contoh: Geek Fam, SEM9, YALL)..."
                   value={teamSearchQuery}
                   onChange={(e) => setTeamSearchQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-950 focus:outline-none focus:border-lime-500 transition"
@@ -1663,9 +1668,7 @@ export default function App() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <h3 className="font-black text-base text-slate-950">{activeTeamData.name}</h3>
-                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono font-semibold">
-                          VERIFIED ROSTER
-                        </span>
+                        {/* BADGE VERIFIED ROSTER TELAH DIBUANG DARI SINI */}
                         <span className={'text-[10px] px-2 py-0.5 rounded-md font-mono font-bold ' + (
                           teamStatsCategory === 'Tour' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
                           teamStatsCategory === 'Scrim' ? 'bg-lime-100 text-lime-800 border border-lime-300' :
@@ -1780,7 +1783,7 @@ export default function App() {
                     ))
                   ) : (
                     <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      Tidak ada catatan riwayat di bawah kategori {teamStatsCategory} untuk tim ini.
+                      Tiada rekod perlawanan di bawah kategori {teamStatsCategory} untuk pasukan ini.
                     </div>
                   )}
                 </div>
@@ -1984,7 +1987,7 @@ export default function App() {
             {leaderboardData.length === 0 ? (
               <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
                 <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
-                <p className="font-bold text-xs text-slate-600">Tidak ada data ditemukan.</p>
+                <p className="font-bold text-xs text-slate-600">Tiada data dijumpai.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -2064,7 +2067,7 @@ export default function App() {
                   <Award className="w-5 h-5 text-lime-600"/>
                   <span>Tournament Hosts & Organizers Directory</span>
                 </h2>
-                <p className="text-xs text-slate-500">Cari penyelenggara terverifikasi, lihat kontak, dan jelajahi turnamen yang diselenggarakan.</p>
+                <p className="text-xs text-slate-500">Cari penganjur yang disahkan, semak maklumat hubungan dan lihat senarai acara yang dihoskan.</p>
               </div>
 
               <div className="relative">
@@ -2259,13 +2262,13 @@ export default function App() {
                     Host Account Portal
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Masuk untuk mengelola Scrims & Tournaments, mengatur ronde pertempuran, dan data sesi privat Anda.
+                    Log masuk untuk menguruskan Scrim & Tournament, pusingan perlawanan dan data rekod pasukan.
                   </p>
                 </div>
 
                 <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
                   <div>
-                    <label className="block text-slate-600 uppercase font-bold mb-1">Email Resmi</label>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Email Rasmi</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                       <input
@@ -2280,7 +2283,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 uppercase font-bold mb-1">Kata Sandi</label>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Kata Laluan</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                       <input
@@ -2299,7 +2302,7 @@ export default function App() {
                     disabled={authLoading}
                     className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider"
                   >
-                    {authLoading ? 'Mohon tunggu...' : isRegisterMode ? 'Daftar sebagai Admin' : 'Masuk sebagai Admin'}
+                    {authLoading ? 'Sila tunggu...' : isRegisterMode ? 'Daftar sebagai Admin' : 'Log Masuk sebagai Admin'}
                   </button>
 
                   <div className="text-center pt-1">
@@ -2308,7 +2311,7 @@ export default function App() {
                       onClick={() => setIsRegisterMode(!isRegisterMode)}
                       className="text-xs text-lime-700 hover:underline font-semibold"
                     >
-                      {isRegisterMode ? 'Sudah memiliki akun? Masuk' : 'Belum memiliki akun admin? Daftar'}
+                      {isRegisterMode ? 'Sudah mempunyai akaun? Log Masuk' : 'Belum mempunyai akaun admin? Daftar'}
                     </button>
                   </div>
                 </form>
@@ -2320,7 +2323,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-lime-800"/>
                     <span className="text-xs font-bold text-lime-950">
-                      Sedang mengedit: <strong className="font-mono">[{activeAdminScrim?.event_type === 'Tour' ? 'Tour' : 'Scrim'}] {activeAdminScrim?.title || 'Tidak Ada Sesi'}</strong>
+                      Sedang menyunting: <strong className="font-mono">[{activeAdminScrim?.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] {activeAdminScrim?.title || 'Tiada Sesi'}</strong>
                     </span>
                   </div>
 
@@ -2358,7 +2361,7 @@ export default function App() {
                       </div>
                       <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <Info className="w-3 h-3 text-lime-600"/>
-                        <span>Ruang kerja privat: Hanya sesi yang Anda kelola yang ditampilkan di sini.</span>
+                        <span>Ruang kerja privat: Menguruskan rekod kejohanan dan scrim anda.</span>
                       </p>
                     </div>
                   </div>
@@ -2387,14 +2390,14 @@ export default function App() {
                       className="p-2 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center gap-1"
                     >
                       <LogOut className="w-4 h-4"/>
-                      <span className="hidden sm:inline">Keluar</span>
+                      <span className="hidden sm:inline">Log Keluar</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  {/* Pilihan Sesi */}
+                  {/* Senarai Pilihan Sesi Sedia Ada */}
                   <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
@@ -2404,7 +2407,7 @@ export default function App() {
 
                     {adminHostedScrims.length === 0 ? (
                       <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
-                        Belum ada sesi yang dibuat. Gunakan formulir di sebelah kanan untuk menyelenggarakan Scrim atau Tournament pertama Anda!
+                        Belum ada sesi dicipta. Gunakan borang di sebelah untuk menyelenggarakan Scrim atau Tournament pertama anda!
                       </div>
                     ) : (
                       <select
@@ -2414,7 +2417,7 @@ export default function App() {
                       >
                         {adminHostedScrims.map((s) => (
                           <option key={s.id} value={s.id}>
-                            [{s.event_type || 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Selesai)' : ''}
+                            [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Selesai)' : ''}
                           </option>
                         ))}
                       </select>
@@ -2429,7 +2432,7 @@ export default function App() {
                           <div className="flex-1">
                             <div className="font-bold text-xs text-slate-900">{activeAdminScrim.title}</div>
                             <div className="text-[10px] text-lime-700 font-bold">
-                              {activeAdminScrim.event_type || 'Scrim'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Ronde Dimainkan
+                              {activeAdminScrim.event_type === 'Tour' ? 'Tournament (Rasmi)' : 'Scrim (Latihan)'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Pusingan
                             </div>
                           </div>
                         </div>
@@ -2443,7 +2446,7 @@ export default function App() {
                         ) : (
                           <div className="p-2.5 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-between text-xs text-lime-800">
                             <span className="font-bold flex items-center gap-1">
-                              <Unlock className="w-3.5 h-3.5"/> Sedang Berjalan & Bisa Diedit
+                              <Unlock className="w-3.5 h-3.5"/> Sedang Berjalan & Boleh Diedit
                             </span>
                           </div>
                         )}
@@ -2466,7 +2469,7 @@ export default function App() {
                             )}
                           >
                             {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
-                            <span>{activeAdminScrim.is_finished ? 'Buka Kembali' : 'Selesaikan'}</span>
+                            <span>{activeAdminScrim.is_finished ? 'Buka Semula' : 'Selesaikan'}</span>
                           </button>
                         </div>
 
@@ -2474,44 +2477,56 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Formulir Buat Scrim / Tour */}
+                  {/* FORMULIR BUAT PERLAWANAN / SESI: OPTION SCRIM VS TOURNAMENT */}
                   <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
                       <div className="flex items-center space-x-2">
                         <Plus className="w-4 h-4 text-lime-600"/>
                         <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
-                          Buat Sesi Pertandingan Baru
+                          Buat Perlawanan / Sesi Baharu
                         </h3>
                       </div>
 
-                      {/* Tombol Pilihan Kategori: Scrim vs Tour */}
-                      <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
+                      {/* TOGGLE PILIHAN SCRIM / TOURNAMENT */}
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                         <button
                           type="button"
                           onClick={() => setNewEventType('Scrim')}
-                          className={'px-3 py-1 rounded-lg font-bold transition ' + (newEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                          className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
+                            newEventType === 'Scrim' 
+                              ? 'bg-lime-400 text-slate-950 shadow-sm' 
+                              : 'text-slate-600 hover:text-slate-950'
+                          )}
                         >
-                          Scrim
+                          <Flame className="w-3.5 h-3.5 text-lime-800"/>
+                          <span>Scrim</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setNewEventType('Tour')}
-                          className={'px-3 py-1 rounded-lg font-bold transition ' + (newEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                          className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
+                            newEventType === 'Tour' 
+                              ? 'bg-amber-500 text-white shadow-sm' 
+                              : 'text-slate-600 hover:text-slate-950'
+                          )}
                         >
-                          Tour (Tournament)
+                          <Trophy className="w-3.5 h-3.5 text-amber-200"/>
+                          <span>Tournament</span>
                         </button>
                       </div>
                     </div>
 
                     <p className="text-[11px] text-slate-500 mb-3">
-                      Pilihan kategori: <strong className="text-slate-800">{newEventType === 'Tour' ? 'Official Tournament' : 'Scrim Practice'}</strong>. Data statistik tim akan dipisahkan secara otomatis.
+                      Mod Semasa: <strong className={newEventType === 'Tour' ? 'text-amber-700 font-mono' : 'text-lime-700 font-mono'}>
+                        {newEventType === 'Tour' ? '🏆 Official Tournament Match' : '🔥 Scrim Practice Match'}
+                      </strong>. Data markah akan direkodkan terus mengikut kategori ini.
                     </p>
 
                     <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div className="sm:col-span-2">
                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
-                            {newEventType === 'Tour' ? 'Judul Tournament' : 'Judul Scrim'}
+                            {newEventType === 'Tour' ? 'Nama / Tajuk Tournament' : 'Nama / Tajuk Scrim'}
                           </label>
                           <input
                             type="text"
@@ -2519,7 +2534,7 @@ export default function App() {
                             value={newScrimTitle}
                             onChange={(e) => setNewScrimTitle(e.target.value)}
                             required
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-lime-500"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-lime-500 font-semibold"
                           />
                         </div>
                         <div>
@@ -2527,7 +2542,7 @@ export default function App() {
                           <select
                             value={newScrimTier}
                             onChange={(e) => setNewScrimTier(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:outline-none"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:outline-none font-semibold"
                           >
                             {TIER_OPTIONS.map(t => (
                               <option key={t} value={t}>{t}</option>
@@ -2538,10 +2553,10 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Unggah Logo</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Muat Naik Logo</label>
                           <label className="flex items-center justify-center gap-1.5 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl px-3 py-2 text-slate-600 cursor-pointer transition">
                             <Upload className="w-3.5 h-3.5 text-lime-600"/>
-                            <span className="truncate">{logoFile ? logoFile.name : 'Pilih File Gambar'}</span>
+                            <span className="truncate">{logoFile ? logoFile.name : 'Pilih Fail Gambar'}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -2565,10 +2580,10 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Deskripsi & Peraturan</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Deskripsi & Syarat</label>
                           <input
                             type="text"
-                            placeholder="contoh: 16 Tim Undangan, rekaman POV wajib"
+                            placeholder="contoh: 16 Pasukan Dijemput, Format Rasmi PMGC Points System"
                             value={newScrimDesc}
                             onChange={(e) => setNewScrimDesc(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
@@ -2577,7 +2592,7 @@ export default function App() {
 
                         <div className="flex gap-2">
                           <div className="flex-1">
-                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Tanggal</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Tarikh</label>
                             <input
                               type="date"
                               value={newScrimDate}
@@ -2599,7 +2614,7 @@ export default function App() {
 
                 </div>
 
-                {/* Kontrol Ronde Match */}
+                {/* Kawalan Pusingan Match */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
@@ -2628,7 +2643,7 @@ export default function App() {
                           className="px-3 py-1.5 rounded-xl text-xs font-bold bg-lime-100 hover:bg-lime-200 text-lime-800 border border-lime-300 transition flex items-center gap-1"
                         >
                           <Plus className="w-3.5 h-3.5"/>
-                          <span>Tambah Ronde</span>
+                          <span>Tambah Pusingan</span>
                         </button>
                       )}
 
@@ -2638,7 +2653,7 @@ export default function App() {
                           className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
                         >
                           <Minus className="w-3.5 h-3.5"/>
-                          <span>Hapus Terakhir</span>
+                          <span>Padam Terakhir</span>
                         </button>
                       )}
                     </div>
@@ -2661,7 +2676,7 @@ export default function App() {
                         className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
                       >
                         <RefreshCw className="w-3.5 h-3.5"/>
-                        <span className="hidden sm:inline">Isi Cepat</span>
+                        <span className="hidden sm:inline">Isi Pantas</span>
                       </button>
                     </div>
 
@@ -2669,11 +2684,11 @@ export default function App() {
 
                   <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
                     <Info className="w-3 h-3 text-slate-400"/>
-                    <span>Mengisi skor Match {selectedMatchIdx + 1} di peta {inputMap}. Sesuaikan posisi rank & kills, lalu simpan.</span>
+                    <span>Memasukkan skor Match {selectedMatchIdx + 1} di peta {inputMap}. Lengkapkan posisi kedudukan & jumlah kills, kemudian klik Simpan.</span>
                   </p>
                 </div>
 
-                {/* Tampilan Input Skor Mobile */}
+                {/* Input Skor Versi Mobile */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -2759,7 +2774,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Tabel Input Desktop */}
+                {/* Jadual Input Skor Desktop */}
                 <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -2851,7 +2866,7 @@ export default function App() {
 
       </main>
 
-      {/* MODAL: INFO PERFORMA TIM & SHARE STORY */}
+      {/* MODAL: INFO PRESTASI PASUKAN & SHARE IG STORY */}
       {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -2893,7 +2908,7 @@ export default function App() {
                 >
                   <option value="ALL">Semua Kategori (Scrim + Tour)</option>
                   <option value="Scrim">Hanya Scrim (Latihan)</option>
-                  <option value="Tour">Hanya Tournament (Resmi)</option>
+                  <option value="Tour">Hanya Tournament (Rasmi)</option>
                 </select>
               </div>
 
@@ -2962,7 +2977,7 @@ export default function App() {
 
               {filteredTeamPerformance.results.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-xs">
-                  Tidak ada catatan riwayat pertandingan di bawah filter ini.
+                  Tiada rekod perlawanan di bawah tapisan ini.
                 </div>
               ) : (
                 <div className="space-y-3 pt-2">
@@ -3029,7 +3044,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL MASUKAN PENGEMBANG */}
+      {/* MODAL MAKLUM BALAS PEMAJU */}
       {isFeedbackModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -3040,7 +3055,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="font-black text-sm text-slate-950">Developer Feedback & Bug Report</h3>
-                  <span className="text-[10px] text-slate-400">Pesan langsung ke ry.khor</span>
+                  <span className="text-[10px] text-slate-400">Mesej terus kepada ry.khor</span>
                 </div>
               </div>
               <button onClick={() => setIsFeedbackModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
@@ -3054,18 +3069,18 @@ export default function App() {
                   onChange={(e) => setFeedbackCategory(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 >
-                  <option value="Bug Report">🐛 Laporan Bug / Error</option>
-                  <option value="Feature Request">💡 Permintaan Fitur / Saran</option>
-                  <option value="UI/Design Feedback">🎨 Masukan Tampilan Desain</option>
-                  <option value="Other Inquiry">💬 Pertanyaan Lainnya</option>
+                  <option value="Bug Report">🐛 Laporan Bug / Ralat</option>
+                  <option value="Feature Request">💡 Cadangan Ciri Baharu</option>
+                  <option value="UI/Design Feedback">🎨 Maklum Balas Reka Bentuk</option>
+                  <option value="Other Inquiry">💬 Pertanyaan Lain</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Email Anda (Opsional)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Email Anda (Pilihan)</label>
                 <input
                   type="email"
-                  placeholder="name@email.com (jika ingin dihubungi kembali)"
+                  placeholder="name@email.com (jika mahu dihubungi semula)"
                   value={feedbackEmail}
                   onChange={(e) => setFeedbackEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3073,11 +3088,11 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Pesan / Detail Masukan</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Mesej / Butiran</label>
                 <textarea
                   rows="3"
                   required
-                  placeholder="Jelaskan masalah atau fitur yang ingin diperbaiki..."
+                  placeholder="Terangkan masalah atau penambahbaikan..."
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3098,7 +3113,7 @@ export default function App() {
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs flex items-center gap-1.5"
                 >
                   <Send className="w-3.5 h-3.5"/>
-                  <span>{isSendingFeedback ? 'Mengirim...' : 'Kirim Masukan'}</span>
+                  <span>{isSendingFeedback ? 'Menghantar...' : 'Hantar Maklum Balas'}</span>
                 </button>
               </div>
             </form>
@@ -3113,7 +3128,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <User className="w-4 h-4 text-lime-600"/>
-                <span>Profil Publik Host & Foto</span>
+                <span>Profil Awam Host & Gambar</span>
               </h3>
               <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
@@ -3124,7 +3139,7 @@ export default function App() {
                 <div className="flex items-center space-x-3">
                   {avatarFile ? (
                     <div className="w-12 h-12 rounded-2xl bg-lime-100 border border-lime-300 flex items-center justify-center font-bold text-lime-800 text-[10px]">
-                      Selected
+                      Dipilih
                     </div>
                   ) : profileAvatarUrl ? (
                     <img src={profileAvatarUrl} alt="Avatar" className="w-12 h-12 rounded-2xl object-cover border border-slate-200" />
@@ -3136,7 +3151,7 @@ export default function App() {
 
                   <label className="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
                     <Upload className="w-4 h-4 text-lime-600"/>
-                    <span className="truncate">{avatarFile ? avatarFile.name : 'Unggah Foto Profil'}</span>
+                    <span className="truncate">{avatarFile ? avatarFile.name : 'Muat Naik Foto Profil'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -3148,19 +3163,19 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Nama Tampilan Penyelenggara</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Nama Paparan Penganjur</label>
                 <input
                   type="text"
                   required
                   placeholder="contoh: RYKHOR Esports Organizer"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Kontak Resmi (WhatsApp / Telegram)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Kontak Rasmi (WhatsApp / Telegram)</label>
                 <input
                   type="text"
                   placeholder="+60123456789 atau @username"
@@ -3171,10 +3186,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tentang / Bio Host</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Bio / Perihalan Host</label>
                 <textarea
                   rows="3"
-                  placeholder="Jelaskan mengenai turnamen atau slot scrim reguler Anda..."
+                  placeholder="Terangkan mengenai kejohanan atau jadual scrim tetap anda..."
                   value={profileBio}
                   onChange={(e) => setProfileBio(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3202,14 +3217,14 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: EDIT PENGATURAN SESI */}
+      {/* MODAL: EDIT TETAPAN SESI */}
       {isEditScrimModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-lime-600"/>
-                <span>Edit Pengaturan Acara</span>
+                <span>Edit Tetapan Acara</span>
               </h3>
               <button onClick={() => setIsEditScrimModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
@@ -3221,37 +3236,37 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setEditEventType('Scrim')}
-                    className={'flex-1 py-1.5 rounded-lg font-bold transition ' + (editEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600')}
+                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600')}
                   >
                     Scrim (Latihan)
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditEventType('Tour')}
-                    className={'flex-1 py-1.5 rounded-lg font-bold transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600')}
+                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600')}
                   >
-                    Tour (Turnamen Resmi)
+                    Tour (Tournament Rasmi)
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Judul Acara</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Tajuk Acara</label>
                 <input
                   type="text"
                   required
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Divisi</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Divisyen</label>
                 <select
                   value={editTier}
                   onChange={(e) => setEditTier(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none font-semibold"
                 >
                   {TIER_OPTIONS.map(t => (
                     <option key={t} value={t}>{t}</option>
@@ -3260,10 +3275,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Ganti Logo Acara (Opsional)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Tukar Logo Acara (Pilihan)</label>
                 <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
                   <Upload className="w-4 h-4 text-lime-600"/>
-                  <span className="truncate">{editLogoFile ? editLogoFile.name : 'Pilih file gambar logo baru'}</span>
+                  <span className="truncate">{editLogoFile ? editLogoFile.name : 'Pilih fail imej logo baharu'}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -3315,7 +3330,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL PUBLIK: RINCIAN ACARA */}
+      {/* MODAL AWAM: BUTIRAN ACARA */}
       {inspectedScrim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -3385,7 +3400,7 @@ export default function App() {
 
             <div className="space-y-2">
               <span className="text-xs font-black uppercase text-slate-900 tracking-wider block">
-                Peringkat Akhir (Standings)
+                Kedudukan Akhir (Standings)
               </span>
 
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
@@ -3428,48 +3443,48 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL ADMIN: UNGGAH POSTER */}
+      {/* MODAL ADMIN: TERBIT POSTER */}
       {isShowcaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <ImageIcon className="w-4 h-4 text-lime-600"/>
-                <span>Terbitkan Poster Turnamen / Cuplikan</span>
+                <span>Terbitkan Poster Kejohanan / Klip</span>
               </h3>
               <button onClick={() => setIsShowcaseModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleCreateShowcasePost} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tipe Post</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Jenis Kiriman</label>
                 <select
                   value={postType}
                   onChange={(e) => setPostType(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 >
-                  <option value="poster">Poster Turnamen (Gambar)</option>
-                  <option value="clip">Sorotan Gameplay (File Video)</option>
+                  <option value="poster">Poster Kejohanan (Imej)</option>
+                  <option value="clip">Sorotan Klip Permainan (Video)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Judul</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Tajuk</label>
                 <input
                   type="text"
                   required
                   placeholder="contoh: PMSL SEA Spring Qualifier Open Slot"
                   value={postTitle}
                   onChange={(e) => setPostTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Pilih File dari Perangkat</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Pilih Fail</label>
                 <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-3 text-slate-700 cursor-pointer transition">
                   <Upload className="w-4 h-4 text-lime-600"/>
-                  <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Klik untuk Unggah Gambar / MP4'}</span>
+                  <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Klik untuk Muat Naik Gambar / Video'}</span>
                   <input
                     type="file"
                     accept={postType === 'clip' ? 'video/*' : 'image/*'}
@@ -3480,10 +3495,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Keterangan / Tautan Pendaftaran</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Keterangan / Link Pendaftaran</label>
                 <textarea
                   rows="3"
-                  placeholder="Keterangan ketersediaan slot, hadiah, syarat..."
+                  placeholder="Keterangan yuran, hadiah, format atau pautan Google Form..."
                   value={postCaption}
                   onChange={(e) => setPostCaption(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3503,7 +3518,7 @@ export default function App() {
                   disabled={isUploadingShowcase}
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
-                  {isUploadingShowcase ? 'Mengunggah...' : 'Terbitkan'}
+                  {isUploadingShowcase ? 'Memuat naik...' : 'Terbitkan'}
                 </button>
               </div>
             </form>
@@ -3557,4 +3572,3 @@ export default function App() {
     </div>
   );
 }
-``
