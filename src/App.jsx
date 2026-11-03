@@ -39,7 +39,10 @@ import {
   TrendingUp,
   BarChart2,
   Info,
-  ChevronRight
+  Bug,
+  Crosshair,
+  Radio,
+  Send
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -98,7 +101,7 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 };
 
 export default function App() {
-  // Laman utama dibuka ke Team Stats
+  // Laman utama dibuka terus ke tab Team Stats
   const [activeTab, setActiveTab] = useState('teams');
   
   const [scrims, setScrims] = useState([]);
@@ -124,6 +127,14 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
+  const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
+
+  // Feedback Modal (Developer Bug & Feature Form)
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
+  const [feedbackEmail, setFeedbackEmail] = useState('');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
   // Directory Search
   const [searchHostQuery, setSearchHostQuery] = useState('');
@@ -143,14 +154,12 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
-      // Susun mengikut masa ID terbaru secara menurun
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
         .order('date', { ascending: false });
 
       if (scrimData && scrimData.length > 0) {
-        // Susun tepat: scrim terbaru Date.now() sentiasa di atas
         const sorted = [...scrimData].sort((a, b) => {
           const timeA = parseInt(a.id.replace('scrim_', ''), 10) || 0;
           const timeB = parseInt(b.id.replace('scrim_', ''), 10) || 0;
@@ -224,7 +233,7 @@ export default function App() {
     showToast('Signed out successfully.');
   };
 
-  // Kawalan Akses Admin Sendiri
+  // Kawalan Akses Admin Sendiri Sahaja
   const isAuthorizedAdmin = (scrim) => {
     if (!currentUser || !scrim) return false;
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
@@ -247,10 +256,13 @@ export default function App() {
     return adminHostedScrims.find(s => s.id === adminSelectedScrimId) || adminHostedScrims[0] || null;
   }, [adminHostedScrims, adminSelectedScrimId]);
 
-  // Host Profile Edit
+  // Host Profile Edit & Avatar Upload State
   const [profileName, setProfileName] = useState('');
   const [profileContact, setProfileContact] = useState('');
   const [profileBio, setProfileBio] = useState('');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     if (currentUser && profiles.length > 0) {
@@ -259,6 +271,7 @@ export default function App() {
         setProfileName(myProfile.display_name || '');
         setProfileContact(myProfile.contact || '');
         setProfileBio(myProfile.bio || '');
+        setProfileAvatarUrl(myProfile.avatar_url || '');
       }
     }
   }, [currentUser, profiles]);
@@ -267,25 +280,72 @@ export default function App() {
     e.preventDefault();
     if (!currentUser) return;
 
-    const payload = {
-      id: currentUser.id,
-      display_name: profileName.trim() || currentUser.email.split('@')[0],
-      contact: profileContact.trim(),
-      bio: profileBio.trim(),
-      updated_at: new Date().toISOString()
-    };
+    try {
+      setIsSavingProfile(true);
+      let newAvatarUrl = profileAvatarUrl;
 
-    const { error } = await supabase.from('profiles').upsert(payload);
+      if (avatarFile) {
+        newAvatarUrl = await uploadMediaToSupabase(avatarFile, 'avatars');
+      }
 
-    if (error) {
-      showToast('Profile Error: ' + error.message);
-    } else {
-      setProfiles(prev => {
-        const filtered = prev.filter(p => p.id !== currentUser.id);
-        return [...filtered, payload];
-      });
-      setIsProfileModalOpen(false);
-      showToast('Host profile updated!');
+      const payload = {
+        id: currentUser.id,
+        display_name: profileName.trim() || currentUser.email.split('@')[0],
+        contact: profileContact.trim(),
+        bio: profileBio.trim(),
+        avatar_url: newAvatarUrl,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('profiles').upsert(payload);
+
+      if (error) {
+        showToast('Profile Error: ' + error.message);
+      } else {
+        setProfiles(prev => {
+          const filtered = prev.filter(p => p.id !== currentUser.id);
+          return [...filtered, payload];
+        });
+        setProfileAvatarUrl(newAvatarUrl);
+        setAvatarFile(null);
+        setIsProfileModalOpen(false);
+        showToast('Host profile & photo updated!');
+      }
+    } catch (err) {
+      showToast('Avatar upload failed: ' + err.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  // Developer Feedback Submission
+  const handleSubmitFeedback = async (e) => {
+    e.preventDefault();
+    if (!feedbackMessage.trim()) return;
+
+    try {
+      setIsSendingFeedback(true);
+      const payload = {
+        id: 'fb_' + Date.now(),
+        user_email: feedbackEmail.trim() || currentUser?.email || 'Anonymous Public User',
+        category: feedbackCategory,
+        message: feedbackMessage.trim(),
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('feedbacks').insert([payload]);
+
+      if (error) {
+        showToast('Error: ' + error.message);
+      } else {
+        showToast('Terima kasih! Maklum balas telah dihantar kepada Developer ry.khor.');
+        setFeedbackMessage('');
+        setIsFeedbackModalOpen(false);
+      }
+    } catch (err) {
+      showToast('Gagal menghantar: ' + err.message);
+    } finally {
+      setIsSendingFeedback(false);
     }
   };
 
@@ -361,7 +421,6 @@ export default function App() {
     });
   }, [scrims, tierFilter, searchScrimQuery]);
 
-  // Public Scrim yang Aktif di Leaderboard
   const activePublicScrim = useMemo(() => {
     return scrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || scrims[0];
   }, [scrims, selectedScrimId, filteredScrims]);
@@ -419,7 +478,6 @@ export default function App() {
     }
   };
 
-  // Ciri Scrim Finish (Sync ke Leaderboard)
   const handleToggleFinishScrim = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
       showToast('Only host can toggle finish status!');
@@ -437,7 +495,6 @@ export default function App() {
     } else {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
-      // Automatik pilih scrim ini untuk paparan Leaderboard
       setSelectedScrimId(activeAdminScrim.id);
       showToast(nextState ? '🏁 Scrim marked as FINISHED! Results are now locked and live on Leaderboard.' : '🔓 Scrim reopened for editing.');
     }
@@ -765,6 +822,7 @@ export default function App() {
     });
   };
 
+  // Modern Clean Poster Generator (White, Slate & Lime Green)
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
       showToast('No data available to render poster!');
@@ -777,37 +835,44 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Soft Light Gradient Background
     const bg = ctx.createLinearGradient(0, 0, 0, 1480);
-    bg.addColorStop(0, '#000000');
-    bg.addColorStop(0.5, '#09090b');
-    bg.addColorStop(1, '#000000');
+    bg.addColorStop(0, '#f8fafc');
+    bg.addColorStop(0.5, '#f1f5f9');
+    bg.addColorStop(1, '#e2e8f0');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1480);
 
-    ctx.fillStyle = '#ccff00';
-    ctx.fillRect(0, 0, 1080, 12);
+    // Modern Top Border (Neon Lime Green)
+    ctx.fillStyle = '#84cc16';
+    ctx.fillRect(0, 0, 1080, 14);
 
-    ctx.fillStyle = '#ccff00';
+    // Brand Label
+    ctx.fillStyle = '#4d7c0f';
     ctx.font = 'bold 20px monospace';
     ctx.fillText('SCRIM HUB  •  BY RY.KHOR', 60, 75);
 
-    ctx.fillStyle = '#ffffff';
+    // Tournament Title (Bold Dark Slate)
+    ctx.fillStyle = '#0f172a';
     ctx.font = '900 38px sans-serif';
     const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE SCRIM').toUpperCase();
     ctx.fillText(mainTitle.length > 30 ? mainTitle.slice(0, 28) + '...' : mainTitle, 60, 130);
 
-    ctx.fillStyle = '#ccff00';
+    // Category Tier Badge
+    ctx.fillStyle = '#65a30d';
     ctx.font = 'bold 16px monospace';
     ctx.fillText('[' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 170);
 
-    ctx.fillStyle = '#71717a';
+    // Date & Status
+    ctx.fillStyle = '#64748b';
     ctx.font = '500 16px sans-serif';
     ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 170);
 
-    ctx.fillStyle = '#18181b';
+    // Header Bar
+    ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 200, 960, 48);
 
-    ctx.fillStyle = '#ccff00';
+    ctx.fillStyle = '#bef264';
     ctx.font = 'bold 15px monospace';
     ctx.fillText('RANK', 85, 230);
     ctx.fillText('TEAM NAME', 200, 230);
@@ -816,36 +881,37 @@ export default function App() {
     ctx.fillText('KILLS', 815, 230);
     ctx.fillText('TOTAL PTS', 920, 230);
 
+    // Table Rows
     const rows = leaderboardData.slice(0, 16);
     let y = 285;
     rows.forEach((row, i) => {
       if (i % 2 === 0) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
         ctx.fillRect(60, y - 28, 960, 52);
       }
 
-      ctx.fillStyle = row.rank === 1 ? '#ccff00' : row.rank === 2 ? '#e4e4e7' : row.rank === 3 ? '#a1a1aa' : '#52525b';
+      ctx.fillStyle = row.rank === 1 ? '#65a30d' : row.rank === 2 ? '#334155' : row.rank === 3 ? '#64748b' : '#94a3b8';
       ctx.font = '900 20px monospace';
       ctx.fillText('#' + row.rank, 85, y + 4);
 
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 18px sans-serif';
       const name = row.teamName.length > 24 ? row.teamName.slice(0, 22) + '..' : row.teamName;
       ctx.fillText(name, 200, y + 4);
 
-      ctx.fillStyle = '#71717a';
+      ctx.fillStyle = '#64748b';
       ctx.font = '500 17px monospace';
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
-      ctx.fillStyle = row.wwcd > 0 ? '#ccff00' : '#52525b';
+      ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
       ctx.font = 'bold 17px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
-      ctx.fillStyle = '#a1a1aa';
+      ctx.fillStyle = '#334155';
       ctx.font = '500 17px monospace';
       ctx.fillText(String(row.killPts || 0), 835, y + 4);
 
-      ctx.fillStyle = '#ccff00';
+      ctx.fillStyle = '#4d7c0f';
       ctx.font = '900 22px monospace';
       ctx.fillText(String(row.totalPts || 0), 945, y + 4);
 
@@ -857,7 +923,7 @@ export default function App() {
     link.download = 'scrim-hub-leaderboard.png';
     link.href = image;
     link.click();
-    showToast('Modern Lime Poster downloaded!');
+    showToast('Clean Esports Poster downloaded!');
   };
 
   // Team History & Aggregated Stats
@@ -932,7 +998,9 @@ export default function App() {
           wwcd: teamRes.wwcd,
           matches: teamRes.matches,
           date: scrim.date,
-          isFinished: scrim.is_finished
+          isFinished: scrim.is_finished,
+          hostKey: scrim.created_by || scrim.host_name || 'Admin',
+          hostName: scrim.host_name || 'Tournament Organizer'
         });
       });
     });
@@ -962,6 +1030,7 @@ export default function App() {
           name: prof?.display_name || s.host_name || 'Tournament Organizer',
           contact: prof?.contact || s.host_contact || '',
           bio: prof?.bio || 'Official Tournament Host & Scrim Coordinator.',
+          avatar_url: prof?.avatar_url || '',
           scrims: []
         };
       }
@@ -973,6 +1042,32 @@ export default function App() {
       h.contact.toLowerCase().includes(searchHostQuery.toLowerCase())
     );
   }, [scrims, profiles, searchHostQuery]);
+
+  // Ciri 1: Kira Statistik Pasukan Tertapis Mengikut Host
+  const filteredTeamPerformance = useMemo(() => {
+    if (!performanceTeam) return null;
+    const allResults = performanceTeam.scrimResults || [];
+    
+    const results = selectedPerformanceHost === 'ALL'
+      ? allResults
+      : allResults.filter(r => r.hostKey === selectedPerformanceHost || r.hostName === selectedPerformanceHost);
+
+    const totalPts = results.reduce((acc, cur) => acc + cur.points, 0);
+    const totalKills = results.reduce((acc, cur) => acc + cur.kills, 0);
+    const totalWwcd = results.reduce((acc, cur) => acc + (cur.wwcd || 0), 0);
+    const matchesCount = results.reduce((acc, cur) => acc + (cur.matches || 1), 0);
+
+    return {
+      results,
+      totalPts,
+      totalKills,
+      totalWwcd,
+      matchesCount,
+      avgPts: results.length ? (totalPts / results.length).toFixed(1) : '0',
+      avgKills: results.length ? (totalKills / results.length).toFixed(1) : '0',
+      winRate: matchesCount ? ((totalWwcd / matchesCount) * 100).toFixed(0) + '%' : '0%'
+    };
+  }, [performanceTeam, selectedPerformanceHost]);
 
   // Showcase Feed
   const [showcaseFilter, setShowcaseFilter] = useState('all');
@@ -1062,79 +1157,96 @@ export default function App() {
   const adminMatchCount = Math.max(1, (activeAdminScrim?.matches?.length || 0));
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-lime-400 text-black px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-lime-300">
-          <CheckCircle className="w-4 h-4 text-black"/>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
+          <CheckCircle className="w-4 h-4 text-lime-400"/>
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* HEADER NAVBAR */}
-      <header className="border-b border-zinc-800/80 bg-black/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
+      {/* HEADER NAVBAR (CLEAN GLASSY LIGHT & LIME GREEN) */}
+      <header className="border-b border-slate-200/90 bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
+          {/* 1) Penjenamaan: SCRIM HUB by ry.khor */}
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-lime-400 flex items-center justify-center text-black shadow-lg shadow-lime-400/20 font-black">
+            <div className="w-9 h-9 rounded-xl bg-lime-400 flex items-center justify-center text-slate-950 shadow-md shadow-lime-400/30 font-black border border-lime-500/30">
               <Swords className="w-5 h-5"/>
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-base font-black tracking-wider text-white">SCRIM HUB</span>
-                <span className="text-[10px] text-zinc-400 font-mono tracking-tight lowercase">
-                  by <span className="text-lime-400 font-bold">ry.khor</span>
+                <span className="text-base font-black tracking-wider text-slate-950">SCRIM HUB</span>
+                <span className="text-[10px] text-slate-500 font-mono tracking-tight lowercase">
+                  by <span className="text-lime-600 font-extrabold">ry.khor</span>
                 </span>
               </div>
-              <span className="text-[9px] block text-zinc-500 font-medium -mt-0.5 uppercase tracking-wider">
-                Official Competitive Tournament Engine
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] block text-slate-400 font-semibold uppercase tracking-wider">
+                  Tactical Esports Management
+                </span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse" title="System Live"></span>
+              </div>
             </div>
           </div>
 
-          <nav className="hidden md:flex space-x-1 bg-zinc-950/90 p-1 rounded-xl border border-zinc-800 text-xs font-semibold">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
             <button
               onClick={() => setActiveTab('teams')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-lime-400 text-black shadow-md font-black' : 'text-zinc-400 hover:text-white')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
             >
-              <Users className="w-4 h-4"/>
+              <Users className="w-4 h-4 text-lime-600"/>
               <span>Team Stats</span>
             </button>
             <button
               onClick={() => setActiveTab('leaderboard')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-lime-400 text-black shadow-md font-black' : 'text-zinc-400 hover:text-white')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
             >
-              <Trophy className="w-4 h-4"/>
+              <Trophy className="w-4 h-4 text-lime-600"/>
               <span>Leaderboard</span>
             </button>
             <button
               onClick={() => setActiveTab('hosts')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'hosts' ? 'bg-lime-400 text-black shadow-md font-black' : 'text-zinc-400 hover:text-white')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'hosts' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
             >
-              <Award className="w-4 h-4"/>
+              <Award className="w-4 h-4 text-lime-600"/>
               <span>Host Profiles</span>
             </button>
             <button
               onClick={() => setActiveTab('showcase')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'showcase' ? 'bg-lime-400 text-black shadow-md font-black' : 'text-zinc-400 hover:text-white')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'showcase' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
             >
-              <Sparkles className="w-4 h-4"/>
+              <Sparkles className="w-4 h-4 text-lime-600"/>
               <span>Showcase</span>
             </button>
             <button
               onClick={() => setActiveTab('admin')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'admin' ? 'bg-lime-400 text-black shadow-md font-black' : 'text-zinc-400 hover:text-white')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'admin' ? 'bg-lime-400 text-slate-950 shadow-sm font-black border border-lime-500/40' : 'text-slate-600 hover:text-slate-950')}
             >
-              {currentUser ? <User className="w-4 h-4 text-lime-400"/> : <Lock className="w-3.5 h-3.5 text-zinc-500"/>}
+              {currentUser ? <User className="w-4 h-4 text-slate-950"/> : <Lock className="w-3.5 h-3.5 text-slate-500"/>}
               <span>Admin Scrim</span>
             </button>
           </nav>
 
-          <div className="flex md:hidden items-center gap-1.5">
-            {currentUser && (
-              <span className="w-2.5 h-2.5 rounded-full bg-lime-400 animate-pulse" title="Admin Active" />
-            )}
+          {/* Quick Header Indicators */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="px-2.5 py-1 bg-slate-200/80 hover:bg-lime-100 hover:text-lime-800 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-300/80"
+              title="Report Bug / Feedback to Developer ry.khor"
+            >
+              <Bug className="w-3.5 h-3.5 text-lime-600"/>
+              <span className="hidden sm:inline">Feedback</span>
+            </button>
+
+            <div className="flex md:hidden items-center gap-1.5">
+              {currentUser && (
+                <span className="w-2.5 h-2.5 rounded-full bg-lime-500 animate-pulse" title="Admin Active" />
+              )}
+            </div>
           </div>
 
         </div>
@@ -1149,20 +1261,31 @@ export default function App() {
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-white">Team Statistics & Career Performance</h2>
-                <p className="text-xs text-zinc-400">Aggregated tournament results, aggregate kills, and full match logs across all scrims.</p>
+            {/* PUBG Banner Vibe Header */}
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3 relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-lime-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Crosshair className="w-3.5 h-3.5 text-lime-600"/>
+                    <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-700 bg-lime-100 px-2 py-0.5 rounded-full">
+                      BATTLE ROYALE CAREER METRICS
+                    </span>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-950">Team Statistics & Career Performance</h2>
+                  <p className="text-xs text-slate-500">Aggregated tournament results, aggregate kills, and full match logs across all scrims.</p>
+                </div>
               </div>
 
               <div className="relative">
-                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3"/>
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
-                  placeholder="Search team name or tag..."
+                  placeholder="Search team name or tag (e.g. Geek Fam, SEM9, YALL)..."
                   value={teamSearchQuery}
                   onChange={(e) => setTeamSearchQuery(e.target.value)}
-                  className="w-full bg-black/70 border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400 transition"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-950 focus:outline-none focus:border-lime-500 transition"
                 />
               </div>
 
@@ -1173,8 +1296,8 @@ export default function App() {
                     onClick={() => setSelectedTeamProfile(t.name)}
                     className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (
                       selectedTeamProfile === t.name 
-                        ? 'bg-lime-400 text-black shadow-md' 
-                        : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-850'
+                        ? 'bg-slate-950 text-lime-400 shadow-sm font-mono' 
+                        : 'bg-white text-slate-600 hover:text-slate-950 border border-slate-200 hover:border-slate-300'
                     )}
                   >
                     [{t.tag}] {t.name}
@@ -1184,55 +1307,66 @@ export default function App() {
             </div>
 
             {activeTeamData && (
-              <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800 gap-3">
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-lime-500 to-lime-400 flex items-center justify-center text-black font-black text-lg shadow-lg shadow-lime-400/20">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-lime-400 to-lime-300 flex items-center justify-center text-slate-950 font-black text-lg shadow-sm border border-lime-500/20">
                       {activeTeamData.tag}
                     </div>
                     <div>
-                      <h3 className="font-black text-base text-white">{activeTeamData.name}</h3>
-                      <span className="text-xs text-zinc-400">Official Tournament Profile</span>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-black text-base text-slate-950">{activeTeamData.name}</h3>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono font-semibold">
+                          VERIFIED ROSTER
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500">PUBG Mobile Competitive Team</span>
                     </div>
                   </div>
 
+                  {/* 1) Butang Buka Graph "Team Performance Info" */}
                   <button
                     onClick={() => {
                       setPerformanceTeam(activeTeamData);
+                      setSelectedPerformanceHost('ALL');
                       setIsPerformanceModalOpen(true);
                     }}
-                    className="px-4 py-2 bg-lime-400 hover:bg-lime-300 active:scale-95 text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-lime-400/20"
+                    className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-slate-950/10 border border-slate-800"
                   >
-                    <TrendingUp className="w-4 h-4"/>
+                    <TrendingUp className="w-4 h-4 text-lime-400"/>
                     <span>Team Performance Info</span>
                   </button>
                 </div>
 
+                {/* KPI Metrics */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="bg-black/60 border border-zinc-800 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 block">Total Points</span>
-                    <span className="text-lg font-black font-mono text-lime-400">{activeTeamData.totalPoints}</span>
+                  <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Points</span>
+                    <span className="text-xl font-black font-mono text-lime-700">{activeTeamData.totalPoints}</span>
                   </div>
-                  <div className="bg-black/60 border border-zinc-800 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 block">Total Kills</span>
-                    <span className="text-lg font-black font-mono text-white">{activeTeamData.totalKills}</span>
+                  <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Eliminations</span>
+                    <span className="text-xl font-black font-mono text-slate-900">{activeTeamData.totalKills}</span>
                   </div>
-                  <div className="bg-black/60 border border-zinc-800 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 block">Total WWCD</span>
-                    <span className="text-lg font-black font-mono text-lime-400">{activeTeamData.totalWWCD}</span>
+                  <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Chicken Dinners</span>
+                    <span className="text-xl font-black font-mono text-lime-700 flex items-center justify-center gap-1">
+                      🍗 {activeTeamData.totalWWCD}
+                    </span>
                   </div>
-                  <div className="bg-black/60 border border-zinc-800 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 block">Total Scrims</span>
-                    <span className="text-lg font-black font-mono text-zinc-300">{activeTeamData.scrimResults.length}</span>
+                  <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Scrims</span>
+                    <span className="text-xl font-black font-mono text-slate-700">{activeTeamData.scrimResults.length}</span>
                   </div>
                 </div>
 
+                {/* Scrim Performance Log */}
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Scrim Performance Log (Click row for tournament details)
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                      Scrim Tournament Log (Click any row for full tournament details)
                     </span>
-                    <span className="text-[10px] text-lime-400 font-semibold flex items-center gap-1">
+                    <span className="text-[10px] text-lime-700 font-semibold flex items-center gap-1">
                       <Eye className="w-3 h-3"/> Public Details
                     </span>
                   </div>
@@ -1242,22 +1376,24 @@ export default function App() {
                       <div
                         key={idx}
                         onClick={() => setInspectedScrim(item.scrimData)}
-                        className="p-3 bg-black/60 hover:bg-zinc-900 active:scale-[0.99] border border-zinc-800 hover:border-lime-400/40 rounded-2xl flex items-center justify-between cursor-pointer transition shadow-sm"
+                        className="p-3 bg-slate-50 hover:bg-white active:scale-[0.99] border border-slate-200 hover:border-lime-400 rounded-2xl flex items-center justify-between cursor-pointer transition shadow-xs"
                       >
                         <div className="flex items-center space-x-3">
                           {item.scrimData?.logo_url && (
-                            <img src={item.scrimData.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover border border-zinc-800" />
+                            <img src={item.scrimData.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover border border-slate-200" />
                           )}
                           <div>
-                            <div className="font-bold text-xs text-zinc-200 flex items-center gap-1.5">
+                            <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
                               <span>{item.scrimName}</span>
                               {item.isFinished && (
-                                <span className="text-[9px] bg-lime-400/20 text-lime-400 px-1 rounded font-mono">Final</span>
+                                <span className="text-[9px] bg-slate-200 text-slate-800 px-1 rounded font-mono">Final</span>
                               )}
-                              <ExternalLink className="w-3 h-3 text-zinc-500"/>
+                              <ExternalLink className="w-3 h-3 text-slate-400"/>
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
-                              <span className="text-lime-400 font-semibold">{item.scrimTier}</span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                              <span className="text-lime-700 font-bold">{item.scrimTier}</span>
+                              <span>•</span>
+                              <span>Host: {item.hostName}</span>
                               <span>•</span>
                               <span>{item.date}</span>
                             </div>
@@ -1266,12 +1402,12 @@ export default function App() {
 
                         <div className="flex items-center space-x-3 text-right">
                           <div>
-                            <span className="text-[9px] text-zinc-500 uppercase font-bold block">Kills</span>
-                            <span className="text-xs font-mono font-bold text-zinc-300">{item.kills} K</span>
+                            <span className="text-[9px] text-slate-400 uppercase font-bold block">Kills</span>
+                            <span className="text-xs font-mono font-bold text-slate-700">{item.kills} K</span>
                           </div>
                           <div>
-                            <span className="text-[9px] text-zinc-500 uppercase font-bold block">Points</span>
-                            <span className="text-xs font-mono font-black text-lime-400">{item.points} PTS</span>
+                            <span className="text-[9px] text-slate-400 uppercase font-bold block">Points</span>
+                            <span className="text-xs font-mono font-black text-lime-700">{item.points} PTS</span>
                           </div>
                           <div className="w-16 text-right">
                             <span className="text-xs font-black">
@@ -1282,7 +1418,7 @@ export default function App() {
                       </div>
                     ))
                   ) : (
-                    <div className="p-6 text-center text-zinc-500 text-xs">
+                    <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                       No recorded scrim finishes for this team.
                     </div>
                   )}
@@ -1294,27 +1430,27 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 2: LEADERBOARD (KINI LENGKAP DENGAN PEMILIH SCRIM)   */}
+        {/* VIEW 2: LEADERBOARD (KINI LEBIH MUDAH DINAVIGASI)        */}
         {/* ========================================================= */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
               
               {/* Header Atas: Pilihan Scrim & Butang Aksi */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider whitespace-nowrap">
-                    Active Tournament:
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
+                    <Radio className="w-3.5 h-3.5 text-lime-600"/>
+                    Tournament:
                   </span>
-                  {/* Pemilih Scrim Utama Leaderboard */}
                   <select
                     value={activePublicScrim?.id || selectedScrimId}
                     onChange={(e) => {
                       setSelectedScrimId(e.target.value);
                       setLeaderboardFilter('overall');
                     }}
-                    className="flex-1 max-w-md bg-black/80 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-lime-400 font-bold focus:outline-none focus:border-lime-400 transition"
+                    className="flex-1 max-w-md bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 transition"
                   >
                     {filteredScrims.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -1325,6 +1461,19 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  {currentUser && isAuthorizedAdmin(activePublicScrim) && (
+                    <button
+                      onClick={() => {
+                        setAdminSelectedScrimId(activePublicScrim.id);
+                        setActiveTab('admin');
+                      }}
+                      className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                    >
+                      <Edit3 className="w-3.5 h-3.5"/>
+                      <span>Edit in Admin</span>
+                    </button>
+                  )}
+
                   {activePublicScrim?.host_contact && (
                     <a
                       href={activePublicScrim.host_contact.startsWith('http') 
@@ -1335,7 +1484,7 @@ export default function App() {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-lime-400/20"
+                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
                     >
                       <MessageCircle className="w-4 h-4"/>
                       <span>PM Host</span>
@@ -1344,7 +1493,7 @@ export default function App() {
 
                   <button
                     onClick={handleDownloadPoster}
-                    className="p-2 sm:px-3 sm:py-1.5 bg-white hover:bg-zinc-200 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-md"
+                    className="p-2 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs"
                   >
                     <Download className="w-4 h-4"/>
                     <span className="hidden sm:inline">Poster PNG</span>
@@ -1352,9 +1501,9 @@ export default function App() {
 
                   <button
                     onClick={handleCopyDiscordText}
-                    className="p-2 sm:px-3 sm:py-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1"
+                    className="p-2 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
                   >
-                    {copyFeedback ? <Check className="w-4 h-4 text-lime-400"/> : <Copy className="w-4 h-4 text-lime-400"/>}
+                    {copyFeedback ? <Check className="w-4 h-4 text-lime-600"/> : <Copy className="w-4 h-4 text-slate-600"/>}
                     <span className="hidden sm:inline">Copy Text</span>
                   </button>
                 </div>
@@ -1366,48 +1515,48 @@ export default function App() {
                   <img 
                     src={activePublicScrim.logo_url} 
                     alt="Scrim Logo" 
-                    className="w-14 h-14 rounded-2xl object-cover border border-lime-400/40 shadow-lg shadow-lime-400/10 flex-shrink-0"
+                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-sm flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-lime-500 to-lime-400 flex items-center justify-center text-black font-black text-xl flex-shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-lime-400 flex items-center justify-center text-slate-950 font-black text-xl flex-shrink-0 shadow-sm">
                     🏆
                   </div>
                 )}
 
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-400 text-black uppercase font-mono">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-100 text-lime-800 border border-lime-300 font-mono">
                       {activePublicScrim?.tier || 'Tier 1'}
                     </span>
-                    <span className="text-[11px] text-zinc-400 font-mono">
+                    <span className="text-[11px] text-slate-500 font-mono">
                       {activePublicScrim?.date}
                     </span>
                     {activePublicScrim?.is_finished ? (
-                      <span className="text-[10px] bg-white text-black font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] bg-slate-900 text-lime-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                         🏁 Official Final
                       </span>
                     ) : (
-                      <span className="text-[10px] bg-lime-400/20 text-lime-400 font-bold px-2 py-0.5 rounded-full uppercase">
+                      <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full uppercase border border-slate-200">
                         Live Standings
                       </span>
                     )}
                   </div>
-                  <h1 className="text-lg sm:text-2xl font-black text-white mt-1 leading-tight">
+                  <h1 className="text-lg sm:text-2xl font-black text-slate-950 mt-1 leading-tight">
                     {activePublicScrim?.title || 'No Scrim Session Available'}
                   </h1>
                 </div>
               </div>
 
               {/* Search & Tier Filter */}
-              <div className="pt-2 border-t border-zinc-800/80 flex flex-col sm:flex-row gap-2">
+              <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5"/>
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
                   <input
                     type="text"
                     placeholder="Search tournament name..."
                     value={searchScrimQuery}
                     onChange={(e) => setSearchScrimQuery(e.target.value)}
-                    className="w-full bg-black/70 border border-zinc-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-lime-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
                   />
                 </div>
 
@@ -1418,8 +1567,8 @@ export default function App() {
                       onClick={() => setTierFilter(t)}
                       className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
                         tierFilter === t 
-                          ? 'bg-lime-400 text-black shadow' 
-                          : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-850'
+                          ? 'bg-slate-900 text-lime-400 shadow-xs' 
+                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                       )}
                     >
                       {t === 'All' ? 'All Tiers' : t.split(' ')[0] + ' ' + t.split(' ')[1]}
@@ -1434,8 +1583,8 @@ export default function App() {
                   onClick={() => setLeaderboardFilter('overall')}
                   className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (
                     leaderboardFilter === 'overall' 
-                      ? 'bg-lime-400 text-black shadow-md' 
-                      : 'bg-zinc-950 text-zinc-400 hover:text-white'
+                      ? 'bg-lime-400 text-slate-950 shadow-sm' 
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900'
                   )}
                 >
                   Overall Standings
@@ -1446,8 +1595,8 @@ export default function App() {
                     onClick={() => setLeaderboardFilter(idx.toString())}
                     className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap ' + (
                       leaderboardFilter === idx.toString() 
-                        ? 'bg-lime-400 text-black shadow-md' 
-                        : 'bg-zinc-950 text-zinc-400 hover:text-white'
+                        ? 'bg-lime-400 text-slate-950 shadow-sm' 
+                        : 'bg-slate-100 text-slate-600 hover:text-slate-900'
                     )}
                   >
                     M{m.matchNo} ({m.map})
@@ -1455,16 +1604,16 @@ export default function App() {
                 ))}
               </div>
 
-              <p className="text-[10px] text-zinc-500 flex items-center gap-1 pt-1 border-t border-zinc-800/60 font-mono">
-                <Info className="w-3 h-3 text-zinc-400"/>
-                <span>Official standard 10-6-5-4-3-2-1 placement point system + 1 kill = 1 pt. Select Overall or specific Match to view detailed breakdown.</span>
+              <p className="text-[10px] text-slate-400 flex items-center gap-1 pt-1 border-t border-slate-100 font-mono">
+                <Info className="w-3 h-3 text-slate-400"/>
+                <span>PUBGM Scoring: 10-6-5-4-3-2-1 placement + 1 kill = 1 pt. Select Overall or Match tabs to inspect match details.</span>
               </p>
             </div>
 
             {leaderboardData.length === 0 ? (
-              <div className="p-12 text-center text-zinc-500 bg-zinc-900/60 border border-zinc-800 rounded-3xl">
-                <Shield className="w-10 h-10 mx-auto mb-2 opacity-30"/>
-                <p className="font-bold text-xs text-zinc-400">No match records saved for this scrim yet.</p>
+              <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
+                <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
+                <p className="font-bold text-xs text-slate-600">No match records saved for this scrim yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1475,42 +1624,42 @@ export default function App() {
                       key={row.teamId}
                       className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
                         isFirst
-                          ? 'bg-gradient-to-r from-lime-400/10 via-zinc-950 to-zinc-950 border-lime-400/50 shadow-lg shadow-lime-400/5'
+                          ? 'bg-lime-50/70 border-lime-300 shadow-xs'
                           : row.rank === 2
-                          ? 'bg-zinc-900/80 border-zinc-700/80'
+                          ? 'bg-white border-slate-250 shadow-xs'
                           : row.rank === 3
-                          ? 'bg-zinc-900/60 border-zinc-800'
-                          : 'bg-black/60 border-zinc-800/80'
+                          ? 'bg-white border-slate-200'
+                          : 'bg-white/80 border-slate-100'
                       )}
                     >
                       <div className="flex items-center space-x-3">
                         <div
                           className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
                             isFirst
-                              ? 'bg-lime-400 text-black shadow-md shadow-lime-400/30'
+                              ? 'bg-lime-400 text-slate-950 shadow-xs'
                               : row.rank === 2
-                              ? 'bg-white text-black'
+                              ? 'bg-slate-200 text-slate-800'
                               : row.rank === 3
-                              ? 'bg-zinc-400 text-black'
-                              : 'bg-zinc-950 text-zinc-500 font-mono'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                              : 'bg-slate-100 text-slate-500 font-mono'
                           )}
                         >
                           {row.rank}
                         </div>
 
                         <div>
-                          <div className="font-black text-xs sm:text-sm text-white flex items-center gap-1.5">
+                          <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
                             <span>{row.teamName}</span>
                             {row.wwcd > 0 && (
-                              <span className="text-[10px] bg-lime-400/15 border border-lime-400/30 text-lime-400 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                              <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
                                 🍗 x{row.wwcd}
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-zinc-400 flex items-center gap-2 mt-0.5">
+                          <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
                             <span>Matches: {row.matchesPlayed}</span>
                             <span>•</span>
-                            <span className="text-zinc-300 font-semibold">Kills: {row.killPts}</span>
+                            <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
                             <span>•</span>
                             <span>Place: {row.placePts}</span>
                           </div>
@@ -1518,10 +1667,10 @@ export default function App() {
                       </div>
 
                       <div className="text-right">
-                        <div className="text-base sm:text-xl font-black font-mono text-lime-400">
+                        <div className="text-base sm:text-xl font-black font-mono text-lime-700">
                           {row.totalPts}
                         </div>
-                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">
+                        <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
                           PTS
                         </div>
                       </div>
@@ -1535,49 +1684,59 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 3: HOSTS DIRECTORY                                   */}
+        {/* VIEW 3: HOSTS DIRECTORY (DENGAN GAMBAR PROFIL HOST)       */}
         {/* ========================================================= */}
         {activeTab === 'hosts' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
               <div>
-                <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
-                  <Award className="w-5 h-5 text-lime-400"/>
+                <h2 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-1.5">
+                  <Award className="w-5 h-5 text-lime-600"/>
                   <span>Tournament Hosts & Organizers Directory</span>
                 </h2>
-                <p className="text-xs text-zinc-400">Search verified organizers, check contact info, and browse hosted tournaments.</p>
+                <p className="text-xs text-slate-500">Search verified organizers, check contact info, and browse hosted tournaments.</p>
               </div>
 
               <div className="relative">
-                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3"/>
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
                   placeholder="Search host name or contact..."
                   value={searchHostQuery}
                   onChange={(e) => setSearchHostQuery(e.target.value)}
-                  className="w-full bg-black/70 border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
                 />
               </div>
 
-              <p className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
-                <Info className="w-3 h-3 text-zinc-400"/>
+              <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                <Info className="w-3 h-3 text-slate-400"/>
                 <span>All listed hosts are registered tournament administrators. Click PM Host to contact organizers directly.</span>
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {organizersList.map((host, idx) => (
-                <div key={idx} className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-5 shadow-2xl space-y-3 flex flex-col justify-between">
+                <div key={idx} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-2xl bg-lime-400 text-black font-black flex items-center justify-center text-base shadow-lg shadow-lime-400/20">
-                          {host.name.slice(0, 2).toUpperCase()}
-                        </div>
+                        {/* 3) Gambar Profil Host */}
+                        {host.avatar_url ? (
+                          <img 
+                            src={host.avatar_url} 
+                            alt={host.name} 
+                            className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl bg-lime-400 text-slate-950 font-black flex items-center justify-center text-base shadow-sm">
+                            {host.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+
                         <div>
-                          <h3 className="font-black text-base text-white">{host.name}</h3>
-                          <span className="text-[10px] bg-lime-400/10 text-lime-400 border border-lime-400/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                          <h3 className="font-black text-base text-slate-950">{host.name}</h3>
+                          <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
                             {host.scrims.length} Tournaments Hosted
                           </span>
                         </div>
@@ -1593,7 +1752,7 @@ export default function App() {
                           }
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1 shadow"
+                          className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
                         >
                           <MessageCircle className="w-3.5 h-3.5"/>
                           <span>PM Host</span>
@@ -1601,13 +1760,13 @@ export default function App() {
                       )}
                     </div>
 
-                    <p className="text-xs text-zinc-400 leading-relaxed italic">
+                    <p className="text-xs text-slate-600 leading-relaxed italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       "{host.bio}"
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-800 space-y-1.5">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                  <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Hosted Tournaments:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -1615,10 +1774,10 @@ export default function App() {
                         <button
                           key={s.id}
                           onClick={() => setInspectedScrim(s)}
-                          className="px-2.5 py-1 rounded-lg bg-black/60 border border-zinc-800 text-[11px] font-semibold text-zinc-300 hover:border-lime-400/40 flex items-center gap-1 transition"
+                          className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700 hover:border-lime-500 flex items-center gap-1 transition"
                         >
                           <span>{s.title}</span>
-                          <ExternalLink className="w-3 h-3 text-zinc-500"/>
+                          <ExternalLink className="w-3 h-3 text-slate-400"/>
                         </button>
                       ))}
                     </div>
@@ -1636,32 +1795,32 @@ export default function App() {
         {activeTab === 'showcase' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-4 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-black text-white flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-lime-400"/>
+                <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-lime-600"/>
                   <span>Showcase & Tournament Hub</span>
                 </h2>
-                <p className="text-[11px] text-zinc-400">Posters, registrations, and clutch gameplay clips.</p>
+                <p className="text-[11px] text-slate-500">Posters, registrations, and clutch gameplay clips.</p>
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="flex items-center gap-1 text-xs">
                   <button
                     onClick={() => setShowcaseFilter('all')}
-                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-lime-400 text-black' : 'text-zinc-400')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
                     All
                   </button>
                   <button
                     onClick={() => setShowcaseFilter('achievement')}
-                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'achievement' ? 'bg-lime-400 text-black' : 'text-zinc-400')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'achievement' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
                     Tournaments
                   </button>
                   <button
                     onClick={() => setShowcaseFilter('clip')}
-                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-lime-400 text-black' : 'text-zinc-400')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
                     Clips
                   </button>
@@ -1670,7 +1829,7 @@ export default function App() {
                 {currentUser && (
                   <button
                     onClick={() => setIsShowcaseModalOpen(true)}
-                    className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1 shadow-md shadow-lime-400/20"
+                    className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
                   >
                     <Plus className="w-4 h-4"/>
                     <span>Upload Poster</span>
@@ -1684,7 +1843,7 @@ export default function App() {
                 const isMyPost = currentUser && (post.created_by === currentUser.id || post.author === currentUser.email?.split('@')[0]);
 
                 return (
-                  <div key={post.id} className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between">
+                  <div key={post.id} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between">
                     <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
                       {post.media_type === 'video' ? (
                         <video src={post.media_url} controls className="w-full h-full object-cover" />
@@ -1692,14 +1851,14 @@ export default function App() {
                         <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
                       )}
 
-                      <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-lime-400 text-black">
+                      <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-lime-400 text-slate-950">
                         {post.rank || 'Featured'}
                       </span>
 
                       {isMyPost && (
                         <button
                           onClick={() => handleDeletePost(post.id, post.created_by)}
-                          className="absolute top-3 right-3 p-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl shadow-lg transition"
+                          className="absolute top-3 right-3 p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition"
                           title="Delete My Post"
                         >
                           <Trash2 className="w-3.5 h-3.5"/>
@@ -1709,12 +1868,12 @@ export default function App() {
 
                     <div className="p-4 space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-zinc-200">[{post.team_tag}] {post.author}</span>
-                        <span className="text-[10px] text-zinc-500">{post.tournament}</span>
+                        <span className="font-bold text-slate-900">[{post.team_tag}] {post.author}</span>
+                        <span className="text-[10px] text-slate-500">{post.tournament}</span>
                       </div>
 
-                      <h3 className="font-bold text-sm text-white leading-snug">{post.title}</h3>
-                      <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">{post.caption}</p>
+                      <h3 className="font-bold text-sm text-slate-950 leading-snug">{post.title}</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{post.caption}</p>
                     </div>
                   </div>
                 );
@@ -1725,52 +1884,52 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 5: ADMIN SCRIM                                       */}
+        {/* VIEW 5: ADMIN SCRIM (MODERN LIGHT GLASSY + QUICK JUMP)   */}
         {/* ========================================================= */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="max-w-md mx-auto my-8 bg-zinc-900/70 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5">
+              <div className="max-w-md mx-auto my-8 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
                 <div className="text-center space-y-1.5">
-                  <div className="w-12 h-12 bg-lime-400/10 border border-lime-400/30 text-lime-400 rounded-2xl flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 bg-lime-100 border border-lime-300 text-lime-800 rounded-2xl flex items-center justify-center mx-auto">
                     <Lock className="w-6 h-6"/>
                   </div>
-                  <h2 className="text-lg font-black text-white">
+                  <h2 className="text-lg font-black text-slate-950">
                     Host Account Portal
                   </h2>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-slate-500">
                     Sign in to host tournaments, add custom match rounds, and manage your private scrim records.
                   </p>
                 </div>
 
                 <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
                   <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1">Official Email</label>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Official Email</label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3"/>
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                       <input
                         type="email"
                         required
                         placeholder="host@esports.com"
                         value={authEmail}
                         onChange={(e) => setAuthEmail(e.target.value)}
-                        className="w-full bg-black/70 border border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-lime-400"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1">Password</label>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Password</label>
                     <div className="relative">
-                      <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3"/>
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                       <input
                         type="password"
                         required
                         placeholder="••••••••"
                         value={authPassword}
                         onChange={(e) => setAuthPassword(e.target.value)}
-                        className="w-full bg-black/70 border border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-lime-400"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
                       />
                     </div>
                   </div>
@@ -1778,7 +1937,7 @@ export default function App() {
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl transition shadow-lg shadow-lime-400/20 text-xs uppercase tracking-wider"
+                    className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider"
                   >
                     {authLoading ? 'Please wait...' : isRegisterMode ? 'Register as Admin' : 'Sign In as Admin'}
                   </button>
@@ -1787,7 +1946,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsRegisterMode(!isRegisterMode)}
-                      className="text-xs text-lime-400 hover:underline"
+                      className="text-xs text-lime-700 hover:underline font-semibold"
                     >
                       {isRegisterMode ? 'Already have an account? Sign In' : "Don't have an admin account? Register"}
                     </button>
@@ -1797,23 +1956,52 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl">
+                {/* 5) Quick Navigation Bar di Admin: Butang View Live Leaderboard */}
+                <div className="bg-lime-100/80 border border-lime-300/80 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-lime-800"/>
+                    <span className="text-xs font-bold text-lime-950">
+                      Currently editing: <strong className="font-mono">{activeAdminScrim?.title || 'No Scrim'}</strong>
+                    </span>
+                  </div>
+
+                  {activeAdminScrim && (
+                    <button
+                      onClick={() => {
+                        setSelectedScrimId(activeAdminScrim.id);
+                        setActiveTab('leaderboard');
+                      }}
+                      className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
+                    >
+                      <span>📊 View Live Leaderboard</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Admin Status Header */}
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-lime-400 text-black font-black rounded-xl flex items-center justify-center shadow-lg shadow-lime-400/20">
-                      <User className="w-5 h-5"/>
-                    </div>
+                    {/* 3) Tunjuk Avatar Host di bar admin */}
+                    {profileAvatarUrl ? (
+                      <img src={profileAvatarUrl} alt="Avatar" className="w-10 h-10 rounded-xl object-cover border border-slate-200" />
+                    ) : (
+                      <div className="w-10 h-10 bg-lime-400 text-slate-950 font-black rounded-xl flex items-center justify-center">
+                        <User className="w-5 h-5"/>
+                      </div>
+                    )}
+
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-white text-xs sm:text-sm">
+                        <span className="font-bold text-slate-950 text-xs sm:text-sm">
                           {profileName || currentUser.email}
                         </span>
-                        <span className="text-[9px] bg-lime-400/20 text-lime-400 border border-lime-400/30 px-1.5 py-0.2 rounded font-mono font-bold">
+                        <span className="text-[9px] bg-lime-100 text-lime-800 border border-lime-300 px-1.5 py-0.2 rounded font-mono font-bold">
                           VERIFIED HOST
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5">
-                        <Info className="w-3 h-3 text-lime-400"/>
-                        <span>Private workspace: You can only view and manage scrims hosted by your account.</span>
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <Info className="w-3 h-3 text-lime-600"/>
+                        <span>Private workspace: Only scrims created or co-hosted by you appear here.</span>
                       </p>
                     </div>
                   </div>
@@ -1821,16 +2009,16 @@ export default function App() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => setIsProfileModalOpen(true)}
-                      className="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
                     >
-                      <User className="w-3.5 h-3.5 text-lime-400"/>
+                      <User className="w-3.5 h-3.5 text-lime-700"/>
                       <span>My Host Profile</span>
                     </button>
 
                     {activeAdminScrim && isAuthorizedAdmin(activeAdminScrim) && (
                       <button
                         onClick={handleCopyHostShareLink}
-                        className="px-3 py-1.5 bg-lime-400/10 hover:bg-lime-400/20 text-lime-400 border border-lime-400/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-lime-50 hover:bg-lime-100 text-lime-800 border border-lime-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
                       >
                         <Share2 className="w-3.5 h-3.5"/>
                         <span className="hidden sm:inline">Share Co-Host Link</span>
@@ -1839,7 +2027,7 @@ export default function App() {
 
                     <button
                       onClick={handleLogout}
-                      className="p-2 sm:px-3 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-semibold transition flex items-center gap-1"
+                      className="p-2 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center gap-1"
                     >
                       <LogOut className="w-4 h-4"/>
                       <span className="hidden sm:inline">Log Out</span>
@@ -1849,22 +2037,23 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-4 space-y-3">
+                  {/* Select Scrim + Controls */}
+                  <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                         My Hosted Scrims ({adminHostedScrims.length})
                       </span>
                     </div>
 
                     {adminHostedScrims.length === 0 ? (
-                      <div className="p-4 bg-black/60 rounded-xl border border-dashed border-zinc-800 text-center text-xs text-zinc-500">
+                      <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
                         No scrims registered under your account yet. Use the form on the right to host your first tournament!
                       </div>
                     ) : (
                       <select
                         value={adminSelectedScrimId}
                         onChange={(e) => setSelectedMatchIdx(0) || setAdminSelectedScrimId(e.target.value)}
-                        className="w-full bg-black/80 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-lime-400"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500 font-bold"
                       >
                         {adminHostedScrims.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -1875,25 +2064,25 @@ export default function App() {
                     )}
 
                     {activeAdminScrim && (
-                      <div className="pt-3 border-t border-zinc-800 space-y-3">
+                      <div className="pt-3 border-t border-slate-100 space-y-3">
                         <div className="flex items-center space-x-3">
                           {activeAdminScrim.logo_url && (
-                            <img src={activeAdminScrim.logo_url} alt="Logo" className="w-11 h-11 rounded-xl object-cover border border-zinc-800" />
+                            <img src={activeAdminScrim.logo_url} alt="Logo" className="w-11 h-11 rounded-xl object-cover border border-slate-200" />
                           )}
                           <div className="flex-1">
-                            <div className="font-bold text-xs text-zinc-200">{activeAdminScrim.title}</div>
-                            <div className="text-[10px] text-lime-400">{activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Matches Played</div>
+                            <div className="font-bold text-xs text-slate-900">{activeAdminScrim.title}</div>
+                            <div className="text-[10px] text-lime-700 font-bold">{activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Matches Played</div>
                           </div>
                         </div>
 
                         {activeAdminScrim.is_finished ? (
-                          <div className="p-2.5 rounded-xl bg-white/10 border border-zinc-700 flex items-center justify-between text-xs text-white">
+                          <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
                             <span className="font-bold flex items-center gap-1">
-                              <LockKeyhole className="w-3.5 h-3.5 text-lime-400"/> Scrim Finished (Score Entry Locked)
+                              <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Scrim Finished (Score Locked)
                             </span>
                           </div>
                         ) : (
-                          <div className="p-2.5 rounded-xl bg-lime-400/10 border border-lime-400/30 flex items-center justify-between text-xs text-lime-400">
+                          <div className="p-2.5 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-between text-xs text-lime-800">
                             <span className="font-bold flex items-center gap-1">
                               <Unlock className="w-3.5 h-3.5"/> Live & Score Editable
                             </span>
@@ -1903,18 +2092,18 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-2 pt-1">
                           <button
                             onClick={openEditScrimModal}
-                            className="px-2.5 py-2 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-zinc-800"
+                            className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
                           >
-                            <Edit3 className="w-3.5 h-3.5 text-lime-400"/>
+                            <Edit3 className="w-3.5 h-3.5 text-lime-700"/>
                             <span>Edit Scrim</span>
                           </button>
 
                           <button
                             onClick={handleToggleFinishScrim}
-                            className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow ' + (
+                            className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow-sm ' + (
                               activeAdminScrim.is_finished 
-                                ? 'bg-zinc-950 text-lime-400 border border-lime-400/30' 
-                                : 'bg-lime-400 hover:bg-lime-300 text-black'
+                                ? 'bg-slate-100 text-slate-700 border border-slate-300' 
+                                : 'bg-lime-400 hover:bg-lime-300 text-slate-950'
                             )}
                           >
                             {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
@@ -1926,36 +2115,37 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="lg:col-span-2 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-4">
+                  {/* Form Cipta Scrim */}
+                  <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
                     <div className="flex items-center space-x-2 mb-1.5">
-                      <Plus className="w-4 h-4 text-lime-400"/>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                      <Plus className="w-4 h-4 text-lime-600"/>
+                      <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
                         Host New Tournament Scrim
                       </h3>
                     </div>
-                    <p className="text-[11px] text-zinc-400 mb-3">
+                    <p className="text-[11px] text-slate-500 mb-3">
                       Fill up the tournament details. You can add or remove match rounds dynamically anytime during the event.
                     </p>
 
                     <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Scrim Title</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Scrim Title</label>
                           <input
                             type="text"
                             placeholder="e.g. PMSL SEA Pro Night Scrim"
                             value={newScrimTitle}
                             onChange={(e) => setNewScrimTitle(e.target.value)}
                             required
-                            className="w-full bg-black/70 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-lime-400"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-lime-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Category / Tier</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Category / Tier</label>
                           <select
                             value={newScrimTier}
                             onChange={(e) => setNewScrimTier(e.target.value)}
-                            className="w-full bg-black/70 border border-zinc-800 rounded-xl px-2.5 py-2 text-zinc-200 focus:outline-none"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:outline-none"
                           >
                             {TIER_OPTIONS.map(t => (
                               <option key={t} value={t}>{t}</option>
@@ -1966,9 +2156,9 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Upload Scrim Logo</label>
-                          <label className="flex items-center justify-center gap-1.5 w-full bg-black/70 hover:bg-zinc-800 border border-dashed border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 cursor-pointer transition">
-                            <Upload className="w-3.5 h-3.5 text-lime-400"/>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Upload Scrim Logo</label>
+                          <label className="flex items-center justify-center gap-1.5 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl px-3 py-2 text-slate-600 cursor-pointer transition">
+                            <Upload className="w-3.5 h-3.5 text-lime-600"/>
                             <span className="truncate">{logoFile ? logoFile.name : 'Choose Logo Image'}</span>
                             <input
                               type="file"
@@ -1980,43 +2170,43 @@ export default function App() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Host Contact (PM Tepi)</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Host Contact (PM Tepi)</label>
                           <input
                             type="text"
                             placeholder="e.g. +60123456789 or @discord"
                             value={newHostContact}
                             onChange={(e) => setNewHostContact(e.target.value)}
-                            className="w-full bg-black/70 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Description / Rules</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Description / Rules</label>
                           <input
                             type="text"
                             placeholder="e.g. 16 Invited Pro Teams, mandatory live recording"
                             value={newScrimDesc}
                             onChange={(e) => setNewScrimDesc(e.target.value)}
-                            className="w-full bg-black/70 border border-zinc-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
                           />
                         </div>
 
                         <div className="flex gap-2">
                           <div className="flex-1">
-                            <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Date</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Date</label>
                             <input
                               type="date"
                               value={newScrimDate}
                               onChange={(e) => setNewScrimDate(e.target.value)}
-                              className="w-full bg-black/70 border border-zinc-800 rounded-xl px-2 py-1.5 text-zinc-200 focus:outline-none text-[11px]"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 text-slate-700 focus:outline-none text-[11px]"
                             />
                           </div>
                           <button
                             type="submit"
                             disabled={isUploadingLogo}
-                            className="bg-lime-400 hover:bg-lime-300 text-black font-black px-4 py-2 rounded-xl transition flex items-center justify-center shadow-md shadow-lime-400/20"
+                            className="bg-lime-400 hover:bg-lime-300 text-slate-950 font-black px-4 py-2 rounded-xl transition flex items-center justify-center shadow-sm"
                           >
                             {isUploadingLogo ? '...' : <Plus className="w-4 h-4"/>}
                           </button>
@@ -2027,8 +2217,8 @@ export default function App() {
 
                 </div>
 
-                {/* Match Switcher Control */}
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-3.5 space-y-2">
+                {/* Dynamic Match Controller */}
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
                     <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
@@ -2040,12 +2230,12 @@ export default function App() {
                             onClick={() => setSelectedMatchIdx(idx)}
                             className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap flex items-center gap-1 ' + (
                               selectedMatchIdx === idx 
-                                ? 'bg-lime-400 text-black shadow-md' 
-                                : 'bg-black/80 text-zinc-400 hover:text-white border border-zinc-850'
+                                ? 'bg-slate-950 text-lime-400 shadow-sm' 
+                                : 'bg-slate-100 text-slate-600 hover:text-slate-950 border border-slate-200'
                             )}
                           >
                             <span>Match {idx + 1}</span>
-                            {isSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-400"></span>}
+                            {isSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500"></span>}
                           </button>
                         );
                       })}
@@ -2053,7 +2243,7 @@ export default function App() {
                       {!activeAdminScrim?.is_finished && (
                         <button
                           onClick={handleAddNewMatch}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-lime-400/10 hover:bg-lime-400/20 text-lime-400 border border-lime-400/30 transition flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-lime-100 hover:bg-lime-200 text-lime-800 border border-lime-300 transition flex items-center gap-1"
                         >
                           <Plus className="w-3.5 h-3.5"/>
                           <span>Add Match</span>
@@ -2063,7 +2253,7 @@ export default function App() {
                       {!activeAdminScrim?.is_finished && (activeAdminScrim?.matches?.length > 1) && (
                         <button
                           onClick={handleRemoveLastMatch}
-                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
                         >
                           <Minus className="w-3.5 h-3.5"/>
                           <span>Remove Last</span>
@@ -2075,7 +2265,7 @@ export default function App() {
                       <select
                         value={inputMap}
                         onChange={(e) => setInputMap(e.target.value)}
-                        className="bg-black/80 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none font-bold"
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold"
                       >
                         <option value="Erangel">Erangel</option>
                         <option value="Miramar">Miramar</option>
@@ -2086,7 +2276,7 @@ export default function App() {
                       <button
                         onClick={handleRandomizeTestData}
                         disabled={activeAdminScrim?.is_finished}
-                        className="p-1.5 sm:px-2.5 sm:py-1.5 bg-black/80 hover:bg-zinc-800 text-lime-400 border border-lime-400/20 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
+                        className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
                       >
                         <RefreshCw className="w-3.5 h-3.5"/>
                         <span className="hidden sm:inline">Quick Fill</span>
@@ -2095,8 +2285,8 @@ export default function App() {
 
                   </div>
 
-                  <p className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
-                    <Info className="w-3 h-3 text-zinc-400"/>
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                    <Info className="w-3 h-3 text-slate-400"/>
                     <span>Scoring Match {selectedMatchIdx + 1} on {inputMap}. Adjust placement and kills, then hit save below.</span>
                   </p>
                 </div>
@@ -2110,13 +2300,13 @@ export default function App() {
                         key={idx}
                         className={'p-3.5 rounded-2xl border transition ' + (
                           isWWCD 
-                            ? 'bg-lime-400/10 border-lime-400/40' 
-                            : 'bg-zinc-900/60 backdrop-blur-xl border-zinc-800'
+                            ? 'bg-lime-50 border-lime-300 shadow-xs' 
+                            : 'bg-white border-slate-200 shadow-xs'
                         )}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2 flex-1 mr-2">
-                            <span className="text-[10px] font-mono text-zinc-500 font-bold bg-black px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
                               #{row.slot}
                             </span>
                             <input
@@ -2124,27 +2314,27 @@ export default function App() {
                               disabled={activeAdminScrim?.is_finished}
                               value={row.teamName}
                               onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                              className="bg-transparent font-bold text-white text-xs border-b border-transparent focus:border-lime-400 focus:outline-none flex-1 truncate"
+                              className="bg-transparent font-bold text-slate-900 text-xs border-b border-transparent focus:border-lime-500 focus:outline-none flex-1 truncate"
                             />
                           </div>
 
                           <div className="text-right flex items-center gap-1.5">
                             {isWWCD && (
-                              <span className="bg-lime-400 text-black font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              <span className="bg-lime-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
                                 WWCD
                               </span>
                             )}
-                            <div className="text-xs font-black font-mono text-lime-400 bg-black px-2.5 py-1 rounded-lg border border-zinc-800">
-                              {row.totalPts} <span className="text-[9px] text-zinc-500">PTS</span>
+                            <div className="text-xs font-black font-mono text-lime-800 bg-lime-100 px-2.5 py-1 rounded-lg border border-lime-200">
+                              {row.totalPts} <span className="text-[9px] text-slate-500">PTS</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/80 text-xs">
-                          <div className="flex items-center justify-between bg-black px-3 py-1.5 rounded-xl border border-zinc-800">
-                            <span className="text-[10px] text-zinc-400 uppercase font-bold">Rank:</span>
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
+                          <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold">Rank:</span>
                             <div className="flex items-center gap-1">
-                              <span className="text-zinc-500">#</span>
+                              <span className="text-slate-400">#</span>
                               <input
                                 type="number"
                                 min="1"
@@ -2152,30 +2342,30 @@ export default function App() {
                                 disabled={activeAdminScrim?.is_finished}
                                 value={row.placement}
                                 onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                className="w-10 bg-transparent text-center font-bold text-white focus:outline-none"
+                                className="w-10 bg-transparent text-center font-bold text-slate-900 focus:outline-none"
                               />
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between bg-black px-2 py-1.5 rounded-xl border border-zinc-800">
-                            <span className="text-[10px] text-zinc-400 uppercase font-bold pl-1">Kills:</span>
+                          <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold pl-1">Kills:</span>
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 disabled={activeAdminScrim?.is_finished}
                                 onClick={() => handleAdjustKills(idx, -1)}
-                                className="w-6 h-6 rounded-lg bg-zinc-800 active:bg-zinc-700 text-zinc-300 flex items-center justify-center font-black disabled:opacity-50"
+                                className="w-6 h-6 rounded-lg bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-black disabled:opacity-50"
                               >
                                 -
                               </button>
-                              <span className="w-6 text-center font-mono font-bold text-white text-xs">
+                              <span className="w-6 text-center font-mono font-bold text-slate-900 text-xs">
                                 {row.kills}
                               </span>
                               <button
                                 type="button"
                                 disabled={activeAdminScrim?.is_finished}
                                 onClick={() => handleAdjustKills(idx, 1)}
-                                className="w-6 h-6 rounded-lg bg-lime-400 active:bg-lime-300 text-black flex items-center justify-center font-black disabled:opacity-50"
+                                className="w-6 h-6 rounded-lg bg-lime-400 active:bg-lime-300 text-slate-950 flex items-center justify-center font-black disabled:opacity-50"
                               >
                                 +
                               </button>
@@ -2188,10 +2378,10 @@ export default function App() {
                 </div>
 
                 {/* Desktop Score Table */}
-                <div className="hidden md:block bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-black text-zinc-400 text-xs font-bold uppercase tracking-wider border-b border-zinc-800">
+                      <thead className="bg-slate-950 text-white text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                         <tr>
                           <th className="py-3 px-4 w-12 text-center">Slot</th>
                           <th className="py-3 px-4 min-w-[200px]">Team Name</th>
@@ -2202,19 +2392,19 @@ export default function App() {
                           <th className="py-3 px-4 w-24 text-center">WWCD</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-800/80 font-mono text-xs">
+                      <tbody className="divide-y divide-slate-100 font-mono text-xs">
                         {matchSlots.map((row, idx) => {
                           const isWWCD = Number(row.placement) === 1;
                           return (
-                            <tr key={idx} className={isWWCD ? 'bg-lime-400/10' : 'hover:bg-zinc-800/30'}>
-                              <td className="py-2.5 px-4 text-center text-zinc-500 font-bold">#{row.slot}</td>
+                            <tr key={idx} className={isWWCD ? 'bg-lime-50/80' : 'hover:bg-slate-50'}>
+                              <td className="py-2.5 px-4 text-center text-slate-400 font-bold">#{row.slot}</td>
                               <td className="py-2.5 px-4 font-sans">
                                 <input
                                   type="text"
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.teamName}
                                   onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                                  className="w-full bg-black/60 border border-zinc-800 rounded-lg px-2.5 py-1 text-white font-semibold focus:outline-none"
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-900 font-semibold focus:outline-none focus:border-lime-500"
                                 />
                               </td>
                               <td className="py-2.5 px-4 text-center">
@@ -2225,7 +2415,7 @@ export default function App() {
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.placement}
                                   onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                  className="w-16 bg-black border border-zinc-800 text-center rounded-lg py-1 font-bold text-zinc-200 focus:outline-none"
+                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-900 focus:outline-none"
                                 />
                               </td>
                               <td className="py-2.5 px-4 text-center">
@@ -2235,18 +2425,18 @@ export default function App() {
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.kills}
                                   onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                                  className="w-16 bg-black border border-zinc-800 text-center rounded-lg py-1 font-bold text-zinc-200 focus:outline-none"
+                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-900 focus:outline-none"
                                 />
                               </td>
-                              <td className="py-2.5 px-4 text-center text-zinc-400 font-bold">{row.placePts}</td>
-                              <td className="py-2.5 px-4 text-center text-lime-400 font-extrabold text-sm">{row.totalPts}</td>
+                              <td className="py-2.5 px-4 text-center text-slate-500 font-bold">{row.placePts}</td>
+                              <td className="py-2.5 px-4 text-center text-lime-700 font-extrabold text-sm">{row.totalPts}</td>
                               <td className="py-2.5 px-4 text-center font-sans">
                                 {isWWCD ? (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-lime-400 text-black">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-lime-400 text-slate-950">
                                     WWCD
                                   </span>
                                 ) : (
-                                  <span className="text-zinc-600">-</span>
+                                  <span className="text-slate-300">-</span>
                                 )}
                               </td>
                             </tr>
@@ -2257,14 +2447,14 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-black/90 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-t-0 border-zinc-800 z-30">
+                <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-white/90 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-t-0 border-slate-200 z-30">
                   <button
                     onClick={handleSaveMatchScore}
                     disabled={activeAdminScrim?.is_finished}
-                    className={'w-full py-3 md:py-2.5 font-black rounded-2xl md:rounded-xl shadow-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition ' + (
+                    className={'w-full py-3 md:py-2.5 font-black rounded-2xl md:rounded-xl shadow-lg text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition ' + (
                       activeAdminScrim?.is_finished 
-                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                        : 'bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-black shadow-lime-400/20'
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                        : 'bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-slate-950 shadow-lime-400/20'
                     )}
                   >
                     <Save className="w-4 h-4"/>
@@ -2279,102 +2469,127 @@ export default function App() {
 
       </main>
 
-      {/* MODAL GRAPH: TEAM PERFORMANCE INFO */}
-      {isPerformanceModalOpen && performanceTeam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
+      {/* ========================================================= */}
+      {/* 1) MODAL GRAPH: TEAM PERFORMANCE INFO (BY HOST FILTER)    */}
+      {/* ========================================================= */}
+      {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-lime-400 flex items-center justify-center text-black font-black text-base shadow-lg shadow-lime-400/20">
+                <div className="w-10 h-10 rounded-xl bg-lime-400 flex items-center justify-center text-slate-950 font-black text-base shadow-sm">
                   {performanceTeam.tag}
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-white flex items-center gap-1.5">
+                  <h3 className="font-black text-base text-slate-950 flex items-center gap-1.5">
                     <span>{performanceTeam.name}</span>
-                    <span className="text-[10px] bg-lime-400/20 text-lime-400 px-2 py-0.5 rounded-full font-mono">
-                      Analytics Graph
+                    <span className="text-[10px] bg-lime-100 text-lime-800 px-2 py-0.5 rounded-full font-mono">
+                      Career Analytics
                     </span>
                   </h3>
-                  <span className="text-[11px] text-zinc-400">Visual performance & career metric breakdown</span>
+                  <span className="text-[11px] text-slate-500">Visual performance & organizer metrics</span>
                 </div>
               </div>
 
               <button 
                 onClick={() => setIsPerformanceModalOpen(false)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-300 font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
               >
                 ✕
               </button>
             </div>
 
+            {/* 1) Filter by Specific Host / Organizer */}
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-lime-600"/>
+                <span>Filter by Scrim Host:</span>
+              </span>
+
+              <select
+                value={selectedPerformanceHost}
+                onChange={(e) => setSelectedPerformanceHost(e.target.value)}
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
+              >
+                <option value="ALL">All Organizers & Hosts (General Stats)</option>
+                {organizersList.map(h => (
+                  <option key={h.id || h.name} value={h.id || h.name}>
+                    Host: {h.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Quick Metrics KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-              <div className="p-3 bg-black rounded-2xl border border-zinc-800">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Points / Scrim</span>
-                <span className="text-base font-black font-mono text-lime-400">
-                  {performanceTeam.scrimResults.length ? (performanceTeam.totalPoints / performanceTeam.scrimResults.length).toFixed(1) : 0}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Points / Scrim</span>
+                <span className="text-base font-black font-mono text-lime-700">
+                  {filteredTeamPerformance.avgPts}
                 </span>
               </div>
-              <div className="p-3 bg-black rounded-2xl border border-zinc-800">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Kills / Scrim</span>
-                <span className="text-base font-black font-mono text-white">
-                  {performanceTeam.scrimResults.length ? (performanceTeam.totalKills / performanceTeam.scrimResults.length).toFixed(1) : 0}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Kills / Scrim</span>
+                <span className="text-base font-black font-mono text-slate-900">
+                  {filteredTeamPerformance.avgKills}
                 </span>
               </div>
-              <div className="p-3 bg-black rounded-2xl border border-zinc-800">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Win Rate (WWCD)</span>
-                <span className="text-base font-black font-mono text-lime-400">
-                  {performanceTeam.matchesCount ? ((performanceTeam.totalWWCD / performanceTeam.matchesCount) * 100).toFixed(0) + '%' : '0%'}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Win Rate (WWCD)</span>
+                <span className="text-base font-black font-mono text-lime-700">
+                  {filteredTeamPerformance.winRate}
                 </span>
               </div>
-              <div className="p-3 bg-black rounded-2xl border border-zinc-800">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Total Played</span>
-                <span className="text-base font-black font-mono text-zinc-300">
-                  {performanceTeam.scrimResults.length} Scrims
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Scrims Played</span>
+                <span className="text-base font-black font-mono text-slate-700">
+                  {filteredTeamPerformance.results.length} Scrims
                 </span>
               </div>
             </div>
 
-            <div className="p-4 bg-black rounded-2xl border border-zinc-800 space-y-3">
+            {/* Visual SVG Performance Graph */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-zinc-200 flex items-center gap-1.5">
-                  <BarChart2 className="w-4 h-4 text-lime-400"/>
+                <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <BarChart2 className="w-4 h-4 text-lime-600"/>
                   <span>Points & Kills per Scrim Event</span>
                 </span>
                 <div className="flex items-center gap-3 text-[10px] font-mono">
-                  <span className="flex items-center gap-1 text-lime-400">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-lime-400 inline-block"></span> Points
+                  <span className="flex items-center gap-1 text-lime-700 font-bold">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-lime-500 inline-block"></span> Points
                   </span>
-                  <span className="flex items-center gap-1 text-white">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-white inline-block"></span> Kills
+                  <span className="flex items-center gap-1 text-slate-700 font-bold">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 inline-block"></span> Kills
                   </span>
                 </div>
               </div>
 
-              {performanceTeam.scrimResults.length === 0 ? (
-                <div className="py-12 text-center text-zinc-500 text-xs">
-                  No scrim history recorded yet to render chart.
+              {filteredTeamPerformance.results.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  No scrim history recorded for this specific host.
                 </div>
               ) : (
                 <div className="space-y-3 pt-2">
-                  {performanceTeam.scrimResults.map((item, idx) => {
-                    const maxPts = Math.max(...performanceTeam.scrimResults.map(s => s.points), 40);
+                  {filteredTeamPerformance.results.map((item, idx) => {
+                    const maxPts = Math.max(...filteredTeamPerformance.results.map(s => s.points), 40);
                     const ptsPct = Math.min(100, (item.points / maxPts) * 100);
                     const killsPct = Math.min(100, (item.kills / maxPts) * 100);
 
                     return (
                       <div key={idx} className="space-y-1">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-zinc-300 truncate max-w-[200px] sm:max-w-xs">{item.scrimName}</span>
-                          <span className="font-mono text-zinc-400 text-[10px]">
+                          <span className="font-bold text-slate-800 truncate max-w-[200px] sm:max-w-xs">{item.scrimName}</span>
+                          <span className="font-mono text-slate-500 text-[10px]">
                             {item.points} PTS • {item.kills} K ({item.date})
                           </span>
                         </div>
                         
-                        <div className="h-4 bg-zinc-950 rounded-lg overflow-hidden flex flex-col justify-center gap-0.5 p-0.5 border border-zinc-850">
+                        <div className="h-4 bg-slate-200/80 rounded-lg overflow-hidden flex flex-col justify-center gap-0.5 p-0.5">
                           <div 
-                            style={{ width: `${Math.max(5, ptsPct)}\%` }} className="h-1.5 bg-lime-400 rounded-full transition-all" /> <div style={{ width: `${Math.max(5, killsPct)}%` }} 
-                            className="h-1 bg-white rounded-full transition-all"
+                            style={{ width: `${Math.max(5, ptsPct)}\%` }} className="h-1.5 bg-lime-500 rounded-full transition-all" /> <div style={{ width: `${Math.max(5, killsPct)}%` }} 
+                            className="h-1 bg-slate-800 rounded-full transition-all"
                           />
                         </div>
                       </div>
@@ -2387,7 +2602,7 @@ export default function App() {
             <div className="pt-2 text-right">
               <button
                 onClick={() => setIsPerformanceModalOpen(false)}
-                className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-xs"
+                className="px-4 py-2 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
               >
                 Close Info
               </button>
@@ -2397,36 +2612,210 @@ export default function App() {
         </div>
       )}
 
+      {/* 4) MODAL FEEDBACK DEVELOPER */}
+      {isFeedbackModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center">
+                  <Bug className="w-4 h-4"/>
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-950">Developer Feedback & Bug Report</h3>
+                  <span className="text-[10px] text-slate-400">Direct message to ry.khor</span>
+                </div>
+              </div>
+              <button onClick={() => setIsFeedbackModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSubmitFeedback} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Category</label>
+                <select
+                  value={feedbackCategory}
+                  onChange={(e) => setFeedbackCategory(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                >
+                  <option value="Bug Report">🐛 Bug / Error Encountered</option>
+                  <option value="Feature Request">💡 Feature Request / Suggestion</option>
+                  <option value="UI/Design Feedback">🎨 UI & Design Feedback</option>
+                  <option value="Other Inquiry">💬 Other Inquiry</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Your Email (Optional)</label>
+                <input
+                  type="email"
+                  placeholder="name@email.com (if you want replies)"
+                  value={feedbackEmail}
+                  onChange={(e) => setFeedbackEmail(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Message / Details</label>
+                <textarea
+                  rows="3"
+                  required
+                  placeholder="Terangkan masalah atau penambahbaikan yang anda cadangkan..."
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingFeedback}
+                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5"/>
+                  <span>{isSendingFeedback ? 'Sending...' : 'Send Feedback'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3) MODAL: EDIT HOST PROFILE (DENGAN GAMBAR PROFIL UPLOAD) */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
+                <User className="w-4 h-4 text-lime-600"/>
+                <span>My Public Host Profile & Photo</span>
+              </h3>
+              <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+              {/* Photo Upload Preview */}
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Host Profile Photo</label>
+                <div className="flex items-center space-x-3">
+                  {avatarFile ? (
+                    <div className="w-12 h-12 rounded-2xl bg-lime-100 border border-lime-300 flex items-center justify-center font-bold text-lime-800 text-[10px]">
+                      Selected
+                    </div>
+                  ) : profileAvatarUrl ? (
+                    <img src={profileAvatarUrl} alt="Avatar" className="w-12 h-12 rounded-2xl object-cover border border-slate-200" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                      <User className="w-5 h-5"/>
+                    </div>
+                  )}
+
+                  <label className="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
+                    <Upload className="w-4 h-4 text-lime-600"/>
+                    <span className="truncate">{avatarFile ? avatarFile.name : 'Upload Profile Photo'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAvatarFile(e.target.files[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Organizer Display Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. RYKHOR Esports Organizer"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Official Contact (WhatsApp / Telegram)</label>
+                <input
+                  type="text"
+                  placeholder="+60123456789 or @username"
+                  value={profileContact}
+                  onChange={(e) => setProfileContact(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">About / Bio</label>
+                <textarea
+                  rows="3"
+                  placeholder="Tell players about your tournament series, regular scrim slots, rules..."
+                  value={profileBio}
+                  onChange={(e) => setProfileBio(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
+                >
+                  {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: EDIT SCRIM SETTINGS */}
       {isEditScrimModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="font-black text-sm text-white flex items-center gap-1.5">
-                <Edit3 className="w-4 h-4 text-lime-400"/>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
+                <Edit3 className="w-4 h-4 text-lime-600"/>
                 <span>Edit Scrim Settings & Change Logo</span>
               </h3>
-              <button onClick={() => setIsEditScrimModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
+              <button onClick={() => setIsEditScrimModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleUpdateScrimSettings} className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Scrim Title</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Scrim Title</label>
                 <input
                   type="text"
                   required
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-lime-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Category / Tier</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Category / Tier</label>
                 <select
                   value={editTier}
                   onChange={(e) => setEditTier(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none"
                 >
                   {TIER_OPTIONS.map(t => (
                     <option key={t} value={t}>{t}</option>
@@ -2435,9 +2824,9 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Upload New Logo (Optional)</label>
-                <label className="flex items-center justify-center gap-2 w-full bg-black hover:bg-zinc-900 border border-dashed border-zinc-800 rounded-xl p-2.5 text-zinc-300 cursor-pointer transition">
-                  <Upload className="w-4 h-4 text-lime-400"/>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Upload New Logo (Optional)</label>
+                <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
+                  <Upload className="w-4 h-4 text-lime-600"/>
                   <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose image to replace logo'}</span>
                   <input
                     type="file"
@@ -2449,23 +2838,23 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Host Contact (PM Tepi)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Host Contact (PM Tepi)</label>
                 <input
                   type="text"
                   value={editContact}
                   onChange={(e) => setEditContact(e.target.value)}
                   placeholder="e.g. +60123456789"
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Description / Rules</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Description / Rules</label>
                 <textarea
                   rows="2"
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -2473,14 +2862,14 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsEditScrimModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 font-bold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingEdit}
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black"
+                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
                   {isSavingEdit ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -2490,96 +2879,29 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: EDIT HOST PROFILE */}
-      {isProfileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="font-black text-sm text-white flex items-center gap-1.5">
-                <User className="w-4 h-4 text-lime-400"/>
-                <span>My Public Host Profile</span>
-              </h3>
-              <button onClick={() => setIsProfileModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
-            </div>
-
-            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Organizer Display Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. RYKHOR Esports Organizer"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Official Contact (WhatsApp / Telegram)</label>
-                <input
-                  type="text"
-                  placeholder="+60123456789 or @username"
-                  value={profileContact}
-                  onChange={(e) => setProfileContact(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">About / Bio</label>
-                <textarea
-                  rows="3"
-                  placeholder="Tell players about your tournament series, regular scrim slots, rules..."
-                  value={profileBio}
-                  onChange={(e) => setProfileBio(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black"
-                >
-                  Save Profile
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* PUBLIC MODAL: SCRIM BREAKDOWN */}
       {inspectedScrim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-3">
                 {inspectedScrim.logo_url && (
-                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-lime-400/40" />
+                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm" />
                 )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-400 text-black font-mono">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-100 text-lime-800 border border-lime-300 font-mono">
                       {inspectedScrim.tier || 'Tier 1'}
                     </span>
-                    <span className="text-[10px] text-zinc-400">{inspectedScrim.date}</span>
+                    <span className="text-[10px] text-slate-500">{inspectedScrim.date}</span>
                     {inspectedScrim.is_finished && (
-                      <span className="text-[10px] bg-white text-black font-black px-2 py-0.5 rounded-full uppercase">
+                      <span className="text-[10px] bg-slate-900 text-lime-400 font-black px-2 py-0.5 rounded-full uppercase">
                         Final
                       </span>
                     )}
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+                  <h3 className="text-base sm:text-lg font-black text-slate-950 mt-0.5">
                     {inspectedScrim.title}
                   </h3>
                 </div>
@@ -2587,17 +2909,17 @@ export default function App() {
 
               <button 
                 onClick={() => setInspectedScrim(null)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-300 font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-black border border-zinc-800 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div>
-                <span className="text-[10px] text-zinc-500 uppercase font-bold block">Organizer / Host</span>
-                <span className="font-bold text-zinc-200">{inspectedScrim.host_name || 'Official Host'}</span>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{inspectedScrim.description}</p>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Organizer / Host</span>
+                <span className="font-bold text-slate-900">{inspectedScrim.host_name || 'Official Host'}</span>
+                <p className="text-[11px] text-slate-600 mt-0.5">{inspectedScrim.description}</p>
               </div>
 
               {inspectedScrim.host_contact && (
@@ -2610,7 +2932,7 @@ export default function App() {
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1 shadow"
+                  className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
                 >
                   <MessageCircle className="w-3.5 h-3.5"/>
                   <span>PM Host</span>
@@ -2619,7 +2941,7 @@ export default function App() {
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase text-lime-400 tracking-wider block">
+              <span className="text-xs font-black uppercase text-slate-900 tracking-wider block">
                 Final Tournament Standings
               </span>
 
@@ -2627,23 +2949,23 @@ export default function App() {
                 {calculateLeaderboard(inspectedScrim, 'overall').map((teamRow) => (
                   <div
                     key={teamRow.teamId}
-                    className="p-2.5 bg-black border border-zinc-850 rounded-xl flex items-center justify-between text-xs"
+                    className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center space-x-2.5">
-                      <span className={'w-6 text-center font-black ' + (teamRow.rank === 1 ? 'text-lime-400' : 'text-zinc-500')}>
+                      <span className={'w-6 text-center font-black ' + (teamRow.rank === 1 ? 'text-lime-700' : 'text-slate-500')}>
                         #{teamRow.rank}
                       </span>
-                      <span className="font-bold text-white">{teamRow.teamName}</span>
+                      <span className="font-bold text-slate-900">{teamRow.teamName}</span>
                       {teamRow.wwcd > 0 && (
-                        <span className="text-[9px] text-lime-400 bg-lime-400/10 px-1.5 py-0.2 rounded font-mono font-bold">
+                        <span className="text-[9px] text-lime-800 bg-lime-100 border border-lime-300 px-1.5 py-0.2 rounded font-mono font-bold">
                           🍗 x{teamRow.wwcd}
                         </span>
                       )}
                     </div>
 
                     <div className="flex items-center space-x-3 text-right font-mono">
-                      <span className="text-zinc-400 text-[11px]">{teamRow.killPts} K</span>
-                      <span className="text-lime-400 font-black text-sm">{teamRow.totalPts} PTS</span>
+                      <span className="text-slate-500 text-[11px]">{teamRow.killPts} K</span>
+                      <span className="text-lime-700 font-black text-sm">{teamRow.totalPts} PTS</span>
                     </div>
                   </div>
                 ))}
@@ -2653,7 +2975,7 @@ export default function App() {
             <div className="pt-2 text-right">
               <button
                 onClick={() => setInspectedScrim(null)}
-                className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-xs"
+                className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold rounded-xl text-xs"
               >
                 Close Breakdown
               </button>
@@ -2665,23 +2987,23 @@ export default function App() {
 
       {/* ADMIN MODAL: UPLOAD POSTER */}
       {isShowcaseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="font-black text-sm text-white flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4 text-lime-400"/>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-lime-600"/>
                 <span>Upload Tournament Poster / Clip</span>
               </h3>
-              <button onClick={() => setIsShowcaseModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
+              <button onClick={() => setIsShowcaseModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleCreateShowcasePost} className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Post Type</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Post Type</label>
                 <select
                   value={postType}
                   onChange={(e) => setPostType(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 >
                   <option value="poster">Tournament Poster (Image File)</option>
                   <option value="clip">Gameplay Highlight (Video File)</option>
@@ -2689,21 +3011,21 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Title</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Title</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. PMSL SEA Spring Qualifier Open Slot"
                   value={postTitle}
                   onChange={(e) => setPostTitle(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Select File from Device</label>
-                <label className="flex items-center justify-center gap-2 w-full bg-black hover:bg-zinc-900 border border-dashed border-zinc-800 rounded-xl p-3 text-zinc-300 cursor-pointer transition">
-                  <Upload className="w-4 h-4 text-lime-400"/>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Select File from Device</label>
+                <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-3 text-slate-700 cursor-pointer transition">
+                  <Upload className="w-4 h-4 text-lime-600"/>
                   <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Click to Upload Image / MP4'}</span>
                   <input
                     type="file"
@@ -2715,13 +3037,13 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Caption / Registration Link</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Caption / Registration Link</label>
                 <textarea
                   rows="3"
                   placeholder="Describe slot availability, prize pool, registration link..."
                   value={postCaption}
                   onChange={(e) => setPostCaption(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl p-2.5 text-zinc-200 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -2729,14 +3051,14 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsShowcaseModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-300 font-bold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploadingShowcase}
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black"
+                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
                   {isUploadingShowcase ? 'Uploading File...' : 'Publish Post'}
                 </button>
@@ -2746,46 +3068,46 @@ export default function App() {
         </div>
       )}
 
-      {/* MOBILE BOTTOM DOCK */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-zinc-800 z-50 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+      {/* MOBILE BOTTOM DOCK (CLEAN WHITE & LIME GREEN) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-lg">
         <button
           onClick={() => setActiveTab('teams')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-400' : 'text-zinc-500')}
+          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Users className="w-5 h-5"/>
-          <span className="text-[10px] font-bold mt-0.5">Teams</span>
+          <span className="text-[10px] mt-0.5">Teams</span>
         </button>
 
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-400' : 'text-zinc-500')}
+          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Trophy className="w-5 h-5"/>
-          <span className="text-[10px] font-bold mt-0.5">Standings</span>
+          <span className="text-[10px] mt-0.5">Standings</span>
         </button>
 
         <button
           onClick={() => setActiveTab('hosts')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-400' : 'text-zinc-500')}
+          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Award className="w-5 h-5"/>
-          <span className="text-[10px] font-bold mt-0.5">Hosts</span>
+          <span className="text-[10px] mt-0.5">Hosts</span>
         </button>
 
         <button
           onClick={() => setActiveTab('showcase')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'showcase' ? 'text-lime-400' : 'text-zinc-500')}
+          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'showcase' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Sparkles className="w-5 h-5"/>
-          <span className="text-[10px] font-bold mt-0.5">Showcase</span>
+          <span className="text-[10px] mt-0.5">Showcase</span>
         </button>
 
         <button
           onClick={() => setActiveTab('admin')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-400' : 'text-zinc-500')}
+          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
-          {currentUser ? <User className="w-5 h-5 text-lime-400"/> : <Lock className="w-5 h-5"/>}
-          <span className="text-[10px] font-bold mt-0.5">Admin</span>
+          {currentUser ? <User className="w-5 h-5 text-lime-700"/> : <Lock className="w-5 h-5"/>}
+          <span className="text-[10px] mt-0.5">Admin</span>
         </button>
       </div>
 
