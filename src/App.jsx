@@ -911,7 +911,7 @@ export default function App() {
 
   const handleShareToInstagramStory = async (team, stats, hostFilterName) => {
     if (!team || !stats) {
-      showToast('No team stats available to generate story card!');
+      showToast('Tiada statistik untuk dijana!');
       return;
     }
 
@@ -923,183 +923,174 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      // 1. Latar Belakang Gelap Taktikal & Percikan Cat
       const bg = ctx.createLinearGradient(0, 0, 0, 1920);
-      bg.addColorStop(0, '#000000');
-      bg.addColorStop(0.3, '#09090b');
-      bg.addColorStop(0.7, '#040711');
-      bg.addColorStop(1, '#000000');
+      bg.addColorStop(0, '#090a0f');
+      bg.addColorStop(0.5, '#121620');
+      bg.addColorStop(1, '#05070a');
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
 
+      // Jalur Taktikal Atas & Bawah
       ctx.fillStyle = '#ccff00';
-      ctx.fillRect(80, 90, 920, 8);
+      ctx.fillRect(60, 60, 960, 8);
+      ctx.fillRect(60, 1850, 960, 8);
 
+      // 2. Muat Turun Imej Karakter Level 3 PUBG (Render Kanan)
+      const characterImg = new Image();
+      characterImg.crossOrigin = 'anonymous';
+      characterImg.src = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1080&q=80'; // Gantikan dengan URL render watak helmet level 3 PNG anda
+
+      await new Promise((resolve) => {
+        characterImg.onload = resolve;
+        characterImg.onerror = resolve; // Teruskan render jika gambar offline
+      });
+
+      if (characterImg.complete && characterImg.naturalWidth !== 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.45;
+        // Lukis watak di sebelah kanan dengan saiz proporsional
+        ctx.drawImage(characterImg, 380, 200, 750, 1500);
+        ctx.restore();
+      }
+
+      // 3. Tajuk Besar Taktikal (TEAM STATS)
       ctx.fillStyle = '#ccff00';
       ctx.font = '900 24px monospace';
-      ctx.fillText('SCRIM HUB  •  OFFICIAL SQUAD RECAP', 90, 140);
-
-      ctx.fillStyle = '#71717a';
-      ctx.font = 'bold 18px monospace';
-      ctx.fillText('BATTLE ROYALE CAREER PERFORMANCE', 90, 175);
-
-      ctx.fillStyle = '#18181b';
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(80, 230, 920, 230, 28);
-        ctx.fill();
-      } else {
-        ctx.fillRect(80, 230, 920, 230);
-      }
-
-      ctx.fillStyle = '#ccff00';
-      ctx.font = '900 68px monospace';
-      ctx.fillText('[' + team.tag + ']', 120, 335);
+      ctx.fillText('SCRIM HUB  •  BATTLE ROYALE TOURNAMENT', 70, 130);
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 46px sans-serif';
-      const displayName = team.name.length > 22 ? team.name.slice(0, 20) + '..' : team.name;
-      ctx.fillText(displayName, 120, 405);
-
-      const isPredator = Number(stats.totalKills) >= 20;
-      const isWinner = Number(stats.totalWwcd) >= 2;
-      const badgeTitle = isWinner ? '🍗 CHICKEN DINNER HUNTER' : (isPredator ? '🔥 LETHAL COMBAT PREDATOR' : '🛡️ TACTICAL ZONE SURVIVOR');
-
-      ctx.fillStyle = '#ccff00';
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(80, 490, 460, 56, 16);
-        ctx.fill();
-      } else {
-        ctx.fillRect(80, 490, 460, 56);
-      }
-
-      ctx.fillStyle = '#000000';
-      ctx.font = '900 20px monospace';
-      ctx.fillText(badgeTitle, 105, 526);
-
-      ctx.fillStyle = '#27272a';
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(560, 490, 440, 56, 16);
-        ctx.fill();
-      } else {
-        ctx.fillRect(560, 490, 440, 56);
-      }
+      ctx.font = '900 78px sans-serif';
+      ctx.fillText('TEAM', 70, 220);
+      ctx.fillText('STATS', 70, 295);
 
       ctx.fillStyle = '#a1a1aa';
-      ctx.font = 'bold 16px sans-serif';
-      const hostLabel = hostFilterName === 'ALL' ? 'Scope: All Scrim Organizers' : ('Host: ' + hostFilterName);
-      ctx.fillText(hostLabel.length > 28 ? hostLabel.slice(0, 26) + '..' : hostLabel, 580, 525);
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText(hostFilterName === 'ALL' ? '// OFFICIAL ALL-STAR RECAP' : `// HOST: ${hostFilterName.toUpperCase()}`, 70, 340);
 
-      const drawCard = (x, y, label, val, color) => {
-        ctx.fillStyle = '#0f172a';
-        if (ctx.roundRect) {
-          ctx.beginPath();
-          ctx.roundRect(x, y, 445, 230, 24);
-          ctx.fill();
-        } else {
-          ctx.fillRect(x, y, 445, 230);
+      // 4. Kad Data Fizikal / Glassy Putih (Gaya Kad Kiri Rujukan)
+      const cardX = 70;
+      const cardY = 380;
+      const cardW = 540;
+      const cardH = 1380;
+
+      // Tapak Kad Putih Bersih
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(cardX, cardY, cardW, cardH, 24) : ctx.rect(cardX, cardY, cardW, cardH);
+      ctx.fill();
+
+      // Jalur Atas Kad Pasukan (Lime Green Accent)
+      ctx.fillStyle = '#ccff00';
+      ctx.fillRect(cardX, cardY, cardW, 28);
+
+      ctx.fillStyle = '#000000';
+      ctx.font = '900 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('OFFICIAL COMPETITIVE DOSSIER', cardX + (cardW / 2), cardY + 19);
+
+      // Logo / Tag Pasukan
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 54px monospace';
+      ctx.fillText(`[${team.tag}]`, cardX + (cardW / 2), cardY + 120);
+
+      ctx.font = '900 32px sans-serif';
+      const displayName = team.name.length > 18 ? team.name.slice(0, 16) + '..' : team.name;
+      ctx.fillText(displayName.toUpperCase(), cardX + (cardW / 2), cardY + 175);
+
+      // Label Sub-header Jadual
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cardX, cardY + 230, cardW, 44);
+
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 16px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('METRIC', cardX + 30, cardY + 258);
+      ctx.textAlign = 'right';
+      ctx.fillText('VALUE', cardX + cardW - 30, cardY + 258);
+
+      // Baris-baris Data
+      const statRows = [
+        { label: 'TOTAL POINTS', val: stats.totalPts || 0 },
+        { label: 'ELIMINATIONS', val: stats.totalKills || 0 },
+        { label: 'WWCD DINNERS', val: `🍗 ${stats.totalWwcd || 0}` },
+        { label: 'WIN RATIO', val: stats.winRate || '0%' },
+        { label: 'AVG POINTS / SCRIM', val: `${stats.avgPts || 0} PTS` },
+        { label: 'AVG ELIMS / SCRIM', val: `${stats.avgKills || 0} K` },
+        { label: 'EVENTS JOINED', val: `${stats.results?.length || 0} TOURNAMENTS` },
+        { label: 'TOTAL MATCHES', val: `${stats.matchesCount || 0} MAPS` },
+      ];
+
+      let rowY = cardY + 340;
+      statRows.forEach((row, i) => {
+        if (i % 2 === 0) {
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(cardX, rowY - 32, cardW, 58);
         }
 
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#475569';
         ctx.font = 'bold 18px monospace';
-        ctx.fillText(label, x + 35, y + 60);
+        ctx.textAlign = 'left';
+        ctx.fillText(row.label, cardX + 30, rowY + 6);
 
-        ctx.fillStyle = color;
-        ctx.font = '900 68px monospace';
-        ctx.fillText(String(val), x + 35, y + 160);
-      };
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '900 22px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(String(row.val), cardX + cardW - 30, rowY + 6);
 
-      drawCard(80, 580, 'TOTAL POINTS', stats.totalPts || 0, '#ccff00');
-      drawCard(555, 580, 'ELIMINATIONS', stats.totalKills || 0, '#ffffff');
-      drawCard(80, 840, 'CHICKEN DINNERS', '🍗 ' + (stats.totalWwcd || 0), '#ccff00');
-      drawCard(555, 840, 'WIN RATIO', stats.winRate || '0%', '#ffffff');
+        rowY += 66;
+      });
 
-      ctx.fillStyle = '#18181b';
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(80, 1100, 920, 390, 28);
-        ctx.fill();
-      } else {
-        ctx.fillRect(80, 1100, 920, 390);
-      }
+      // Lencana Archetype Bawah Kad
+      const isWinner = Number(stats.totalWwcd) >= 2;
+      const isLethal = Number(stats.totalKills) >= 20;
+      const archetype = isWinner ? 'CHICKEN DINNER HUNTER' : isLethal ? 'LETHAL COMBAT SQUAD' : 'TACTICAL ZONE SURVIVOR';
 
-      ctx.fillStyle = '#71717a';
-      ctx.font = 'bold 20px monospace';
-      ctx.fillText('CAREER RATIO BREAKDOWN', 120, 1155);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '500 26px sans-serif';
-      ctx.fillText('• Average Points per Scrim:', 120, 1225);
       ctx.fillStyle = '#ccff00';
-      ctx.font = '900 30px monospace';
-      ctx.fillText(String(stats.avgPts) + ' PTS', 740, 1225);
+      ctx.fillRect(cardX + 24, cardY + cardH - 120, cardW - 48, 54);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '500 26px sans-serif';
-      ctx.fillText('• Average Eliminations per Scrim:', 120, 1300);
-      ctx.fillStyle = '#ccff00';
-      ctx.font = '900 30px monospace';
-      ctx.fillText(String(stats.avgKills) + ' KILLS', 740, 1300);
+      ctx.fillStyle = '#000000';
+      ctx.font = '900 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`★ ${archetype} ★`, cardX + (cardW / 2), cardY + cardH - 86);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '500 26px sans-serif';
-      ctx.fillText('• Scrim Tournaments Joined:', 120, 1375);
-      ctx.fillStyle = '#ccff00';
-      ctx.font = '900 30px monospace';
-      ctx.fillText(String(stats.results ? stats.results.length : 0) + ' EVENTS', 740, 1375);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '500 26px sans-serif';
-      ctx.fillText('• Total Matches Played:', 120, 1450);
-      ctx.fillStyle = '#ccff00';
-      ctx.font = '900 30px monospace';
-      ctx.fillText(String(stats.matchesCount) + ' MATCHES', 740, 1450);
-
+      // Watermark & Call To Action (Kanan Bawah)
+      ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 22px monospace';
-      ctx.fillText('CHECK YOUR SQUAD STATS AT:', 90, 1740);
+      ctx.fillText('DISCOVER MORE STATS:', 650, 1750);
 
       ctx.fillStyle = '#ccff00';
       ctx.font = '900 36px sans-serif';
-      ctx.fillText('scrim.rykhor.my', 90, 1790);
+      ctx.fillText('scrim.rykhor.my', 650, 1800);
 
-      ctx.fillStyle = '#71717a';
-      ctx.font = '500 18px monospace';
-      ctx.fillText('SCRIM HUB BY RY.KHOR  •  PUBGM DATA RECAP', 90, 1830);
-
-      ctx.fillStyle = '#ccff00';
-      ctx.fillRect(80, 1850, 920, 8);
-
+      // 5. Kongsi ke Instagram Story melalui Web Share API
       canvas.toBlob(async (blob) => {
         if (!blob) return;
-
-        const file = new File([blob], team.tag + '-stats-story.png', { type: 'image/png' });
+        const file = new File([blob], `${team.tag}-pubg-story.png`, { type: 'image/png' });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
-              title: '[' + team.tag + '] ' + team.name + ' Stats Recap',
-              text: 'Check out our PUBG Mobile tournament stats on SCRIM HUB by ry.khor! Visit scrim.rykhor.my'
+              title: `[${team.tag}] PUBG Mobile Stats`,
+              text: `Semak prestasi pasukan kami di SCRIM HUB by ry.khor! (scrim.rykhor.my)`
             });
-            showToast('Instagram Story card ready!');
+            showToast('Instagram Story card sedia dikongsi!');
           } catch (err) {
-            if (err.name !== 'AbortError') {
-              showToast('Sharing error: ' + err.message);
-            }
+            if (err.name !== 'AbortError') showToast('Ralat perkongsian: ' + err.message);
           }
         } else {
           const link = document.createElement('a');
-          link.download = team.tag + '-stats-story.png';
+          link.download = `${team.tag}-pubg-story.png`;
           link.href = URL.createObjectURL(blob);
           link.click();
-          showToast('Story card downloaded! Upload it to your Instagram Story.');
+          showToast('Kad Story berjaya dimuat turun!');
         }
       }, 'image/png');
 
-    } catch (error) {
-      showToast('Error generating card: ' + error.message);
+    } catch (err) {
+      showToast('Gagal menjana poster: ' + err.message);
     } finally {
       setIsGeneratingStory(false);
     }
