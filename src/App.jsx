@@ -42,7 +42,8 @@ import {
   Bug,
   Crosshair,
   Radio,
-  Send
+  Send,
+  Share
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -101,7 +102,6 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 };
 
 export default function App() {
-  // Laman utama dibuka terus ke tab Team Stats
   const [activeTab, setActiveTab] = useState('teams');
   
   const [scrims, setScrims] = useState([]);
@@ -128,8 +128,9 @@ export default function App() {
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Feedback Modal (Developer Bug & Feature Form)
+  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -233,7 +234,6 @@ export default function App() {
     showToast('Signed out successfully.');
   };
 
-  // Kawalan Akses Admin Sendiri Sahaja
   const isAuthorizedAdmin = (scrim) => {
     if (!currentUser || !scrim) return false;
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
@@ -318,7 +318,6 @@ export default function App() {
     }
   };
 
-  // Developer Feedback Submission
   const handleSubmitFeedback = async (e) => {
     e.preventDefault();
     if (!feedbackMessage.trim()) return;
@@ -338,7 +337,7 @@ export default function App() {
       if (error) {
         showToast('Error: ' + error.message);
       } else {
-        showToast('Terima kasih! Maklum balas telah dihantar kepada Developer ry.khor.');
+        showToast('Terima kasih! Maklum balas telah dihantar terus kepada Developer ry.khor.');
         setFeedbackMessage('');
         setIsFeedbackModalOpen(false);
       }
@@ -822,7 +821,6 @@ export default function App() {
     });
   };
 
-  // Modern Clean Poster Generator (White, Slate & Lime Green)
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
       showToast('No data available to render poster!');
@@ -835,7 +833,6 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Soft Light Gradient Background
     const bg = ctx.createLinearGradient(0, 0, 0, 1480);
     bg.addColorStop(0, '#f8fafc');
     bg.addColorStop(0.5, '#f1f5f9');
@@ -843,32 +840,26 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1480);
 
-    // Modern Top Border (Neon Lime Green)
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
-    // Brand Label
     ctx.fillStyle = '#4d7c0f';
     ctx.font = 'bold 20px monospace';
     ctx.fillText('SCRIM HUB  •  BY RY.KHOR', 60, 75);
 
-    // Tournament Title (Bold Dark Slate)
     ctx.fillStyle = '#0f172a';
     ctx.font = '900 38px sans-serif';
     const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE SCRIM').toUpperCase();
     ctx.fillText(mainTitle.length > 30 ? mainTitle.slice(0, 28) + '...' : mainTitle, 60, 130);
 
-    // Category Tier Badge
     ctx.fillStyle = '#65a30d';
     ctx.font = 'bold 16px monospace';
     ctx.fillText('[' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 170);
 
-    // Date & Status
     ctx.fillStyle = '#64748b';
     ctx.font = '500 16px sans-serif';
     ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 170);
 
-    // Header Bar
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 200, 960, 48);
 
@@ -881,7 +872,6 @@ export default function App() {
     ctx.fillText('KILLS', 815, 230);
     ctx.fillText('TOTAL PTS', 920, 230);
 
-    // Table Rows
     const rows = leaderboardData.slice(0, 16);
     let y = 285;
     rows.forEach((row, i) => {
@@ -924,6 +914,116 @@ export default function App() {
     link.href = image;
     link.click();
     showToast('Clean Esports Poster downloaded!');
+  };
+
+  // SPOTIFY WRAPPED STYLE: INSTAGRAM STORY SHARE ENGINE (1080x1920)
+  const handleShareToInstagramStory = async (team, stats, hostFilterName) => {
+    if (!team || !stats) {
+      showToast('No team stats available to generate story card!');
+      return;
+    }
+
+    try {
+      setIsGeneratingStory(true);
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Dark Matte & High Contrast Gradient
+      const bg = ctx.createLinearGradient(0, 0, 0, 1920);
+      bg.addColorStop(0, '#000000');
+      bg.addColorStop(0.3, '#09090b');
+      bg.addColorStop(0.7, '#040711');
+      bg.addColorStop(1, '#000000');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Top Accent & PUBG Elements
+      ctx.fillStyle = '#ccff00';
+      ctx.fillRect(80, 90, 920, 8);
+
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 24px monospace';
+      ctx.fillText('SCRIM HUB  •  OFFICIAL SQUAD RECAP', 90, 140);
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('BATTLE ROYALE CAREER PERFORMANCE', 90, 175);
+
+      // Team Header Card
+      ctx.fillStyle = '#18181b';
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(80, 230, 920, 230, 28) : ctx.rect(80, 230, 920, 230);
+      ctx.fill();
+
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 68px monospace';
+      ctx.fillText(`[${team.tag}]`, 120, 335);  ctx.fillStyle = '#ffffff'; ctx.font = '900 46px sans-serif'; const displayName = team.name.length > 22 ? team.name.slice(0, 20) + '..' : team.name; ctx.fillText(displayName, 120, 405);  // Archetype Badge (Spotify-Wrapped Persona) const isPredator = Number(stats.totalKills) >= 20; const isWinner = Number(stats.totalWwcd) >= 2; const badgeTitle = isWinner ? '🍗 CHICKEN DINNER HUNTER' : isPredator ? '🔥 LETHAL COMBAT PREDATOR' : '🛡️ TACTICAL ZONE SURVIVOR';  ctx.fillStyle = '#ccff00'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(80, 490, 460, 56, 16) : ctx.rect(80, 490, 460, 56); ctx.fill();  ctx.fillStyle = '#000000'; ctx.font = '900 20px monospace'; ctx.fillText(badgeTitle, 105, 526);  // Host Scope Pill Tag ctx.fillStyle = '#27272a'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(560, 490, 440, 56, 16) : ctx.rect(560, 490, 440, 56); ctx.fill();  ctx.fillStyle = '#a1a1aa'; ctx.font = 'bold 16px sans-serif'; const hostLabel = hostFilterName === 'ALL' ? 'Scope: All Scrim Organizers' : `Host: ${hostFilterName}`;
+      ctx.fillText(hostLabel.length > 28 ? hostLabel.slice(0, 26) + '..' : hostLabel, 580, 525);
+
+      // 4 Main Stat Cards (2x2 Grid)
+      const drawCard = (x, y, label, val, color) => {
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(x, y, 445, 230, 24) : ctx.rect(x, y, 445, 230);
+        ctx.fill();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(label, x + 35, y + 60);
+
+        ctx.fillStyle = color;
+        ctx.font = '900 68px monospace';
+        ctx.fillText(String(val), x + 35, y + 160);
+      };
+
+      drawCard(80, 580, 'TOTAL POINTS', stats.totalPts || 0, '#ccff00');
+      drawCard(555, 580, 'ELIMINATIONS', stats.totalKills || 0, '#ffffff');
+      drawCard(80, 840, 'CHICKEN DINNERS', `🍗 ${stats.totalWwcd \vert{}\vert{} 0}`, '#ccff00'); drawCard(555, 840, 'WIN RATIO', stats.winRate \vert{}\vert{} '0\%', '#ffffff');  // Metric Ratio Breakdown Box ctx.fillStyle = '#18181b'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(80, 1100, 920, 390, 28) : ctx.rect(80, 1100, 920, 390); ctx.fill();  ctx.fillStyle = '#71717a'; ctx.font = 'bold 20px monospace'; ctx.fillText('CAREER RATIO BREAKDOWN', 120, 1155);  ctx.fillStyle = '#ffffff'; ctx.font = '500 26px sans-serif'; ctx.fillText('• Average Points per Scrim:', 120, 1225); ctx.fillStyle = '#ccff00'; ctx.font = '900 30px monospace'; ctx.fillText(`${stats.avgPts} PTS`, 740, 1225);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '500 26px sans-serif';
+      ctx.fillText('• Average Eliminations per Scrim:', 120, 1300);
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 30px monospace';
+      ctx.fillText(`${stats.avgKills} KILLS`, 740, 1300);  ctx.fillStyle = '#ffffff'; ctx.font = '500 26px sans-serif'; ctx.fillText('• Scrim Tournaments Joined:', 120, 1375); ctx.fillStyle = '#ccff00'; ctx.font = '900 30px monospace'; ctx.fillText(`${stats.results?.length || 0} EVENTS`, 740, 1375);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '500 26px sans-serif';
+      ctx.fillText('• Total Matches Played:', 120, 1450);
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 30px monospace';
+      ctx.fillText(`${stats.matchesCount} MATCHES`, 740, 1450);  // Watermark & Call To Action ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px monospace'; ctx.fillText('CHECK YOUR SQUAD STATS AT:', 90, 1740);  ctx.fillStyle = '#ccff00'; ctx.font = '900 36px sans-serif'; ctx.fillText('scrim.rykhor.my', 90, 1790);  ctx.fillStyle = '#71717a'; ctx.font = '500 18px monospace'; ctx.fillText('SCRIM HUB BY RY.KHOR  •  PUBGM DATA RECAP', 90, 1830);  ctx.fillStyle = '#ccff00'; ctx.fillRect(80, 1850, 920, 8);  // Web Share API with File Fallback canvas.toBlob(async (blob) => { if (!blob) return;  const file = new File([blob], `${team.tag}-stats-story.png`, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `[${team.tag}]${team.name} Stats Recap`,
+              text: `Check out our PUBG Mobile tournament stats on SCRIM HUB by ry.khor! Visit scrim.rykhor.my`
+            });
+            showToast('Instagram Story card ready!');
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              showToast('Sharing error: ' + err.message);
+            }
+          }
+        } else {
+          const link = document.createElement('a');
+          link.download = `${team.tag}-stats-story.png`;
+          link.href = URL.createObjectURL(blob);
+          link.click();
+          showToast('Story card downloaded! Upload it to your Instagram Story.');
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      showToast('Error generating card: ' + error.message);
+    } finally {
+      setIsGeneratingStory(false);
+    }
   };
 
   // Team History & Aggregated Stats
@@ -1017,7 +1117,6 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // Organizers Directory Calculation
   const organizersList = useMemo(() => {
     const map = {};
 
@@ -1043,7 +1142,6 @@ export default function App() {
     );
   }, [scrims, profiles, searchHostQuery]);
 
-  // Ciri 1: Kira Statistik Pasukan Tertapis Mengikut Host
   const filteredTeamPerformance = useMemo(() => {
     if (!performanceTeam) return null;
     const allResults = performanceTeam.scrimResults || [];
@@ -1167,11 +1265,10 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER NAVBAR (CLEAN GLASSY LIGHT & LIME GREEN) */}
+      {/* HEADER NAVBAR */}
       <header className="border-b border-slate-200/90 bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* 1) Penjenamaan: SCRIM HUB by ry.khor */}
           <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-xl bg-lime-400 flex items-center justify-center text-slate-950 shadow-md shadow-lime-400/30 font-black border border-lime-500/30">
               <Swords className="w-5 h-5"/>
@@ -1192,7 +1289,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
             <button
               onClick={() => setActiveTab('teams')}
@@ -1231,7 +1327,6 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Quick Header Indicators */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
@@ -1255,13 +1350,10 @@ export default function App() {
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
-        {/* ========================================================= */}
-        {/* VIEW 1: TEAM STATS (DEFAULT HOMEPAGE)                     */}
-        {/* ========================================================= */}
+        {/* VIEW 1: TEAM STATS */}
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
-            {/* PUBG Banner Vibe Header */}
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3 relative overflow-hidden">
               <div className="absolute -top-12 -right-12 w-48 h-48 bg-lime-400/10 rounded-full blur-2xl pointer-events-none"></div>
 
@@ -1324,7 +1416,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 1) Butang Buka Graph "Team Performance Info" */}
                   <button
                     onClick={() => {
                       setPerformanceTeam(activeTeamData);
@@ -1338,7 +1429,6 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* KPI Metrics */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Points</span>
@@ -1360,11 +1450,10 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Scrim Performance Log */}
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                      Scrim Tournament Log (Click any row for full tournament details)
+                      Scrim Tournament Log (Click row for full tournament details)
                     </span>
                     <span className="text-[10px] text-lime-700 font-semibold flex items-center gap-1">
                       <Eye className="w-3 h-3"/> Public Details
@@ -1429,15 +1518,12 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* VIEW 2: LEADERBOARD (KINI LEBIH MUDAH DINAVIGASI)        */}
-        {/* ========================================================= */}
+        {/* VIEW 2: LEADERBOARD */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
             
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
               
-              {/* Header Atas: Pilihan Scrim & Butang Aksi */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2 flex-1">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
@@ -1509,7 +1595,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Scrim Title & Info */}
               <div className="flex items-center space-x-3.5 pt-1">
                 {activePublicScrim?.logo_url ? (
                   <img 
@@ -1547,7 +1632,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Search & Tier Filter */}
               <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"/>
@@ -1577,7 +1661,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Match Switcher */}
               <div className="flex items-center gap-1.5 overflow-x-auto py-1">
                 <button
                   onClick={() => setLeaderboardFilter('overall')}
@@ -1683,9 +1766,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* VIEW 3: HOSTS DIRECTORY (DENGAN GAMBAR PROFIL HOST)       */}
-        {/* ========================================================= */}
+        {/* VIEW 3: HOSTS DIRECTORY */}
         {activeTab === 'hosts' && (
           <div className="space-y-4">
             
@@ -1721,7 +1802,6 @@ export default function App() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
-                        {/* 3) Gambar Profil Host */}
                         {host.avatar_url ? (
                           <img 
                             src={host.avatar_url} 
@@ -1789,9 +1869,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* VIEW 4: SHOWCASE                                          */}
-        {/* ========================================================= */}
+        {/* VIEW 4: SHOWCASE */}
         {activeTab === 'showcase' && (
           <div className="space-y-4">
             
@@ -1883,9 +1961,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* VIEW 5: ADMIN SCRIM (MODERN LIGHT GLASSY + QUICK JUMP)   */}
-        {/* ========================================================= */}
+        {/* VIEW 5: ADMIN SCRIM */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
             
@@ -1956,7 +2032,7 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                {/* 5) Quick Navigation Bar di Admin: Butang View Live Leaderboard */}
+                {/* Live Leaderboard Jump Bar */}
                 <div className="bg-lime-100/80 border border-lime-300/80 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-lime-800"/>
@@ -1981,7 +2057,6 @@ export default function App() {
                 {/* Admin Status Header */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center space-x-3">
-                    {/* 3) Tunjuk Avatar Host di bar admin */}
                     {profileAvatarUrl ? (
                       <img src={profileAvatarUrl} alt="Avatar" className="w-10 h-10 rounded-xl object-cover border border-slate-200" />
                     ) : (
@@ -2217,7 +2292,7 @@ export default function App() {
 
                 </div>
 
-                {/* Dynamic Match Controller */}
+                {/* Match Switcher Control */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
@@ -2425,7 +2500,7 @@ export default function App() {
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.kills}
                                   onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-900 focus:outline-none"
+                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-200 focus:outline-none"
                                 />
                               </td>
                               <td className="py-2.5 px-4 text-center text-slate-500 font-bold">{row.placePts}</td>
@@ -2469,9 +2544,7 @@ export default function App() {
 
       </main>
 
-      {/* ========================================================= */}
-      {/* 1) MODAL GRAPH: TEAM PERFORMANCE INFO (BY HOST FILTER)    */}
-      {/* ========================================================= */}
+      {/* MODAL: TEAM PERFORMANCE INFO & INSTAGRAM STORY SHARE */}
       {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -2500,7 +2573,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* 1) Filter by Specific Host / Organizer */}
             <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Filter className="w-3.5 h-3.5 text-lime-600"/>
@@ -2521,7 +2593,6 @@ export default function App() {
               </select>
             </div>
 
-            {/* Quick Metrics KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
                 <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Points / Scrim</span>
@@ -2549,7 +2620,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Visual SVG Performance Graph */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-900 flex items-center gap-1.5">
@@ -2599,10 +2669,27 @@ export default function App() {
               )}
             </div>
 
-            <div className="pt-2 text-right">
+            {/* Modal Action Buttons: IG Story Share & Close */}
+            <div className="pt-2 flex items-center justify-between">
+              {/* BUTTON SHARE TO INSTAGRAM STORY */}
+              <button
+                onClick={() => handleShareToInstagramStory(
+                  performanceTeam, 
+                  filteredTeamPerformance, 
+                  selectedPerformanceHost === 'ALL' 
+                    ? 'ALL' 
+                    : (organizersList.find(h => h.id === selectedPerformanceHost || h.name === selectedPerformanceHost)?.name || selectedPerformanceHost)
+                )}
+                disabled={isGeneratingStory}
+                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 transition"
+              >
+                <Share className="w-4 h-4"/>
+                <span>{isGeneratingStory ? 'Rendering Card...' : 'Share to IG Story'}</span>
+              </button>
+
               <button
                 onClick={() => setIsPerformanceModalOpen(false)}
-                className="px-4 py-2 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
+                className="px-4 py-2.5 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
               >
                 Close Info
               </button>
@@ -2612,7 +2699,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4) MODAL FEEDBACK DEVELOPER */}
+      {/* MODAL FEEDBACK DEVELOPER */}
       {isFeedbackModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -2689,7 +2776,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 3) MODAL: EDIT HOST PROFILE (DENGAN GAMBAR PROFIL UPLOAD) */}
+      {/* MODAL: EDIT HOST PROFILE */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -2702,7 +2789,6 @@ export default function App() {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-              {/* Photo Upload Preview */}
               <div>
                 <label className="block text-slate-500 uppercase font-bold mb-1">Host Profile Photo</label>
                 <div className="flex items-center space-x-3">
@@ -3068,7 +3154,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MOBILE BOTTOM DOCK (CLEAN WHITE & LIME GREEN) */}
+      {/* MOBILE BOTTOM DOCK */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-lg">
         <button
           onClick={() => setActiveTab('teams')}
