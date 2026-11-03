@@ -5,7 +5,7 @@ import {
   Swords, 
   Search, 
   Plus, 
-  Minus,
+  Minus, 
   CheckCircle, 
   Users, 
   Copy, 
@@ -29,22 +29,22 @@ import {
   Calendar, 
   Image as ImageIcon, 
   X, 
-  Eye,
-  Trash2,
-  Edit3,
-  LockKeyhole,
-  Unlock,
-  CheckSquare,
-  Award,
-  TrendingUp,
-  BarChart2,
-  Info,
-  Bug,
-  Crosshair,
-  Radio,
-  Send,
-  Share,
-  Medal
+  Eye, 
+  Trash2, 
+  Edit3, 
+  LockKeyhole, 
+  Unlock, 
+  CheckSquare, 
+  Award, 
+  TrendingUp, 
+  BarChart2, 
+  Info, 
+  Bug, 
+  Crosshair, 
+  Radio, 
+  Send, 
+  Share, 
+  Medal 
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -87,7 +87,7 @@ const DEFAULT_TEAMS = [
 const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
-  const fileName = folder + '/' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.' + fileExt;
+  const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
   
   const { error: uploadError } = await supabase.storage
     .from('scrim-assets')
@@ -116,17 +116,17 @@ export default function App() {
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
 
-  // Filter Kategori Statistik Pasukan (ALL, Scrim, Tour)
+  // Team Stats Category Scope ('ALL' | 'Scrim' | 'Tour')
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
-  // Status Autentikasi
+  // Authentication State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Modal
+  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -136,7 +136,7 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Modal Maklum Balas
+  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -213,7 +213,7 @@ export default function App() {
       if (error) {
         showToast('Registration Error: ' + error.message);
       } else {
-        showToast('Pendaftaran berjaya! Sila log masuk.');
+        showToast('Registration complete! Please sign in.');
         setIsRegisterMode(false);
       }
     } else {
@@ -223,10 +223,10 @@ export default function App() {
       });
 
       if (error) {
-        showToast('Gagal Masuk: ' + error.message);
+        showToast('Sign In Failed: ' + error.message);
       } else {
         setCurrentUser(data.user);
-        showToast('Selamat kembali, ' + data.user.email);
+        showToast('Welcome back, ' + data.user.email);
         setAuthPassword('');
       }
     }
@@ -236,7 +236,7 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
-    showToast('Berjaya log keluar.');
+    showToast('Logged out successfully.');
   };
 
   const isAuthorizedAdmin = (scrim) => {
@@ -304,7 +304,7 @@ export default function App() {
       const { error } = await supabase.from('profiles').upsert(payload);
 
       if (error) {
-        showToast('Ralat Profil: ' + error.message);
+        showToast('Profile Error: ' + error.message);
       } else {
         setProfiles(prev => {
           const filtered = prev.filter(p => p.id !== currentUser.id);
@@ -313,10 +313,10 @@ export default function App() {
         setProfileAvatarUrl(newAvatarUrl);
         setAvatarFile(null);
         setIsProfileModalOpen(false);
-        showToast('Profil berjaya dikemaskini!');
+        showToast('Profile updated successfully!');
       }
     } catch (err) {
-      showToast('Gagal memuat naik avatar: ' + err.message);
+      showToast('Failed to upload profile picture: ' + err.message);
     } finally {
       setIsSavingProfile(false);
     }
@@ -339,20 +339,20 @@ export default function App() {
       const { error } = await supabase.from('feedbacks').insert([payload]);
 
       if (error) {
-        showToast('Ralat: ' + error.message);
+        showToast('Error: ' + error.message);
       } else {
-        showToast('Maklum balas dihantar terus kepada Developer ry.khor!');
+        showToast('Thank you! Feedback delivered to Developer ry.khor.');
         setFeedbackMessage('');
         setIsFeedbackModalOpen(false);
       }
     } catch (err) {
-      showToast('Gagal menghantar: ' + err.message);
+      showToast('Failed to send: ' + err.message);
     } finally {
       setIsSendingFeedback(false);
     }
   };
 
-  // State Pendaftaran Sesi / Match Baharu
+  // Create Scrim / Tournament States
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
@@ -362,7 +362,7 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // State Edit Sesi
+  // Edit Scrim States
   const [editTitle, setEditTitle] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
@@ -445,7 +445,7 @@ export default function App() {
   const handleUpdateScrimSettings = async (e) => {
     e.preventDefault();
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
-      showToast('Akses tidak diizinkan!');
+      showToast('Access denied!');
       return;
     }
 
@@ -472,15 +472,15 @@ export default function App() {
         .eq('id', activeAdminScrim.id);
 
       if (error) {
-        showToast('Kemas kini gagal: ' + error.message);
+        showToast('Update failed: ' + error.message);
       } else {
         const merged = { ...activeAdminScrim, ...updatedData };
         setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
         setIsEditScrimModalOpen(false);
-        showToast('Tetapan kategori berjaya dikemas kini!');
+        showToast('Event settings and category saved successfully!');
       }
     } catch (err) {
-      showToast('Gagal memuat naik logo: ' + err.message);
+      showToast('Failed to upload logo: ' + err.message);
     } finally {
       setIsSavingEdit(false);
     }
@@ -488,7 +488,7 @@ export default function App() {
 
   const handleToggleFinishScrim = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
-      showToast('Hanya host boleh mengunci status!');
+      showToast('Only authorized hosts can change lock status!');
       return;
     }
 
@@ -499,40 +499,40 @@ export default function App() {
       .eq('id', activeAdminScrim.id);
 
     if (error) {
-      showToast('Gagal kemas kini status: ' + error.message);
+      showToast('Status update failed: ' + error.message);
     } else {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast(nextState ? '🏁 Sesi ditandakan SELESAI (Dikunci)!' : '🔓 Sesi dibuka semula untuk disunting.');
+      showToast(nextState ? '🏁 Session marked as COMPLETED (Locked)!' : '🔓 Session reopened for scoring.');
     }
   };
 
   const handleAddNewMatch = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Tidak boleh menambah pusingan pada sesi yang sudah tamat!');
+      showToast('⚠️ Cannot add rounds to a concluded session!');
       return;
     }
     const currentTotal = activeAdminScrim?.matches?.length || 0;
     const newMatchNumber = currentTotal + 1;
     setSelectedMatchIdx(newMatchNumber - 1);
-    showToast('Match ' + newMatchNumber + ' sedia diisi!');
+    showToast(`Match ${newMatchNumber} ready for entry!`);
   };
 
   const handleRemoveLastMatch = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
     if (activeAdminScrim.is_finished) {
-      showToast('⚠️ Tidak boleh memadam pusingan pada sesi yang sudah tamat!');
+      showToast('⚠️ Cannot delete rounds from a concluded session!');
       return;
     }
 
     const currentMatches = activeAdminScrim.matches || [];
     if (currentMatches.length === 0) {
-      showToast('Tiada pusingan untuk dipadam.');
+      showToast('No rounds available to delete.');
       return;
     }
 
-    if (!window.confirm('Pasti mahu memadam Match ' + currentMatches.length + '?')) return;
+    if (!window.confirm(`Are you sure you want to delete Match ${currentMatches.length}?`)) return;
 
     const trimmed = currentMatches.slice(0, -1);
     const updated = {
@@ -544,17 +544,17 @@ export default function App() {
     const { error } = await supabase.from('scrims').upsert(updated);
 
     if (error) {
-      showToast('Ralat: ' + error.message);
+      showToast('Error: ' + error.message);
     } else {
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
-      showToast('Pusingan terakhir berjaya dipadam.');
+      showToast('Last round removed successfully.');
     }
   };
 
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Skor dikunci kerana sesi ini telah selesai!');
+      showToast('⚠️ Scores are locked because this session has concluded!');
       return;
     }
 
@@ -588,7 +588,7 @@ export default function App() {
 
   const handleAdjustKills = (index, delta) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Skor dikunci!');
+      showToast('⚠️ Scores are locked!');
       return;
     }
     const current = matchSlots[index].kills;
@@ -597,7 +597,7 @@ export default function App() {
 
   const handleRandomizeTestData = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Sesi ini telah dikunci!');
+      showToast('⚠️ This session is locked!');
       return;
     }
     const placements = Array.from({ length: 16 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
@@ -615,20 +615,20 @@ export default function App() {
         };
       });
     });
-    showToast('Data simulasi berjaya dimasukkan!');
+    showToast('Simulated scores populated successfully!');
   };
 
   const handleSaveMatchScore = async () => {
     if (!currentUser) {
-      showToast('Sila log masuk sebagai Admin untuk menyimpan markah!');
+      showToast('Please sign in as Admin to save scores!');
       return;
     }
     if (!activeAdminScrim) {
-      showToast('Sila cipta atau pilih sesi terlebih dahulu!');
+      showToast('Please create or select a session first!');
       return;
     }
     if (activeAdminScrim.is_finished) {
-      showToast('⛔ Sesi ini telah selesai (Terkunci).');
+      showToast('⛔ This session has concluded (Scores Locked).');
       return;
     }
 
@@ -665,18 +665,18 @@ export default function App() {
     const { error } = await supabase.from('scrims').upsert(updatedScrim);
 
     if (error) {
-      showToast('Ralat: ' + error.message);
+      showToast('Error: ' + error.message);
     } else {
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast('Markah Match ' + (selectedMatchIdx + 1) + ' berjaya disimpan!');
+      showToast(`Match ${selectedMatchIdx + 1} scores saved successfully!`);
     }
   };
 
   const handleCreateNewScrim = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Hanya host berdaftar boleh membina perlawanan!');
+      showToast('Only verified hosts can create match sessions!');
       return;
     }
     if (!newScrimTitle.trim()) return;
@@ -713,7 +713,7 @@ export default function App() {
       const { error } = await supabase.from('scrims').insert([newSession]);
 
       if (error) {
-        showToast('Ralat: ' + error.message);
+        showToast('Error: ' + error.message);
       } else {
         setScrims([newSession, ...scrims]);
         setAdminSelectedScrimId(newSession.id);
@@ -723,10 +723,10 @@ export default function App() {
         setNewScrimDesc('');
         setNewHostContact('');
         setLogoFile(null);
-        showToast(`Sesi ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} berjaya dicipta!`);
+        showToast(`${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} session created successfully!`);
       }
     } catch (err) {
-      showToast('Gagal memuat naik: ' + err.message);
+      showToast('Upload failed: ' + err.message);
     } finally {
       setIsUploadingLogo(false);
     }
@@ -734,9 +734,9 @@ export default function App() {
 
   const handleCopyHostShareLink = () => {
     if (!activeAdminScrim) return;
-    const shareUrl = window.location.origin + '?claim_scrim=' + activeAdminScrim.id + '&token=' + (activeAdminScrim.claim_token || 'shared');
+    const shareUrl = `${window.location.origin}?claim_scrim=${activeAdminScrim.id}&token=${activeAdminScrim.claim_token || 'shared'}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
-      showToast('Pautan Co-Host berjaya disalin!');
+      showToast('Co-Host invitation link copied!');
     });
   };
 
@@ -811,30 +811,30 @@ export default function App() {
 
     const eventLabel = (activePublicScrim?.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM');
     let output = '**' + (activePublicScrim?.title || eventLabel).toUpperCase() + '**\n';
-    output += 'Type: ' + eventLabel + ' | Tier: ' + (activePublicScrim?.tier || 'Tier 1') + ' | Date: ' + (activePublicScrim?.date || '') + '\n';
+    output += `Type: ${eventLabel} | Tier: ${activePublicScrim?.tier || 'Tier 1'} | Date: ${activePublicScrim?.date || ''}\n`;
     if (activePublicScrim?.is_finished) output += 'STATUS: COMPLETED (FINAL STANDINGS)\n';
-    if (activePublicScrim?.host_contact) output += 'Contact Host: ' + activePublicScrim.host_contact + '\n';
+    if (activePublicScrim?.host_contact) output += `Contact Host: ${activePublicScrim.host_contact}\n`;
     output += '============================\n';
     output += '# | TEAM | MATCH | WWCD | KILLS | TOTAL\n';
     output += '============================\n';
 
     leaderboardData.forEach((row) => {
-      const badge = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : row.rank + '.';
-      output += badge + ' [' + row.tag + '] ' + row.teamName + ' | ' + row.matchesPlayed + 'M | ' + row.wwcd + 'W | ' + row.killPts + 'K | ' + row.totalPts + ' PTS\n';
+      const badge = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : `${row.rank}.`;
+      output += `${badge} [${row.tag}] ${row.teamName} | ${row.matchesPlayed}M | ${row.wwcd}W | ${row.killPts}K | ${row.totalPts} PTS\n`;
     });
 
     output += '============================\n*Generated by SCRIM HUB by ry.khor*';
 
     navigator.clipboard.writeText(output).then(() => {
       setCopyFeedback(true);
-      showToast('Kedudukan disalin ke clipboard!');
+      showToast('Standings copied to clipboard!');
       setTimeout(() => setCopyFeedback(false), 2500);
     });
   };
 
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
-      showToast('Tiada data untuk memuat turun poster!');
+      showToast('No data available to download poster!');
       return;
     }
 
@@ -865,11 +865,11 @@ export default function App() {
 
     ctx.fillStyle = '#65a30d';
     ctx.font = 'bold 16px monospace';
-    ctx.fillText('[' + (activePublicScrim?.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM').toUpperCase() + ' - ' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 170);
+    ctx.fillText(`[${(activePublicScrim?.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM').toUpperCase()} - ${(activePublicScrim?.tier || 'Tier 1').toUpperCase()}]`, 60, 170);
 
     ctx.fillStyle = '#64748b';
     ctx.font = '500 16px sans-serif';
-    ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 400, 170);
+    ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 400, 170);
 
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 200, 960, 48);
@@ -924,13 +924,13 @@ export default function App() {
     link.download = 'scrim-hub-leaderboard.png';
     link.href = image;
     link.click();
-    showToast('Poster kejohanan berjaya dimuat turun!');
+    showToast('Tournament poster downloaded successfully!');
   };
 
-  // ENGINE INSTAGRAM STORY INFOGRAFIS
+  // INSTAGRAM STORY INFOGRAPHIC ENGINE
   const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
-      showToast('Tiada statistik untuk dijana!');
+      showToast('No statistics available to generate card!');
       return;
     }
 
@@ -955,7 +955,7 @@ export default function App() {
       for (let i = 0; i < 1080; i += 60) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
-        ctx.lineTo(1920);
+        ctx.lineTo(i, 1920);
         ctx.stroke();
       }
 
@@ -1121,10 +1121,10 @@ export default function App() {
       ctx.fillStyle = '#f1f5f9';
       ctx.font = 'italic 500 21px sans-serif';
       const quoteText = isWinner 
-        ? 'Squad ini mempamerkan konsistensi penaklukan zon pertempuran bertaraf elit dengan kadar kemenangan yang mengagumkan.'
-        : 'Pasukan agresif berimpak tinggi yang sentiasa menekan lawan untuk mengutip mata eliminasi maksimum.';
+        ? 'This squad displays elite zone dominance consistency with an outstanding win rate.'
+        : 'A high-impact aggressive squad consistently pressuring opponents for maximum eliminations.';
       ctx.fillText(quoteText, 170, 1040);
-      ctx.fillText('Disahkan untuk penyertaan peringkat kompetitif rasmi.', 170, 1075);
+      ctx.fillText('Verified for official competitive tier participation.', 170, 1075);
 
       drawRibbonHeader('NUMBERS TO KNOW', 1200);
 
@@ -1136,10 +1136,10 @@ export default function App() {
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '500 20px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`DENGAN REKOD ${stats.totalPts || 0} MATA KESELURUHAN DAN`, 100, 1340);
-      ctx.fillText(`${stats.totalKills || 0} ELIMINASI, [${team.tag}] KINI TERLETAK`, 100, 1380);
-      ctx.fillText(`ANTARA SENARAI PASUKAN BERBAHAYA DALAM SIRI`, 100, 1420);
-      ctx.fillText(`${eventTypeLabel.toUpperCase()} SCRIM HUB.`, 100, 1460);
+      ctx.fillText(`WITH A RECORD OF ${stats.totalPts || 0} TOTAL POINTS AND`, 100, 1340);
+      ctx.fillText(`${stats.totalKills || 0} ELIMINATIONS, [${team.tag}] RANKS AMONG`, 100, 1380);
+      ctx.fillText(`THE MOST FORMIDABLE ROSTERS IN THE`, 100, 1420);
+      ctx.fillText(`SCRIM HUB ${eventTypeLabel.toUpperCase()} SERIES.`, 100, 1460);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 110px monospace';
@@ -1211,23 +1211,23 @@ export default function App() {
             await navigator.share({
               files: [file],
               title: `[${team.tag}] ${eventTypeLabel} Stats Infographic`,
-              text: `Semak infografik prestasi ${eventTypeLabel} pasukan kami di SCRIM HUB! (scrim.rykhor.my)`
+              text: `Check out our team's ${eventTypeLabel} performance infographic on SCRIM HUB! (scrim.rykhor.my)`
             });
-            showToast('Infografik Instagram Story siap dikongsi!');
+            showToast('Instagram Story infographic ready to share!');
           } catch (err) {
-            if (err.name !== 'AbortError') showToast('Ralat: ' + err.message);
+            if (err.name !== 'AbortError') showToast('Error: ' + err.message);
           }
         } else {
           const link = document.createElement('a');
           link.download = `${team.tag}-${eventTypeLabel.toLowerCase()}-stats.png`;
           link.href = URL.createObjectURL(blob);
           link.click();
-          showToast('Poster infografik berjaya dimuat turun!');
+          showToast('Infographic poster downloaded successfully!');
         }
       }, 'image/png');
 
     } catch (error) {
-      showToast('Gagal menjana poster: ' + error.message);
+      showToast('Failed to generate poster: ' + error.message);
     } finally {
       setIsGeneratingStory(false);
     }
@@ -1236,7 +1236,7 @@ export default function App() {
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
-  // Agregasi Data Statistik Pasukan Berdasarkan Kejohanan / Scrim
+  // Aggregated Team Statistics
   const teamsStats = useMemo(() => {
     const stats = {};
 
@@ -1327,7 +1327,7 @@ export default function App() {
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
 
-  // Penapisan Dinamik Team Stats (ALL, Scrim, Tour)
+  // Scoped Team Statistics (ALL | Scrim | Tour)
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
     const all = activeTeamData.scrimResults || [];
@@ -1417,7 +1417,7 @@ export default function App() {
   const handleCreateShowcasePost = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Hanya admin boleh menerbitkan poster!');
+      showToast('Only admins can publish posters!');
       return;
     }
     if (!postTitle.trim()) return;
@@ -1453,17 +1453,17 @@ export default function App() {
       const { error } = await supabase.from('posts').insert([newPost]);
 
       if (error) {
-        showToast('Ralat menerbitkan: ' + error.message);
+        showToast('Error publishing: ' + error.message);
       } else {
         setPosts([newPost, ...posts]);
         setIsShowcaseModalOpen(false);
         setPostTitle('');
         setShowcaseFile(null);
         setPostCaption('');
-        showToast('Poster kejohanan berjaya diterbitkan!');
+        showToast('Tournament poster published successfully!');
       }
     } catch (err) {
-      showToast('Ralat muat naik: ' + err.message);
+      showToast('Upload error: ' + err.message);
     } finally {
       setIsUploadingShowcase(false);
     }
@@ -1472,19 +1472,19 @@ export default function App() {
   const handleDeletePost = async (postId, postOwnerId) => {
     if (!currentUser) return;
     if (postOwnerId && postOwnerId !== currentUser.id && postOwnerId !== currentUser.email) {
-      showToast('Anda hanya boleh memadam kiriman anda sendiri!');
+      showToast('You can only delete your own posts!');
       return;
     }
 
-    if (!window.confirm('Pasti mahu memadam kiriman ini?')) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
 
     const { error } = await supabase.from('posts').delete().eq('id', postId);
 
     if (error) {
-      showToast('Gagal memadam: ' + error.message);
+      showToast('Failed to delete: ' + error.message);
     } else {
       setPosts(posts.filter(p => p.id !== postId));
-      showToast('Kiriman berjaya dipadam!');
+      showToast('Post deleted successfully!');
     }
   };
 
@@ -1493,7 +1493,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
-      {/* Toast Notification */}
+      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
           <CheckCircle className="w-4 h-4 text-lime-400"/>
@@ -1501,7 +1501,7 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER NAVIGASI */}
+      {/* HEADER NAVIGATION */}
       <header className="border-b border-slate-200/90 bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
@@ -1567,7 +1567,7 @@ export default function App() {
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
               className="px-2.5 py-1 bg-slate-200/80 hover:bg-lime-100 hover:text-lime-800 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-300/80"
-              title="Hantar Maklum Balas ke Developer ry.khor"
+              title="Report Bug / Feedback to Developer ry.khor"
             >
               <Bug className="w-3.5 h-3.5 text-lime-600"/>
               <span className="hidden sm:inline">Feedback</span>
@@ -1583,10 +1583,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* KANDUNGAN UTAMA */}
+      {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
-        {/* VIEW 1: STATISTIK PASUKAN */}
+        {/* VIEW 1: TEAM STATS */}
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
@@ -1602,10 +1602,10 @@ export default function App() {
                     </span>
                   </div>
                   <h2 className="text-base sm:text-lg font-black text-slate-950">Team Statistics & Career Performance</h2>
-                  <p className="text-xs text-slate-500">Tapis data perlawanan berdasarkan Kejohanan (Tour) atau Latihan (Scrim).</p>
+                  <p className="text-xs text-slate-500">Filter career match records by Tournament (Tour) or Practice (Scrim) below.</p>
                 </div>
 
-                {/* Filter Kategori: ALL vs Scrim vs Tour */}
+                {/* Scope Filter Switcher */}
                 <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
@@ -1634,7 +1634,7 @@ export default function App() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
-                  placeholder="Cari nama atau tag pasukan (contoh: Geek Fam, SEM9, YALL)..."
+                  placeholder="Search team name or tag (e.g. Geek Fam, SEM9, YALL)..."
                   value={teamSearchQuery}
                   onChange={(e) => setTeamSearchQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-950 focus:outline-none focus:border-lime-500 transition"
@@ -1668,7 +1668,6 @@ export default function App() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <h3 className="font-black text-base text-slate-950">{activeTeamData.name}</h3>
-                        {/* BADGE VERIFIED ROSTER TELAH DIBUANG DARI SINI */}
                         <span className={'text-[10px] px-2 py-0.5 rounded-md font-mono font-bold ' + (
                           teamStatsCategory === 'Tour' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
                           teamStatsCategory === 'Scrim' ? 'bg-lime-100 text-lime-800 border border-lime-300' :
@@ -1783,7 +1782,7 @@ export default function App() {
                     ))
                   ) : (
                     <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      Tiada rekod perlawanan di bawah kategori {teamStatsCategory} untuk pasukan ini.
+                      No match records found under the {teamStatsCategory} category for this team.
                     </div>
                   )}
                 </div>
@@ -1987,7 +1986,7 @@ export default function App() {
             {leaderboardData.length === 0 ? (
               <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
                 <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
-                <p className="font-bold text-xs text-slate-600">Tiada data dijumpai.</p>
+                <p className="font-bold text-xs text-slate-600">No data found.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -2057,7 +2056,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 3: DIREKTORI HOST */}
+        {/* VIEW 3: HOST DIRECTORY */}
         {activeTab === 'hosts' && (
           <div className="space-y-4">
             
@@ -2067,14 +2066,14 @@ export default function App() {
                   <Award className="w-5 h-5 text-lime-600"/>
                   <span>Tournament Hosts & Organizers Directory</span>
                 </h2>
-                <p className="text-xs text-slate-500">Cari penganjur yang disahkan, semak maklumat hubungan dan lihat senarai acara yang dihoskan.</p>
+                <p className="text-xs text-slate-500">Find verified organizers, check contact info, and explore hosted tournaments.</p>
               </div>
 
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
-                  placeholder="Cari nama host atau kontak..."
+                  placeholder="Search host name or contact..."
                   value={searchHostQuery}
                   onChange={(e) => setSearchHostQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
@@ -2224,7 +2223,7 @@ export default function App() {
                         <button
                           onClick={() => handleDeletePost(post.id, post.created_by)}
                           className="absolute top-3 right-3 p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition"
-                          title="Hapus Kiriman Saya"
+                          title="Delete My Post"
                         >
                           <Trash2 className="w-3.5 h-3.5"/>
                         </button>
@@ -2248,7 +2247,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5: PORTAL ADMIN */}
+        {/* VIEW 5: ADMIN PORTAL */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
             
@@ -2262,13 +2261,13 @@ export default function App() {
                     Host Account Portal
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Log masuk untuk menguruskan Scrim & Tournament, pusingan perlawanan dan data rekod pasukan.
+                    Sign in to organize Scrims & Tournaments, manage match rounds, and track team metrics.
                   </p>
                 </div>
 
                 <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
                   <div>
-                    <label className="block text-slate-600 uppercase font-bold mb-1">Email Rasmi</label>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Official Email</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                       <input
@@ -2283,7 +2282,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 uppercase font-bold mb-1">Kata Laluan</label>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Password</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                       <input
@@ -2302,7 +2301,7 @@ export default function App() {
                     disabled={authLoading}
                     className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider"
                   >
-                    {authLoading ? 'Sila tunggu...' : isRegisterMode ? 'Daftar sebagai Admin' : 'Log Masuk sebagai Admin'}
+                    {authLoading ? 'Please wait...' : isRegisterMode ? 'Register as Admin' : 'Sign In as Admin'}
                   </button>
 
                   <div className="text-center pt-1">
@@ -2311,7 +2310,7 @@ export default function App() {
                       onClick={() => setIsRegisterMode(!isRegisterMode)}
                       className="text-xs text-lime-700 hover:underline font-semibold"
                     >
-                      {isRegisterMode ? 'Sudah mempunyai akaun? Log Masuk' : 'Belum mempunyai akaun admin? Daftar'}
+                      {isRegisterMode ? 'Already have an account? Sign In' : "Don't have an admin account? Register"}
                     </button>
                   </div>
                 </form>
@@ -2323,7 +2322,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-lime-800"/>
                     <span className="text-xs font-bold text-lime-950">
-                      Sedang menyunting: <strong className="font-mono">[{activeAdminScrim?.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] {activeAdminScrim?.title || 'Tiada Sesi'}</strong>
+                      Currently editing: <strong className="font-mono">[{activeAdminScrim?.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] {activeAdminScrim?.title || 'No Active Session'}</strong>
                     </span>
                   </div>
 
@@ -2335,7 +2334,7 @@ export default function App() {
                       }}
                       className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
                     >
-                      <span>📊 Lihat Live Leaderboard</span>
+                      <span>📊 View Live Leaderboard</span>
                     </button>
                   )}
                 </div>
@@ -2361,7 +2360,7 @@ export default function App() {
                       </div>
                       <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <Info className="w-3 h-3 text-lime-600"/>
-                        <span>Ruang kerja privat: Menguruskan rekod kejohanan dan scrim anda.</span>
+                        <span>Private Workspace: Manage your tournament and scrim fixtures.</span>
                       </p>
                     </div>
                   </div>
@@ -2372,7 +2371,7 @@ export default function App() {
                       className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
                     >
                       <User className="w-3.5 h-3.5 text-lime-700"/>
-                      <span>Profil Host Saya</span>
+                      <span>My Host Profile</span>
                     </button>
 
                     {activeAdminScrim && isAuthorizedAdmin(activeAdminScrim) && (
@@ -2381,7 +2380,7 @@ export default function App() {
                         className="px-3 py-1.5 bg-lime-50 hover:bg-lime-100 text-lime-800 border border-lime-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
                       >
                         <Share2 className="w-3.5 h-3.5"/>
-                        <span className="hidden sm:inline">Salin Link Co-Host</span>
+                        <span className="hidden sm:inline">Copy Co-Host Link</span>
                       </button>
                     )}
 
@@ -2390,24 +2389,24 @@ export default function App() {
                       className="p-2 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center gap-1"
                     >
                       <LogOut className="w-4 h-4"/>
-                      <span className="hidden sm:inline">Log Keluar</span>
+                      <span className="hidden sm:inline">Sign Out</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  {/* Senarai Pilihan Sesi Sedia Ada */}
+                  {/* Current Sessions List */}
                   <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                        Daftar Sesi Saya ({adminHostedScrims.length})
+                        My Sessions List ({adminHostedScrims.length})
                       </span>
                     </div>
 
                     {adminHostedScrims.length === 0 ? (
                       <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
-                        Belum ada sesi dicipta. Gunakan borang di sebelah untuk menyelenggarakan Scrim atau Tournament pertama anda!
+                        No sessions created yet. Use the form on the right to host your first Scrim or Tournament!
                       </div>
                     ) : (
                       <select
@@ -2417,7 +2416,7 @@ export default function App() {
                       >
                         {adminHostedScrims.map((s) => (
                           <option key={s.id} value={s.id}>
-                            [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Selesai)' : ''}
+                            [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Concluded)' : ''}
                           </option>
                         ))}
                       </select>
@@ -2432,7 +2431,7 @@ export default function App() {
                           <div className="flex-1">
                             <div className="font-bold text-xs text-slate-900">{activeAdminScrim.title}</div>
                             <div className="text-[10px] text-lime-700 font-bold">
-                              {activeAdminScrim.event_type === 'Tour' ? 'Tournament (Rasmi)' : 'Scrim (Latihan)'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Pusingan
+                              {activeAdminScrim.event_type === 'Tour' ? 'Tournament (Official)' : 'Scrim (Practice)'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Rounds Played
                             </div>
                           </div>
                         </div>
@@ -2440,13 +2439,13 @@ export default function App() {
                         {activeAdminScrim.is_finished ? (
                           <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
                             <span className="font-bold flex items-center gap-1">
-                              <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Sesi Selesai (Skor Terkunci)
+                              <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Session Concluded (Scores Locked)
                             </span>
                           </div>
                         ) : (
                           <div className="p-2.5 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-between text-xs text-lime-800">
                             <span className="font-bold flex items-center gap-1">
-                              <Unlock className="w-3.5 h-3.5"/> Sedang Berjalan & Boleh Diedit
+                              <Unlock className="w-3.5 h-3.5"/> In Progress & Editable
                             </span>
                           </div>
                         )}
@@ -2457,7 +2456,7 @@ export default function App() {
                             className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-lime-700"/>
-                            <span>Edit Sesi</span>
+                            <span>Edit Session</span>
                           </button>
 
                           <button
@@ -2469,7 +2468,7 @@ export default function App() {
                             )}
                           >
                             {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
-                            <span>{activeAdminScrim.is_finished ? 'Buka Semula' : 'Selesaikan'}</span>
+                            <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
                           </button>
                         </div>
 
@@ -2477,17 +2476,17 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* FORMULIR BUAT PERLAWANAN / SESI: OPTION SCRIM VS TOURNAMENT */}
+                  {/* CREATE SESSION: SCRIM VS TOURNAMENT */}
                   <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
                       <div className="flex items-center space-x-2">
                         <Plus className="w-4 h-4 text-lime-600"/>
                         <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
-                          Buat Perlawanan / Sesi Baharu
+                          Create New Match Session
                         </h3>
                       </div>
 
-                      {/* TOGGLE PILIHAN SCRIM / TOURNAMENT */}
+                      {/* Event Type Toggle */}
                       <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                         <button
                           type="button"
@@ -2517,20 +2516,20 @@ export default function App() {
                     </div>
 
                     <p className="text-[11px] text-slate-500 mb-3">
-                      Mod Semasa: <strong className={newEventType === 'Tour' ? 'text-amber-700 font-mono' : 'text-lime-700 font-mono'}>
+                      Current Mode: <strong className={newEventType === 'Tour' ? 'text-amber-700 font-mono' : 'text-lime-700 font-mono'}>
                         {newEventType === 'Tour' ? '🏆 Official Tournament Match' : '🔥 Scrim Practice Match'}
-                      </strong>. Data markah akan direkodkan terus mengikut kategori ini.
+                      </strong>. Score data will be automatically categorized under this event scope.
                     </p>
 
                     <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div className="sm:col-span-2">
                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
-                            {newEventType === 'Tour' ? 'Nama / Tajuk Tournament' : 'Nama / Tajuk Scrim'}
+                            {newEventType === 'Tour' ? 'Tournament Title' : 'Scrim Title'}
                           </label>
                           <input
                             type="text"
-                            placeholder={newEventType === 'Tour' ? 'contoh: PMSL SEA Qualifier Season 2' : 'contoh: Pro Night Scrim Fast 4 Maps'}
+                            placeholder={newEventType === 'Tour' ? 'e.g. PMSL SEA Qualifier Season 2' : 'e.g. Pro Night Scrim Fast 4 Maps'}
                             value={newScrimTitle}
                             onChange={(e) => setNewScrimTitle(e.target.value)}
                             required
@@ -2538,7 +2537,7 @@ export default function App() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Kategori / Tier</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Category / Tier</label>
                           <select
                             value={newScrimTier}
                             onChange={(e) => setNewScrimTier(e.target.value)}
@@ -2553,10 +2552,10 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Muat Naik Logo</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Upload Event Logo</label>
                           <label className="flex items-center justify-center gap-1.5 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl px-3 py-2 text-slate-600 cursor-pointer transition">
                             <Upload className="w-3.5 h-3.5 text-lime-600"/>
-                            <span className="truncate">{logoFile ? logoFile.name : 'Pilih Fail Gambar'}</span>
+                            <span className="truncate">{logoFile ? logoFile.name : 'Choose Image File'}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -2567,10 +2566,10 @@ export default function App() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Kontak Host (WhatsApp / Discord)</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Host Contact (WhatsApp / Discord)</label>
                           <input
                             type="text"
-                            placeholder="contoh: +60123456789 atau @discord"
+                            placeholder="e.g. +60123456789 or @discord"
                             value={newHostContact}
                             onChange={(e) => setNewHostContact(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
@@ -2580,10 +2579,10 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Deskripsi & Syarat</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Description & Rules</label>
                           <input
                             type="text"
-                            placeholder="contoh: 16 Pasukan Dijemput, Format Rasmi PMGC Points System"
+                            placeholder="e.g. 16 Invited Teams, POV recording mandatory"
                             value={newScrimDesc}
                             onChange={(e) => setNewScrimDesc(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
@@ -2592,7 +2591,7 @@ export default function App() {
 
                         <div className="flex gap-2">
                           <div className="flex-1">
-                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Tarikh</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Date</label>
                             <input
                               type="date"
                               value={newScrimDate}
@@ -2614,7 +2613,7 @@ export default function App() {
 
                 </div>
 
-                {/* Kawalan Pusingan Match */}
+                {/* Round Controls */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
@@ -2643,7 +2642,7 @@ export default function App() {
                           className="px-3 py-1.5 rounded-xl text-xs font-bold bg-lime-100 hover:bg-lime-200 text-lime-800 border border-lime-300 transition flex items-center gap-1"
                         >
                           <Plus className="w-3.5 h-3.5"/>
-                          <span>Tambah Pusingan</span>
+                          <span>Add Round</span>
                         </button>
                       )}
 
@@ -2653,7 +2652,7 @@ export default function App() {
                           className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
                         >
                           <Minus className="w-3.5 h-3.5"/>
-                          <span>Padam Terakhir</span>
+                          <span>Delete Last</span>
                         </button>
                       )}
                     </div>
@@ -2676,7 +2675,7 @@ export default function App() {
                         className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
                       >
                         <RefreshCw className="w-3.5 h-3.5"/>
-                        <span className="hidden sm:inline">Isi Pantas</span>
+                        <span className="hidden sm:inline">Quick Fill</span>
                       </button>
                     </div>
 
@@ -2684,11 +2683,11 @@ export default function App() {
 
                   <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
                     <Info className="w-3 h-3 text-slate-400"/>
-                    <span>Memasukkan skor Match {selectedMatchIdx + 1} di peta {inputMap}. Lengkapkan posisi kedudukan & jumlah kills, kemudian klik Simpan.</span>
+                    <span>Entering scores for Match {selectedMatchIdx + 1} on {inputMap}. Adjust placements and kills, then click Save.</span>
                   </p>
                 </div>
 
-                {/* Input Skor Versi Mobile */}
+                {/* Mobile Score Input Cards */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -2774,7 +2773,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Jadual Input Skor Desktop */}
+                {/* Desktop Score Input Table */}
                 <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -2855,7 +2854,7 @@ export default function App() {
                     )}
                   >
                     <Save className="w-4 h-4"/>
-                    <span>{activeAdminScrim?.is_finished ? 'Keputusan Dikunci (Selesai)' : 'Save Match ' + (selectedMatchIdx + 1) + ' Scores'}</span>
+                    <span>{activeAdminScrim?.is_finished ? 'Scores Locked (Completed)' : `Save Match ${selectedMatchIdx + 1} Scores`}</span>
                   </button>
                 </div>
 
@@ -2866,7 +2865,7 @@ export default function App() {
 
       </main>
 
-      {/* MODAL: INFO PRESTASI PASUKAN & SHARE IG STORY */}
+      {/* MODAL: TEAM PERFORMANCE & IG STORY EXPORT */}
       {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -2899,30 +2898,30 @@ export default function App() {
               <div>
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
                   <Medal className="w-3.5 h-3.5 text-lime-600"/>
-                  <span>Kategori Acara:</span>
+                  <span>Event Category:</span>
                 </span>
                 <select
                   value={performanceModalCategory}
                   onChange={(e) => setPerformanceModalCategory(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
                 >
-                  <option value="ALL">Semua Kategori (Scrim + Tour)</option>
-                  <option value="Scrim">Hanya Scrim (Latihan)</option>
-                  <option value="Tour">Hanya Tournament (Rasmi)</option>
+                  <option value="ALL">All Categories (Scrim + Tour)</option>
+                  <option value="Scrim">Scrim Only (Practice)</option>
+                  <option value="Tour">Tournament Only (Official)</option>
                 </select>
               </div>
 
               <div>
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
                   <Filter className="w-3.5 h-3.5 text-lime-600"/>
-                  <span>Penyelenggara / Host:</span>
+                  <span>Host / Organizer:</span>
                 </span>
                 <select
                   value={selectedPerformanceHost}
                   onChange={(e) => setSelectedPerformanceHost(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
                 >
-                  <option value="ALL">Semua Host</option>
+                  <option value="ALL">All Hosts</option>
                   {organizersList.map(h => (
                     <option key={h.id || h.name} value={h.id || h.name}>
                       Host: {h.name}
@@ -2934,13 +2933,13 @@ export default function App() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Points / Scrim</span>
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Points / Event</span>
                 <span className="text-base font-black font-mono text-lime-700">
                   {filteredTeamPerformance.avgPts}
                 </span>
               </div>
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Kills / Scrim</span>
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Kills / Event</span>
                 <span className="text-base font-black font-mono text-slate-900">
                   {filteredTeamPerformance.avgKills}
                 </span>
@@ -2952,9 +2951,9 @@ export default function App() {
                 </span>
               </div>
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Sesi Terfilter</span>
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Filtered Sessions</span>
                 <span className="text-base font-black font-mono text-slate-700">
-                  {filteredTeamPerformance.results.length} Sesi
+                  {filteredTeamPerformance.results.length} Sessions
                 </span>
               </div>
             </div>
@@ -2977,7 +2976,7 @@ export default function App() {
 
               {filteredTeamPerformance.results.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-xs">
-                  Tiada rekod perlawanan di bawah tapisan ini.
+                  No match records found under this filter scope.
                 </div>
               ) : (
                 <div className="space-y-3 pt-2">
@@ -3036,7 +3035,7 @@ export default function App() {
                 onClick={() => setIsPerformanceModalOpen(false)}
                 className="px-4 py-2.5 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
               >
-                Tutup
+                Close
               </button>
             </div>
 
@@ -3044,7 +3043,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL MAKLUM BALAS PEMAJU */}
+      {/* DEVELOPER FEEDBACK MODAL */}
       {isFeedbackModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -3055,7 +3054,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="font-black text-sm text-slate-950">Developer Feedback & Bug Report</h3>
-                  <span className="text-[10px] text-slate-400">Mesej terus kepada ry.khor</span>
+                  <span className="text-[10px] text-slate-400">Direct message to ry.khor</span>
                 </div>
               </div>
               <button onClick={() => setIsFeedbackModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
@@ -3063,24 +3062,24 @@ export default function App() {
 
             <form onSubmit={handleSubmitFeedback} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Kategori</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Category</label>
                 <select
                   value={feedbackCategory}
                   onChange={(e) => setFeedbackCategory(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 >
-                  <option value="Bug Report">🐛 Laporan Bug / Ralat</option>
-                  <option value="Feature Request">💡 Cadangan Ciri Baharu</option>
-                  <option value="UI/Design Feedback">🎨 Maklum Balas Reka Bentuk</option>
-                  <option value="Other Inquiry">💬 Pertanyaan Lain</option>
+                  <option value="Bug Report">🐛 Bug Report / Error</option>
+                  <option value="Feature Request">💡 Feature Request / Suggestion</option>
+                  <option value="UI/Design Feedback">🎨 UI & Design Feedback</option>
+                  <option value="Other Inquiry">💬 General Inquiry</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Email Anda (Pilihan)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Your Email (Optional)</label>
                 <input
                   type="email"
-                  placeholder="name@email.com (jika mahu dihubungi semula)"
+                  placeholder="name@email.com (if follow-up is needed)"
                   value={feedbackEmail}
                   onChange={(e) => setFeedbackEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3088,11 +3087,11 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Mesej / Butiran</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Message / Issue Details</label>
                 <textarea
                   rows="3"
                   required
-                  placeholder="Terangkan masalah atau penambahbaikan..."
+                  placeholder="Describe the bug or feature recommendation in detail..."
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3105,7 +3104,7 @@ export default function App() {
                   onClick={() => setIsFeedbackModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -3113,7 +3112,7 @@ export default function App() {
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs flex items-center gap-1.5"
                 >
                   <Send className="w-3.5 h-3.5"/>
-                  <span>{isSendingFeedback ? 'Menghantar...' : 'Hantar Maklum Balas'}</span>
+                  <span>{isSendingFeedback ? 'Sending...' : 'Send Feedback'}</span>
                 </button>
               </div>
             </form>
@@ -3121,25 +3120,25 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: EDIT PROFIL HOST */}
+      {/* MODAL: EDIT HOST PROFILE */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <User className="w-4 h-4 text-lime-600"/>
-                <span>Profil Awam Host & Gambar</span>
+                <span>Public Host Profile & Avatar</span>
               </h3>
               <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Foto Profil Host</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Host Profile Picture</label>
                 <div className="flex items-center space-x-3">
                   {avatarFile ? (
                     <div className="w-12 h-12 rounded-2xl bg-lime-100 border border-lime-300 flex items-center justify-center font-bold text-lime-800 text-[10px]">
-                      Dipilih
+                      Selected
                     </div>
                   ) : profileAvatarUrl ? (
                     <img src={profileAvatarUrl} alt="Avatar" className="w-12 h-12 rounded-2xl object-cover border border-slate-200" />
@@ -3151,7 +3150,7 @@ export default function App() {
 
                   <label className="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
                     <Upload className="w-4 h-4 text-lime-600"/>
-                    <span className="truncate">{avatarFile ? avatarFile.name : 'Muat Naik Foto Profil'}</span>
+                    <span className="truncate">{avatarFile ? avatarFile.name : 'Upload Profile Photo'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -3163,11 +3162,11 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Nama Paparan Penganjur</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Organizer Display Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="contoh: RYKHOR Esports Organizer"
+                  placeholder="e.g. RYKHOR Esports Organizer"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
@@ -3175,10 +3174,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Kontak Rasmi (WhatsApp / Telegram)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Official Contact (WhatsApp / Telegram)</label>
                 <input
                   type="text"
-                  placeholder="+60123456789 atau @username"
+                  placeholder="+60123456789 or @username"
                   value={profileContact}
                   onChange={(e) => setProfileContact(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3186,10 +3185,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Bio / Perihalan Host</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">About / Host Bio</label>
                 <textarea
                   rows="3"
-                  placeholder="Terangkan mengenai kejohanan atau jadual scrim tetap anda..."
+                  placeholder="Tell teams about your upcoming tournaments or regular scrim schedules..."
                   value={profileBio}
                   onChange={(e) => setProfileBio(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3202,14 +3201,14 @@ export default function App() {
                   onClick={() => setIsProfileModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingProfile}
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
-                  {isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}
+                  {isSavingProfile ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
             </form>
@@ -3217,41 +3216,41 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: EDIT TETAPAN SESI */}
+      {/* MODAL: EDIT EVENT SETTINGS */}
       {isEditScrimModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-lime-600"/>
-                <span>Edit Tetapan Acara</span>
+                <span>Edit Event Settings</span>
               </h3>
               <button onClick={() => setIsEditScrimModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleUpdateScrimSettings} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Kategori Acara</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Event Category</label>
                 <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setEditEventType('Scrim')}
                     className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600')}
                   >
-                    Scrim (Latihan)
+                    Scrim (Practice)
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditEventType('Tour')}
                     className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600')}
                   >
-                    Tour (Tournament Rasmi)
+                    Tour (Official Tournament)
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tajuk Acara</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Event Title</label>
                 <input
                   type="text"
                   required
@@ -3262,7 +3261,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Divisyen</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Division</label>
                 <select
                   value={editTier}
                   onChange={(e) => setEditTier(e.target.value)}
@@ -3275,10 +3274,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tukar Logo Acara (Pilihan)</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Change Event Logo (Optional)</label>
                 <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
                   <Upload className="w-4 h-4 text-lime-600"/>
-                  <span className="truncate">{editLogoFile ? editLogoFile.name : 'Pilih fail imej logo baharu'}</span>
+                  <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -3289,18 +3288,18 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Kontak Host</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Host Contact</label>
                 <input
                   type="text"
                   value={editContact}
                   onChange={(e) => setEditContact(e.target.value)}
-                  placeholder="contoh: +60123456789"
+                  placeholder="e.g. +60123456789"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Deskripsi & Peraturan</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Description & Rules</label>
                 <textarea
                   rows="2"
                   value={editDesc}
@@ -3315,14 +3314,14 @@ export default function App() {
                   onClick={() => setIsEditScrimModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingEdit}
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
-                  {isSavingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -3330,7 +3329,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL AWAM: BUTIRAN ACARA */}
+      {/* PUBLIC DETAILS MODAL */}
       {inspectedScrim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -3375,7 +3374,7 @@ export default function App() {
 
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Penyelenggara / Host</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Host / Organizer</span>
                 <span className="font-bold text-slate-900">{inspectedScrim.host_name || 'Official Host'}</span>
                 <p className="text-[11px] text-slate-600 mt-0.5">{inspectedScrim.description}</p>
               </div>
@@ -3400,7 +3399,7 @@ export default function App() {
 
             <div className="space-y-2">
               <span className="text-xs font-black uppercase text-slate-900 tracking-wider block">
-                Kedudukan Akhir (Standings)
+                Final Standings
               </span>
 
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
@@ -3435,7 +3434,7 @@ export default function App() {
                 onClick={() => setInspectedScrim(null)}
                 className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold rounded-xl text-xs"
               >
-                Tutup
+                Close
               </button>
             </div>
 
@@ -3443,37 +3442,37 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL ADMIN: TERBIT POSTER */}
+      {/* PUBLISH POSTER MODAL */}
       {isShowcaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <ImageIcon className="w-4 h-4 text-lime-600"/>
-                <span>Terbitkan Poster Kejohanan / Klip</span>
+                <span>Publish Tournament Poster / Clip</span>
               </h3>
               <button onClick={() => setIsShowcaseModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleCreateShowcasePost} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Jenis Kiriman</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Post Type</label>
                 <select
                   value={postType}
                   onChange={(e) => setPostType(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
                 >
-                  <option value="poster">Poster Kejohanan (Imej)</option>
-                  <option value="clip">Sorotan Klip Permainan (Video)</option>
+                  <option value="poster">Tournament Poster (Image)</option>
+                  <option value="clip">Gameplay Highlight (Video File)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tajuk</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Title</label>
                 <input
                   type="text"
                   required
-                  placeholder="contoh: PMSL SEA Spring Qualifier Open Slot"
+                  placeholder="e.g. PMSL SEA Spring Qualifier Open Slot"
                   value={postTitle}
                   onChange={(e) => setPostTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
@@ -3481,10 +3480,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Pilih Fail</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Select File</label>
                 <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-3 text-slate-700 cursor-pointer transition">
                   <Upload className="w-4 h-4 text-lime-600"/>
-                  <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Klik untuk Muat Naik Gambar / Video'}</span>
+                  <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Click to Upload Image / MP4'}</span>
                   <input
                     type="file"
                     accept={postType === 'clip' ? 'video/*' : 'image/*'}
@@ -3495,10 +3494,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Keterangan / Link Pendaftaran</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Description / Registration Link</label>
                 <textarea
                   rows="3"
-                  placeholder="Keterangan yuran, hadiah, format atau pautan Google Form..."
+                  placeholder="Registration requirements, entry fee, prizes, or Google Form links..."
                   value={postCaption}
                   onChange={(e) => setPostCaption(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3511,14 +3510,14 @@ export default function App() {
                   onClick={() => setIsShowcaseModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploadingShowcase}
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
-                  {isUploadingShowcase ? 'Memuat naik...' : 'Terbitkan'}
+                  {isUploadingShowcase ? 'Uploading...' : 'Publish'}
                 </button>
               </div>
             </form>
@@ -3526,7 +3525,7 @@ export default function App() {
         </div>
       )}
 
-      {/* DOCK NAVIGASI MOBILE */}
+      {/* MOBILE NAVIGATION BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-lg">
         <button
           onClick={() => setActiveTab('teams')}
