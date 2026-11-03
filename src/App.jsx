@@ -114,14 +114,12 @@ export default function App() {
   const [tierFilter, setTierFilter] = useState('All');
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
 
-  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -130,14 +128,12 @@ export default function App() {
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
-  // Directory Search
   const [searchHostQuery, setSearchHostQuery] = useState('');
 
   const showToast = (msg) => {
@@ -256,7 +252,6 @@ export default function App() {
     return adminHostedScrims.find(s => s.id === adminSelectedScrimId) || adminHostedScrims[0] || null;
   }, [adminHostedScrims, adminSelectedScrimId]);
 
-  // Host Profile Edit & Avatar Upload State
   const [profileName, setProfileName] = useState('');
   const [profileContact, setProfileContact] = useState('');
   const [profileBio, setProfileBio] = useState('');
@@ -348,7 +343,6 @@ export default function App() {
     }
   };
 
-  // Creation State
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
@@ -357,7 +351,6 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // Edit Scrim State
   const [editTitle, setEditTitle] = useState('');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
   const [editDesc, setEditDesc] = useState('');
@@ -916,7 +909,6 @@ export default function App() {
     showToast('Clean Esports Poster downloaded!');
   };
 
-  // SPOTIFY WRAPPED STYLE: INSTAGRAM STORY SHARE ENGINE (1080x1920)
   const handleShareToInstagramStory = async (team, stats, hostFilterName) => {
     if (!team || !stats) {
       showToast('No team stats available to generate story card!');
@@ -931,7 +923,6 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Dark Matte & High Contrast Gradient
       const bg = ctx.createLinearGradient(0, 0, 0, 1920);
       bg.addColorStop(0, '#000000');
       bg.addColorStop(0.3, '#09090b');
@@ -940,7 +931,6 @@ export default function App() {
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Top Accent & PUBG Elements
       ctx.fillStyle = '#ccff00';
       ctx.fillRect(80, 90, 920, 8);
 
@@ -952,23 +942,64 @@ export default function App() {
       ctx.font = 'bold 18px monospace';
       ctx.fillText('BATTLE ROYALE CAREER PERFORMANCE', 90, 175);
 
-      // Team Header Card
       ctx.fillStyle = '#18181b';
-      ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(80, 230, 920, 230, 28) : ctx.rect(80, 230, 920, 230);
-      ctx.fill();
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(80, 230, 920, 230, 28);
+        ctx.fill();
+      } else {
+        ctx.fillRect(80, 230, 920, 230);
+      }
 
       ctx.fillStyle = '#ccff00';
       ctx.font = '900 68px monospace';
-      ctx.fillText(`[${team.tag}]`, 120, 335);  ctx.fillStyle = '#ffffff'; ctx.font = '900 46px sans-serif'; const displayName = team.name.length > 22 ? team.name.slice(0, 20) + '..' : team.name; ctx.fillText(displayName, 120, 405);  // Archetype Badge (Spotify-Wrapped Persona) const isPredator = Number(stats.totalKills) >= 20; const isWinner = Number(stats.totalWwcd) >= 2; const badgeTitle = isWinner ? '🍗 CHICKEN DINNER HUNTER' : isPredator ? '🔥 LETHAL COMBAT PREDATOR' : '🛡️ TACTICAL ZONE SURVIVOR';  ctx.fillStyle = '#ccff00'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(80, 490, 460, 56, 16) : ctx.rect(80, 490, 460, 56); ctx.fill();  ctx.fillStyle = '#000000'; ctx.font = '900 20px monospace'; ctx.fillText(badgeTitle, 105, 526);  // Host Scope Pill Tag ctx.fillStyle = '#27272a'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(560, 490, 440, 56, 16) : ctx.rect(560, 490, 440, 56); ctx.fill();  ctx.fillStyle = '#a1a1aa'; ctx.font = 'bold 16px sans-serif'; const hostLabel = hostFilterName === 'ALL' ? 'Scope: All Scrim Organizers' : `Host: ${hostFilterName}`;
+      ctx.fillText('[' + team.tag + ']', 120, 335);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 46px sans-serif';
+      const displayName = team.name.length > 22 ? team.name.slice(0, 20) + '..' : team.name;
+      ctx.fillText(displayName, 120, 405);
+
+      const isPredator = Number(stats.totalKills) >= 20;
+      const isWinner = Number(stats.totalWwcd) >= 2;
+      const badgeTitle = isWinner ? '🍗 CHICKEN DINNER HUNTER' : (isPredator ? '🔥 LETHAL COMBAT PREDATOR' : '🛡️ TACTICAL ZONE SURVIVOR');
+
+      ctx.fillStyle = '#ccff00';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(80, 490, 460, 56, 16);
+        ctx.fill();
+      } else {
+        ctx.fillRect(80, 490, 460, 56);
+      }
+
+      ctx.fillStyle = '#000000';
+      ctx.font = '900 20px monospace';
+      ctx.fillText(badgeTitle, 105, 526);
+
+      ctx.fillStyle = '#27272a';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(560, 490, 440, 56, 16);
+        ctx.fill();
+      } else {
+        ctx.fillRect(560, 490, 440, 56);
+      }
+
+      ctx.fillStyle = '#a1a1aa';
+      ctx.font = 'bold 16px sans-serif';
+      const hostLabel = hostFilterName === 'ALL' ? 'Scope: All Scrim Organizers' : ('Host: ' + hostFilterName);
       ctx.fillText(hostLabel.length > 28 ? hostLabel.slice(0, 26) + '..' : hostLabel, 580, 525);
 
-      // 4 Main Stat Cards (2x2 Grid)
       const drawCard = (x, y, label, val, color) => {
         ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(x, y, 445, 230, 24) : ctx.rect(x, y, 445, 230);
-        ctx.fill();
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(x, y, 445, 230, 24);
+          ctx.fill();
+        } else {
+          ctx.fillRect(x, y, 445, 230);
+        }
 
         ctx.fillStyle = '#64748b';
         ctx.font = 'bold 18px monospace';
@@ -981,28 +1012,76 @@ export default function App() {
 
       drawCard(80, 580, 'TOTAL POINTS', stats.totalPts || 0, '#ccff00');
       drawCard(555, 580, 'ELIMINATIONS', stats.totalKills || 0, '#ffffff');
-      drawCard(80, 840, 'CHICKEN DINNERS', `🍗 ${stats.totalWwcd \vert{}\vert{} 0}`, '#ccff00'); drawCard(555, 840, 'WIN RATIO', stats.winRate \vert{}\vert{} '0\%', '#ffffff');  // Metric Ratio Breakdown Box ctx.fillStyle = '#18181b'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(80, 1100, 920, 390, 28) : ctx.rect(80, 1100, 920, 390); ctx.fill();  ctx.fillStyle = '#71717a'; ctx.font = 'bold 20px monospace'; ctx.fillText('CAREER RATIO BREAKDOWN', 120, 1155);  ctx.fillStyle = '#ffffff'; ctx.font = '500 26px sans-serif'; ctx.fillText('• Average Points per Scrim:', 120, 1225); ctx.fillStyle = '#ccff00'; ctx.font = '900 30px monospace'; ctx.fillText(`${stats.avgPts} PTS`, 740, 1225);
+      drawCard(80, 840, 'CHICKEN DINNERS', '🍗 ' + (stats.totalWwcd || 0), '#ccff00');
+      drawCard(555, 840, 'WIN RATIO', stats.winRate || '0%', '#ffffff');
+
+      ctx.fillStyle = '#18181b';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(80, 1100, 920, 390, 28);
+        ctx.fill();
+      } else {
+        ctx.fillRect(80, 1100, 920, 390);
+      }
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText('CAREER RATIO BREAKDOWN', 120, 1155);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '500 26px sans-serif';
+      ctx.fillText('• Average Points per Scrim:', 120, 1225);
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 30px monospace';
+      ctx.fillText(String(stats.avgPts) + ' PTS', 740, 1225);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '500 26px sans-serif';
       ctx.fillText('• Average Eliminations per Scrim:', 120, 1300);
       ctx.fillStyle = '#ccff00';
       ctx.font = '900 30px monospace';
-      ctx.fillText(`${stats.avgKills} KILLS`, 740, 1300);  ctx.fillStyle = '#ffffff'; ctx.font = '500 26px sans-serif'; ctx.fillText('• Scrim Tournaments Joined:', 120, 1375); ctx.fillStyle = '#ccff00'; ctx.font = '900 30px monospace'; ctx.fillText(`${stats.results?.length || 0} EVENTS`, 740, 1375);
+      ctx.fillText(String(stats.avgKills) + ' KILLS', 740, 1300);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '500 26px sans-serif';
+      ctx.fillText('• Scrim Tournaments Joined:', 120, 1375);
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 30px monospace';
+      ctx.fillText(String(stats.results ? stats.results.length : 0) + ' EVENTS', 740, 1375);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '500 26px sans-serif';
       ctx.fillText('• Total Matches Played:', 120, 1450);
       ctx.fillStyle = '#ccff00';
       ctx.font = '900 30px monospace';
-      ctx.fillText(`${stats.matchesCount} MATCHES`, 740, 1450);  // Watermark & Call To Action ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px monospace'; ctx.fillText('CHECK YOUR SQUAD STATS AT:', 90, 1740);  ctx.fillStyle = '#ccff00'; ctx.font = '900 36px sans-serif'; ctx.fillText('scrim.rykhor.my', 90, 1790);  ctx.fillStyle = '#71717a'; ctx.font = '500 18px monospace'; ctx.fillText('SCRIM HUB BY RY.KHOR  •  PUBGM DATA RECAP', 90, 1830);  ctx.fillStyle = '#ccff00'; ctx.fillRect(80, 1850, 920, 8);  // Web Share API with File Fallback canvas.toBlob(async (blob) => { if (!blob) return;  const file = new File([blob], `${team.tag}-stats-story.png`, { type: 'image/png' });
+      ctx.fillText(String(stats.matchesCount) + ' MATCHES', 740, 1450);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText('CHECK YOUR SQUAD STATS AT:', 90, 1740);
+
+      ctx.fillStyle = '#ccff00';
+      ctx.font = '900 36px sans-serif';
+      ctx.fillText('scrim.rykhor.my', 90, 1790);
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = '500 18px monospace';
+      ctx.fillText('SCRIM HUB BY RY.KHOR  •  PUBGM DATA RECAP', 90, 1830);
+
+      ctx.fillStyle = '#ccff00';
+      ctx.fillRect(80, 1850, 920, 8);
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+
+        const file = new File([blob], team.tag + '-stats-story.png', { type: 'image/png' });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
-              title: `[${team.tag}]${team.name} Stats Recap`,
-              text: `Check out our PUBG Mobile tournament stats on SCRIM HUB by ry.khor! Visit scrim.rykhor.my`
+              title: '[' + team.tag + '] ' + team.name + ' Stats Recap',
+              text: 'Check out our PUBG Mobile tournament stats on SCRIM HUB by ry.khor! Visit scrim.rykhor.my'
             });
             showToast('Instagram Story card ready!');
           } catch (err) {
@@ -1012,7 +1091,7 @@ export default function App() {
           }
         } else {
           const link = document.createElement('a');
-          link.download = `${team.tag}-stats-story.png`;
+          link.download = team.tag + '-stats-story.png';
           link.href = URL.createObjectURL(blob);
           link.click();
           showToast('Story card downloaded! Upload it to your Instagram Story.');
@@ -1026,7 +1105,6 @@ export default function App() {
     }
   };
 
-  // Team History & Aggregated Stats
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
@@ -1167,7 +1245,6 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost]);
 
-  // Showcase Feed
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postTitle, setPostTitle] = useState('');
@@ -1257,7 +1334,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
-      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
           <CheckCircle className="w-4 h-4 text-lime-400"/>
@@ -1347,7 +1423,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN CONTAINER */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         {/* VIEW 1: TEAM STATS */}
@@ -1453,7 +1529,7 @@ export default function App() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                      Scrim Tournament Log (Click row for full tournament details)
+                      Scrim Tournament Log (Click any row for full tournament details)
                     </span>
                     <span className="text-[10px] text-lime-700 font-semibold flex items-center gap-1">
                       <Eye className="w-3 h-3"/> Public Details
@@ -2669,9 +2745,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Modal Action Buttons: IG Story Share & Close */}
             <div className="pt-2 flex items-center justify-between">
-              {/* BUTTON SHARE TO INSTAGRAM STORY */}
               <button
                 onClick={() => handleShareToInstagramStory(
                   performanceTeam, 
