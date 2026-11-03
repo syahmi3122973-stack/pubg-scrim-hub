@@ -65,7 +65,7 @@ const getPlacementPoints = (placement) => {
 
 const TIER_OPTIONS = ['Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'];
 
-const DEFAULT_TEAMS = [
+const INITIAL_FALLBACK_TEAMS = [
   { id: 'tm_1', name: 'Geek Fam MY', tag: 'GEEK' },
   { id: 'tm_2', name: 'Yoodo Alliance', tag: 'YALL' },
   { id: 'tm_3', name: 'SEM9 Esports', tag: 'SEM9' },
@@ -105,6 +105,9 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 export default function App() {
   const [activeTab, setActiveTab] = useState('teams');
   
+  // Teams State - Synced directly with Supabase
+  const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
+
   const [scrims, setScrims] = useState([]);
   const [posts, setPosts] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -160,6 +163,17 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
+      // 1. Fetch Teams from Supabase
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (teamsData && teamsData.length > 0) {
+        setTeams(teamsData);
+      }
+
+      // 2. Fetch Scrims
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
@@ -177,6 +191,7 @@ export default function App() {
         setAdminSelectedScrimId(sorted[0].id);
       }
 
+      // 3. Fetch Posts
       const { data: postData } = await supabase
         .from('posts')
         .select('*')
@@ -186,6 +201,7 @@ export default function App() {
         setPosts(postData);
       }
 
+      // 4. Fetch Profiles
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*');
@@ -375,16 +391,19 @@ export default function App() {
   const [inputMap, setInputMap] = useState('Erangel');
   
   const [matchSlots, setMatchSlots] = useState(() => {
-    return DEFAULT_TEAMS.map((tm, idx) => ({
-      slot: idx + 1,
-      teamId: tm.id,
-      teamName: tm.name,
-      tag: tm.tag,
-      placement: idx + 1,
-      kills: 0,
-      placePts: getPlacementPoints(idx + 1),
-      totalPts: getPlacementPoints(idx + 1)
-    }));
+    return Array.from({ length: 16 }, (_, idx) => {
+      const tm = INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
+      return {
+        slot: idx + 1,
+        teamId: tm.id,
+        teamName: tm.name,
+        tag: tm.tag,
+        placement: idx + 1,
+        kills: 0,
+        placePts: getPlacementPoints(idx + 1),
+        totalPts: getPlacementPoints(idx + 1)
+      };
+    });
   });
 
   useEffect(() => {
@@ -405,17 +424,21 @@ export default function App() {
         return;
       }
     }
-    setMatchSlots(DEFAULT_TEAMS.map((tm, idx) => ({
-      slot: idx + 1,
-      teamId: tm.id,
-      teamName: tm.name,
-      tag: tm.tag,
-      placement: idx + 1,
-      kills: 0,
-      placePts: getPlacementPoints(idx + 1),
-      totalPts: getPlacementPoints(idx + 1)
-    })));
-  }, [activeAdminScrim, selectedMatchIdx]);
+
+    setMatchSlots(Array.from({ length: 16 }, (_, idx) => {
+      const tm = teams[idx] || INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
+      return {
+        slot: idx + 1,
+        teamId: tm.id,
+        teamName: tm.name,
+        tag: tm.tag,
+        placement: idx + 1,
+        kills: 0,
+        placePts: getPlacementPoints(idx + 1),
+        totalPts: getPlacementPoints(idx + 1)
+      };
+    }));
+  }, [activeAdminScrim, selectedMatchIdx, teams]);
 
   const filteredScrims = useMemo(() => {
     return scrims.filter(s => {
@@ -570,7 +593,7 @@ export default function App() {
         row.kills = Math.max(0, parseInt(value, 10) || 0);
       } else if (field === 'teamName') {
         row.teamName = value;
-        const matched = DEFAULT_TEAMS.find(t => t.name.toLowerCase() === value.toLowerCase() || t.tag.toLowerCase() === value.toLowerCase());
+        const matched = teams.find(t => t.name.toLowerCase() === value.toLowerCase() || t.tag.toLowerCase() === value.toLowerCase());
         if (matched) {
           row.teamId = matched.id;
           row.tag = matched.tag;
@@ -955,7 +978,7 @@ export default function App() {
       for (let i = 0; i < 1080; i += 60) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
-        ctx.lineTo(i, 1920);
+        ctx.lineTo(1920);
         ctx.stroke();
       }
 
@@ -1234,13 +1257,20 @@ export default function App() {
   };
 
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
-  const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
+  const [selectedTeamProfile, setSelectedTeamProfile] = useState('');
 
-  // Aggregated Team Statistics
+  // Set default selected team once teams are loaded
+  useEffect(() => {
+    if (teams.length > 0 && !selectedTeamProfile) {
+      setSelectedTeamProfile(teams[0].name);
+    }
+  }, [teams, selectedTeamProfile]);
+
+  // Dynamic Aggregation from Supabase Teams
   const teamsStats = useMemo(() => {
     const stats = {};
 
-    DEFAULT_TEAMS.forEach(t => {
+    teams.forEach(t => {
       stats[t.name] = {
         name: t.name,
         tag: t.tag,
@@ -1316,7 +1346,7 @@ export default function App() {
     });
 
     return stats;
-  }, [scrims]);
+  }, [scrims, teams]);
 
   const filteredTeamList = useMemo(() => {
     return Object.values(teamsStats).filter(t => 
