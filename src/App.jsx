@@ -43,7 +43,8 @@ import {
   Crosshair,
   Radio,
   Send,
-  Share
+  Share,
+  Medal
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -111,23 +112,32 @@ export default function App() {
   const [adminSelectedScrimId, setAdminSelectedScrimId] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   
+  // Penapis Leaderboard
   const [tierFilter, setTierFilter] = useState('All');
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
+  const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
 
+  // Penapis Kategori Statistik Pasukan (All, Scrim, Tournament)
+  const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
+
+  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
+  const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
+  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -252,6 +262,7 @@ export default function App() {
     return adminHostedScrims.find(s => s.id === adminSelectedScrimId) || adminHostedScrims[0] || null;
   }, [adminHostedScrims, adminSelectedScrimId]);
 
+  // Profile Edit
   const [profileName, setProfileName] = useState('');
   const [profileContact, setProfileContact] = useState('');
   const [profileBio, setProfileBio] = useState('');
@@ -304,7 +315,7 @@ export default function App() {
         setProfileAvatarUrl(newAvatarUrl);
         setAvatarFile(null);
         setIsProfileModalOpen(false);
-        showToast('Host profile & photo updated!');
+        showToast('Host profile updated!');
       }
     } catch (err) {
       showToast('Avatar upload failed: ' + err.message);
@@ -343,7 +354,9 @@ export default function App() {
     }
   };
 
+  // 1) Creation State dengan Pilihan Kategori: Scrim vs Tournament
   const [newScrimTitle, setNewScrimTitle] = useState('');
+  const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tournament'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
@@ -351,7 +364,9 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
+  // Edit Scrim State
   const [editTitle, setEditTitle] = useState('');
+  const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
   const [editDesc, setEditDesc] = useState('');
   const [editContact, setEditContact] = useState('');
@@ -407,11 +422,12 @@ export default function App() {
   const filteredScrims = useMemo(() => {
     return scrims.filter(s => {
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
+      const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
       const matchSearch = s.title.toLowerCase().includes(searchScrimQuery.toLowerCase()) || 
                           (s.tier && s.tier.toLowerCase().includes(searchScrimQuery.toLowerCase()));
-      return matchTier && matchSearch;
+      return matchTier && matchType && matchSearch;
     });
-  }, [scrims, tierFilter, searchScrimQuery]);
+  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery]);
 
   const activePublicScrim = useMemo(() => {
     return scrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || scrims[0];
@@ -420,6 +436,7 @@ export default function App() {
   const openEditScrimModal = () => {
     if (!activeAdminScrim) return;
     setEditTitle(activeAdminScrim.title || '');
+    setEditEventType(activeAdminScrim.event_type || 'Scrim');
     setEditTier(activeAdminScrim.tier || 'Tier 1 (Pro)');
     setEditDesc(activeAdminScrim.description || '');
     setEditContact(activeAdminScrim.host_contact || '');
@@ -444,6 +461,7 @@ export default function App() {
 
       const updatedData = {
         title: editTitle.trim(),
+        event_type: editEventType,
         tier: editTier,
         description: editDesc.trim(),
         host_contact: editContact.trim(),
@@ -461,7 +479,7 @@ export default function App() {
         const merged = { ...activeAdminScrim, ...updatedData };
         setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
         setIsEditScrimModalOpen(false);
-        showToast('Scrim settings and logo updated!');
+        showToast('Settings & Category updated!');
       }
     } catch (err) {
       showToast('Error uploading logo: ' + err.message);
@@ -488,13 +506,13 @@ export default function App() {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast(nextState ? '🏁 Scrim marked as FINISHED! Results are now locked and live on Leaderboard.' : '🔓 Scrim reopened for editing.');
+      showToast(nextState ? '🏁 Event marked as FINISHED! Results locked.' : '🔓 Event reopened for editing.');
     }
   };
 
   const handleAddNewMatch = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Cannot add match to a finished scrim!');
+      showToast('⚠️ Cannot add match to a finished event!');
       return;
     }
     const currentTotal = activeAdminScrim?.matches?.length || 0;
@@ -506,7 +524,7 @@ export default function App() {
   const handleRemoveLastMatch = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
     if (activeAdminScrim.is_finished) {
-      showToast('⚠️ Cannot remove match from a finished scrim!');
+      showToast('⚠️ Cannot remove match from a finished event!');
       return;
     }
 
@@ -538,7 +556,7 @@ export default function App() {
 
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Results are locked because this scrim is marked as Finished!');
+      showToast('⚠️ Results are locked because this session is marked as Finished!');
       return;
     }
 
@@ -581,7 +599,7 @@ export default function App() {
 
   const handleRandomizeTestData = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Cannot edit locked scrim!');
+      showToast('⚠️ Cannot edit locked session!');
       return;
     }
     const placements = Array.from({ length: 16 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
@@ -608,11 +626,11 @@ export default function App() {
       return;
     }
     if (!activeAdminScrim) {
-      showToast('Please create or select your scrim session first!');
+      showToast('Please create or select your event session first!');
       return;
     }
     if (activeAdminScrim.is_finished) {
-      showToast('⛔ This scrim is locked as FINISHED. Reopen it to modify scores.');
+      showToast('⛔ This session is locked as FINISHED.');
       return;
     }
 
@@ -660,7 +678,7 @@ export default function App() {
   const handleCreateNewScrim = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Only verified organizers can host scrims!');
+      showToast('Only verified organizers can host events!');
       return;
     }
     if (!newScrimTitle.trim()) return;
@@ -679,34 +697,9 @@ export default function App() {
       const newSession = {
         id: 'scrim_' + Date.now(),
         title: newScrimTitle.trim(),
+        event_type: newEventType, // 'Scrim' | 'Tournament'
         tier: newScrimTier,
-        description: newScrimDesc.trim() || 'Official PUBG Mobile Scrim Session.',
-        date: newScrimDate || new Date().toISOString().split('T')[0],
-        logo_url: uploadedLogoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
-        host_name: hostProfile?.display_name || currentUser.email.split('@')[0],
-        host_contact: newHostContact.trim() || hostProfile?.contact || '',
-        total_matches: 0,
-        matches: [],
-        created_by: currentUser.id,
-        co_hosts: [],
-        claim_token: generatedToken,
-        is_finished: false
-      };
-
-      const { error } = await supabase.from('scrims').insert([newSession]);
-
-      if (error) {
-        showToast('Error: ' + error.message);
-      } else {
-        setScrims([newSession, ...scrims]);
-        setAdminSelectedScrimId(newSession.id);
-        setSelectedScrimId(newSession.id);
-        setSelectedMatchIdx(0);
-        setNewScrimTitle('');
-        setNewScrimDesc('');
-        setNewHostContact('');
-        setLogoFile(null);
-        showToast('New tournament scrim created!');
+        description: newScrimDesc.trim() || `Official PUBG Mobile ${newEventType} Session.`, date: newScrimDate \vert{}\vert{} new Date().toISOString().split('T')[0], logo_url: uploadedLogoUrl \vert{}\vert{} 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80', host_name: hostProfile?.display_name \vert{}\vert{} currentUser.email.split('@')[0], host_contact: newHostContact.trim() \vert{}\vert{} hostProfile?.contact \vert{}\vert{} '', total_matches: 0, matches: [], created_by: currentUser.id, co_hosts: [], claim_token: generatedToken, is_finished: false };  const { error } = await supabase.from('scrims').insert([newSession]);  if (error) { showToast('Error: ' + error.message); } else { setScrims([newSession, ...scrims]); setAdminSelectedScrimId(newSession.id); setSelectedScrimId(newSession.id); setSelectedMatchIdx(0); setNewScrimTitle(''); setNewScrimDesc(''); setNewHostContact(''); setLogoFile(null); showToast(`New ${newEventType} created successfully!`);
       }
     } catch (err) {
       showToast('Upload failed: ' + err.message);
@@ -792,8 +785,9 @@ export default function App() {
   const handleCopyDiscordText = () => {
     if (!leaderboardData.length) return;
 
-    let output = '**' + (activePublicScrim?.title || 'SCRIM').toUpperCase() + '**\n';
-    output += 'Tier: ' + (activePublicScrim?.tier || 'Tier 1') + ' | Date: ' + (activePublicScrim?.date || '') + '\n';
+    const eventLabel = (activePublicScrim?.event_type || 'Scrim').toUpperCase();
+    let output = '**' + (activePublicScrim?.title || eventLabel).toUpperCase() + '**\n';
+    output += 'Type: ' + eventLabel + ' | Tier: ' + (activePublicScrim?.tier || 'Tier 1') + ' | Date: ' + (activePublicScrim?.date || '') + '\n';
     if (activePublicScrim?.is_finished) output += 'STATUS: COMPLETED (FINAL STANDINGS)\n';
     if (activePublicScrim?.host_contact) output += 'Contact Host: ' + activePublicScrim.host_contact + '\n';
     output += '============================\n';
@@ -847,11 +841,11 @@ export default function App() {
 
     ctx.fillStyle = '#65a30d';
     ctx.font = 'bold 16px monospace';
-    ctx.fillText('[' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 170);
+    ctx.fillText('[' + (activePublicScrim?.event_type || 'SCRIM').toUpperCase() + ' - ' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 170);
 
     ctx.fillStyle = '#64748b';
     ctx.font = '500 16px sans-serif';
-    ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 170);
+    ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 380, 170);
 
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 200, 960, 48);
@@ -909,8 +903,8 @@ export default function App() {
     showToast('Clean Esports Poster downloaded!');
   };
 
-// ENGINE INSTAGRAM STORY: EA SPORTS & BROADCAST INFOGRAPHIC LAYOUT (9:16)
-  const handleShareToInstagramStory = async (team, stats, hostFilterName) => {
+  // EA SPORTS & BROADCAST INFOGRAPHIC ENGINE
+  const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
       showToast('Tiada statistik untuk dijana!');
       return;
@@ -924,7 +918,6 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. LATAR BELAKANG CARBON & TEXTURE GELAP
       const bg = ctx.createLinearGradient(0, 0, 0, 1920);
       bg.addColorStop(0, '#0a0d14');
       bg.addColorStop(0.4, '#10141f');
@@ -933,7 +926,6 @@ export default function App() {
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Garis silang taktikal grid di latar belakang
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
       ctx.lineWidth = 1;
       for (let i = 0; i < 1080; i += 60) {
@@ -943,12 +935,10 @@ export default function App() {
         ctx.stroke();
       }
 
-      // 2. HEADER ATAS (PENYIARAN RASMI ESPORTS)
-      // Jalur hitam/oren atas
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 1080, 56);
 
-      ctx.fillStyle = '#f97316'; // Jingga aksen kejohanan
+      ctx.fillStyle = '#f97316';
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(340, 0);
@@ -966,7 +956,6 @@ export default function App() {
       ctx.textAlign = 'right';
       ctx.fillText('PUBGM COMPETITIVE LEAGUE • BY RY.KHOR', 1040, 36);
 
-      // Crest Header Pasukan & Lawan / Tournament Scope
       ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
       ctx.fillRect(0, 56, 1080, 140);
       ctx.fillStyle = '#f97316';
@@ -975,102 +964,7 @@ export default function App() {
       ctx.fillStyle = '#f97316';
       ctx.font = '900 48px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`[${team.tag}]`, 60, 145);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 36px sans-serif';
-      const cleanTeamName = team.name.length > 20 ? team.name.slice(0, 18) + '..' : team.name;
-      ctx.fillText(cleanTeamName.toUpperCase(), 230, 142);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 16px monospace';
-      ctx.textAlign = 'right';
-      const hostLabel = hostFilterName === 'ALL' ? 'ALL-STAR LEAGUE' : `HOST: ${hostFilterName.toUpperCase()}`;
-      ctx.fillText(hostLabel, 1020, 142);
-
-      // 3. SEKSYEN 1: METER RADIAL BULATAN (CIRCULAR RING GAUGES)
-      // Banner Sub-Header
-      const drawRibbonHeader = (title, y) => {
-        ctx.fillStyle = '#f97316';
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(440, y);
-        ctx.lineTo(400, y + 42);
-        ctx.lineTo(0, y + 42);
-        ctx.fill();
-
-        ctx.fillStyle = '#000000';
-        ctx.font = '900 18px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(title, 40, y + 28);
-      };
-
-      drawRibbonHeader('BATTLE PERFORMANCE METRICS', 225);
-
-      // Helper Melukis Circular Gauge (Ring Arc)
-      const drawCircularGauge = (centerX, centerY, radius, value, maxVal, title, unitColor = '#f97316') => {
-        const startAngle = -0.75 * Math.PI;
-        const totalAngle = 1.5 * Math.PI;
-        const progress = Math.min(Math.max(parseFloat(value) || 0, 0) / maxVal, 1);
-        const endAngle = startAngle + (totalAngle * (progress || 0.15));
-
-        // Track Latar Belakang Lingkaran Bulat
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 18;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, startAngle, startAngle + totalAngle);
-        ctx.stroke();
-
-        // Meter Aktif Berwarna
-        ctx.strokeStyle = unitColor;
-        ctx.lineWidth = 18;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-        ctx.stroke();
-
-        // Tajuk Atas Meter
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'bold 15px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(title, centerX, centerY - 65);
-
-        // Angka Nilai di Dalam Bulatan
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 36px monospace';
-        ctx.fillText(String(value), centerX, centerY + 10);
-      };
-
-      // 3 Ring Gauges Sebaris
-      drawCircularGauge(200, 360, 68, stats.avgPts || 0, 35, 'AVG POINTS', '#f97316');
-      drawCircularGauge(540, 360, 68, stats.avgKills || 0, 18, 'AVG ELIMS', '#ccff00');
-      drawCircularGauge(880, 360, 68, stats.winRate || '0%', 100, 'WIN RATIO', '#f97316');
-
-      // 4. SEKSYEN 2: PLAYERS / SQUAD TO WATCH
-      drawRibbonHeader('SQUAD COMBAT PROFILE', 490);
-
-      // Kotak Kad Profil Pasukan
-      ctx.fillStyle = '#141a24';
-      ctx.fillRect(60, 555, 960, 290);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(60, 555, 960, 290);
-
-      // Jalur Aksen Pasukan di Tepi Kiri Kad
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(60, 555, 10, 290);
-
-      // Lencana Persona / Archetype
-      const isWinner = Number(stats.totalWwcd) >= 2;
-      const isLethal = Number(stats.totalKills) >= 20;
-      const archetype = isWinner ? 'CHICKEN DINNER HUNTER' : (isLethal ? 'LETHAL COMBAT PREDATOR' : 'TACTICAL SURVIVOR');
-
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(100, 585, 360, 38);
-      ctx.fillStyle = '#000000';
-      ctx.font = '900 15px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(`★ ${archetype}`, 115, 610);
+      ctx.fillText(`[${team.tag}]`, 60, 145);  ctx.fillStyle = '#ffffff'; ctx.font = '900 36px sans-serif'; const cleanTeamName = team.name.length > 20 ? team.name.slice(0, 18) + '..' : team.name; ctx.fillText(cleanTeamName.toUpperCase(), 230, 142);  ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'right'; const scopeBadge = `${eventTypeLabel.toUpperCase()} • ${hostFilterName === 'ALL' ? 'ALL HOSTS' : hostFilterName.toUpperCase()}`; ctx.fillText(scopeBadge, 1020, 142);  const drawRibbonHeader = (title, y) => { ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(440, y); ctx.lineTo(400, y + 42); ctx.lineTo(0, y + 42); ctx.fill();  ctx.fillStyle = '#000000'; ctx.font = '900 18px monospace'; ctx.textAlign = 'left'; ctx.fillText(title, 40, y + 28); };  drawRibbonHeader('PERFORMANCE METRICS', 225);  const drawCircularGauge = (centerX, centerY, radius, value, maxVal, title, unitColor = '#f97316') => { const startAngle = -0.75 * Math.PI; const totalAngle = 1.5 * Math.PI; const progress = Math.min(Math.max(parseFloat(value) \vert{}\vert{} 0, 0) / maxVal, 1); const endAngle = startAngle + (totalAngle * (progress \vert{}\vert{} 0.15));  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(centerX, centerY, radius, startAngle, startAngle + totalAngle); ctx.stroke();  ctx.strokeStyle = unitColor; ctx.lineWidth = 18; ctx.beginPath(); ctx.arc(centerX, centerY, radius, startAngle, endAngle); ctx.stroke();  ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center'; ctx.fillText(title, centerX, centerY - 65);  ctx.fillStyle = '#ffffff'; ctx.font = '900 36px monospace'; ctx.fillText(String(value), centerX, centerY + 10); };  drawCircularGauge(200, 360, 68, stats.avgPts \vert{}\vert{} 0, 35, 'AVG POINTS', '#f97316'); drawCircularGauge(540, 360, 68, stats.avgKills \vert{}\vert{} 0, 18, 'AVG ELIMS', '#ccff00'); drawCircularGauge(880, 360, 68, stats.winRate \vert{}\vert{} '0\%', 100, 'WIN RATIO', '#f97316');  drawRibbonHeader('SQUAD COMBAT PROFILE', 490);  ctx.fillStyle = '#141a24'; ctx.fillRect(60, 555, 960, 290); ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1; ctx.strokeRect(60, 555, 960, 290);  ctx.fillStyle = '#f97316'; ctx.fillRect(60, 555, 10, 290);  const isWinner = Number(stats.totalWwcd) >= 2; const isLethal = Number(stats.totalKills) >= 20; const archetype = isWinner ? 'CHICKEN DINNER HUNTER' : (isLethal ? 'LETHAL COMBAT PREDATOR' : 'TACTICAL SURVIVOR');  ctx.fillStyle = '#f97316'; ctx.fillRect(100, 585, 360, 38); ctx.fillStyle = '#000000'; ctx.font = '900 15px monospace'; ctx.textAlign = 'left'; ctx.fillText(`★ ${archetype}`, 115, 610);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 32px sans-serif';
@@ -1079,38 +973,20 @@ export default function App() {
       ctx.fillStyle = '#94a3b8';
       ctx.font = '500 18px sans-serif';
       ctx.fillText(`Total Eliminations: ${stats.totalKills || 0} Kills`, 100, 725);
-      ctx.fillText(`Total Career Points: ${stats.totalPts || 0} Pts`, 100, 760);
-      ctx.fillText(`Chicken Dinners: 🍗 x${stats.totalWwcd || 0}`, 100, 795);
-
-      // Kotak Info Status Sebelah Kanan
-      ctx.fillStyle = '#0b0f17';
-      ctx.fillRect(680, 585, 310, 230);
-      ctx.strokeStyle = '#f97316';
-      ctx.strokeRect(680, 585, 310, 230);
-
-      ctx.fillStyle = '#f97316';
-      ctx.font = 'bold 15px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('DEPLOYMENT SCOPE', 835, 625);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 48px monospace';
-      ctx.fillText(`${stats.results ? stats.results.length : 0}`, 835, 695);
+      ctx.fillText(`Total Points: ${stats.totalPts || 0} Pts`, 100, 760);
+      ctx.fillText(`Chicken Dinners: 🍗 x${stats.totalWwcd \vert{}\vert{} 0}`, 100, 795);  ctx.fillStyle = '#0b0f17'; ctx.fillRect(680, 585, 310, 230); ctx.strokeStyle = '#f97316'; ctx.strokeRect(680, 585, 310, 230);  ctx.fillStyle = '#f97316'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center'; ctx.fillText('CATEGORY SCOPE', 835, 625);  ctx.fillStyle = '#ffffff'; ctx.font = '900 48px monospace'; ctx.fillText(`${stats.results ? stats.results.length : 0}`, 835, 695);
 
       ctx.fillStyle = '#94a3b8';
       ctx.font = 'bold 14px monospace';
-      ctx.fillText('SCRIM EVENTS JOINED', 835, 735);
-      ctx.fillText(`(${stats.matchesCount || 0} TOTAL MATCHES)`, 835, 765);
+      ctx.fillText(`${eventTypeLabel.toUpperCase()} JOINED`, 835, 735); ctx.fillText(`(${stats.matchesCount || 0} TOTAL MATCHES)`, 835, 765);
 
-      // 5. SEKSYEN 3: QUOTE / COACH STATEMENT
-      drawRibbonHeader('ORGANIZER & ROSTER STATEMENT', 885);
+      drawRibbonHeader('ANALYSIS STATEMENT', 885);
 
       ctx.fillStyle = '#141a24';
       ctx.fillRect(60, 950, 960, 210);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.strokeRect(60, 950, 960, 210);
 
-      // Tanda Petikan Besar
       ctx.fillStyle = 'rgba(249, 115, 22, 0.3)';
       ctx.font = '900 120px serif';
       ctx.textAlign = 'left';
@@ -1118,7 +994,7 @@ export default function App() {
 
       ctx.fillStyle = '#f97316';
       ctx.font = '900 18px monospace';
-      ctx.fillText('HOST & TOURNAMENT ANALYSIS', 170, 995);
+      ctx.fillText(`${eventTypeLabel.toUpperCase()} COMBAT RECORD`, 170, 995);
 
       ctx.fillStyle = '#f1f5f9';
       ctx.font = 'italic 500 21px sans-serif';
@@ -1128,7 +1004,6 @@ export default function App() {
       ctx.fillText(quoteText, 170, 1040);
       ctx.fillText('Disahkan untuk penyertaan kejohanan bertaraf kompetitif rasmi.', 170, 1075);
 
-      // 6. SEKSYEN 4: "NUMBERS TO KNOW" (SOROTAN ANGKA GERGASI)
       drawRibbonHeader('NUMBERS TO KNOW', 1200);
 
       ctx.fillStyle = '#141a24';
@@ -1136,16 +1011,14 @@ export default function App() {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.strokeRect(60, 1265, 960, 270);
 
-      // Teks Ulasan di Kiri
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '500 20px sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText(`DENGAN REKOD ${stats.totalPts || 0} MATA KESELURUHAN DAN`, 100, 1340);
-      ctx.fillText(`${stats.totalKills || 0} ELIMINASI, [${team.tag}] KINI TERLETAK`, 100, 1380);
-      ctx.fillText('ANTARA SENARAI PASUKAN BERBAHAYA', 100, 1420);
-      ctx.fillText('DALAM SIRI KEJOHANAN SCRIM HUB.', 100, 1460);
+      ctx.fillText(`${stats.totalKills \vert{}\vert{} 0} ELIMINASI, [${team.tag}] KINI TERLETAK`, 100, 1380);
+      ctx.fillText(`ANTARA SENARAI PASUKAN BERBAHAYA DALAM SIRI`, 100, 1420);
+      ctx.fillText(`${eventTypeLabel.toUpperCase()} SCRIM HUB.`, 100, 1460);
 
-      // Nombor Gergasi di Kanan (Gaya '87' pada gambar rujukan)
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 110px monospace';
       ctx.textAlign = 'center';
@@ -1153,17 +1026,15 @@ export default function App() {
 
       ctx.fillStyle = '#f97316';
       ctx.font = '900 18px monospace';
-      ctx.fillText('TOTAL CAREER POINTS', 830, 1455);
+      ctx.fillText('CAREER POINTS', 830, 1455);
 
-      // 7. SEKSYEN 5: PALET UNIFORM & BADGE MEDAN TEMPUR
-      drawRibbonHeader('UNIFORM & SQUAD COLORWAY', 1575);
+      drawRibbonHeader('COLORWAY & METADATA', 1575);
 
       ctx.fillStyle = '#141a24';
       ctx.fillRect(60, 1635, 960, 130);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.strokeRect(60, 1635, 960, 130);
 
-      // 3 Petak Swatch Warna Pasukan
       const drawColorSwatch = (x, color, label) => {
         ctx.fillStyle = color;
         ctx.fillRect(x, 1655, 90, 60);
@@ -1181,16 +1052,14 @@ export default function App() {
       drawColorSwatch(240, '#000000', 'SECONDARY');
       drawColorSwatch(360, '#ffffff', 'ACCENT');
 
-      // Teks Pasukan di Sebelah Kanan Swatch
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 24px monospace';
       ctx.textAlign = 'right';
       ctx.fillText(cleanTeamName.toUpperCase(), 980, 1695);
       ctx.fillStyle = '#f97316';
       ctx.font = 'bold 16px monospace';
-      ctx.fillText('TACTICAL COMBAT DIVISION', 980, 1725);
+      ctx.fillText(`${eventTypeLabel.toUpperCase()} DIVISION`, 980, 1725);
 
-      // 8. WATERMARK & FOOTER PENYIARAN RASMI
       ctx.fillStyle = '#05070b';
       ctx.fillRect(0, 1805, 1080, 115);
       ctx.fillStyle = '#f97316';
@@ -1210,18 +1079,17 @@ export default function App() {
       ctx.font = '900 28px sans-serif';
       ctx.fillText('scrim.rykhor.my', 1020, 1872);
 
-      // 9. EKSPORT BLOB & KONGSI KE INSTAGRAM STORY
       canvas.toBlob(async (blob) => {
         if (!blob) return;
 
-        const file = new File([blob], `${team.tag}-stats-infographic.png`, { type: 'image/png' });
+        const file = new File([blob], `${team.tag}-${eventTypeLabel.toLowerCase()}-stats.png`, { type: 'image/png' });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
-              title: `[${team.tag}] Official Matchday Stats`,
-              text: `Semak infografik prestasi pertempuran pasukan kami di SCRIM HUB! (scrim.rykhor.my)`
+              title: `[${team.tag}]${eventTypeLabel} Stats Infographic`,
+              text: `Semak infografik prestasi ${eventTypeLabel} pasukan kami di SCRIM HUB! (scrim.rykhor.my)`
             });
             showToast('Infografik Instagram Story sedia dikongsi!');
           } catch (err) {
@@ -1229,7 +1097,7 @@ export default function App() {
           }
         } else {
           const link = document.createElement('a');
-          link.download = `${team.tag}-stats-infographic.png`;
+          link.download = `${team.tag}-${eventTypeLabel.toLowerCase()}-stats.png`;
           link.href = URL.createObjectURL(blob);
           link.click();
           showToast('Poster infografik berjaya dimuat turun!');
@@ -1246,6 +1114,7 @@ export default function App() {
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState(DEFAULT_TEAMS[0].name);
 
+  // 2) Pengiraan Statistik Pasukan dengan Pengasingan Scrim vs Tournament
   const teamsStats = useMemo(() => {
     const stats = {};
 
@@ -1263,6 +1132,8 @@ export default function App() {
 
     scrims.forEach(scrim => {
       const scrimSummary = {};
+      const eventType = scrim.event_type || 'Scrim';
+
       (scrim.matches || []).forEach(m => {
         (m.results || []).forEach(r => {
           if (!scrimSummary[r.teamName]) {
@@ -1308,6 +1179,7 @@ export default function App() {
           scrimData: scrim,
           scrimName: scrim.title,
           scrimTier: scrim.tier || 'Tier 1 (Pro)',
+          eventType: eventType, // 'Scrim' | 'Tournament'
           ranking: idx + 1,
           points: teamRes.totalPts,
           kills: teamRes.totalKills,
@@ -1332,6 +1204,29 @@ export default function App() {
   }, [teamsStats, teamSearchQuery]);
 
   const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
+
+  // 2) Asingkan Statistik Pasukan Semasa Mengikut Kategori (All / Scrim / Tournament)
+  const activeTeamScopedStats = useMemo(() => {
+    if (!activeTeamData) return null;
+    const all = activeTeamData.scrimResults || [];
+    const filtered = teamStatsCategory === 'ALL'
+      ? all
+      : all.filter(r => (r.eventType || 'Scrim') === teamStatsCategory);
+
+    const totalPoints = filtered.reduce((acc, c) => acc + c.points, 0);
+    const totalKills = filtered.reduce((acc, c) => acc + c.kills, 0);
+    const totalWWCD = filtered.reduce((acc, c) => acc + (c.wwcd || 0), 0);
+    const matchesCount = filtered.reduce((acc, c) => acc + (c.matches || 1), 0);
+
+    return {
+      filteredResults: filtered,
+      totalPoints,
+      totalKills,
+      totalWWCD,
+      eventsCount: filtered.length,
+      matchesCount
+    };
+  }, [activeTeamData, teamStatsCategory]);
 
   const organizersList = useMemo(() => {
     const map = {};
@@ -1358,13 +1253,18 @@ export default function App() {
     );
   }, [scrims, profiles, searchHostQuery]);
 
+  // Statistik dalam Modal (Disaring Mengikut Host dan Kategori Scrim/Tournament)
   const filteredTeamPerformance = useMemo(() => {
     if (!performanceTeam) return null;
     const allResults = performanceTeam.scrimResults || [];
     
-    const results = selectedPerformanceHost === 'ALL'
-      ? allResults
-      : allResults.filter(r => r.hostKey === selectedPerformanceHost || r.hostName === selectedPerformanceHost);
+    let results = allResults;
+    if (selectedPerformanceHost !== 'ALL') {
+      results = results.filter(r => r.hostKey === selectedPerformanceHost || r.hostName === selectedPerformanceHost);
+    }
+    if (performanceModalCategory !== 'ALL') {
+      results = results.filter(r => (r.eventType || 'Scrim') === performanceModalCategory);
+    }
 
     const totalPts = results.reduce((acc, cur) => acc + cur.points, 0);
     const totalKills = results.reduce((acc, cur) => acc + cur.kills, 0);
@@ -1381,7 +1281,7 @@ export default function App() {
       avgKills: results.length ? (totalKills / results.length).toFixed(1) : '0',
       winRate: matchesCount ? ((totalWwcd / matchesCount) * 100).toFixed(0) + '%' : '0%'
     };
-  }, [performanceTeam, selectedPerformanceHost]);
+  }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
@@ -1472,6 +1372,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
+      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
           <CheckCircle className="w-4 h-4 text-lime-400"/>
@@ -1561,17 +1462,19 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
-        {/* VIEW 1: TEAM STATS */}
+        {/* ========================================================= */}
+        {/* VIEW 1: TEAM STATS (DENGAN PENGASINGAN SCRIM VS TOUR)    */}
+        {/* ========================================================= */}
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3 relative overflow-hidden">
               <div className="absolute -top-12 -right-12 w-48 h-48 bg-lime-400/10 rounded-full blur-2xl pointer-events-none"></div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Crosshair className="w-3.5 h-3.5 text-lime-600"/>
@@ -1580,7 +1483,31 @@ export default function App() {
                     </span>
                   </div>
                   <h2 className="text-base sm:text-lg font-black text-slate-950">Team Statistics & Career Performance</h2>
-                  <p className="text-xs text-slate-500">Aggregated tournament results, aggregate kills, and full match logs across all scrims.</p>
+                  <p className="text-xs text-slate-500">Pilih kategori perlawanan di bawah untuk melihat rekod Scrim atau Tournament secara berasingan.</p>
+                </div>
+
+                {/* 2) PENGASINGAN STATS: BUTTON TOGGLE SCRIMS VS TOUR */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto">
+                  <button
+                    onClick={() => setTeamStatsCategory('ALL')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-slate-950 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                  >
+                    All Events
+                  </button>
+                  <button
+                    onClick={() => setTeamStatsCategory('Scrim')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                  >
+                    <Flame className="w-3.5 h-3.5 text-lime-700"/>
+                    <span>Scrims Only</span>
+                  </button>
+                  <button
+                    onClick={() => setTeamStatsCategory('Tournament')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tournament' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                  >
+                    <Medal className="w-3.5 h-3.5 text-amber-200"/>
+                    <span>Tournaments Only</span>
+                  </button>
                 </div>
               </div>
 
@@ -1612,7 +1539,7 @@ export default function App() {
               </div>
             </div>
 
-            {activeTeamData && (
+            {activeTeamData && activeTeamScopedStats && (
               <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
                   <div className="flex items-center space-x-3">
@@ -1625,6 +1552,13 @@ export default function App() {
                         <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono font-semibold">
                           VERIFIED ROSTER
                         </span>
+                        <span className={'text-[10px] px-2 py-0.5 rounded-md font-mono font-bold ' + (
+                          teamStatsCategory === 'Tournament' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                          teamStatsCategory === 'Scrim' ? 'bg-lime-100 text-lime-800 border border-lime-300' :
+                          'bg-slate-200 text-slate-800'
+                        )}>
+                          VIEW: {teamStatsCategory.toUpperCase()}
+                        </span>
                       </div>
                       <span className="text-xs text-slate-500">PUBG Mobile Competitive Team</span>
                     </div>
@@ -1634,6 +1568,7 @@ export default function App() {
                     onClick={() => {
                       setPerformanceTeam(activeTeamData);
                       setSelectedPerformanceHost('ALL');
+                      setPerformanceModalCategory(teamStatsCategory);
                       setIsPerformanceModalOpen(true);
                     }}
                     className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-slate-950/10 border border-slate-800"
@@ -1643,39 +1578,43 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* KPI Metrics Tertapis (Mengikut Kategori Dipilih) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Points</span>
-                    <span className="text-xl font-black font-mono text-lime-700">{activeTeamData.totalPoints}</span>
+                    <span className="text-xl font-black font-mono text-lime-700">{activeTeamScopedStats.totalPoints}</span>
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Eliminations</span>
-                    <span className="text-xl font-black font-mono text-slate-900">{activeTeamData.totalKills}</span>
+                    <span className="text-xl font-black font-mono text-slate-900">{activeTeamScopedStats.totalKills}</span>
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Chicken Dinners</span>
                     <span className="text-xl font-black font-mono text-lime-700 flex items-center justify-center gap-1">
-                      🍗 {activeTeamData.totalWWCD}
+                      🍗 {activeTeamScopedStats.totalWWCD}
                     </span>
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Scrims</span>
-                    <span className="text-xl font-black font-mono text-slate-700">{activeTeamData.scrimResults.length}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                      {teamStatsCategory === 'Tournament' ? 'Tournaments' : teamStatsCategory === 'Scrim' ? 'Scrims' : 'Total Sessions'}
+                    </span>
+                    <span className="text-xl font-black font-mono text-slate-700">{activeTeamScopedStats.eventsCount}</span>
                   </div>
                 </div>
 
+                {/* Scrim / Tour Performance Log */}
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                      Scrim Tournament Log (Click any row for full tournament details)
+                      Battle Records Log ({activeTeamScopedStats.filteredResults.length} Sessions)
                     </span>
                     <span className="text-[10px] text-lime-700 font-semibold flex items-center gap-1">
                       <Eye className="w-3 h-3"/> Public Details
                     </span>
                   </div>
 
-                  {activeTeamData.scrimResults && activeTeamData.scrimResults.length > 0 ? (
-                    activeTeamData.scrimResults.map((item, idx) => (
+                  {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
+                    activeTeamScopedStats.filteredResults.map((item, idx) => (
                       <div
                         key={idx}
                         onClick={() => setInspectedScrim(item.scrimData)}
@@ -1686,8 +1625,15 @@ export default function App() {
                             <img src={item.scrimData.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover border border-slate-200" />
                           )}
                           <div>
-                            <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                            <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
                               <span>{item.scrimName}</span>
+                              <span className={'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ' + (
+                                item.eventType === 'Tournament' 
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                                  : 'bg-lime-100 text-lime-900 border border-lime-300'
+                              )}>
+                                {item.eventType?.toUpperCase() || 'SCRIM'}
+                              </span>
                               {item.isFinished && (
                                 <span className="text-[9px] bg-slate-200 text-slate-800 px-1 rounded font-mono">Final</span>
                               )}
@@ -1722,7 +1668,7 @@ export default function App() {
                     ))
                   ) : (
                     <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      No recorded scrim finishes for this team.
+                      Tiada rekod penyertaan di bawah kategori {teamStatsCategory} untuk pasukan ini.
                     </div>
                   )}
                 </div>
@@ -1742,7 +1688,7 @@ export default function App() {
                 <div className="flex items-center gap-2 flex-1">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
                     <Radio className="w-3.5 h-3.5 text-lime-600"/>
-                    Tournament:
+                    Session:
                   </span>
                   <select
                     value={activePublicScrim?.id || selectedScrimId}
@@ -1754,7 +1700,7 @@ export default function App() {
                   >
                     {filteredScrims.map((s) => (
                       <option key={s.id} value={s.id}>
-                        [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date}) {s.is_finished ? '🏁 Final' : ''}
+                        [{s.event_type || 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date}) {s.is_finished ? '🏁 Final' : ''}
                       </option>
                     ))}
                   </select>
@@ -1813,7 +1759,7 @@ export default function App() {
                 {activePublicScrim?.logo_url ? (
                   <img 
                     src={activePublicScrim.logo_url} 
-                    alt="Scrim Logo" 
+                    alt="Logo" 
                     className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-sm flex-shrink-0"
                   />
                 ) : (
@@ -1824,7 +1770,14 @@ export default function App() {
 
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-100 text-lime-800 border border-lime-300 font-mono">
+                    <span className={'text-[10px] font-black px-2 py-0.5 rounded-full font-mono ' + (
+                      activePublicScrim?.event_type === 'Tournament'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-lime-100 text-lime-800 border border-lime-300'
+                    )}>
+                      {activePublicScrim?.event_type?.toUpperCase() || 'SCRIM'}
+                    </span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
                       {activePublicScrim?.tier || 'Tier 1'}
                     </span>
                     <span className="text-[11px] text-slate-500 font-mono">
@@ -1858,14 +1811,29 @@ export default function App() {
                   />
                 </div>
 
+                {/* Filter Kategori Scrim vs Tournament di Leaderboard */}
                 <div className="flex gap-1.5 overflow-x-auto py-0.5">
+                  {['All', 'Scrim', 'Tournament'].map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setLeaderboardEventTypeFilter(type)}
+                      className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
+                        leaderboardEventTypeFilter === type 
+                          ? 'bg-slate-950 text-white shadow-xs' 
+                          : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                      )}
+                    >
+                      {type === 'All' ? 'All Types' : type === 'Scrim' ? 'Scrims' : 'Tournaments'}
+                    </button>
+                  ))}
+
                   {['All', 'Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'].map(t => (
                     <button
                       key={t}
                       onClick={() => setTierFilter(t)}
                       className={'px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition ' + (
                         tierFilter === t 
-                          ? 'bg-slate-900 text-lime-400 shadow-xs' 
+                          ? 'bg-lime-400 text-slate-950 font-black shadow-xs' 
                           : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                       )}
                     >
@@ -1900,17 +1868,12 @@ export default function App() {
                   </button>
                 ))}
               </div>
-
-              <p className="text-[10px] text-slate-400 flex items-center gap-1 pt-1 border-t border-slate-100 font-mono">
-                <Info className="w-3 h-3 text-slate-400"/>
-                <span>PUBGM Scoring: 10-6-5-4-3-2-1 placement + 1 kill = 1 pt. Select Overall or Match tabs to inspect match details.</span>
-              </p>
             </div>
 
             {leaderboardData.length === 0 ? (
               <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
                 <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
-                <p className="font-bold text-xs text-slate-600">No match records saved for this scrim yet.</p>
+                <p className="font-bold text-xs text-slate-600">No match records saved for this session yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -2003,11 +1966,6 @@ export default function App() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
                 />
               </div>
-
-              <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
-                <Info className="w-3 h-3 text-slate-400"/>
-                <span>All listed hosts are registered tournament administrators. Click PM Host to contact organizers directly.</span>
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2031,7 +1989,7 @@ export default function App() {
                         <div>
                           <h3 className="font-black text-base text-slate-950">{host.name}</h3>
                           <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                            {host.scrims.length} Tournaments Hosted
+                            {host.scrims.length} Events Hosted
                           </span>
                         </div>
                       </div>
@@ -2061,7 +2019,7 @@ export default function App() {
 
                   <div className="pt-3 border-t border-slate-100 space-y-1.5">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Hosted Tournaments:
+                      Hosted Events:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {host.scrims.slice(0, 4).map((s) => (
@@ -2071,6 +2029,7 @@ export default function App() {
                           className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700 hover:border-lime-500 flex items-center gap-1 transition"
                         >
                           <span>{s.title}</span>
+                          <span className="text-[9px] text-slate-400 font-mono">({s.event_type || 'Scrim'})</span>
                           <ExternalLink className="w-3 h-3 text-slate-400"/>
                         </button>
                       ))}
@@ -2175,7 +2134,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5: ADMIN SCRIM */}
+        {/* VIEW 5: ADMIN SCRIM / TOURNAMENT CREATOR */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
             
@@ -2189,7 +2148,7 @@ export default function App() {
                     Host Account Portal
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Sign in to host tournaments, add custom match rounds, and manage your private scrim records.
+                    Sign in to host Scrims & Tournaments, add match rounds, and manage private event records.
                   </p>
                 </div>
 
@@ -2246,12 +2205,11 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                {/* Live Leaderboard Jump Bar */}
                 <div className="bg-lime-100/80 border border-lime-300/80 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-lime-800"/>
                     <span className="text-xs font-bold text-lime-950">
-                      Currently editing: <strong className="font-mono">{activeAdminScrim?.title || 'No Scrim'}</strong>
+                      Currently editing: <strong className="font-mono">[{activeAdminScrim?.event_type || 'Scrim'}] {activeAdminScrim?.title || 'No Event'}</strong>
                     </span>
                   </div>
 
@@ -2268,7 +2226,6 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Admin Status Header */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center space-x-3">
                     {profileAvatarUrl ? (
@@ -2290,7 +2247,7 @@ export default function App() {
                       </div>
                       <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <Info className="w-3 h-3 text-lime-600"/>
-                        <span>Private workspace: Only scrims created or co-hosted by you appear here.</span>
+                        <span>Private workspace: Only scrims/tournaments created by you appear here.</span>
                       </p>
                     </div>
                   </div>
@@ -2330,13 +2287,13 @@ export default function App() {
                   <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                        My Hosted Scrims ({adminHostedScrims.length})
+                        My Hosted Events ({adminHostedScrims.length})
                       </span>
                     </div>
 
                     {adminHostedScrims.length === 0 ? (
                       <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
-                        No scrims registered under your account yet. Use the form on the right to host your first tournament!
+                        No events registered under your account yet. Use the form on the right to host your first Scrim or Tournament!
                       </div>
                     ) : (
                       <select
@@ -2346,7 +2303,7 @@ export default function App() {
                       >
                         {adminHostedScrims.map((s) => (
                           <option key={s.id} value={s.id}>
-                            [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Locked)' : ''}
+                            [{s.event_type || 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Locked)' : ''}
                           </option>
                         ))}
                       </select>
@@ -2360,14 +2317,16 @@ export default function App() {
                           )}
                           <div className="flex-1">
                             <div className="font-bold text-xs text-slate-900">{activeAdminScrim.title}</div>
-                            <div className="text-[10px] text-lime-700 font-bold">{activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Matches Played</div>
+                            <div className="text-[10px] text-lime-700 font-bold">
+                              {activeAdminScrim.event_type || 'Scrim'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Matches Played
+                            </div>
                           </div>
                         </div>
 
                         {activeAdminScrim.is_finished ? (
                           <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
                             <span className="font-bold flex items-center gap-1">
-                              <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Scrim Finished (Score Locked)
+                              <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Event Finished (Score Locked)
                             </span>
                           </div>
                         ) : (
@@ -2384,7 +2343,7 @@ export default function App() {
                             className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-lime-700"/>
-                            <span>Edit Scrim</span>
+                            <span>Edit Event</span>
                           </button>
 
                           <button
@@ -2396,7 +2355,7 @@ export default function App() {
                             )}
                           >
                             {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
-                            <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Finish Scrim'}</span>
+                            <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Finish Event'}</span>
                           </button>
                         </div>
 
@@ -2404,25 +2363,48 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Form Cipta Scrim */}
+                  {/* 1) Form Cipta Scrim / Tournament dengan Butang Kategori */}
                   <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center space-x-2 mb-1.5">
-                      <Plus className="w-4 h-4 text-lime-600"/>
-                      <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
-                        Host New Tournament Scrim
-                      </h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Plus className="w-4 h-4 text-lime-600"/>
+                        <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
+                          Host New Event Session
+                        </h3>
+                      </div>
+
+                      {/* BUTTON PILIHAN KATEGORI: SCRIM VS TOURNAMENT */}
+                      <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setNewEventType('Scrim')}
+                          className={'px-3 py-1 rounded-lg font-bold transition ' + (newEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                        >
+                          Scrim
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewEventType('Tournament')}
+                          className={'px-3 py-1 rounded-lg font-bold transition ' + (newEventType === 'Tournament' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                        >
+                          Tournament (Tour)
+                        </button>
+                      </div>
                     </div>
+
                     <p className="text-[11px] text-slate-500 mb-3">
-                      Fill up the tournament details. You can add or remove match rounds dynamically anytime during the event.
+                      Hosting as: <strong className="text-slate-800">{newEventType === 'Tournament' ? 'Official Tournament' : 'Scrim Practice'}</strong>. Data stats pasukan akan diasingkan mengikut kategori ini secara automatik.
                     </p>
 
                     <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Scrim Title</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                            {newEventType === 'Tournament' ? 'Tournament Title' : 'Scrim Title'}
+                          </label>
                           <input
                             type="text"
-                            placeholder="e.g. PMSL SEA Pro Night Scrim"
+                            placeholder={newEventType === 'Tournament' ? 'e.g. PMSL SEA Qualifier Season 2' : 'e.g. Pro Night Scrim Fast 4 Maps'}
                             value={newScrimTitle}
                             onChange={(e) => setNewScrimTitle(e.target.value)}
                             required
@@ -2445,7 +2427,7 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Upload Scrim Logo</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Upload Event Logo</label>
                           <label className="flex items-center justify-center gap-1.5 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl px-3 py-2 text-slate-600 cursor-pointer transition">
                             <Upload className="w-3.5 h-3.5 text-lime-600"/>
                             <span className="truncate">{logoFile ? logoFile.name : 'Choose Logo Image'}</span>
@@ -2506,7 +2488,7 @@ export default function App() {
 
                 </div>
 
-                {/* Match Switcher Control */}
+                {/* Match Controller */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
@@ -2714,7 +2696,7 @@ export default function App() {
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.kills}
                                   onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-200 focus:outline-none"
+                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-900 focus:outline-none"
                                 />
                               </td>
                               <td className="py-2.5 px-4 text-center text-slate-500 font-bold">{row.placePts}</td>
@@ -2747,7 +2729,7 @@ export default function App() {
                     )}
                   >
                     <Save className="w-4 h-4"/>
-                    <span>{activeAdminScrim?.is_finished ? 'Results Locked (Scrim Finished)' : 'Save Match ' + (selectedMatchIdx + 1) + ' Scores'}</span>
+                    <span>{activeAdminScrim?.is_finished ? 'Results Locked (Session Finished)' : 'Save Match ' + (selectedMatchIdx + 1) + ' Scores'}</span>
                   </button>
                 </div>
 
@@ -2758,7 +2740,7 @@ export default function App() {
 
       </main>
 
-      {/* MODAL: TEAM PERFORMANCE INFO & INSTAGRAM STORY SHARE */}
+      {/* MODAL: TEAM PERFORMANCE INFO DENGAN FILTER HOST & KATEGORI (SCRIM / TOUR) */}
       {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -2787,24 +2769,42 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-lime-600"/>
-                <span>Filter by Scrim Host:</span>
-              </span>
+            {/* Dwi-Penapis: Filter Mengikut Host & Kategori Event */}
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
+                  <Medal className="w-3.5 h-3.5 text-lime-600"/>
+                  <span>Event Category:</span>
+                </span>
+                <select
+                  value={performanceModalCategory}
+                  onChange={(e) => setPerformanceModalCategory(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
+                >
+                  <option value="ALL">All Categories (Scrim + Tour)</option>
+                  <option value="Scrim">Scrims Only (Practice)</option>
+                  <option value="Tournament">Tournaments Only (Official)</option>
+                </select>
+              </div>
 
-              <select
-                value={selectedPerformanceHost}
-                onChange={(e) => setSelectedPerformanceHost(e.target.value)}
-                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
-              >
-                <option value="ALL">All Organizers & Hosts (General Stats)</option>
-                {organizersList.map(h => (
-                  <option key={h.id || h.name} value={h.id || h.name}>
-                    Host: {h.name}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
+                  <Filter className="w-3.5 h-3.5 text-lime-600"/>
+                  <span>Host / Organizer:</span>
+                </span>
+                <select
+                  value={selectedPerformanceHost}
+                  onChange={(e) => setSelectedPerformanceHost(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
+                >
+                  <option value="ALL">All Organizers & Hosts</option>
+                  {organizersList.map(h => (
+                    <option key={h.id || h.name} value={h.id || h.name}>
+                      Host: {h.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
@@ -2827,9 +2827,9 @@ export default function App() {
                 </span>
               </div>
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Scrims Played</span>
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Filtered Events</span>
                 <span className="text-base font-black font-mono text-slate-700">
-                  {filteredTeamPerformance.results.length} Scrims
+                  {filteredTeamPerformance.results.length} Sessions
                 </span>
               </div>
             </div>
@@ -2838,7 +2838,7 @@ export default function App() {
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-900 flex items-center gap-1.5">
                   <BarChart2 className="w-4 h-4 text-lime-600"/>
-                  <span>Points & Kills per Scrim Event</span>
+                  <span>Points & Kills per Session</span>
                 </span>
                 <div className="flex items-center gap-3 text-[10px] font-mono">
                   <span className="flex items-center gap-1 text-lime-700 font-bold">
@@ -2852,7 +2852,7 @@ export default function App() {
 
               {filteredTeamPerformance.results.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-xs">
-                  No scrim history recorded for this specific host.
+                  Tiada rekod data di bawah tapisan ini.
                 </div>
               ) : (
                 <div className="space-y-3 pt-2">
@@ -2864,7 +2864,10 @@ export default function App() {
                     return (
                       <div key={idx} className="space-y-1">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-800 truncate max-w-[200px] sm:max-w-xs">{item.scrimName}</span>
+                          <span className="font-bold text-slate-800 truncate max-w-[200px] sm:max-w-xs flex items-center gap-1">
+                            <span>{item.scrimName}</span>
+                            <span className="text-[9px] text-slate-500 font-mono">[{item.eventType?.slice(0, 4) || 'Scri'}]</span>
+                          </span>
                           <span className="font-mono text-slate-500 text-[10px]">
                             {item.points} PTS • {item.kills} K ({item.date})
                           </span>
@@ -2890,7 +2893,8 @@ export default function App() {
                   filteredTeamPerformance, 
                   selectedPerformanceHost === 'ALL' 
                     ? 'ALL' 
-                    : (organizersList.find(h => h.id === selectedPerformanceHost || h.name === selectedPerformanceHost)?.name || selectedPerformanceHost)
+                    : (organizersList.find(h => h.id === selectedPerformanceHost || h.name === selectedPerformanceHost)?.name || selectedPerformanceHost),
+                  performanceModalCategory === 'ALL' ? 'Official Scrim & Tour' : performanceModalCategory
                 )}
                 disabled={isGeneratingStory}
                 className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 transition"
@@ -3084,21 +3088,41 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: EDIT SCRIM SETTINGS */}
+      {/* 1) MODAL: EDIT SCRIM / TOURNAMENT SETTINGS DENGAN KATEGORI */}
       {isEditScrimModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-lime-600"/>
-                <span>Edit Scrim Settings & Change Logo</span>
+                <span>Edit Event Settings</span>
               </h3>
               <button onClick={() => setIsEditScrimModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleUpdateScrimSettings} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Scrim Title</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Event Category</label>
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setEditEventType('Scrim')}
+                    className={'flex-1 py-1.5 rounded-lg font-bold transition ' + (editEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600')}
+                  >
+                    Scrim (Practice)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditEventType('Tournament')}
+                    className={'flex-1 py-1.5 rounded-lg font-bold transition ' + (editEventType === 'Tournament' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600')}
+                  >
+                    Tournament (Tour)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Title</label>
                 <input
                   type="text"
                   required
@@ -3109,7 +3133,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Category / Tier</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Division</label>
                 <select
                   value={editTier}
                   onChange={(e) => setEditTier(e.target.value)}
@@ -3177,7 +3201,7 @@ export default function App() {
         </div>
       )}
 
-      {/* PUBLIC MODAL: SCRIM BREAKDOWN */}
+      {/* PUBLIC MODAL: EVENT BREAKDOWN */}
       {inspectedScrim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -3189,7 +3213,14 @@ export default function App() {
                 )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-100 text-lime-800 border border-lime-300 font-mono">
+                    <span className={'text-[10px] font-black px-2 py-0.5 rounded-full font-mono ' + (
+                      inspectedScrim.event_type === 'Tournament'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-lime-100 text-lime-800 border border-lime-300'
+                    )}>
+                      {inspectedScrim.event_type?.toUpperCase() || 'SCRIM'}
+                    </span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
                       {inspectedScrim.tier || 'Tier 1'}
                     </span>
                     <span className="text-[10px] text-slate-500">{inspectedScrim.date}</span>
