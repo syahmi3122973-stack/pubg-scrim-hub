@@ -909,7 +909,7 @@ export default function App() {
     showToast('Clean Esports Poster downloaded!');
   };
 
-// ENGINE INSTAGRAM STORY: TACTICAL PUBG MOBILE COMBAT & WARFARE RECAP (9:16)
+// ENGINE INSTAGRAM STORY: BATTLEFIELD PUBG COMBAT DOSSIER (9:16)
   const handleShareToInstagramStory = async (team, stats, hostFilterName) => {
     if (!team || !stats) {
       showToast('Tiada statistik untuk dijana!');
@@ -924,70 +924,73 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. LATAR BELAKANG GELAP MEDAN PERANG (DARK CARBON BATTLEFIELD)
-      const bg = ctx.createLinearGradient(0, 0, 0, 1920);
-      bg.addColorStop(0, '#04070d');
-      bg.addColorStop(0.35, '#0b0f19');
-      bg.addColorStop(0.7, '#070a12');
-      bg.addColorStop(1, '#020307');
-      ctx.fillStyle = bg;
+      // 1. DASAR LATAR BELAKANG GELAP TAKTIKAL
+      ctx.fillStyle = '#05070d';
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // 2. KESAN ASAP MERAH AIRDROP & RED ZONE GLOW (FIERY FLARE EFFECT)
-      const flare = ctx.createRadialGradient(880, 520, 20, 880, 520, 680);
-      flare.addColorStop(0, 'rgba(239, 68, 68, 0.45)'); // Merah asap airdrop
-      flare.addColorStop(0.3, 'rgba(249, 115, 22, 0.25)'); // Percikan api
-      flare.addColorStop(0.7, 'rgba(204, 255, 0, 0.08)'); // Neon Lime bias
-      flare.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = flare;
-      ctx.fillRect(0, 0, 1080, 1920);
+      // 2. MEMUAT GAMBAR PERTEMPURAN PUBG MOBILE (IN-GAME COMBAT BATTLEFIELD)
+      const combatImg = new Image();
+      combatImg.crossOrigin = 'anonymous';
+      // Menggunakan file pertempuran dari folder public/ (atau fallback CDN)
+      combatImg.src = '/pubg-combat.jpg';
 
-      // Grid Silang Taktikal Medan Perang (+)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
-      ctx.lineWidth = 1;
-      for (let x = 80; x < 1080; x += 160) {
-        for (let y = 140; y < 1920; y += 180) {
-          ctx.beginPath();
-          ctx.moveTo(x - 8, y);
-          ctx.lineTo(x + 8, y);
-          ctx.moveTo(x, y - 8);
-          ctx.lineTo(x, y + 8);
-          ctx.stroke();
-        }
+      await new Promise((resolve) => {
+        combatImg.onload = resolve;
+        combatImg.onerror = () => {
+          // Fallback URL jika file lokal belum ditaruh
+          combatImg.src = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1080&q=80';
+          combatImg.onload = resolve;
+          combatImg.onerror = resolve;
+        };
+      });
+
+      // Lukis Gambar Pertempuran Menutupi Kanvas (Cover Fit)
+      if (combatImg.complete && combatImg.naturalWidth !== 0) {
+        ctx.save();
+        // Atur posisi agar fokus pada pasukan yang berlari dan kubah Blue Zone
+        ctx.drawImage(combatImg, -180, 0, 1440, 1920);
+        ctx.restore();
       }
 
-      // 3. TACTICAL COMPASS TAPE DI BAHAGIAN PALING ATAS
+      // 3. VIGNETTE & OVERLAY GELAP (Agar kartu teks & statistik terbaca tajam)
+      const darkOverlay = ctx.createLinearGradient(0, 0, 1080, 0);
+      darkOverlay.addColorStop(0, 'rgba(3, 7, 18, 0.94)'); // Sangat pekat di sisi kiri untuk data
+      darkOverlay.addColorStop(0.58, 'rgba(5, 10, 24, 0.78)');
+      darkOverlay.addColorStop(1, 'rgba(3, 7, 18, 0.40)'); // Transparan di sisi kanan agar atmosfer perang terlihat
+      ctx.fillStyle = darkOverlay;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Gradient Tambahan Atas & Bawah
+      const topBottomGradients = ctx.createLinearGradient(0, 0, 0, 1920);
+      topBottomGradients.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+      topBottomGradients.addColorStop(0.15, 'rgba(0, 0, 0, 0)');
+      topBottomGradients.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
+      topBottomGradients.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
+      ctx.fillStyle = topBottomGradients;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Kilauan Biru Listrik Blue Zone di Pojok Atas Kanan
+      const blueZoneAura = ctx.createRadialGradient(880, 260, 20, 880, 260, 500);
+      blueZoneAura.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+      blueZoneAura.addColorStop(0.5, 'rgba(14, 165, 233, 0.15)');
+      blueZoneAura.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = blueZoneAura;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // 4. ELEMEN HUD PUBG MOBILE (COMPASS & CROSSHAIR)
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, 1080, 54);
+      ctx.fillRect(0, 0, 1080, 52);
       ctx.fillStyle = '#ccff00';
       ctx.font = 'bold 15px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('180 • S • 210 • SW • 240 • W • 270 • NW • 300 • MILITARY BASE E-GRID 44.9°', 540, 34);
+      ctx.fillText('180 • S • 210 • SW • 240 • W • 270 • NW • 300 • BLUEZONE CLOSING IN 00:45', 540, 32);
 
-      // Jalur Hazard Taktikal Atas & Bawah
+      // Garis Neon Lime Border Atas & Bawah
       ctx.fillStyle = '#ccff00';
       ctx.fillRect(70, 75, 940, 6);
       ctx.fillRect(70, 1855, 940, 6);
 
-      // 4. WATERMARK WATAK LEVEL 3 / COMBAT SOLDIER (SEBELAH KANAN)
-      const soldierImg = new Image();
-      soldierImg.crossOrigin = 'anonymous';
-      // Imej helmet level 3 render resolusi tinggi
-      soldierImg.src = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1080&q=80';
-
-      await new Promise((resolve) => {
-        soldierImg.onload = resolve;
-        soldierImg.onerror = resolve;
-      });
-
-      if (soldierImg.complete && soldierImg.naturalWidth !== 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.38;
-        ctx.drawImage(soldierImg, 360, 200, 780, 1540);
-        ctx.restore();
-      }
-
-      // 5. TAJUK BESAR GAYA 'PUBG PLAYERS MASTERS'
+      // 5. JUDUL KOMBAT BESAR (TEAM STATS)
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ccff00';
       ctx.font = '900 22px monospace';
@@ -998,21 +1001,21 @@ export default function App() {
       ctx.fillText('TEAM', 80, 215);
       ctx.fillText('STATS', 80, 290);
 
-      // Badge Scope Host Tertentu atau Overall
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = 'bold 18px monospace';
+      // Indikator Scope Host / Turnamen Dinamis
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 17px monospace';
       const scopeLabel = hostFilterName === 'ALL'
-        ? 'SCOPE: ALL-STAR LEAGUE (OVERALL CAREER)'
+        ? 'SCOPE: ALL TOURNAMENTS (OVERALL CAREER)'
         : `DEPLOYMENT: ${hostFilterName.toUpperCase()}`;
       ctx.fillText(scopeLabel.length > 36 ? scopeLabel.slice(0, 34) + '..' : scopeLabel, 80, 335);
 
-      // 6. KAD DATA TAKTIKAL PUTIH BERKACA (DOSSIER FIZIKAL KIRI)
+      // 6. KARTU DATA TAKTIKAL FISIK (WHITE GLASS DOSSIER)
       const cardX = 80;
       const cardY = 370;
       const cardW = 560;
       const cardH = 1420;
 
-      // Tapak Kad Putih Tajam
+      // Badan Kartu Putih Bersih
       ctx.fillStyle = '#ffffff';
       if (ctx.roundRect) {
         ctx.beginPath();
@@ -1022,15 +1025,15 @@ export default function App() {
         ctx.fillRect(cardX, cardY, cardW, cardH);
       }
 
-      // Jalur Hazard Kuning/Hitam atas kad
+      // Strip Hazard Kuning PUBG di Atas Kartu
       ctx.fillStyle = '#f59e0b';
       ctx.fillRect(cardX, cardY, cardW, 26);
       ctx.fillStyle = '#000000';
       ctx.font = '900 13px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('/// BATTLE METRICS CLASSIFIED DOSSIER ///', cardX + (cardW / 2), cardY + 18);
+      ctx.fillText('/// CLASSIFIED COMBAT PERFORMANCE METRICS ///', cardX + (cardW / 2), cardY + 18);
 
-      // Tag & Nama Pasukan
+      // Tag & Nama Tim
       ctx.fillStyle = '#0f172a';
       ctx.font = '900 58px monospace';
       ctx.fillText(`[${team.tag}]`, cardX + (cardW / 2), cardY + 115);
@@ -1039,7 +1042,7 @@ export default function App() {
       const cleanTeamName = team.name.length > 18 ? team.name.slice(0, 16) + '..' : team.name;
       ctx.fillText(cleanTeamName.toUpperCase(), cardX + (cardW / 2), cardY + 165);
 
-      // Header Bar Jadual
+      // Header Bar Tabel
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(cardX, cardY + 215, cardW, 44);
 
@@ -1050,7 +1053,7 @@ export default function App() {
       ctx.textAlign = 'right';
       ctx.fillText('VALUE', cardX + cardW - 28, cardY + 243);
 
-      // Dynamic "Events Joined" & Sync Data Mengikut Pilihan Host
+      // Sinkronisasi Data Events Sesuai Pilihan Host
       const eventsJoinedLabel = hostFilterName === 'ALL'
         ? `${stats.results?.length || 0} SCRIMS (ALL)`
         : `${stats.results?.length || 0} SCRIMS (${hostFilterName.slice(0, 10)})`;
@@ -1059,7 +1062,7 @@ export default function App() {
         ? (stats.results[0].scrimName.length > 15 ? stats.results[0].scrimName.slice(0, 13) + '..' : stats.results[0].scrimName)
         : 'NONE';
 
-      // Baris-baris Data Taktikal PUBG
+      // Baris-baris Data Taktikal
       const dataRows = [
         { label: 'TOTAL POINTS', val: stats.totalPts || 0 },
         { label: 'ELIMINATIONS', val: stats.totalKills || 0 },
@@ -1092,7 +1095,7 @@ export default function App() {
         currentY += 60;
       });
 
-      // Lencana Persona / Archetype Kombat
+      // Archetype Lencana Spesial PUBG
       const isWinner = Number(stats.totalWwcd) >= 2;
       const isLethal = Number(stats.totalKills) >= 20;
       const badgeTitle = isWinner ? 'CHICKEN DINNER MASTER' : isLethal ? 'AIRDROP COMBAT PREDATOR' : 'APEX ZONE SURVIVOR';
@@ -1111,7 +1114,7 @@ export default function App() {
       ctx.textAlign = 'center';
       ctx.fillText(`★ ${badgeTitle} ★`, cardX + (cardW / 2), cardY + cardH - 90);
 
-      // 7. WATERMARK & CALL TO ACTION (SEBELAH KANAN BAWAH)
+      // 7. WATERMARK & CALL TO ACTION (Kanan Bawah)
       ctx.textAlign = 'left';
       ctx.fillStyle = '#94a3b8';
       ctx.font = 'bold 20px monospace';
@@ -1125,7 +1128,7 @@ export default function App() {
       ctx.font = '500 16px monospace';
       ctx.fillText('SCRIM HUB BY RY.KHOR', 680, 1810);
 
-      // 8. EKSPORT & KONGSI TERUS KE INSTAGRAM STORY
+      // 8. EKSPOR KE BLOB DAN BAGIKAN (WEB SHARE API)
       canvas.toBlob(async (blob) => {
         if (!blob) return;
 
@@ -1135,8 +1138,8 @@ export default function App() {
           try {
             await navigator.share({
               files: [file],
-              title: `[${team.tag}] PUBG Mobile Stats Dossier`,
-              text: `Semak prestasi pertempuran squad kami di SCRIM HUB by ry.khor! (scrim.rykhor.my)`
+              title: `[${team.tag}] PUBG Mobile Combat Dossier`,
+              text: `Lihat statistik pertempuran squad kami di SCRIM HUB by ry.khor! (scrim.rykhor.my)`
             });
             showToast('Instagram Story card sedia dikongsi!');
           } catch (err) {
@@ -1152,7 +1155,7 @@ export default function App() {
       }, 'image/png');
 
     } catch (error) {
-      showToast('Gagal menjana poster: ' + error.message);
+      showToast('Error generating card: ' + error.message);
     } finally {
       setIsGeneratingStory(false);
     }
