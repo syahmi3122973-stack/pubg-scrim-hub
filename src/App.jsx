@@ -39,7 +39,6 @@ import {
   TrendingUp,
   BarChart2,
   Info,
-  Layers,
   ChevronRight
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -99,7 +98,7 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 };
 
 export default function App() {
-  // 4) Halaman pertama lalai dibuka ke 'teams' (Team Stats)
+  // Laman utama dibuka ke Team Stats
   const [activeTab, setActiveTab] = useState('teams');
   
   const [scrims, setScrims] = useState([]);
@@ -144,14 +143,23 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
+      // Susun mengikut masa ID terbaru secara menurun
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
         .order('date', { ascending: false });
 
       if (scrimData && scrimData.length > 0) {
-        setScrims(scrimData);
-        setSelectedScrimId(scrimData[0].id);
+        // Susun tepat: scrim terbaru Date.now() sentiasa di atas
+        const sorted = [...scrimData].sort((a, b) => {
+          const timeA = parseInt(a.id.replace('scrim_', ''), 10) || 0;
+          const timeB = parseInt(b.id.replace('scrim_', ''), 10) || 0;
+          return timeB - timeA;
+        });
+
+        setScrims(sorted);
+        setSelectedScrimId(sorted[0].id);
+        setAdminSelectedScrimId(sorted[0].id);
       }
 
       const { data: postData } = await supabase
@@ -216,7 +224,7 @@ export default function App() {
     showToast('Signed out successfully.');
   };
 
-  // 3) Strict Scrim Access (Hanya milik admin sendiri)
+  // Kawalan Akses Admin Sendiri
   const isAuthorizedAdmin = (scrim) => {
     if (!currentUser || !scrim) return false;
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
@@ -344,10 +352,6 @@ export default function App() {
     })));
   }, [activeAdminScrim, selectedMatchIdx]);
 
-  const activePublicScrim = useMemo(() => {
-    return scrims.find(s => s.id === selectedScrimId) || scrims[0];
-  }, [scrims, selectedScrimId]);
-
   const filteredScrims = useMemo(() => {
     return scrims.filter(s => {
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
@@ -356,6 +360,11 @@ export default function App() {
       return matchTier && matchSearch;
     });
   }, [scrims, tierFilter, searchScrimQuery]);
+
+  // Public Scrim yang Aktif di Leaderboard
+  const activePublicScrim = useMemo(() => {
+    return scrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || scrims[0];
+  }, [scrims, selectedScrimId, filteredScrims]);
 
   const openEditScrimModal = () => {
     if (!activeAdminScrim) return;
@@ -410,6 +419,7 @@ export default function App() {
     }
   };
 
+  // Ciri Scrim Finish (Sync ke Leaderboard)
   const handleToggleFinishScrim = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
       showToast('Only host can toggle finish status!');
@@ -427,7 +437,9 @@ export default function App() {
     } else {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
-      showToast(nextState ? '🏁 Scrim marked as FINISHED! Results are now locked.' : '🔓 Scrim reopened for editing.');
+      // Automatik pilih scrim ini untuk paparan Leaderboard
+      setSelectedScrimId(activeAdminScrim.id);
+      showToast(nextState ? '🏁 Scrim marked as FINISHED! Results are now locked and live on Leaderboard.' : '🔓 Scrim reopened for editing.');
     }
   };
 
@@ -591,6 +603,7 @@ export default function App() {
       showToast('Error: ' + error.message);
     } else {
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+      setSelectedScrimId(activeAdminScrim.id);
       showToast('Match ' + (selectedMatchIdx + 1) + ' results saved to cloud!');
     }
   };
@@ -638,6 +651,7 @@ export default function App() {
       } else {
         setScrims([newSession, ...scrims]);
         setAdminSelectedScrimId(newSession.id);
+        setSelectedScrimId(newSession.id);
         setSelectedMatchIdx(0);
         setNewScrimTitle('');
         setNewScrimDesc('');
@@ -751,7 +765,6 @@ export default function App() {
     });
   };
 
-  // 3) POSTER GENERATOR DIUBAH MENGIKUT TEMA MODERN GLASSY BLACK & LIME GREEN
   const handleDownloadPoster = () => {
     if (!leaderboardData.length) {
       showToast('No data available to render poster!');
@@ -764,7 +777,6 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Pitch Black Gradient Background
     const bg = ctx.createLinearGradient(0, 0, 0, 1480);
     bg.addColorStop(0, '#000000');
     bg.addColorStop(0.5, '#09090b');
@@ -772,32 +784,26 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1480);
 
-    // Modern Top Border (Neon Lime Green)
     ctx.fillStyle = '#ccff00';
     ctx.fillRect(0, 0, 1080, 12);
 
-    // Brand Label
     ctx.fillStyle = '#ccff00';
     ctx.font = 'bold 20px monospace';
     ctx.fillText('SCRIM HUB  •  BY RY.KHOR', 60, 75);
 
-    // Tournament Title (Bold White)
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 38px sans-serif';
     const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE SCRIM').toUpperCase();
     ctx.fillText(mainTitle.length > 30 ? mainTitle.slice(0, 28) + '...' : mainTitle, 60, 130);
 
-    // Category Tier Badge
     ctx.fillStyle = '#ccff00';
     ctx.font = 'bold 16px monospace';
     ctx.fillText('[' + (activePublicScrim?.tier || 'Tier 1') + ']', 60, 170);
 
-    // Date & Status
     ctx.fillStyle = '#71717a';
     ctx.font = '500 16px sans-serif';
     ctx.fillText('Date: ' + (activePublicScrim?.date || '') + '  •  ' + (leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)), 240, 170);
 
-    // Glassy Header Bar
     ctx.fillStyle = '#18181b';
     ctx.fillRect(60, 200, 960, 48);
 
@@ -810,7 +816,6 @@ export default function App() {
     ctx.fillText('KILLS', 815, 230);
     ctx.fillText('TOTAL PTS', 920, 230);
 
-    // Rows
     const rows = leaderboardData.slice(0, 16);
     let y = 285;
     rows.forEach((row, i) => {
@@ -1067,11 +1072,10 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER NAVBAR (MODERN GLASSY BLACK) */}
+      {/* HEADER NAVBAR */}
       <header className="border-b border-zinc-800/80 bg-black/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* 1) Penjenamaan: SCRIM HUB by ry.khor */}
           <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-xl bg-lime-400 flex items-center justify-center text-black shadow-lg shadow-lime-400/20 font-black">
               <Swords className="w-5 h-5"/>
@@ -1089,7 +1093,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-1 bg-zinc-950/90 p-1 rounded-xl border border-zinc-800 text-xs font-semibold">
             <button
               onClick={() => setActiveTab('teams')}
@@ -1137,11 +1140,11 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN CONTENT CONTAINER */}
+      {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         {/* ========================================================= */}
-        {/* VIEW 1: TEAM STATS (DEFAULT PAGE 4)                       */}
+        {/* VIEW 1: TEAM STATS (DEFAULT HOMEPAGE)                     */}
         {/* ========================================================= */}
         {activeTab === 'teams' && (
           <div className="space-y-4">
@@ -1193,7 +1196,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 1) Butang Buka Graph "Team Performance Info" */}
                   <button
                     onClick={() => {
                       setPerformanceTeam(activeTeamData);
@@ -1228,7 +1230,7 @@ export default function App() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Scrim Performance Log (Click any row to inspect tournament standings)
+                      Scrim Performance Log (Click row for tournament details)
                     </span>
                     <span className="text-[10px] text-lime-400 font-semibold flex items-center gap-1">
                       <Eye className="w-3 h-3"/> Public Details
@@ -1292,45 +1294,34 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 2: LEADERBOARD                                       */}
+        {/* VIEW 2: LEADERBOARD (KINI LENGKAP DENGAN PEMILIH SCRIM)   */}
         {/* ========================================================= */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
             
             <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                
-                <div className="flex items-center space-x-3.5">
-                  {activePublicScrim?.logo_url ? (
-                    <img 
-                      src={activePublicScrim.logo_url} 
-                      alt="Scrim Logo" 
-                      className="w-14 h-14 rounded-2xl object-cover border border-lime-400/40 shadow-lg shadow-lime-400/10 flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-lime-500 to-lime-400 flex items-center justify-center text-black font-black text-xl flex-shrink-0">
-                      🏆
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-400 text-black uppercase font-mono">
-                        {activePublicScrim?.tier || 'Tier 1'}
-                      </span>
-                      <span className="text-[11px] text-zinc-400 font-mono">
-                        {activePublicScrim?.date}
-                      </span>
-                      {activePublicScrim?.is_finished && (
-                        <span className="text-[10px] bg-white text-black font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          🏁 Official Final
-                        </span>
-                      )}
-                    </div>
-                    <h1 className="text-lg sm:text-2xl font-black text-white mt-1 leading-tight">
-                      {activePublicScrim?.title || 'No Scrim Session Available'}
-                    </h1>
-                  </div>
+              
+              {/* Header Atas: Pilihan Scrim & Butang Aksi */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider whitespace-nowrap">
+                    Active Tournament:
+                  </span>
+                  {/* Pemilih Scrim Utama Leaderboard */}
+                  <select
+                    value={activePublicScrim?.id || selectedScrimId}
+                    onChange={(e) => {
+                      setSelectedScrimId(e.target.value);
+                      setLeaderboardFilter('overall');
+                    }}
+                    className="flex-1 max-w-md bg-black/80 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-lime-400 font-bold focus:outline-none focus:border-lime-400 transition"
+                  >
+                    {filteredScrims.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} ({s.date}) {s.is_finished ? '🏁 Final' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1347,7 +1338,7 @@ export default function App() {
                       className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-lime-400/20"
                     >
                       <MessageCircle className="w-4 h-4"/>
-                      <span>PM Host / Join Scrim</span>
+                      <span>PM Host</span>
                     </a>
                   )}
 
@@ -1367,10 +1358,47 @@ export default function App() {
                     <span className="hidden sm:inline">Copy Text</span>
                   </button>
                 </div>
-
               </div>
 
-              {/* Search & Tier Categories */}
+              {/* Scrim Title & Info */}
+              <div className="flex items-center space-x-3.5 pt-1">
+                {activePublicScrim?.logo_url ? (
+                  <img 
+                    src={activePublicScrim.logo_url} 
+                    alt="Scrim Logo" 
+                    className="w-14 h-14 rounded-2xl object-cover border border-lime-400/40 shadow-lg shadow-lime-400/10 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-lime-500 to-lime-400 flex items-center justify-center text-black font-black text-xl flex-shrink-0">
+                    🏆
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-lime-400 text-black uppercase font-mono">
+                      {activePublicScrim?.tier || 'Tier 1'}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 font-mono">
+                      {activePublicScrim?.date}
+                    </span>
+                    {activePublicScrim?.is_finished ? (
+                      <span className="text-[10px] bg-white text-black font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        🏁 Official Final
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-lime-400/20 text-lime-400 font-bold px-2 py-0.5 rounded-full uppercase">
+                        Live Standings
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-lg sm:text-2xl font-black text-white mt-1 leading-tight">
+                    {activePublicScrim?.title || 'No Scrim Session Available'}
+                  </h1>
+                </div>
+              </div>
+
+              {/* Search & Tier Filter */}
               <div className="pt-2 border-t border-zinc-800/80 flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
                   <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5"/>
@@ -1697,7 +1725,7 @@ export default function App() {
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 5: ADMIN SCRIM (CLEAN GLASSY BLACK + DYNAMIC MATCH)  */}
+        {/* VIEW 5: ADMIN SCRIM                                       */}
         {/* ========================================================= */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
@@ -1769,7 +1797,6 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                {/* Admin Status Header */}
                 <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-lime-400 text-black font-black rounded-xl flex items-center justify-center shadow-lg shadow-lime-400/20">
@@ -1822,7 +1849,6 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   
-                  {/* Select Scrim + Controls */}
                   <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
@@ -1900,7 +1926,6 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* 3) Form Cipta Scrim (Clean & Simple) */}
                   <div className="lg:col-span-2 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-4">
                     <div className="flex items-center space-x-2 mb-1.5">
                       <Plus className="w-4 h-4 text-lime-400"/>
@@ -2002,7 +2027,7 @@ export default function App() {
 
                 </div>
 
-                {/* Dynamic Match Controller (+ Add Match & - Remove Match) */}
+                {/* Match Switcher Control */}
                 <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-3.5 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
@@ -2232,7 +2257,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Sticky Action Button */}
                 <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-black/90 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-t-0 border-zinc-800 z-30">
                   <button
                     onClick={handleSaveMatchScore}
@@ -2255,9 +2279,7 @@ export default function App() {
 
       </main>
 
-      {/* ========================================================= */}
-      {/* 1) MODAL GRAPH: TEAM PERFORMANCE INFO                     */}
-      {/* ========================================================= */}
+      {/* MODAL GRAPH: TEAM PERFORMANCE INFO */}
       {isPerformanceModalOpen && performanceTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
           <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -2588,7 +2610,7 @@ export default function App() {
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1.5 shadow"
+                  className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-black rounded-xl text-xs flex items-center gap-1 shadow"
                 >
                   <MessageCircle className="w-3.5 h-3.5"/>
                   <span>PM Host</span>
@@ -2724,7 +2746,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MOBILE BOTTOM DOCK (GLASSY BLACK + LIME ACCENT) */}
+      {/* MOBILE BOTTOM DOCK */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-zinc-800 z-50 px-2 py-1.5 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => setActiveTab('teams')}
