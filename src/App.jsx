@@ -1067,7 +1067,7 @@ export default function App() {
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
-      ctx.font = '500 16px monospace';
+      ctx.font = '500 17px monospace';
       ctx.fillText(String(row.killPts || 0), 835, y + 4);
 
       ctx.fillStyle = '#4d7c0f';
@@ -3290,7 +3290,7 @@ export default function App() {
 
       </main>
 
-      {/* SHOWCASE POST DETAIL MODAL WITH TIKTOK VIDEO PLAYER */}
+      {/* SHOWCASE POST DETAIL MODAL WITH RELIABLE TIKTOK PLAYER CARD */}
       {inspectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -3309,17 +3309,36 @@ export default function App() {
               </button>
             </div>
 
-            {/* Media Player Container */}
+            {/* Media Display: Native Video / Image / TikTok Interactive Card */}
             <div className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200">
-              {inspectedPost.platform === 'tiktok' && getTikTokVideoId(inspectedPost.external_url) ? (
-                <div className="w-full max-w-[325px] h-[580px] py-2 mx-auto flex items-center justify-center">
-                  <iframe
-                    src={`https://www.tiktok.com/embed/v2/${getTikTokVideoId(inspectedPost.external_url)}`}
-                    className="w-full h-full rounded-xl border-0 shadow-lg"
-                    allow="encrypted-media; fullscreen"
-                    allowFullScreen
-                    title="TikTok Video Player"
-                  />
+              {inspectedPost.platform === 'tiktok' ? (
+                <div className="w-full max-w-sm mx-auto p-4 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 rounded-2xl">
+                  <div className="relative w-full aspect-[9/12] max-h-[460px] rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center group">
+                    <img 
+                      src={inspectedPost.media_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80"} 
+                      alt="" 
+                      className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 p-4 space-y-3">
+                      <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-xl">
+                        <Play className="w-8 h-8 fill-white translate-x-0.5 text-white"/>
+                      </div>
+                      <div>
+                        <span className="text-sm font-black text-white block">Watch on TikTok</span>
+                        <span className="text-[11px] text-slate-300">Opens official video & comments</span>
+                      </div>
+                      <a
+                        href={inspectedPost.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-5 py-2.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg transition"
+                      >
+                        <TikTokIcon className="w-4 h-4"/>
+                        <span>Play Full Clip</span>
+                        <ExternalLink className="w-3.5 h-3.5"/>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               ) : inspectedPost.media_type === 'video' ? (
                 <div className="w-full aspect-video">
