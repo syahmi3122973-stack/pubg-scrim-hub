@@ -136,7 +136,7 @@ export default function App() {
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
 
-  // Team Stats Category Filter ('ALL' | 'Scrim' | 'Tour')
+  // Team Stats Category Scope ('ALL' | 'Scrim' | 'Tour')
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
   // Auth State
@@ -385,8 +385,9 @@ export default function App() {
     }
   };
 
-  // Create Scrim / Tournament States
+  // Create Scrim / Tournament States - Includes Organizer Name directly
   const [newScrimTitle, setNewScrimTitle] = useState('');
+  const [newHostName, setNewHostName] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
@@ -397,6 +398,7 @@ export default function App() {
 
   // Edit Scrim States
   const [editTitle, setEditTitle] = useState('');
+  const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
   const [editDesc, setEditDesc] = useState('');
@@ -485,6 +487,7 @@ export default function App() {
   const openEditScrimModal = () => {
     if (!activeAdminScrim) return;
     setEditTitle(activeAdminScrim.title || '');
+    setEditHostName(activeAdminScrim.host_name || '');
     setEditEventType(activeAdminScrim.event_type || 'Scrim');
     setEditTier(activeAdminScrim.tier || 'Tier 1 (Pro)');
     setEditDesc(activeAdminScrim.description || '');
@@ -510,6 +513,7 @@ export default function App() {
 
       const updatedData = {
         title: editTitle.trim(),
+        host_name: editHostName.trim() || activeAdminScrim.host_name || 'Tournament Organizer',
         event_type: editEventType,
         tier: editTier,
         description: editDesc.trim(),
@@ -741,7 +745,7 @@ export default function App() {
       }
 
       const generatedToken = 'token_' + Math.random().toString(36).substring(2, 10);
-      const hostProfile = profiles.find(p => p.id === currentUser.id);
+      const hostDisplayName = newHostName.trim() || profileName || currentUser.email.split('@')[0];
 
       const newSession = {
         id: 'scrim_' + Date.now(),
@@ -751,8 +755,8 @@ export default function App() {
         description: newScrimDesc.trim() || `Official PUBG Mobile ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} Session.`,
         date: newScrimDate || new Date().toISOString().split('T')[0],
         logo_url: uploadedLogoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
-        host_name: hostProfile?.display_name || currentUser.email.split('@')[0],
-        host_contact: newHostContact.trim() || hostProfile?.contact || '',
+        host_name: hostDisplayName,
+        host_contact: newHostContact.trim() || profileContact || '',
         total_matches: 0,
         matches: [],
         created_by: currentUser.id,
@@ -771,6 +775,7 @@ export default function App() {
         setSelectedScrimId(newSession.id);
         setSelectedMatchIdx(0);
         setNewScrimTitle('');
+        setNewHostName('');
         setNewScrimDesc('');
         setNewHostContact('');
         setLogoFile(null);
@@ -883,99 +888,199 @@ export default function App() {
     });
   };
 
-  const handleDownloadPoster = () => {
+  // POSTER DOWNLOAD - 100% DIRECT FROM SESSION DATA (NO SEPARATE PROFILE NEEDED)
+  const handleDownloadPoster = async () => {
     if (!leaderboardData.length) {
       showToast('No data available to download poster!');
       return;
     }
 
+    const loadImage = (url) => {
+      return new Promise((resolve) => {
+        if (!url) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    };
+
+    showToast('Rendering tournament poster...');
+
+    // PURE DATA FROM THIS MATCH SESSION (activePublicScrim)
+    const sessionLogo = await loadImage(activePublicScrim?.logo_url);
+    const hostName = activePublicScrim?.host_name || 'TOURNAMENT ORGANIZER';
+    const hostContact = activePublicScrim?.host_contact || '';
+    const sessionDesc = activePublicScrim?.description || 'Official PUBG Mobile competitive match fixture.';
+
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
-    canvas.height = 1480;
+    canvas.height = 1560;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const bg = ctx.createLinearGradient(0, 0, 0, 1480);
+    // Background Gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, 1560);
     bg.addColorStop(0, '#f8fafc');
     bg.addColorStop(0.5, '#f1f5f9');
     bg.addColorStop(1, '#e2e8f0');
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, 1080, 1480);
+    ctx.fillRect(0, 0, 1080, 1560);
 
+    // Header Accent Line
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
+    // 1. Session Logo (Top Left)
+    const logoX = 60;
+    const logoY = 55;
+    const logoSize = 110;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(logoX, logoY, logoSize, logoSize, 20);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.clip();
+
+    if (sessionLogo) {
+      ctx.drawImage(sessionLogo, logoX, logoY, logoSize, logoSize);
+    } else {
+      ctx.fillStyle = '#84cc16';
+      ctx.fillRect(logoX, logoY, logoSize, logoSize);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 44px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🏆', logoX + logoSize / 2, logoY + 70);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+
+    // 2. Session Header Info
+    const titleX = 195;
     ctx.fillStyle = '#4d7c0f';
-    ctx.font = 'bold 20px monospace';
-    ctx.fillText('SCRIM HUB  •  BY RY.KHOR', 60, 75);
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('SCRIM HUB  •  TACTICAL ESPORTS', titleX, 80);
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = '900 38px sans-serif';
-    const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE SCRIM').toUpperCase();
-    ctx.fillText(mainTitle.length > 30 ? mainTitle.slice(0, 28) + '...' : mainTitle, 60, 130);
+    ctx.font = '900 34px sans-serif';
+    const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE COMPETITIVE').toUpperCase();
+    ctx.fillText(mainTitle.length > 26 ? mainTitle.slice(0, 24) + '...' : mainTitle, titleX, 125);
 
     ctx.fillStyle = '#65a30d';
     ctx.font = 'bold 16px monospace';
-    ctx.fillText(`[${(activePublicScrim?.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM').toUpperCase()} - ${(activePublicScrim?.tier || 'Tier 1').toUpperCase()}]`, 60, 170);
+    ctx.fillText(`[${(activePublicScrim?.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM').toUpperCase()} - ${(activePublicScrim?.tier || 'Tier 1').toUpperCase()}]`, titleX, 160);
 
     ctx.fillStyle = '#64748b';
-    ctx.font = '500 16px sans-serif';
-    ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 400, 170);
+    ctx.font = '600 15px sans-serif';
+    ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 580, 160);
 
+    // 3. Leaderboard Table Header
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(60, 200, 960, 48);
+    ctx.fillRect(60, 195, 960, 46);
 
     ctx.fillStyle = '#bef264';
     ctx.font = 'bold 15px monospace';
-    ctx.fillText('RANK', 85, 230);
-    ctx.fillText('TEAM NAME', 200, 230);
-    ctx.fillText('MATCH', 580, 230);
-    ctx.fillText('WWCD', 700, 230);
-    ctx.fillText('KILLS', 815, 230);
-    ctx.fillText('TOTAL PTS', 920, 230);
+    ctx.fillText('RANK', 85, 224);
+    ctx.fillText('TEAM NAME', 200, 224);
+    ctx.fillText('MATCH', 580, 224);
+    ctx.fillText('WWCD', 700, 224);
+    ctx.fillText('KILLS', 815, 224);
+    ctx.fillText('TOTAL PTS', 920, 224);
 
+    // 4. Standings Rows
     const rows = leaderboardData.slice(0, 16);
-    let y = 285;
+    let y = 275;
     rows.forEach((row, i) => {
       if (i % 2 === 0) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
-        ctx.fillRect(60, y - 28, 960, 52);
+        ctx.fillRect(60, y - 26, 960, 50);
       }
 
       ctx.fillStyle = row.rank === 1 ? '#65a30d' : row.rank === 2 ? '#334155' : row.rank === 3 ? '#64748b' : '#94a3b8';
-      ctx.font = '900 20px monospace';
+      ctx.font = '900 19px monospace';
       ctx.fillText('#' + row.rank, 85, y + 4);
 
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 18px sans-serif';
+      ctx.font = 'bold 17px sans-serif';
       const name = row.teamName.length > 24 ? row.teamName.slice(0, 22) + '..' : row.teamName;
       ctx.fillText(name, 200, y + 4);
 
       ctx.fillStyle = '#64748b';
-      ctx.font = '500 17px monospace';
+      ctx.font = '500 16px monospace';
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
       ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 17px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
-      ctx.font = '500 17px monospace';
+      ctx.font = '500 16px monospace';
       ctx.fillText(String(row.killPts || 0), 835, y + 4);
 
       ctx.fillStyle = '#4d7c0f';
-      ctx.font = '900 22px monospace';
+      ctx.font = '900 21px monospace';
       ctx.fillText(String(row.totalPts || 0), 945, y + 4);
 
-      y += 58;
+      y += 54;
     });
 
-    const image = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = 'scrim-hub-leaderboard.png';
-    link.href = image;
-    link.click();
-    showToast('Tournament poster downloaded successfully!');
+    // 5. Host & Session Information Card (Filled directly from Session Form)
+    const cardY = 1175;
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(60, cardY, 960, 150, 18);
+    ctx.fill();
+
+    // Accent line on left of card
+    ctx.fillStyle = '#84cc16';
+    ctx.beginPath();
+    ctx.roundRect(60, cardY, 12, 150, [18, 0, 0, 18]);
+    ctx.fill();
+
+    // Card Details
+    ctx.fillStyle = '#bef264';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('OFFICIAL EVENT HOST & SESSION DETAILS', 95, cardY + 32);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 24px sans-serif';
+    ctx.fillText(hostName.toUpperCase(), 95, cardY + 68);
+
+    if (hostContact) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 14px monospace';
+      ctx.fillText(`Contact: ${hostContact}`, 95, cardY + 95);
+    }
+
+    // Session Description / Rules Text
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'italic 500 14px sans-serif';
+    const cleanDesc = sessionDesc.length > 85 ? `"${sessionDesc.slice(0, 82)}..."` : `"${sessionDesc}"`;
+    ctx.fillText(cleanDesc, 95, cardY + 125);
+
+    // 6. Watermark Footer
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, 1530);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#4d7c0f';
+    ctx.fillText('scrim.rykhor.my', 1020, 1530);
+    ctx.textAlign = 'left';
+
+    // 7. Download Trigger
+    try {
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${(activePublicScrim?.title || 'scrim-hub').replace(/\s+/g, '-').toLowerCase()}-standings.png`;
+      link.href = image;
+      link.click();
+      showToast('Tournament poster downloaded successfully!');
+    } catch (err) {
+      showToast('Download error: ' + err.message);
+    }
   };
 
   // INSTAGRAM STORY INFOGRAPHIC ENGINE
@@ -2067,653 +2172,653 @@ export default function App() {
                           leaderboardFilter === idx.toString() 
                             ? 'bg-lime-400 text-slate-950 shadow-sm' 
                             : 'bg-slate-100 text-slate-600 hover:text-slate-900'
-                      )}
-                    >
-                      M{m.matchNo} ({m.map})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {leaderboardData.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
-                  <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
-                  <p className="font-bold text-xs text-slate-600">No match results saved for this round.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {leaderboardData.map((row) => {
-                    const isFirst = row.rank === 1;
-                    return (
-                      <div
-                        key={row.teamId}
-                        className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
-                          isFirst
-                            ? 'bg-lime-50/70 border-lime-300 shadow-xs'
-                            : row.rank === 2
-                            ? 'bg-white border-slate-250 shadow-xs'
-                            : row.rank === 3
-                            ? 'bg-white border-slate-200'
-                            : 'bg-white/80 border-slate-100'
                         )}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
-                              isFirst
-                                ? 'bg-lime-400 text-slate-950 shadow-xs'
-                                : row.rank === 2
-                                ? 'bg-slate-200 text-slate-800'
-                                : row.rank === 3
-                                ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                                : 'bg-slate-100 text-slate-500 font-mono'
-                            )}
-                          >
-                            {row.rank}
-                          </div>
-
-                          <div>
-                            <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-                              <span>{row.teamName}</span>
-                              {row.wwcd > 0 && (
-                                <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
-                                  🍗 x{row.wwcd}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
-                              <span>Matches: {row.matchesPlayed}</span>
-                              <span>•</span>
-                              <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
-                              <span>•</span>
-                              <span>Place: {row.placePts}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="text-base sm:text-xl font-black font-mono text-lime-700">
-                            {row.totalPts}
-                          </div>
-                          <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
-                            PTS
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* VIEW 3: HOST DIRECTORY */}
-      {activeTab === 'hosts' && (
-        <div className="space-y-4">
-          
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-1.5">
-                <Award className="w-5 h-5 text-lime-600"/>
-                <span>Tournament Hosts & Organizers Directory</span>
-              </h2>
-              <p className="text-xs text-slate-500">Find verified organizers, check contact info, and explore hosted tournaments.</p>
-            </div>
-
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
-              <input
-                type="text"
-                placeholder="Search host name or contact..."
-                value={searchHostQuery}
-                onChange={(e) => setSearchHostQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {organizersList.map((host, idx) => (
-              <div key={idx} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      {host.avatar_url ? (
-                        <img 
-                          src={host.avatar_url} 
-                          alt={host.name} 
-                          className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-2xl bg-lime-400 text-slate-950 font-black flex items-center justify-center text-base shadow-sm">
-                          {host.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-
-                      <div>
-                        <h3 className="font-black text-base text-slate-950">{host.name}</h3>
-                        <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                          {host.scrims.length} Events Hosted
-                        </span>
-                      </div>
-                    </div>
-
-                    {host.contact && (
-                      <a
-                        href={host.contact.startsWith('http') 
-                          ? host.contact 
-                          : (host.contact.replace(/[^0-9]/g, '').length >= 9
-                            ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
-                            : 'https://t.me/' + host.contact.replace('@', ''))
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5"/>
-                        <span>PM Host</span>
-                      </a>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-600 leading-relaxed italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    "{host.bio}"
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Hosted Events:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {host.scrims.slice(0, 4).map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => setInspectedScrim(s)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700 hover:border-lime-500 flex items-center gap-1 transition"
-                      >
-                        <span>{s.title}</span>
-                        <span className="text-[9px] text-slate-400 font-mono">({s.event_type || 'Scrim'})</span>
-                        <ExternalLink className="w-3 h-3 text-slate-400"/>
+                        M{m.matchNo} ({m.map})
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
 
-        </div>
-      )}
-
-      {/* VIEW 4: SHOWCASE */}
-      {activeTab === 'showcase' && (
-        <div className="space-y-4">
-          
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-lime-600"/>
-                <span>Showcase & Tournament Hub</span>
-              </h2>
-              <p className="text-[11px] text-slate-500">Posters, registrations, and clutch gameplay clips.</p>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex items-center gap-1 text-xs">
-                <button
-                  onClick={() => setShowcaseFilter('all')}
-                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-slate-950 text-white' : 'text-slate-600')}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setShowcaseFilter('achievement')}
-                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'achievement' ? 'bg-slate-950 text-white' : 'text-slate-600')}
-                >
-                  Tournaments
-                </button>
-                <button
-                  onClick={() => setShowcaseFilter('clip')}
-                  className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-slate-950 text-white' : 'text-slate-600')}
-                >
-                  Clips
-                </button>
-              </div>
-
-              {currentUser && (
-                <button
-                  onClick={() => setIsShowcaseModalOpen(true)}
-                  className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
-                >
-                  <Plus className="w-4 h-4"/>
-                  <span>Upload Poster</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {posts.map((post) => {
-              const isMyPost = currentUser && (post.created_by === currentUser.id || post.author === currentUser.email?.split('@')[0]);
-
-              return (
-                <div key={post.id} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between">
-                  <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
-                    {post.media_type === 'video' ? (
-                      <video src={post.media_url} controls className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
-                    )}
-
-                    <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-lime-400 text-slate-950">
-                      {post.rank || 'Featured'}
-                    </span>
-
-                    {isMyPost && (
-                      <button
-                        onClick={() => handleDeletePost(post.id, post.created_by)}
-                        className="absolute top-3 right-3 p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition"
-                        title="Delete My Post"
-                      >
-                        <Trash2 className="w-3.5 h-3.5"/>
-                      </button>
-                    )}
+                {leaderboardData.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
+                    <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
+                    <p className="font-bold text-xs text-slate-600">No match results saved for this round.</p>
                   </div>
+                ) : (
+                  <div className="space-y-2">
+                    {leaderboardData.map((row) => {
+                      const isFirst = row.rank === 1;
+                      return (
+                        <div
+                          key={row.teamId}
+                          className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
+                            isFirst
+                              ? 'bg-lime-50/70 border-lime-300 shadow-xs'
+                              : row.rank === 2
+                              ? 'bg-white border-slate-250 shadow-xs'
+                              : row.rank === 3
+                              ? 'bg-white border-slate-200'
+                              : 'bg-white/80 border-slate-100'
+                          )}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
+                                isFirst
+                                  ? 'bg-lime-400 text-slate-950 shadow-xs'
+                                  : row.rank === 2
+                                  ? 'bg-slate-200 text-slate-800'
+                                  : row.rank === 3
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                  : 'bg-slate-100 text-slate-500 font-mono'
+                              )}
+                            >
+                              {row.rank}
+                            </div>
 
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900">[{post.team_tag}] {post.author}</span>
-                      <span className="text-[10px] text-slate-500">{post.tournament}</span>
+                            <div>
+                              <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                                <span>{row.teamName}</span>
+                                {row.wwcd > 0 && (
+                                  <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                                    🍗 x{row.wwcd}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                <span>Matches: {row.matchesPlayed}</span>
+                                <span>•</span>
+                                <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
+                                <span>•</span>
+                                <span>Place: {row.placePts}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-base sm:text-xl font-black font-mono text-lime-700">
+                              {row.totalPts}
+                            </div>
+                            <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
+                              PTS
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 3: HOST DIRECTORY */}
+        {activeTab === 'hosts' && (
+          <div className="space-y-4">
+            
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-1.5">
+                  <Award className="w-5 h-5 text-lime-600"/>
+                  <span>Tournament Hosts & Organizers Directory</span>
+                </h2>
+                <p className="text-xs text-slate-500">Find verified organizers, check contact info, and explore hosted tournaments.</p>
+              </div>
+
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
+                <input
+                  type="text"
+                  placeholder="Search host name or contact..."
+                  value={searchHostQuery}
+                  onChange={(e) => setSearchHostQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {organizersList.map((host, idx) => (
+                <div key={idx} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        {host.avatar_url ? (
+                          <img 
+                            src={host.avatar_url} 
+                            alt={host.name} 
+                            className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl bg-lime-400 text-slate-950 font-black flex items-center justify-center text-base shadow-sm">
+                            {host.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div>
+                          <h3 className="font-black text-base text-slate-950">{host.name}</h3>
+                          <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
+                            {host.scrims.length} Events Hosted
+                          </span>
+                        </div>
+                      </div>
+
+                      {host.contact && (
+                        <a
+                          href={host.contact.startsWith('http') 
+                            ? host.contact 
+                            : (host.contact.replace(/[^0-9]/g, '').length >= 9
+                              ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
+                              : 'https://t.me/' + host.contact.replace('@', ''))
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5"/>
+                          <span>PM Host</span>
+                        </a>
+                      )}
                     </div>
 
-                    <h3 className="font-bold text-sm text-slate-950 leading-snug">{post.title}</h3>
-                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{post.caption}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      "{host.bio}"
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Hosted Events:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {host.scrims.slice(0, 4).map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setInspectedScrim(s)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700 hover:border-lime-500 flex items-center gap-1 transition"
+                        >
+                          <span>{s.title}</span>
+                          <span className="text-[9px] text-slate-400 font-mono">({s.event_type || 'Scrim'})</span>
+                          <ExternalLink className="w-3 h-3 text-slate-400"/>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
           </div>
+        )}
 
-        </div>
-      )}
-
-      {/* VIEW 5: ABOUT & APP OVERVIEW */}
-      {activeTab === 'about' && (
-        <div className="space-y-4">
-          
-          {/* Hero Card */}
-          <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none"></div>
+        {/* VIEW 4: SHOWCASE */}
+        {activeTab === 'showcase' && (
+          <div className="space-y-4">
             
-            <div className="max-w-2xl space-y-3 relative z-10">
-              <div className="inline-flex items-center gap-2 bg-lime-400/10 border border-lime-400/30 text-lime-400 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
-                <Swords className="w-3.5 h-3.5"/>
-                Tactical Esports Operating System
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-                SCRIM HUB <span className="text-lime-400">by ry.khor</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                SCRIM HUB is a competitive esports management suite designed specifically for PUBG Mobile tournament organizers, scrim hosts, and tier squads. It automates match scoring, leaderboard standings, career statistics, and instant social media infographic generation.
-              </p>
-            </div>
-          </div>
-
-          {/* Pillars Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
-              <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
-                <Trophy className="w-5 h-5 text-lime-700"/>
-              </div>
-              <h3 className="font-black text-sm text-slate-950">Dual Event Engine</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Organize both practice Scrims and official Tournaments with dedicated points systems and independent filters for accurate record keeping.
-              </p>
-            </div>
-
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
-              <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
-                <TrendingUp className="w-5 h-5 text-lime-700"/>
-              </div>
-              <h3 className="font-black text-sm text-slate-950">Career Metrics & Analytics</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Track team combat trajectories, placement points, elimination totals, and chicken dinner (WWCD) conversion rates across seasons.
-              </p>
-            </div>
-
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
-              <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
-                <Share2 className="w-5 h-5 text-lime-700"/>
-              </div>
-              <h3 className="font-black text-sm text-slate-950">1-Click Matchday Exports</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Export full tournament leaderboard posters and 9:16 vertical Instagram Story infographics on demand directly from the browser.
-              </p>
-            </div>
-          </div>
-
-          {/* Platform Credits */}
-          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
-                <h3 className="font-black text-sm text-slate-950">Platform Credits & Technical Info</h3>
-                <p className="text-xs text-slate-500">System infrastructure and developer identity.</p>
-              </div>
-              <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto border border-slate-200">
-                v2.4.0 • PRODUCTION READY
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Created & Engineered By</span>
-                  <span className="font-black text-slate-950 text-sm block">ry.khor (RYAN.)</span>
-                  <p className="text-slate-500 text-[11px] mt-0.5">
-                    Esports Digital Creator & Frontend Developer specializing in high-performance competitive gaming interfaces.
-                  </p>
-                </div>
-
-                {/* Creator Links */}
-                <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  <a
-                    href="https://rykhor.my"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-lime-400" />
-                    <span>Visit Portfolio</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
-                  </a>
-
-                  <a
-                    href="https://instagram.com/ry.khor"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
-                  >
-                    <InstagramIcon className="w-3.5 h-3.5" />
-                    <span>Instagram</span>
-                    <ExternalLink className="w-3 h-3 text-white/70" />
-                  </a>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Technology Stack</span>
-                <span className="font-black text-slate-950 text-sm block">React • Tailwind CSS • Supabase</span>
-                <p className="text-slate-500 text-[11px]">Real-time database sync, secure organizer credentials, and responsive HTML5 Canvas rendering engine.</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* VIEW 6: ADMIN PORTAL */}
-      {activeTab === 'admin' && (
-        <div className="space-y-4 sm:space-y-6">
-          
-          {!currentUser ? (
-            <div className="max-w-md mx-auto my-8 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
-              <div className="text-center space-y-1.5">
-                <div className="w-12 h-12 bg-lime-100 border border-lime-300 text-lime-800 rounded-2xl flex items-center justify-center mx-auto">
-                  <Lock className="w-6 h-6"/>
-                </div>
-                <h2 className="text-lg font-black text-slate-950">
-                  Host Account Portal
+                <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-lime-600"/>
+                  <span>Showcase & Tournament Hub</span>
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Sign in to organize Scrims & Tournaments, manage match rounds, and track team metrics.
-                </p>
+                <p className="text-[11px] text-slate-500">Posters, registrations, and clutch gameplay clips.</p>
               </div>
 
-              <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
-                <div>
-                  <label className="block text-slate-600 uppercase font-bold mb-1">Official Email</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
-                    <input
-                      type="email"
-                      required
-                      placeholder="host@esports.com"
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-600 uppercase font-bold mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider"
-                >
-                  {authLoading ? 'Please wait...' : isRegisterMode ? 'Register as Admin' : 'Sign In as Admin'}
-                </button>
-
-                <div className="text-center pt-1">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-1 text-xs">
                   <button
-                    type="button"
-                    onClick={() => setIsRegisterMode(!isRegisterMode)}
-                    className="text-xs text-lime-700 hover:underline font-semibold"
+                    onClick={() => setShowcaseFilter('all')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
-                    {isRegisterMode ? 'Already have an account? Sign In' : "Don't have an admin account? Register"}
+                    All
+                  </button>
+                  <button
+                    onClick={() => setShowcaseFilter('achievement')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'achievement' ? 'bg-slate-950 text-white' : 'text-slate-600')}
+                  >
+                    Tournaments
+                  </button>
+                  <button
+                    onClick={() => setShowcaseFilter('clip')}
+                    className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-slate-950 text-white' : 'text-slate-600')}
+                  >
+                    Clips
                   </button>
                 </div>
-              </form>
-            </div>
-          ) : (
-            <div className="space-y-4 sm:space-y-6">
-              
-              <div className="bg-lime-100/80 border border-lime-300/80 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-lime-800"/>
-                  <span className="text-xs font-bold text-lime-950">
-                    Currently editing: <strong className="font-mono">[{activeAdminScrim?.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] {activeAdminScrim?.title || 'No Active Session'}</strong>
-                  </span>
-                </div>
 
-                {activeAdminScrim && (
+                {currentUser && (
                   <button
-                    onClick={() => {
-                      setSelectedScrimId(activeAdminScrim.id);
-                      setActiveTab('leaderboard');
-                    }}
-                    className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
+                    onClick={() => setIsShowcaseModalOpen(true)}
+                    className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
                   >
-                    <span>📊 View Live Leaderboard</span>
+                    <Plus className="w-4 h-4"/>
+                    <span>Upload Poster</span>
                   </button>
                 )}
               </div>
+            </div>
 
-              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center space-x-3">
-                  {profileAvatarUrl ? (
-                    <img src={profileAvatarUrl} alt="Avatar" className="w-10 h-10 rounded-xl object-cover border border-slate-200" />
-                  ) : (
-                    <div className="w-10 h-10 bg-lime-400 text-slate-950 font-black rounded-xl flex items-center justify-center">
-                      <User className="w-5 h-5"/>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {posts.map((post) => {
+                const isMyPost = currentUser && (post.created_by === currentUser.id || post.author === currentUser.email?.split('@')[0]);
+
+                return (
+                  <div key={post.id} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between">
+                    <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
+                      {post.media_type === 'video' ? (
+                        <video src={post.media_url} controls className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
+                      )}
+
+                      <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-lime-400 text-slate-950">
+                        {post.rank || 'Featured'}
+                      </span>
+
+                      {isMyPost && (
+                        <button
+                          onClick={() => handleDeletePost(post.id, post.created_by)}
+                          className="absolute top-3 right-3 p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md transition"
+                          title="Delete My Post"
+                        >
+                          <Trash2 className="w-3.5 h-3.5"/>
+                        </button>
+                      )}
                     </div>
-                  )}
 
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-900">[{post.team_tag}] {post.author}</span>
+                        <span className="text-[10px] text-slate-500">{post.tournament}</span>
+                      </div>
+
+                      <h3 className="font-bold text-sm text-slate-950 leading-snug">{post.title}</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{post.caption}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        )}
+
+        {/* VIEW 5: ABOUT & APP OVERVIEW */}
+        {activeTab === 'about' && (
+          <div className="space-y-4">
+            
+            {/* Hero Card */}
+            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="max-w-2xl space-y-3 relative z-10">
+                <div className="inline-flex items-center gap-2 bg-lime-400/10 border border-lime-400/30 text-lime-400 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <Swords className="w-3.5 h-3.5"/>
+                  Tactical Esports Operating System
+                </div>
+                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
+                  SCRIM HUB <span className="text-lime-400">by ry.khor</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  SCRIM HUB is a competitive esports management suite designed specifically for PUBG Mobile tournament organizers, scrim hosts, and tier squads. It automates match scoring, leaderboard standings, career statistics, and instant social media infographic generation.
+                </p>
+              </div>
+            </div>
+
+            {/* Pillars Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
+                  <Trophy className="w-5 h-5 text-lime-700"/>
+                </div>
+                <h3 className="font-black text-sm text-slate-950">Dual Event Engine</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Organize both practice Scrims and official Tournaments with dedicated points systems and independent filters for accurate record keeping.
+                </p>
+              </div>
+
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
+                  <TrendingUp className="w-5 h-5 text-lime-700"/>
+                </div>
+                <h3 className="font-black text-sm text-slate-950">Career Metrics & Analytics</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Track team combat trajectories, placement points, elimination totals, and chicken dinner (WWCD) conversion rates across seasons.
+                </p>
+              </div>
+
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
+                  <Share2 className="w-5 h-5 text-lime-700"/>
+                </div>
+                <h3 className="font-black text-sm text-slate-950">1-Click Matchday Exports</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Export full tournament leaderboard posters and 9:16 vertical Instagram Story infographics on demand directly from the browser.
+                </p>
+              </div>
+            </div>
+
+            {/* Platform Credits */}
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                <div>
+                  <h3 className="font-black text-sm text-slate-950">Platform Credits & Technical Info</h3>
+                  <p className="text-xs text-slate-500">System infrastructure and developer identity.</p>
+                </div>
+                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto border border-slate-200">
+                  v2.4.0 • PRODUCTION READY
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-slate-950 text-xs sm:text-sm">
-                        {profileName || currentUser.email}
-                      </span>
-                      <span className="text-[9px] bg-lime-100 text-lime-800 border border-lime-300 px-1.5 py-0.2 rounded font-mono font-bold">
-                        VERIFIED HOST
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                      <Info className="w-3 h-3 text-lime-600"/>
-                      <span>Private Workspace: Manage your tournament and scrim fixtures.</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Created & Engineered By</span>
+                    <span className="font-black text-slate-950 text-sm block">ry.khor (RYAN.)</span>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Esports Digital Creator & Frontend Developer specializing in high-performance competitive gaming interfaces.
                     </p>
+                  </div>
+
+                  {/* Creator Links */}
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <a
+                      href="https://rykhor.my"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-lime-400" />
+                      <span>Visit Portfolio</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+
+                    <a
+                      href="https://instagram.com/ry.khor"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
+                    >
+                      <InstagramIcon className="w-3.5 h-3.5" />
+                      <span>Instagram</span>
+                      <ExternalLink className="w-3 h-3 text-white/70" />
+                    </a>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-                  >
-                    <User className="w-3.5 h-3.5 text-lime-700"/>
-                    <span>My Host Profile</span>
-                  </button>
-
-                  {activeAdminScrim && isAuthorizedAdmin(activeAdminScrim) && (
-                    <button
-                      onClick={handleCopyHostShareLink}
-                      className="px-3 py-1.5 bg-lime-50 hover:bg-lime-100 text-lime-800 border border-lime-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-                    >
-                      <Share2 className="w-3.5 h-3.5"/>
-                      <span className="hidden sm:inline">Copy Co-Host Link</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center gap-1"
-                  >
-                    <LogOut className="w-4 h-4"/>
-                    <span className="hidden sm:inline">Sign Out</span>
-                  </button>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Technology Stack</span>
+                  <span className="font-black text-slate-950 text-sm block">React • Tailwind CSS • Supabase</span>
+                  <p className="text-slate-500 text-[11px]">Real-time database sync, secure organizer credentials, and responsive HTML5 Canvas rendering engine.</p>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          </div>
+        )}
+
+        {/* VIEW 6: ADMIN PORTAL */}
+        {activeTab === 'admin' && (
+          <div className="space-y-4 sm:space-y-6">
+            
+            {!currentUser ? (
+              <div className="max-w-md mx-auto my-8 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
+                <div className="text-center space-y-1.5">
+                  <div className="w-12 h-12 bg-lime-100 border border-lime-300 text-lime-800 rounded-2xl flex items-center justify-center mx-auto">
+                    <Lock className="w-6 h-6"/>
+                  </div>
+                  <h2 className="text-lg font-black text-slate-950">
+                    Host Account Portal
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Sign in to organize Scrims & Tournaments, manage match rounds, and track team metrics.
+                  </p>
+                </div>
+
+                <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+                  <div>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Official Email</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                      <input
+                        type="email"
+                        required
+                        placeholder="host@esports.com"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-600 uppercase font-bold mb-1">Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider"
+                  >
+                    {authLoading ? 'Please wait...' : isRegisterMode ? 'Register as Admin' : 'Sign In as Admin'}
+                  </button>
+
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsRegisterMode(!isRegisterMode)}
+                      className="text-xs text-lime-700 hover:underline font-semibold"
+                    >
+                      {isRegisterMode ? 'Already have an account? Sign In' : "Don't have an admin account? Register"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
                 
-                {/* Sessions List */}
-                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                      My Sessions List ({adminHostedScrims.length})
+                <div className="bg-lime-100/80 border border-lime-300/80 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-lime-800"/>
+                    <span className="text-xs font-bold text-lime-950">
+                      Currently editing: <strong className="font-mono">[{activeAdminScrim?.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] {activeAdminScrim?.title || 'No Active Session'}</strong>
                     </span>
                   </div>
 
-                  {adminHostedScrims.length === 0 ? (
-                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
-                      No sessions created yet. Use the form on the right to host your first Scrim or Tournament!
-                    </div>
-                  ) : (
-                    <select
-                      value={adminSelectedScrimId}
-                      onChange={(e) => setSelectedMatchIdx(0) || setAdminSelectedScrimId(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500 font-bold"
-                    >
-                      {adminHostedScrims.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Concluded)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
                   {activeAdminScrim && (
-                    <div className="pt-3 border-t border-slate-100 space-y-3">
-                      <div className="flex items-center space-x-3">
-                        {activeAdminScrim.logo_url && (
-                          <img src={activeAdminScrim.logo_url} alt="Logo" className="w-11 h-11 rounded-xl object-cover border border-slate-200" />
-                        )}
-                        <div className="flex-1">
-                          <div className="font-bold text-xs text-slate-900">{activeAdminScrim.title}</div>
-                          <div className="text-[10px] text-lime-700 font-bold">
-                            {activeAdminScrim.event_type === 'Tour' ? 'Tournament (Official)' : 'Scrim (Practice)'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Rounds Played
-                          </div>
-                        </div>
-                      </div>
-
-                      {activeAdminScrim.is_finished ? (
-                        <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
-                          <span className="font-bold flex items-center gap-1">
-                            <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Session Concluded (Scores Locked)
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="p-2.5 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-between text-xs text-lime-800">
-                          <span className="font-bold flex items-center gap-1">
-                            <Unlock className="w-3.5 h-3.5"/> In Progress & Editable
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          onClick={openEditScrimModal}
-                          className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-lime-700"/>
-                          <span>Edit Session</span>
-                        </button>
-
-                        <button
-                          onClick={handleToggleFinishScrim}
-                          className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow-sm ' + (
-                            activeAdminScrim.is_finished 
-                              ? 'bg-slate-100 text-slate-700 border border-slate-300' 
-                              : 'bg-lime-400 hover:bg-lime-300 text-slate-950'
-                          )}
-                        >
-                          {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
-                          <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
-                        </button>
-                      </div>
-
-                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedScrimId(activeAdminScrim.id);
+                        setActiveTab('leaderboard');
+                      }}
+                      className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
+                    >
+                      <span>📊 View Live Leaderboard</span>
+                    </button>
                   )}
                 </div>
 
-                {/* FORM TO CREATE SCRIM / TOURNAMENT */}
-                <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Plus className="w-4 h-4 text-lime-600"/>
-                      <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
-                        Create New Match Session
-                      </h3>
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    {profileAvatarUrl ? (
+                      <img src={profileAvatarUrl} alt="Avatar" className="w-10 h-10 rounded-xl object-cover border border-slate-200" />
+                    ) : (
+                      <div className="w-10 h-10 bg-lime-400 text-slate-950 font-black rounded-xl flex items-center justify-center">
+                        <User className="w-5 h-5"/>
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-950 text-xs sm:text-sm">
+                          {profileName || currentUser.email}
+                        </span>
+                        <span className="text-[9px] bg-lime-100 text-lime-800 border border-lime-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                          VERIFIED HOST
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <Info className="w-3 h-3 text-lime-600"/>
+                        <span>Private Workspace: Manage your tournament and scrim fixtures.</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => setIsProfileModalOpen(true)}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                    >
+                      <User className="w-3.5 h-3.5 text-lime-700"/>
+                      <span>My Host Profile</span>
+                    </button>
+
+                    {activeAdminScrim && isAuthorizedAdmin(activeAdminScrim) && (
+                      <button
+                        onClick={handleCopyHostShareLink}
+                        className="px-3 py-1.5 bg-lime-50 hover:bg-lime-100 text-lime-800 border border-lime-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                      >
+                        <Share2 className="w-3.5 h-3.5"/>
+                        <span className="hidden sm:inline">Copy Co-Host Link</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleLogout}
+                      className="p-2 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center gap-1"
+                    >
+                      <LogOut className="w-4 h-4"/>
+                      <span className="hidden sm:inline">Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  
+                  {/* Sessions List */}
+                  <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                        My Sessions List ({adminHostedScrims.length})
+                      </span>
                     </div>
 
-                    {/* Event Type Toggle */}
-                    <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setNewEventType('Scrim')}
-                        className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
-                          newEventType === 'Scrim' 
-                            ? 'bg-lime-400 text-slate-950 shadow-sm' 
-                            : 'text-slate-600 hover:text-slate-950'
-                        )}
+                    {adminHostedScrims.length === 0 ? (
+                      <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
+                        No sessions created yet. Use the form on the right to host your first Scrim or Tournament!
+                      </div>
+                    ) : (
+                      <select
+                        value={adminSelectedScrimId}
+                        onChange={(e) => setSelectedMatchIdx(0) || setAdminSelectedScrimId(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500 font-bold"
                       >
-                        <Flame className="w-3.5 h-3.5 text-lime-800"/>
-                        <span>Scrim</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewEventType('Tour')}
-                        className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
-                          newEventType === 'Tour' 
-                            ? 'bg-amber-500 text-white shadow-sm' 
-                            : 'text-slate-600 hover:text-slate-950'
+                        {adminHostedScrims.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Concluded)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {activeAdminScrim && (
+                      <div className="pt-3 border-t border-slate-100 space-y-3">
+                        <div className="flex items-center space-x-3">
+                          {activeAdminScrim.logo_url && (
+                            <img src={activeAdminScrim.logo_url} alt="Logo" className="w-11 h-11 rounded-xl object-cover border border-slate-200" />
+                          )}
+                          <div className="flex-1">
+                            <div className="font-bold text-xs text-slate-900">{activeAdminScrim.title}</div>
+                            <div className="text-[10px] text-lime-700 font-bold">
+                              {activeAdminScrim.event_type === 'Tour' ? 'Tournament (Official)' : 'Scrim (Practice)'} • {activeAdminScrim.tier} • {activeAdminScrim.matches?.length || 0} Rounds Played
+                            </div>
+                          </div>
+                        </div>
+
+                        {activeAdminScrim.is_finished ? (
+                          <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
+                            <span className="font-bold flex items-center gap-1">
+                              <LockKeyhole className="w-3.5 h-3.5 text-lime-700"/> Session Concluded (Scores Locked)
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="p-2.5 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-between text-xs text-lime-800">
+                            <span className="font-bold flex items-center gap-1">
+                              <Unlock className="w-3.5 h-3.5"/> In Progress & Editable
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            onClick={openEditScrimModal}
+                            className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-lime-700"/>
+                            <span>Edit Session</span>
+                          </button>
+
+                          <button
+                            onClick={handleToggleFinishScrim}
+                            className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow-sm ' + (
+                              activeAdminScrim.is_finished 
+                                ? 'bg-slate-100 text-slate-700 border border-slate-300' 
+                                : 'bg-lime-400 hover:bg-lime-300 text-slate-950'
+                            )}
+                          >
+                            {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
+                            <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
+                          </button>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+
+                  {/* FORM TO CREATE SCRIM / TOURNAMENT - COMPLETE WITH ORGANIZER NAME */}
+                  <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Plus className="w-4 h-4 text-lime-600"/>
+                        <h3 className="text-xs font-bold text-slate-950 uppercase tracking-wider">
+                          Create New Match Session
+                        </h3>
+                      </div>
+
+                      {/* Event Type Toggle */}
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setNewEventType('Scrim')}
+                          className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
+                            newEventType === 'Scrim' 
+                              ? 'bg-lime-400 text-slate-950 shadow-sm' 
+                              : 'text-slate-600 hover:text-slate-950'
+                          )}
+                        >
+                          <Flame className="w-3.5 h-3.5 text-lime-800"/>
+                          <span>Scrim</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewEventType('Tour')}
+                          className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
+                            newEventType === 'Tour' 
+                              ? 'bg-amber-500 text-white shadow-sm' 
+                              : 'text-slate-600 hover:text-slate-950'
                           )}
                         >
                           <Trophy className="w-3.5 h-3.5 text-amber-200"/>
@@ -2725,7 +2830,7 @@ export default function App() {
                     <p className="text-[11px] text-slate-500 mb-3">
                       Current Mode: <strong className={newEventType === 'Tour' ? 'text-amber-700 font-mono' : 'text-lime-700 font-mono'}>
                         {newEventType === 'Tour' ? '🏆 Official Tournament Match' : '🔥 Scrim Practice Match'}
-                      </strong>. Score data will be automatically categorized under this event scope.
+                      </strong>. All filled details will output directly to the downloadable poster.
                     </p>
 
                     <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
@@ -2757,19 +2862,16 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div>
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Upload Event Logo</label>
-                          <label className="flex items-center justify-center gap-1.5 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl px-3 py-2 text-slate-600 cursor-pointer transition">
-                            <Upload className="w-3.5 h-3.5 text-lime-600"/>
-                            <span className="truncate">{logoFile ? logoFile.name : 'Choose Image File'}</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => setLogoFile(e.target.files[0] || null)}
-                              className="hidden"
-                            />
-                          </label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Host / Organizer Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. RYKHOR Esports Organizer"
+                            value={newHostName}
+                            onChange={(e) => setNewHostName(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                          />
                         </div>
 
                         <div>
@@ -2782,14 +2884,28 @@ export default function App() {
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Upload Event Logo</label>
+                          <label className="flex items-center justify-center gap-1.5 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl px-3 py-2 text-slate-600 cursor-pointer transition">
+                            <Upload className="w-3.5 h-3.5 text-lime-600"/>
+                            <span className="truncate">{logoFile ? logoFile.name : 'Choose Logo'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setLogoFile(e.target.files[0] || null)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Description & Rules</label>
+                          <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Description & Rules (Shown on Poster)</label>
                           <input
                             type="text"
-                            placeholder="e.g. 16 Invited Teams, POV recording mandatory"
+                            placeholder="e.g. 16 Invited Teams, official PMGC point system"
                             value={newScrimDesc}
                             onChange={(e) => setNewScrimDesc(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
@@ -3316,10 +3432,9 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={isSendingFeedback}
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
-                  <Send className="w-3.5 h-3.5"/>
-                  <span>{isSendingFeedback ? 'Sending...' : 'Send Feedback'}</span>
+                  {isSendingFeedback ? 'Sending...' : 'Send Feedback'}
                 </button>
               </div>
             </form>
@@ -3423,7 +3538,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: EDIT EVENT SETTINGS */}
+      {/* MODAL: EDIT EVENT SETTINGS - INCLUDES HOST NAME DIRECTLY */}
       {isEditScrimModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
@@ -3467,17 +3582,30 @@ export default function App() {
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Division</label>
-                <select
-                  value={editTier}
-                  onChange={(e) => setEditTier(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none font-semibold"
-                >
-                  {TIER_OPTIONS.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-slate-500 uppercase font-bold mb-1">Host / Organizer Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editHostName}
+                    onChange={(e) => setEditHostName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Division</label>
+                  <select
+                    value={editTier}
+                    onChange={(e) => setEditTier(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none font-semibold"
+                  >
+                    {TIER_OPTIONS.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -3506,7 +3634,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Description & Rules</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Description & Rules (Shown on Poster)</label>
                 <textarea
                   rows="2"
                   value={editDesc}
