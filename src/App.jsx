@@ -44,7 +44,9 @@ import {
   Radio, 
   Send, 
   Share, 
-  Medal 
+  Medal,
+  Globe,
+  Instagram
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -163,7 +165,7 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
-      // Fetch dynamic teams
+      // 1. Fetch dynamic teams
       const { data: teamsData } = await supabase
         .from('teams')
         .select('*')
@@ -173,7 +175,7 @@ export default function App() {
         setTeams(teamsData);
       }
 
-      // Fetch scrims
+      // 2. Fetch scrims
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
@@ -191,7 +193,7 @@ export default function App() {
         setAdminSelectedScrimId(sorted[0].id);
       }
 
-      // Fetch showcase posts
+      // 3. Fetch showcase posts
       const { data: postData } = await supabase
         .from('posts')
         .select('*')
@@ -201,7 +203,7 @@ export default function App() {
         setPosts(postData);
       }
 
-      // Fetch profiles
+      // 4. Fetch profiles
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*');
@@ -368,7 +370,7 @@ export default function App() {
     }
   };
 
-  // Create Fixture States
+  // Create Scrim / Tournament States
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
@@ -378,7 +380,7 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // Edit Fixture States
+  // Edit Scrim States
   const [editTitle, setEditTitle] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
@@ -440,7 +442,7 @@ export default function App() {
     }));
   }, [activeAdminScrim, selectedMatchIdx, teams]);
 
-  // LEADERBOARD SCOPED STRICTLY TO LOGGED-IN ADMIN SESSIONS ONLY
+  // LEADERBOARD SCOPED STRICTLY TO CURRENT LOGGED-IN ADMIN
   const filteredScrims = useMemo(() => {
     if (!currentUser) return [];
 
@@ -1594,6 +1596,13 @@ export default function App() {
               <span>Showcase</span>
             </button>
             <button
+              onClick={() => setActiveTab('about')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'about' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
+            >
+              <Info className="w-4 h-4 text-lime-600"/>
+              <span>About</span>
+            </button>
+            <button
               onClick={() => setActiveTab('admin')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'admin' ? 'bg-lime-400 text-slate-950 shadow-sm font-black border border-lime-500/40' : 'text-slate-600 hover:text-slate-950')}
             >
@@ -1622,7 +1631,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         {/* VIEW 1: TEAM STATS */}
@@ -1831,7 +1840,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: LEADERBOARD (SCOPED STRICTLY TO AUTHENTICATED ADMIN) */}
+        {/* VIEW 2: LEADERBOARD (SCOPED TO AUTHENTICATED ADMIN) */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
             {!currentUser ? (
@@ -2316,7 +2325,121 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5: ADMIN PORTAL */}
+        {/* VIEW 5: ABOUT & APP OVERVIEW */}
+        {activeTab === 'about' && (
+          <div className="space-y-4">
+            
+            {/* Hero Intro Card */}
+            <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="max-w-2xl space-y-3 relative z-10">
+                <div className="inline-flex items-center gap-2 bg-lime-400/10 border border-lime-400/30 text-lime-400 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <Swords className="w-3.5 h-3.5"/>
+                  Tactical Esports Operating System
+                </div>
+                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
+                  SCRIM HUB <span className="text-lime-400">by ry.khor</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  SCRIM HUB is a competitive esports management suite designed specifically for PUBG Mobile tournament organizers, scrim hosts, and tier squads. It automates match scoring, leaderboard standings, career statistics, and instant social media infographic generation.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature Pillars Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
+                  <Trophy className="w-5 h-5 text-lime-700"/>
+                </div>
+                <h3 className="font-black text-sm text-slate-950">Dual Event Engine</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Organize both practice Scrims and official Tournaments with dedicated points systems and independent filters for accurate record keeping.
+                </p>
+              </div>
+
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
+                  <TrendingUp className="w-5 h-5 text-lime-700"/>
+                </div>
+                <h3 className="font-black text-sm text-slate-950">Career Metrics & Analytics</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Track team combat trajectories, placement points, elimination totals, and chicken dinner (WWCD) conversion rates across seasons.
+                </p>
+              </div>
+
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
+                  <Share2 className="w-5 h-5 text-lime-700"/>
+                </div>
+                <h3 className="font-black text-sm text-slate-950">1-Click Matchday Exports</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Export full tournament leaderboard posters and 9:16 vertical Instagram Story infographics on demand directly from the browser.
+                </p>
+              </div>
+            </div>
+
+            {/* Technical Specs & Credits Card */}
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                <div>
+                  <h3 className="font-black text-sm text-slate-950">Platform Credits & Technical Info</h3>
+                  <p className="text-xs text-slate-500">System infrastructure and developer identity.</p>
+                </div>
+                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto border border-slate-200">
+                  v2.4.0 • PRODUCTION READY
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Created & Engineered By</span>
+                    <span className="font-black text-slate-950 text-sm block">ry.khor (RYAN.)</span>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Esports Digital Creator & Frontend Developer specializing in high-performance competitive gaming interfaces.
+                    </p>
+                  </div>
+
+                  {/* Creator Links */}
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <a
+                      href="https://rykhor.my"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-lime-400" />
+                      <span>Visit Portfolio</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+
+                    <a
+                      href="https://instagram.com/ry.khor"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
+                    >
+                      <Instagram className="w-3.5 h-3.5" />
+                      <span>Instagram</span>
+                      <ExternalLink className="w-3 h-3 text-white/70" />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Technology Stack</span>
+                  <span className="font-black text-slate-950 text-sm block">React • Tailwind CSS • Supabase</span>
+                  <p className="text-slate-500 text-[11px]">Real-time database sync, secure organizer credentials, and responsive HTML5 Canvas rendering engine.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* VIEW 6: ADMIN PORTAL */}
         {activeTab === 'admin' && (
           <div className="space-y-4 sm:space-y-6">
             
@@ -3595,10 +3718,10 @@ export default function App() {
       )}
 
       {/* MOBILE NAV BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-lg">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-1 py-1.5 flex items-center justify-around shadow-lg">
         <button
           onClick={() => setActiveTab('teams')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Users className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Teams</span>
@@ -3606,7 +3729,7 @@ export default function App() {
 
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Trophy className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Standings</span>
@@ -3614,7 +3737,7 @@ export default function App() {
 
         <button
           onClick={() => setActiveTab('hosts')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Award className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Hosts</span>
@@ -3622,15 +3745,23 @@ export default function App() {
 
         <button
           onClick={() => setActiveTab('showcase')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'showcase' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'showcase' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Sparkles className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Showcase</span>
         </button>
 
         <button
+          onClick={() => setActiveTab('about')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'about' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+        >
+          <Info className="w-5 h-5"/>
+          <span className="text-[10px] mt-0.5">About</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('admin')}
-          className={'flex flex-col items-center py-1 px-3 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           {currentUser ? <User className="w-5 h-5 text-lime-700"/> : <Lock className="w-3.5 h-3.5 text-slate-500"/>}
           <span className="text-[10px] mt-0.5">Admin</span>
