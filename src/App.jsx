@@ -47,7 +47,10 @@ import {
   Medal,
   Globe,
   Link as LinkIcon,
-  Video
+  Video,
+  FileText,
+  Layers,
+  HelpCircle
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -196,6 +199,7 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 export default function App() {
   const [activeTab, setActiveTab] = useState('teams');
   
+  // Teams State - Synced from Supabase
   const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
   const [scrims, setScrims] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -209,12 +213,14 @@ export default function App() {
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
+  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
@@ -225,6 +231,7 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
+  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -248,6 +255,7 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
+      // 1. Fetch dynamic teams
       const { data: teamsData } = await supabase
         .from('teams')
         .select('*')
@@ -257,6 +265,7 @@ export default function App() {
         setTeams(teamsData);
       }
 
+      // 2. Fetch scrims
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
@@ -274,6 +283,7 @@ export default function App() {
         setAdminSelectedScrimId(sorted[0].id);
       }
 
+      // 3. Fetch showcase posts
       const { data: postData } = await supabase
         .from('posts')
         .select('*')
@@ -283,6 +293,7 @@ export default function App() {
         setPosts(postData);
       }
 
+      // 4. Fetch profiles
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*');
@@ -449,9 +460,10 @@ export default function App() {
     }
   };
 
+  // Create Fixture States
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newHostName, setNewHostName] = useState('');
-  const [newEventType, setNewEventType] = useState('Scrim');
+  const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
@@ -459,6 +471,7 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
+  // Edit Fixture States
   const [editTitle, setEditTitle] = useState('');
   const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
@@ -521,6 +534,7 @@ export default function App() {
     }));
   }, [activeAdminScrim, selectedMatchIdx, teams]);
 
+  // LEADERBOARD SCOPED STRICTLY TO CURRENT LOGGED-IN ADMIN
   const filteredScrims = useMemo(() => {
     if (!currentUser) return [];
 
@@ -981,6 +995,7 @@ export default function App() {
     });
   };
 
+  // POSTER DOWNLOAD - 100% DIRECT FROM SESSION FIXTURE DATA
   const handleDownloadPoster = async () => {
     if (!leaderboardData.length) {
       showToast('No data available to download poster!');
@@ -1011,6 +1026,7 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Background Gradient
     const bg = ctx.createLinearGradient(0, 0, 0, 1560);
     bg.addColorStop(0, '#f8fafc');
     bg.addColorStop(0.5, '#f1f5f9');
@@ -1018,9 +1034,11 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1560);
 
+    // Accent line
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
+    // 1. Session Logo (Top Left)
     const logoX = 60;
     const logoY = 55;
     const logoSize = 110;
@@ -1045,6 +1063,7 @@ export default function App() {
     }
     ctx.restore();
 
+    // 2. Session Header Info
     const titleX = 195;
     ctx.fillStyle = '#4d7c0f';
     ctx.font = 'bold 18px monospace';
@@ -1063,6 +1082,7 @@ export default function App() {
     ctx.font = '600 15px sans-serif';
     ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 580, 160);
 
+    // 3. Table Header
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 195, 960, 46);
 
@@ -1075,6 +1095,7 @@ export default function App() {
     ctx.fillText('KILLS', 815, 224);
     ctx.fillText('TOTAL PTS', 920, 224);
 
+    // 4. Standings Rows
     const rows = leaderboardData.slice(0, 16);
     let y = 275;
     rows.forEach((row, i) => {
@@ -1111,6 +1132,7 @@ export default function App() {
       y += 54;
     });
 
+    // 5. Host & Session Information Card
     const cardY = 1175;
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
@@ -1141,6 +1163,7 @@ export default function App() {
     const cleanDesc = sessionDesc.length > 85 ? `"${sessionDesc.slice(0, 82)}..."` : `"${sessionDesc}"`;
     ctx.fillText(cleanDesc, 95, cardY + 125);
 
+    // 6. Watermark Footer
     ctx.fillStyle = '#64748b';
     ctx.font = 'bold 13px monospace';
     ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, 1530);
@@ -1162,6 +1185,7 @@ export default function App() {
     }
   };
 
+  // INSTAGRAM STORY INFOGRAPHIC ENGINE
   const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
       showToast('No statistics available to generate card!');
@@ -1642,6 +1666,7 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
+  // SHOWCASE POSTING & LINK BINDING
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postSourceMode, setPostSourceMode] = useState('upload');
@@ -1747,6 +1772,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
+      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
           <CheckCircle className="w-4 h-4 text-lime-400"/>
@@ -2566,10 +2592,11 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5: ABOUT & APP OVERVIEW */}
+        {/* VIEW 5: ABOUT & USER GUIDE */}
         {activeTab === 'about' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             
+            {/* Hero Card */}
             <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none"></div>
               
@@ -2582,43 +2609,215 @@ export default function App() {
                   SCRIM HUB <span className="text-lime-400">by ry.khor</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  SCRIM HUB is a competitive esports management suite designed specifically for PUBG Mobile tournament organizers, scrim hosts, and tier squads. It automates match scoring, leaderboard standings, career statistics, and instant social media infographic generation.
+                  SCRIM HUB is an all-in-one competitive esports management platform built specifically for PUBG Mobile tournament organizers, scrim hosts, and tier squads. Automate live match scoring, dynamic leaderboard rankings, verified career statistics, and instant social media poster generation directly in your browser.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
-                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
-                  <Trophy className="w-5 h-5 text-lime-700"/>
+            {/* SECTION: STEP-BY-STEP PLATFORM USER GUIDE */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-lime-600"/>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-950">Platform User Guide & Feature Manual</h2>
+                  <p className="text-xs text-slate-500">Master every capability of SCRIM HUB to manage professional scrims and tournaments with ease.</p>
                 </div>
-                <h3 className="font-black text-sm text-slate-950">Dual Event Engine</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Organize both practice Scrims and official Tournaments with dedicated points systems and independent filters for accurate record keeping.
-                </p>
               </div>
 
-              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
-                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
-                  <TrendingUp className="w-5 h-5 text-lime-700"/>
-                </div>
-                <h3 className="font-black text-sm text-slate-950">Career Metrics & Analytics</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Track team combat trajectories, placement points, elimination totals, and chicken dinner (WWCD) conversion rates across seasons.
-                </p>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* GUIDE 1: HOW ADMIN STARTS A SCRIM OR TOURNAMENT */}
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <div className="w-9 h-9 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center font-black">
+                      <Lock className="w-4 h-4"/>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-slate-950">1. How Admin Starts a Scrim / Tour</h3>
+                      <span className="text-[10px] text-slate-400 font-mono">FIXTURE SETUP & ROUND MANAGEMENT</span>
+                    </div>
+                  </div>
 
-              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
-                <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
-                  <Share2 className="w-5 h-5 text-lime-700"/>
+                  <div className="space-y-2.5 text-xs text-slate-600 leading-relaxed">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">1</span>
+                      <div>
+                        <strong className="text-slate-900 block">Sign In to Admin Portal</strong>
+                        Navigate to the <strong>Admin Scrim</strong> tab and log in using your authorized host credentials.
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">2</span>
+                      <div>
+                        <strong className="text-slate-900 block">Choose Event Type & Enter Details</strong>
+                        Toggle between <span className="bg-lime-100 text-lime-800 px-1.5 py-0.5 rounded font-bold">Scrim</span> (practice) or <span className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">Tournament</span> (official). Fill in the fixture title, organizer name, tier division, host contact, and upload an event logo.
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">3</span>
+                      <div>
+                        <strong className="text-slate-900 block">Input Match Scores & Maps</strong>
+                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, etc.). Adjust each team's placement (1 to 16) and eliminations.
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">4</span>
+                      <div>
+                        <strong className="text-slate-900 block">Save & Conclude</strong>
+                        Click <strong>"Save Match Scores"</strong> to commit results to the database. Once all rounds finish, hit <strong>"Conclude"</strong> to lock scores permanently.
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-black text-sm text-slate-950">1-Click Matchday Exports</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Export full tournament leaderboard posters and 9:16 vertical Instagram Story infographics on demand directly from the browser.
-                </p>
+
+                {/* GUIDE 2: COMPETITIVE POINT SYSTEM */}
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <div className="w-9 h-9 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center font-black">
+                      <Crosshair className="w-4 h-4"/>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-slate-950">2. Official PMGC Point System</h3>
+                      <span className="text-[10px] text-slate-400 font-mono">STANDARDIZED BATTLE ROYALE SCORING</span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    SCRIM HUB uses the standard PUBG Mobile Global Championship (PMGC) 10-point scoring matrix. Points are calculated automatically per round:
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">🥇 1st Place (WWCD)</span>
+                      <span className="font-black text-lime-700">10 PTS</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">🥈 2nd Place</span>
+                      <span className="font-black text-slate-900">6 PTS</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">🥉 3rd Place</span>
+                      <span className="font-black text-slate-900">5 PTS</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">#4 Place</span>
+                      <span className="font-black text-slate-900">4 PTS</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">#5 Place</span>
+                      <span className="font-black text-slate-900">3 PTS</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">#6 Place</span>
+                      <span className="font-black text-slate-900">2 PTS</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">#7 - #8 Place</span>
+                      <span className="font-black text-slate-900">1 PT</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <span className="text-slate-600 font-bold">#9 - #16 Place</span>
+                      <span className="font-black text-slate-400">0 PTS</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-lime-50 border border-lime-200 text-[11px] text-lime-950 font-bold flex items-center justify-between">
+                    <span>⚔️ Elimination Point:</span>
+                    <span className="font-mono font-black">1 Kill = 1 Point</span>
+                  </div>
+                </div>
+
+                {/* GUIDE 3: LIVE LEADERBOARD & INSTANT POSTER GENERATOR */}
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <div className="w-9 h-9 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center font-black">
+                      <Trophy className="w-4 h-4"/>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-slate-950">3. Live Leaderboard & Instant Posters</h3>
+                      <span className="text-[10px] text-slate-400 font-mono">AUTOMATED SOCIAL MEDIA PUBLISHING</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                      The <strong>Leaderboard</strong> dynamically aggregates team standings in real-time with automated tie-breaking (Total Points &gt; WWCD Count &gt; Placement Points &gt; Elimination Points).
+                    </p>
+
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                      <span className="text-slate-900 font-black block flex items-center gap-1.5">
+                        <Download className="w-3.5 h-3.5 text-lime-600"/>
+                        Instant 1080x1560 Matchday Poster
+                      </span>
+                      <p className="text-[11px] text-slate-500">
+                        Click the <strong>"Poster PNG"</strong> button on any active session to render a graphic banner ready for Instagram or WhatsApp. It automatically pulls:
+                      </p>
+                      <ul className="list-disc pl-4 text-[11px] text-slate-600 space-y-0.5">
+                        <li>Your uploaded tournament/scrim logo.</li>
+                        <li>Verified 16-team leaderboard table with WWCD badges.</li>
+                        <li>Host &amp; organizer contact banner and session regulations.</li>
+                      </ul>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] flex items-center justify-between">
+                      <span className="font-bold text-slate-800">Copy Text Feature:</span>
+                      <span className="text-slate-500">1-click formatted text for WhatsApp &amp; Discord</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* GUIDE 4: TEAM STATS & CONTENT SHOWCASE */}
+                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+                    <div className="w-9 h-9 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center font-black">
+                      <Sparkles className="w-4 h-4"/>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-slate-950">4. Analytics, IG Story &amp; Content</h3>
+                      <span className="text-[10px] text-slate-400 font-mono">TEAM PROFILES &amp; TIKTOK BINDING</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                      <strong className="text-slate-900 block flex items-center gap-1.5">
+                        <BarChart2 className="w-3.5 h-3.5 text-lime-600"/>
+                        Scoped Career Statistics
+                      </strong>
+                      <p className="text-[11px] text-slate-500">
+                        Filter squad metrics across <strong>All Events</strong>, <strong>Scrims Only</strong>, or <strong>Tour Only</strong> to analyze kill averages, total WWCDs, and battle logs.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                      <strong className="text-slate-900 block flex items-center gap-1.5">
+                        <Share className="w-3.5 h-3.5 text-lime-600"/>
+                        9:16 Instagram Story Generator
+                      </strong>
+                      <p className="text-[11px] text-slate-500">
+                        Inside <em>Team Performance Info</em>, click <strong>"Share to IG Story"</strong> to render a vertical story card showcasing circular gauges, combat archetypes, and career points.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                      <strong className="text-slate-900 block flex items-center gap-1.5">
+                        <Video className="w-3.5 h-3.5 text-lime-600"/>
+                        Showcase Content &amp; Social Links
+                      </strong>
+                      <p className="text-[11px] text-slate-500">
+                        Use <strong>"Post Your Content"</strong> to publish match posters or bind links from TikTok and Instagram with interactive player cards.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
+            {/* Platform Credits & Technical Info */}
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                 <div>
@@ -2626,7 +2825,7 @@ export default function App() {
                   <p className="text-xs text-slate-500">System infrastructure and developer identity.</p>
                 </div>
                 <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto border border-slate-200">
-                  v2.4.0 • PRODUCTION READY
+                  v2.5.0 • PRODUCTION READY
                 </span>
               </div>
 
@@ -2900,6 +3099,7 @@ export default function App() {
                             <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
                           </button>
 
+                          {/* DELETE SESSION BUTTON */}
                           <button
                             onClick={() => handleDeleteScrim(activeAdminScrim.id)}
                             className="px-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
