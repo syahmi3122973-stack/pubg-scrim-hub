@@ -77,6 +77,12 @@ const TikTokIcon = ({ className = "w-3.5 h-3.5" }) => (
   </svg>
 );
 
+const getTikTokVideoId = (url) => {
+  if (!url) return null;
+  const match = url.match(/video\/(\d+)/);
+  return match ? match[1] : null;
+};
+
 const getPlacementPoints = (placement) => {
   const p = parseInt(placement, 10);
   switch (p) {
@@ -497,7 +503,7 @@ export default function App() {
     }
   }, [filteredScrims, selectedScrimId]);
 
-  // FEATURE 1: DELETE SESSION
+  // DELETE SESSION
   const handleDeleteScrim = async (scrimId) => {
     if (!currentUser) return;
     const target = scrims.find(s => s.id === scrimId);
@@ -1057,11 +1063,11 @@ export default function App() {
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
       ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 17px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
-      ctx.font = '500 17px monospace';
+      ctx.font = '500 16px monospace';
       ctx.fillText(String(row.killPts || 0), 835, y + 4);
 
       ctx.fillStyle = '#4d7c0f';
@@ -1078,13 +1084,11 @@ export default function App() {
     ctx.roundRect(60, cardY, 960, 150, 18);
     ctx.fill();
 
-    // Accent line
     ctx.fillStyle = '#84cc16';
     ctx.beginPath();
     ctx.roundRect(60, cardY, 12, 150, [18, 0, 0, 18]);
     ctx.fill();
 
-    // Card Details
     ctx.fillStyle = '#bef264';
     ctx.font = 'bold 12px monospace';
     ctx.fillText('OFFICIAL EVENT HOST & SESSION DETAILS', 95, cardY + 32);
@@ -1114,7 +1118,6 @@ export default function App() {
     ctx.fillText('scrim.rykhor.my', 1020, 1530);
     ctx.textAlign = 'left';
 
-    // 7. Download Trigger
     try {
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
@@ -1609,7 +1612,7 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
-  // FEATURE 3 & 4: SHOWCASE STATE WITH SOCIAL LINKS & BINDING
+  // SHOWCASE POSTING & LINK BINDING
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postSourceMode, setPostSourceMode] = useState('upload'); // 'upload' | 'social_link'
@@ -1640,7 +1643,6 @@ export default function App() {
         mediaUrl = await uploadMediaToSupabase(showcaseFile, 'showcase');
       } else if (postSourceMode === 'social_link') {
         resolvedMediaType = 'social_link';
-        // Provide standard placeholder image if social link is used
         if (socialPlatform === 'tiktok') {
           mediaUrl = 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80';
         } else if (socialPlatform === 'instagram') {
@@ -2873,7 +2875,7 @@ export default function App() {
                             <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
                           </button>
 
-                          {/* FEATURE 1: DELETE SESSION BUTTON */}
+                          {/* DELETE SESSION BUTTON */}
                           <button
                             onClick={() => handleDeleteScrim(activeAdminScrim.id)}
                             className="px-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
@@ -3288,7 +3290,7 @@ export default function App() {
 
       </main>
 
-      {/* FEATURE 2: SHOWCASE POST DETAIL MODAL */}
+      {/* SHOWCASE POST DETAIL MODAL WITH TIKTOK VIDEO PLAYER */}
       {inspectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -3307,11 +3309,26 @@ export default function App() {
               </button>
             </div>
 
-            <div className="relative bg-black rounded-2xl overflow-hidden aspect-video flex items-center justify-center border border-slate-200">
-              {inspectedPost.media_type === 'video' ? (
-                <video src={inspectedPost.media_url} controls className="w-full h-full object-cover" />
+            {/* Media Player Container */}
+            <div className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200">
+              {inspectedPost.platform === 'tiktok' && getTikTokVideoId(inspectedPost.external_url) ? (
+                <div className="w-full max-w-[325px] h-[580px] py-2 mx-auto flex items-center justify-center">
+                  <iframe
+                    src={`https://www.tiktok.com/embed/v2/${getTikTokVideoId(inspectedPost.external_url)}`}
+                    className="w-full h-full rounded-xl border-0 shadow-lg"
+                    allow="encrypted-media; fullscreen"
+                    allowFullScreen
+                    title="TikTok Video Player"
+                  />
+                </div>
+              ) : inspectedPost.media_type === 'video' ? (
+                <div className="w-full aspect-video">
+                  <video src={inspectedPost.media_url} controls className="w-full h-full object-cover" />
+                </div>
               ) : (
-                <img src={inspectedPost.media_url} alt={inspectedPost.title} className="w-full h-full object-cover" />
+                <div className="w-full aspect-video">
+                  <img src={inspectedPost.media_url} alt={inspectedPost.title} className="w-full h-full object-cover" />
+                </div>
               )}
             </div>
 
@@ -3366,7 +3383,7 @@ export default function App() {
         </div>
       )}
 
-      {/* FEATURE 3: PUBLISH CONTENT WITH SOCIAL MEDIA / FILE OPTIONS */}
+      {/* PUBLISH CONTENT WITH SOCIAL MEDIA / FILE OPTIONS */}
       {isShowcaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
