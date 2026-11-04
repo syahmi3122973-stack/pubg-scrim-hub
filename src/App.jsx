@@ -173,7 +173,15 @@ const INITIAL_FALLBACK_TEAMS = [
   { id: 'tm_13', name: '4Rivals', tag: '4R' },
   { id: 'tm_14', name: 'Genesis Esports', tag: 'GEN' },
   { id: 'tm_15', name: 'NSJ Esports', tag: 'NSJ' },
-  { id: 'tm_16', name: 'Rampage Pro', tag: 'RPG' }
+  { id: 'tm_16', name: 'Rampage Pro', tag: 'RPG' },
+  { id: 'tm_17', name: 'Morph Esports', tag: 'MRPH' },
+  { id: 'tm_18', name: 'BTR Arctic', tag: 'BTRA' },
+  { id: 'tm_19', name: 'DRS Gaming', tag: 'DRS' },
+  { id: 'tm_20', name: 'Stalwart Esports', tag: 'STE' },
+  { id: 'tm_21', name: 'IHC Esports', tag: 'IHC' },
+  { id: 'tm_22', name: 'Nigma Galaxy', tag: 'NGX' },
+  { id: 'tm_23', name: 'Alpha7 Esports', tag: 'A7' },
+  { id: 'tm_24', name: 'S2G Esports', tag: 'S2G' }
 ];
 
 const uploadMediaToSupabase = async (file, folder = 'uploads') => {
@@ -210,12 +218,14 @@ export default function App() {
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
+  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
@@ -226,6 +236,7 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
+  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -472,6 +483,7 @@ export default function App() {
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [inputMap, setInputMap] = useState('Erangel');
   
+  // Dynamic Match Slots (Default 16, Admin can adjust 2-24)
   const [matchSlots, setMatchSlots] = useState(() => {
     return Array.from({ length: 16 }, (_, idx) => {
       const tm = INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
@@ -492,7 +504,7 @@ export default function App() {
     if (activeAdminScrim && activeAdminScrim.matches && activeAdminScrim.matches[selectedMatchIdx]) {
       const saved = activeAdminScrim.matches[selectedMatchIdx];
       setInputMap(saved.map || 'Erangel');
-      if (saved.results && saved.results.length === 16) {
+      if (saved.results && saved.results.length > 0) {
         setMatchSlots(saved.results.map((r, i) => ({
           slot: i + 1,
           teamId: r.teamId,
@@ -507,20 +519,72 @@ export default function App() {
       }
     }
 
-    setMatchSlots(Array.from({ length: 16 }, (_, idx) => {
-      const tm = teams[idx] || INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
-      return {
-        slot: idx + 1,
-        teamId: tm.id,
-        teamName: tm.name,
-        tag: tm.tag,
-        placement: idx + 1,
-        kills: 0,
-        placePts: getPlacementPoints(idx + 1),
-        totalPts: getPlacementPoints(idx + 1)
-      };
-    }));
+    setMatchSlots(prev => {
+      const currentCount = prev.length || 16;
+      return Array.from({ length: currentCount }, (_, idx) => {
+        const tm = teams[idx] || INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
+        return {
+          slot: idx + 1,
+          teamId: tm.id,
+          teamName: tm.name,
+          tag: tm.tag,
+          placement: idx + 1,
+          kills: 0,
+          placePts: getPlacementPoints(idx + 1),
+          totalPts: getPlacementPoints(idx + 1)
+        };
+      });
+    });
   }, [activeAdminScrim, selectedMatchIdx, teams]);
+
+  const handleAddTeamSlot = () => {
+    if (activeAdminScrim?.is_finished) {
+      showToast('⚠️ Scores are locked because this session has concluded!');
+      return;
+    }
+    if (matchSlots.length >= 24) {
+      showToast('⚠️ Maximum limit reached (24 teams)!');
+      return;
+    }
+
+    setMatchSlots(prev => {
+      const nextSlotNum = prev.length + 1;
+      const fallbackTeam = teams[nextSlotNum - 1] || INITIAL_FALLBACK_TEAMS[nextSlotNum - 1] || {
+        id: `tm_${nextSlotNum}`,
+        name: `Team ${nextSlotNum}`,
+        tag: `T${nextSlotNum}`
+      };
+
+      const newSlot = {
+        slot: nextSlotNum,
+        teamId: fallbackTeam.id,
+        teamName: fallbackTeam.name,
+        tag: fallbackTeam.tag,
+        placement: nextSlotNum,
+        kills: 0,
+        placePts: getPlacementPoints(nextSlotNum),
+        totalPts: getPlacementPoints(nextSlotNum)
+      };
+
+      return [...prev, newSlot];
+    });
+
+    showToast(`Team slot ${matchSlots.length + 1} added.`);
+  };
+
+  const handleRemoveTeamSlot = () => {
+    if (activeAdminScrim?.is_finished) {
+      showToast('⚠️ Scores are locked because this session has concluded!');
+      return;
+    }
+    if (matchSlots.length <= 2) {
+      showToast('⚠️ Minimum 2 teams required!');
+      return;
+    }
+
+    setMatchSlots(prev => prev.slice(0, -1));
+    showToast(`Team slot ${matchSlots.length} removed.`);
+  };
 
   const filteredScrims = useMemo(() => {
     if (!currentUser) return [];
@@ -712,7 +776,7 @@ export default function App() {
       const row = { ...updated[index] };
 
       if (field === 'placement') {
-        const p = Math.max(1, Math.min(16, parseInt(value, 10) || 16));
+        const p = Math.max(1, Math.min(prev.length, parseInt(value, 10) || prev.length));
         row.placement = p;
         row.placePts = getPlacementPoints(p);
       } else if (field === 'kills') {
@@ -749,7 +813,8 @@ export default function App() {
       showToast('⚠️ This session is locked!');
       return;
     }
-    const placements = Array.from({ length: 16 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    const count = matchSlots.length;
+    const placements = Array.from({ length: count }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     setMatchSlots(prev => {
       return prev.map((row, idx) => {
         const place = placements[idx];
@@ -982,7 +1047,7 @@ export default function App() {
     });
   };
 
-  // POSTER DOWNLOAD - 100% DIRECT FROM SESSION FIXTURE DATA
+  // POSTER DOWNLOAD - DYNAMIC UP TO 24 TEAMS WITHOUT OVERLAPPING
   const handleDownloadPoster = async () => {
     if (!leaderboardData.length) {
       showToast('No data available to download poster!');
@@ -1007,19 +1072,26 @@ export default function App() {
     const hostContact = activePublicScrim?.host_contact || '';
     const sessionDesc = activePublicScrim?.description || 'Official PUBG Mobile competitive match fixture.';
 
+    // Dynamic Sizing for up to 24 teams
+    const totalRows = Math.min(leaderboardData.length, 24);
+    const rowHeight = totalRows > 16 ? 44 : 54;
+    const rowsTotalHeight = totalRows * rowHeight;
+    const cardY = 275 + rowsTotalHeight + 25;
+    const canvasHeight = Math.max(1560, cardY + 160 + 80);
+
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
-    canvas.height = 1560;
+    canvas.height = canvasHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Background Gradient
-    const bg = ctx.createLinearGradient(0, 0, 0, 1560);
+    const bg = ctx.createLinearGradient(0, 0, 0, canvasHeight);
     bg.addColorStop(0, '#f8fafc');
     bg.addColorStop(0.5, '#f1f5f9');
     bg.addColorStop(1, '#e2e8f0');
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, 1080, 1560);
+    ctx.fillRect(0, 0, 1080, canvasHeight);
 
     // Accent line
     ctx.fillStyle = '#84cc16';
@@ -1082,45 +1154,44 @@ export default function App() {
     ctx.fillText('KILLS', 815, 224);
     ctx.fillText('TOTAL PTS', 920, 224);
 
-    // 4. Standings Rows
-    const rows = leaderboardData.slice(0, 16);
+    // 4. Standings Rows (Up to 24 teams)
+    const rows = leaderboardData.slice(0, 24);
     let y = 275;
     rows.forEach((row, i) => {
       if (i % 2 === 0) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
-        ctx.fillRect(60, y - 26, 960, 50);
+        ctx.fillRect(60, y - (rowHeight / 2) + 4, 960, rowHeight - 4);
       }
 
       ctx.fillStyle = row.rank === 1 ? '#65a30d' : row.rank === 2 ? '#334155' : row.rank === 3 ? '#64748b' : '#94a3b8';
-      ctx.font = '900 19px monospace';
+      ctx.font = totalRows > 16 ? '900 16px monospace' : '900 19px monospace';
       ctx.fillText('#' + row.rank, 85, y + 4);
 
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 17px sans-serif';
+      ctx.font = totalRows > 16 ? 'bold 15px sans-serif' : 'bold 17px sans-serif';
       const name = row.teamName.length > 24 ? row.teamName.slice(0, 22) + '..' : row.teamName;
       ctx.fillText(name, 200, y + 4);
 
       ctx.fillStyle = '#64748b';
-      ctx.font = '500 16px monospace';
+      ctx.font = '500 15px monospace';
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
       ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 15px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
-      ctx.font = '500 17px monospace';
+      ctx.font = '500 15px monospace';
       ctx.fillText(String(row.killPts || 0), 835, y + 4);
 
       ctx.fillStyle = '#4d7c0f';
-      ctx.font = '900 21px monospace';
+      ctx.font = totalRows > 16 ? '900 18px monospace' : '900 21px monospace';
       ctx.fillText(String(row.totalPts || 0), 945, y + 4);
 
-      y += 54;
+      y += rowHeight;
     });
 
     // 5. Host & Session Information Card
-    const cardY = 1175;
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.roundRect(60, cardY, 960, 150, 18);
@@ -1153,11 +1224,11 @@ export default function App() {
     // 6. Watermark Footer
     ctx.fillStyle = '#64748b';
     ctx.font = 'bold 13px monospace';
-    ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, 1530);
+    ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, canvasHeight - 30);
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#4d7c0f';
-    ctx.fillText('scrim.rykhor.my', 1020, 1530);
+    ctx.fillText('scrim.rykhor.my', 1020, canvasHeight - 30);
     ctx.textAlign = 'left';
 
     try {
@@ -1653,7 +1724,6 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
-  // SHOWCASE POSTING & LINK BINDING
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postSourceMode, setPostSourceMode] = useState('upload');
@@ -2276,156 +2346,156 @@ export default function App() {
                           leaderboardFilter === idx.toString() 
                             ? 'bg-lime-400 text-slate-950 shadow-sm' 
                             : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                      )}
+                    >
+                      M{m.matchNo} ({m.map})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {leaderboardData.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
+                  <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
+                  <p className="font-bold text-xs text-slate-600">No match results saved for this round.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {leaderboardData.map((row) => {
+                    const isFirst = row.rank === 1;
+                    return (
+                      <div
+                        key={row.teamId}
+                        className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
+                          isFirst
+                            ? 'bg-lime-50/70 border-lime-300 shadow-xs'
+                            : row.rank === 2
+                            ? 'bg-white border-slate-250 shadow-xs'
+                            : row.rank === 3
+                            ? 'bg-white border-slate-200'
+                            : 'bg-white/80 border-slate-100'
                         )}
                       >
-                        M{m.matchNo} ({m.map})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {leaderboardData.length === 0 ? (
-                  <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl shadow-sm">
-                    <Shield className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400"/>
-                    <p className="font-bold text-xs text-slate-600">No match results saved for this round.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {leaderboardData.map((row) => {
-                      const isFirst = row.rank === 1;
-                      return (
-                        <div
-                          key={row.teamId}
-                          className={'p-3 sm:p-4 rounded-2xl border transition flex items-center justify-between ' + (
-                            isFirst
-                              ? 'bg-lime-50/70 border-lime-300 shadow-xs'
-                              : row.rank === 2
-                              ? 'bg-white border-slate-250 shadow-xs'
-                              : row.rank === 3
-                              ? 'bg-white border-slate-200'
-                              : 'bg-white/80 border-slate-100'
-                          )}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
-                                isFirst
-                                  ? 'bg-lime-400 text-slate-950 shadow-xs'
-                                  : row.rank === 2
-                                  ? 'bg-slate-200 text-slate-800'
-                                  : row.rank === 3
-                                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                                  : 'bg-slate-100 text-slate-500 font-mono'
-                              )}
-                            >
-                              {row.rank}
-                            </div>
-
-                            <div>
-                              <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-                                <span>{row.teamName}</span>
-                                {row.wwcd > 0 && (
-                                  <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
-                                    🍗 x{row.wwcd}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
-                                <span>Matches: {row.matchesPlayed}</span>
-                                <span>•</span>
-                                <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
-                                <span>•</span>
-                                <span>Place: {row.placePts}</span>
-                              </div>
-                            </div>
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ' + (
+                              isFirst
+                                ? 'bg-lime-400 text-slate-950 shadow-xs'
+                                : row.rank === 2
+                                ? 'bg-slate-200 text-slate-800'
+                                : row.rank === 3
+                                ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                : 'bg-slate-100 text-slate-500 font-mono'
+                            )}
+                          >
+                            {row.rank}
                           </div>
 
-                          <div className="text-right">
-                            <div className="text-base sm:text-xl font-black font-mono text-lime-700">
-                              {row.totalPts}
+                          <div>
+                            <div className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                              <span>{row.teamName}</span>
+                              {row.wwcd > 0 && (
+                                <span className="text-[10px] bg-lime-100 border border-lime-300 text-lime-800 px-1.5 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                                  🍗 x{row.wwcd}
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
-                              PTS
+                            <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                              <span>Matches: {row.matchesPlayed}</span>
+                              <span>•</span>
+                              <span className="text-slate-700 font-semibold">Kills: {row.killPts}</span>
+                              <span>•</span>
+                              <span>Place: {row.placePts}</span>
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
 
-        {/* VIEW 3: HOST DIRECTORY */}
-        {activeTab === 'hosts' && (
-          <div className="space-y-4">
-            
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-1.5">
-                  <Award className="w-5 h-5 text-lime-600"/>
-                  <span>Tournament Hosts & Organizers Directory</span>
-                </h2>
-                <p className="text-xs text-slate-500">Find verified organizers, check contact info, and explore hosted tournaments.</p>
-              </div>
-
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
-                <input
-                  type="text"
-                  placeholder="Search host name or contact..."
-                  value={searchHostQuery}
-                  onChange={(e) => setSearchHostQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {organizersList.map((host, idx) => (
-                <div key={idx} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-3">
-                        {host.avatar_url ? (
-                          <img 
-                            src={host.avatar_url} 
-                            alt={host.name} 
-                            className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-lime-400 text-slate-950 font-black flex items-center justify-center text-base shadow-sm">
-                            {host.name.slice(0, 2).toUpperCase()}
+                        <div className="text-right">
+                          <div className="text-base sm:text-xl font-black font-mono text-lime-700">
+                            {row.totalPts}
                           </div>
-                        )}
-
-                        <div>
-                          <h3 className="font-black text-base text-slate-950">{host.name}</h3>
-                          <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                            {host.scrims.length} Events Hosted
-                          </span>
+                          <div className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
+                            PTS
+                          </div>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
-                      {host.contact && (
-                        <a
-                          href={host.contact.startsWith('http') 
-                            ? host.contact 
-                            : (host.contact.replace(/[^0-9]/g, '').length >= 9
-                              ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
-                              : 'https://t.me/' + host.contact.replace('@', ''))
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5"/>
-                          <span>PM Host</span>
-                        </a>
+      {/* VIEW 3: HOST DIRECTORY */}
+      {activeTab === 'hosts' && (
+        <div className="space-y-4">
+          
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-1.5">
+                <Award className="w-5 h-5 text-lime-600"/>
+                <span>Tournament Hosts & Organizers Directory</span>
+              </h2>
+              <p className="text-xs text-slate-500">Find verified organizers, check contact info, and explore hosted tournaments.</p>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
+              <input
+                type="text"
+                placeholder="Search host name or contact..."
+                value={searchHostQuery}
+                onChange={(e) => setSearchHostQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {organizersList.map((host, idx) => (
+              <div key={idx} className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      {host.avatar_url ? (
+                        <img 
+                          src={host.avatar_url} 
+                          alt={host.name} 
+                          className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-lime-400 text-slate-950 font-black flex items-center justify-center text-base shadow-sm">
+                          {host.name.slice(0, 2).toUpperCase()}
+                        </div>
                       )}
+
+                      <div>
+                        <h3 className="font-black text-base text-slate-950">{host.name}</h3>
+                        <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
+                          {host.scrims.length} Events Hosted
+                        </span>
+                      </div>
                     </div>
+
+                    {host.contact && (
+                      <a
+                        href={host.contact.startsWith('http') 
+                          ? host.contact 
+                          : (host.contact.replace(/[^0-9]/g, '').length >= 9
+                            ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
+                            : 'https://t.me/' + host.contact.replace('@', ''))
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5"/>
+                        <span>PM Host</span>
+                      </a>
+                    )}
+                  </div>
 
                     <p className="text-xs text-slate-600 leading-relaxed italic bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       "{host.bio}"
@@ -2645,13 +2715,21 @@ export default function App() {
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">3</span>
                       <div>
-                        <strong className="text-slate-900 block">Input Match Scores & Maps</strong>
-                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, or Rondo). Adjust each team's placement (1 to 16) and eliminations.
+                        <strong className="text-slate-900 block">Adjust Team Slots (Up to 24)</strong>
+                        Use the <strong>+ Add Team</strong> and <strong>- Remove Team</strong> buttons to set the exact number of competing squads (2 to 24 teams).
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">4</span>
+                      <div>
+                        <strong className="text-slate-900 block">Input Match Scores & Maps</strong>
+                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, or Rondo). Adjust each team's placement and eliminations.
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">5</span>
                       <div>
                         <strong className="text-slate-900 block">Save & Conclude</strong>
                         Click <strong>"Save Match Scores"</strong> to commit results to the database. Once all rounds finish, hit <strong>"Conclude"</strong> to lock scores permanently.
@@ -2706,7 +2784,7 @@ export default function App() {
                       <span className="font-black text-slate-900">1 PT</span>
                     </div>
                     <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
-                      <span className="text-slate-600 font-bold">#9 - #16 Place</span>
+                      <span className="text-slate-600 font-bold">#9 - #24 Place</span>
                       <span className="font-black text-slate-400">0 PTS</span>
                     </div>
                   </div>
@@ -2737,15 +2815,15 @@ export default function App() {
                     <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
                       <span className="text-slate-900 font-black block flex items-center gap-1.5">
                         <Download className="w-3.5 h-3.5 text-lime-600"/>
-                        Instant 1080x1560 Matchday Poster
+                        Instant Matchday Poster (Up to 24 Teams)
                       </span>
                       <p className="text-[11px] text-slate-500">
-                        Click the <strong>"Poster PNG"</strong> button on any active session to render a graphic banner ready for Instagram or WhatsApp. It automatically pulls:
+                        Click the <strong>"Poster PNG"</strong> button on any active session to render a dynamic graphic banner ready for Instagram or WhatsApp. It automatically scales and pulls:
                       </p>
                       <ul className="list-disc pl-4 text-[11px] text-slate-600 space-y-0.5">
                         <li>Your uploaded tournament/scrim logo.</li>
-                        <li>Verified 16-team leaderboard table with WWCD badges.</li>
-                        <li>Host &amp; organizer contact banner and session regulations.</li>
+                        <li>Verified leaderboard standings (2-24 teams) with WWCD badges.</li>
+                        <li>Host &amp; organizer contact banner and session regulations without overlapping.</li>
                       </ul>
                     </div>
 
@@ -2812,7 +2890,7 @@ export default function App() {
                   <p className="text-xs text-slate-500">System infrastructure and developer identity.</p>
                 </div>
                 <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto border border-slate-200">
-                  v2.5.0 • PRODUCTION READY
+                  v2.6.0 • PRODUCTION READY
                 </span>
               </div>
 
@@ -3247,7 +3325,7 @@ export default function App() {
 
                 </div>
 
-                {/* Round Controls */}
+                {/* Round & Team Slot Controls */}
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     
@@ -3291,7 +3369,30 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2 ml-auto flex-wrap">
+                      {/* TEAM SLOTS CONTROLS (2 to 24 teams) */}
+                      <div className="flex items-center bg-slate-100 px-2 py-1 rounded-xl border border-slate-200 gap-1.5">
+                        <span className="text-[11px] font-black text-slate-700 font-mono">
+                          {matchSlots.length}/24 Teams
+                        </span>
+                        <button
+                          onClick={handleAddTeamSlot}
+                          disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
+                          className="p-1 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 disabled:opacity-40 transition"
+                          title="Add Team Slot (Max 24)"
+                        >
+                          <Plus className="w-3 h-3"/>
+                        </button>
+                        <button
+                          onClick={handleRemoveTeamSlot}
+                          disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
+                          className="p-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 disabled:opacity-40 transition"
+                          title="Remove Team Slot (Min 2)"
+                        >
+                          <Minus className="w-3 h-3"/>
+                        </button>
+                      </div>
+
                       <select
                         value={inputMap}
                         onChange={(e) => setInputMap(e.target.value)}
@@ -3316,7 +3417,7 @@ export default function App() {
 
                   <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
                     <Info className="w-3 h-3 text-slate-400"/>
-                    <span>Entering scores for Match {selectedMatchIdx + 1} on {inputMap}. Adjust placements and kills, then click Save.</span>
+                    <span>Entering scores for Match {selectedMatchIdx + 1} on {inputMap} ({matchSlots.length} competing squads). Adjust placements and kills, then click Save.</span>
                   </p>
                 </div>
 
@@ -3367,7 +3468,7 @@ export default function App() {
                               <input
                                 type="number"
                                 min="1"
-                                max="16"
+                                max={matchSlots.length}
                                 disabled={activeAdminScrim?.is_finished}
                                 value={row.placement}
                                 onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
@@ -3440,7 +3541,7 @@ export default function App() {
                                 <input
                                   type="number"
                                   min="1"
-                                  max="16"
+                                  max={matchSlots.length}
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.placement}
                                   onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
