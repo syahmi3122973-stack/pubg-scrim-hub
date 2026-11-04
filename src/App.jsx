@@ -197,7 +197,6 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 export default function App() {
   const [activeTab, setActiveTab] = useState('teams');
   
-  // Teams State - Synced from Supabase
   const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
   const [scrims, setScrims] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -211,14 +210,12 @@ export default function App() {
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
-  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
@@ -229,7 +226,6 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -253,7 +249,6 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
-      // 1. Fetch dynamic teams
       const { data: teamsData } = await supabase
         .from('teams')
         .select('*')
@@ -263,7 +258,6 @@ export default function App() {
         setTeams(teamsData);
       }
 
-      // 2. Fetch scrims
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
@@ -281,7 +275,6 @@ export default function App() {
         setAdminSelectedScrimId(sorted[0].id);
       }
 
-      // 3. Fetch showcase posts
       const { data: postData } = await supabase
         .from('posts')
         .select('*')
@@ -291,7 +284,6 @@ export default function App() {
         setPosts(postData);
       }
 
-      // 4. Fetch profiles
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*');
@@ -2654,7 +2646,7 @@ export default function App() {
                       <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">3</span>
                       <div>
                         <strong className="text-slate-900 block">Input Match Scores & Maps</strong>
-                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, etc.). Adjust each team's placement (1 to 16) and eliminations.
+                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, or Rondo). Adjust each team's placement (1 to 16) and eliminations.
                       </div>
                     </div>
 
@@ -3307,8 +3299,7 @@ export default function App() {
                       >
                         <option value="Erangel">Erangel</option>
                         <option value="Miramar">Miramar</option>
-                        <option value="Sanhok">Sanhok</option>
-                        <option value="Vikendi">Vikendi</option>
+                        <option value="Rondo">Rondo</option>
                       </select>
 
                       <button
@@ -4096,7 +4087,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 6: SHOWCASE POST DETAIL MODAL WITH RELIABLE TIKTOK PLAYER CARD */}
+      {/* MODAL 6: SHOWCASE POST DETAIL MODAL */}
       {inspectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
@@ -4115,6 +4106,7 @@ export default function App() {
               </button>
             </div>
 
+            {/* Media Display */}
             <div className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 p-2 sm:p-4">
               {inspectedPost.platform === 'tiktok' ? (
                 <TikTokPreviewCard post={inspectedPost} />
