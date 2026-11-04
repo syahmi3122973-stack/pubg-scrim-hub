@@ -45,7 +45,9 @@ import {
   Send, 
   Share, 
   Medal,
-  Globe
+  Globe,
+  Link as LinkIcon,
+  Video
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -62,6 +64,16 @@ const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
     <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
     <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const TikTokIcon = ({ className = "w-3.5 h-3.5" }) => (
+  <svg 
+    className={className} 
+    viewBox="0 0 24 24" 
+    fill="currentColor"
+  >
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.86.12V9.42a6.34 6.34 0 0 0-.86-.06 6.34 6.34 0 1 0 6.34 6.34V8.71a8.23 8.23 0 0 0 4.77 1.52V6.78c-.33 0-.67-.03-1-.09z"/>
   </svg>
 );
 
@@ -148,6 +160,7 @@ export default function App() {
 
   // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
+  const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
@@ -385,7 +398,7 @@ export default function App() {
     }
   };
 
-  // Create Scrim / Tournament States - Includes Organizer Name directly
+  // Create Scrim / Tournament States
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newHostName, setNewHostName] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
@@ -483,6 +496,39 @@ export default function App() {
       setSelectedScrimId(filteredScrims[0].id);
     }
   }, [filteredScrims, selectedScrimId]);
+
+  // FEATURE 1: DELETE SESSION
+  const handleDeleteScrim = async (scrimId) => {
+    if (!currentUser) return;
+    const target = scrims.find(s => s.id === scrimId);
+    if (!target || !isAuthorizedAdmin(target)) {
+      showToast('You do not have permission to delete this session!');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to permanently delete "${target.title}"? All match results will be removed.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('scrims').delete().eq('id', scrimId);
+      if (error) throw error;
+
+      const updated = scrims.filter(s => s.id !== scrimId);
+      setScrims(updated);
+
+      if (adminSelectedScrimId === scrimId) {
+        setAdminSelectedScrimId(updated[0]?.id || '');
+      }
+      if (selectedScrimId === scrimId) {
+        setSelectedScrimId(updated[0]?.id || '');
+      }
+
+      showToast('Session deleted successfully!');
+    } catch (err) {
+      showToast('Failed to delete session: ' + err.message);
+    }
+  };
 
   const openEditScrimModal = () => {
     if (!activeAdminScrim) return;
@@ -888,7 +934,7 @@ export default function App() {
     });
   };
 
-  // POSTER DOWNLOAD - 100% DIRECT FROM SESSION DATA (NO SEPARATE PROFILE NEEDED)
+  // POSTER DOWNLOAD - 100% DIRECT FROM SESSION DATA
   const handleDownloadPoster = async () => {
     if (!leaderboardData.length) {
       showToast('No data available to download poster!');
@@ -908,7 +954,6 @@ export default function App() {
 
     showToast('Rendering tournament poster...');
 
-    // PURE DATA FROM THIS MATCH SESSION (activePublicScrim)
     const sessionLogo = await loadImage(activePublicScrim?.logo_url);
     const hostName = activePublicScrim?.host_name || 'TOURNAMENT ORGANIZER';
     const hostContact = activePublicScrim?.host_contact || '';
@@ -928,7 +973,7 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1560);
 
-    // Header Accent Line
+    // Accent line
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
@@ -976,7 +1021,7 @@ export default function App() {
     ctx.font = '600 15px sans-serif';
     ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 580, 160);
 
-    // 3. Leaderboard Table Header
+    // 3. Table Header
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 195, 960, 46);
 
@@ -1012,11 +1057,11 @@ export default function App() {
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
       ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 17px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
-      ctx.font = '500 16px monospace';
+      ctx.font = '500 17px monospace';
       ctx.fillText(String(row.killPts || 0), 835, y + 4);
 
       ctx.fillStyle = '#4d7c0f';
@@ -1026,14 +1071,14 @@ export default function App() {
       y += 54;
     });
 
-    // 5. Host & Session Information Card (Filled directly from Session Form)
+    // 5. Host & Session Information Card
     const cardY = 1175;
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.roundRect(60, cardY, 960, 150, 18);
     ctx.fill();
 
-    // Accent line on left of card
+    // Accent line
     ctx.fillStyle = '#84cc16';
     ctx.beginPath();
     ctx.roundRect(60, cardY, 12, 150, [18, 0, 0, 18]);
@@ -1054,7 +1099,6 @@ export default function App() {
       ctx.fillText(`Contact: ${hostContact}`, 95, cardY + 95);
     }
 
-    // Session Description / Rules Text
     ctx.fillStyle = '#cbd5e1';
     ctx.font = 'italic 500 14px sans-serif';
     const cleanDesc = sessionDesc.length > 85 ? `"${sessionDesc.slice(0, 82)}..."` : `"${sessionDesc}"`;
@@ -1565,20 +1609,24 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
+  // FEATURE 3 & 4: SHOWCASE STATE WITH SOCIAL LINKS & BINDING
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
+  const [postSourceMode, setPostSourceMode] = useState('upload'); // 'upload' | 'social_link'
   const [postTitle, setPostTitle] = useState('');
   const [postType, setPostType] = useState('poster');
   const [postTournament, setPostTournament] = useState('');
   const [postRankBadge, setPostRankBadge] = useState('Official Tournament');
   const [postCaption, setPostCaption] = useState('');
   const [showcaseFile, setShowcaseFile] = useState(null);
+  const [externalSocialUrl, setExternalSocialUrl] = useState('');
+  const [socialPlatform, setSocialPlatform] = useState('instagram'); // 'instagram' | 'tiktok' | 'youtube' | 'web'
   const [isUploadingShowcase, setIsUploadingShowcase] = useState(false);
 
   const handleCreateShowcasePost = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Only admins can publish posters!');
+      showToast('Only admins can publish content!');
       return;
     }
     if (!postTitle.trim()) return;
@@ -1586,9 +1634,20 @@ export default function App() {
     try {
       setIsUploadingShowcase(true);
       let mediaUrl = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80';
+      let resolvedMediaType = postType === 'clip' ? 'video' : 'image';
 
-      if (showcaseFile) {
+      if (postSourceMode === 'upload' && showcaseFile) {
         mediaUrl = await uploadMediaToSupabase(showcaseFile, 'showcase');
+      } else if (postSourceMode === 'social_link') {
+        resolvedMediaType = 'social_link';
+        // Provide standard placeholder image if social link is used
+        if (socialPlatform === 'tiktok') {
+          mediaUrl = 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80';
+        } else if (socialPlatform === 'instagram') {
+          mediaUrl = 'https://images.unsplash.com/photo-1611262588024-d12430b98920?auto=format&fit=crop&w=1200&q=80';
+        } else {
+          mediaUrl = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80';
+        }
       }
 
       const hostProfile = profiles.find(p => p.id === currentUser.id);
@@ -1603,9 +1662,11 @@ export default function App() {
         title: postTitle.trim(),
         tournament: postTournament.trim() || activePublicScrim?.title || 'SCRIM HUB',
         rank: postRankBadge,
-        caption: postCaption.trim() || 'Official tournament announcement & details.',
-        media_type: postType === 'clip' ? 'video' : 'image',
+        caption: postCaption.trim() || 'Official competitive content update.',
+        media_type: resolvedMediaType,
         media_url: mediaUrl,
+        external_url: postSourceMode === 'social_link' ? externalSocialUrl.trim() : null,
+        platform: postSourceMode === 'social_link' ? socialPlatform : null,
         likes: 1,
         date: 'Just now',
         tags: ['#PUBGM', '#Tournament', '#EsportsHub']
@@ -1620,8 +1681,9 @@ export default function App() {
         setIsShowcaseModalOpen(false);
         setPostTitle('');
         setShowcaseFile(null);
+        setExternalSocialUrl('');
         setPostCaption('');
-        showToast('Tournament poster published successfully!');
+        showToast('Content published successfully!');
       }
     } catch (err) {
       showToast('Upload error: ' + err.message);
@@ -1773,7 +1835,6 @@ export default function App() {
                   <p className="text-xs text-slate-500">Filter career match records by Tournament (Tour) or Practice (Scrim) below.</p>
                 </div>
 
-                {/* Scope Switcher */}
                 <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
@@ -2391,10 +2452,10 @@ export default function App() {
                 {currentUser && (
                   <button
                     onClick={() => setIsShowcaseModalOpen(true)}
-                    className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
+                    className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
                   >
                     <Plus className="w-4 h-4"/>
-                    <span>Upload Poster</span>
+                    <span>Post Your Content</span>
                   </button>
                 )}
               </div>
@@ -2413,9 +2474,17 @@ export default function App() {
                         <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
                       )}
 
-                      <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-lime-400 text-slate-950">
-                        {post.rank || 'Featured'}
-                      </span>
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-lime-400 text-slate-950">
+                          {post.rank || 'Featured'}
+                        </span>
+                        {post.platform && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-900/90 text-white border border-slate-700 flex items-center gap-1">
+                            {post.platform === 'tiktok' ? <TikTokIcon className="w-2.5 h-2.5"/> : post.platform === 'instagram' ? <InstagramIcon className="w-2.5 h-2.5"/> : <LinkIcon className="w-2.5 h-2.5"/>}
+                            <span>{post.platform}</span>
+                          </span>
+                        )}
+                      </div>
 
                       {isMyPost && (
                         <button
@@ -2436,6 +2505,28 @@ export default function App() {
 
                       <h3 className="font-bold text-sm text-slate-950 leading-snug">{post.title}</h3>
                       <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{post.caption}</p>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => setInspectedPost(post)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-lime-700"/>
+                          <span>View Details</span>
+                        </button>
+
+                        {post.external_url && (
+                          <a
+                            href={post.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black transition flex items-center gap-1 shadow-xs"
+                          >
+                            <span>Open Link</span>
+                            <ExternalLink className="w-3 h-3"/>
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -2522,7 +2613,6 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Creator Links */}
                   <div className="flex items-center gap-2 pt-1 flex-wrap">
                     <a
                       href="https://rykhor.my"
@@ -2762,18 +2852,18 @@ export default function App() {
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className="grid grid-cols-3 gap-1.5 pt-1">
                           <button
                             onClick={openEditScrimModal}
-                            className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
+                            className="px-2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border border-slate-200"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-lime-700"/>
-                            <span>Edit Session</span>
+                            <span>Edit</span>
                           </button>
 
                           <button
                             onClick={handleToggleFinishScrim}
-                            className={'px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow-sm ' + (
+                            className={'px-2 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 shadow-sm ' + (
                               activeAdminScrim.is_finished 
                                 ? 'bg-slate-100 text-slate-700 border border-slate-300' 
                                 : 'bg-lime-400 hover:bg-lime-300 text-slate-950'
@@ -2782,13 +2872,23 @@ export default function App() {
                             {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <CheckSquare className="w-3.5 h-3.5"/>}
                             <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
                           </button>
+
+                          {/* FEATURE 1: DELETE SESSION BUTTON */}
+                          <button
+                            onClick={() => handleDeleteScrim(activeAdminScrim.id)}
+                            className="px-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
+                            title="Delete this session permanently"
+                          >
+                            <Trash2 className="w-3.5 h-3.5"/>
+                            <span>Delete</span>
+                          </button>
                         </div>
 
                       </div>
                     )}
                   </div>
 
-                  {/* FORM TO CREATE SCRIM / TOURNAMENT - COMPLETE WITH ORGANIZER NAME */}
+                  {/* FORM TO CREATE SCRIM / TOURNAMENT */}
                   <div className="lg:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
                       <div className="flex items-center space-x-2">
@@ -3188,618 +3288,115 @@ export default function App() {
 
       </main>
 
-      {/* MODAL: TEAM PERFORMANCE & IG STORY EXPORT */}
-      {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
+      {/* FEATURE 2: SHOWCASE POST DETAIL MODAL */}
+      {inspectedPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
-            
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-lime-400 flex items-center justify-center text-slate-950 font-black text-base shadow-sm">
-                  {performanceTeam.tag}
-                </div>
-                <div>
-                  <h3 className="font-black text-base text-slate-950 flex items-center gap-1.5">
-                    <span>{performanceTeam.name}</span>
-                    <span className="text-[10px] bg-lime-100 text-lime-800 px-2 py-0.5 rounded-full font-mono">
-                      Career Analytics
-                    </span>
-                  </h3>
-                  <span className="text-[11px] text-slate-500">Visual performance & organizer metrics</span>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setIsPerformanceModalOpen(false)} 
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
-                  <Medal className="w-3.5 h-3.5 text-lime-600"/>
-                  <span>Event Category:</span>
-                </span>
-                <select
-                  value={performanceModalCategory}
-                  onChange={(e) => setPerformanceModalCategory(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
-                >
-                  <option value="ALL">All Categories (Scrim + Tour)</option>
-                  <option value="Scrim">Scrim Only (Practice)</option>
-                  <option value="Tour">Tournament Only (Official)</option>
-                </select>
-              </div>
-
-              <div>
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
-                  <Filter className="w-3.5 h-3.5 text-lime-600"/>
-                  <span>Host / Organizer:</span>
-                </span>
-                <select
-                  value={selectedPerformanceHost}
-                  onChange={(e) => setSelectedPerformanceHost(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 shadow-xs"
-                >
-                  <option value="ALL">All Hosts</option>
-                  {organizersList.map(h => (
-                    <option key={h.id || h.name} value={h.id || h.name}>
-                      Host: {h.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Points / Event</span>
-                <span className="text-base font-black font-mono text-lime-700">
-                  {filteredTeamPerformance.avgPts}
-                </span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Avg Kills / Event</span>
-                <span className="text-base font-black font-mono text-slate-900">
-                  {filteredTeamPerformance.avgKills}
-                </span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Win Rate (WWCD)</span>
-                <span className="text-base font-black font-mono text-lime-700">
-                  {filteredTeamPerformance.winRate}
-                </span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[9px] uppercase font-bold text-slate-500 block">Filtered Sessions</span>
-                <span className="text-base font-black font-mono text-slate-700">
-                  {filteredTeamPerformance.results.length} Sessions
-                </span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <BarChart2 className="w-4 h-4 text-lime-600"/>
-                  <span>Points & Kills per Session</span>
-                </span>
-                <div className="flex items-center gap-3 text-[10px] font-mono">
-                  <span className="flex items-center gap-1 text-lime-700 font-bold">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-lime-500 inline-block"></span> Points
-                  </span>
-                  <span className="flex items-center gap-1 text-slate-700 font-bold">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 inline-block"></span> Kills
-                  </span>
-                </div>
-              </div>
-
-              {filteredTeamPerformance.results.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 text-xs">
-                  No match records found under this filter scope.
-                </div>
-              ) : (
-                <div className="space-y-3 pt-2">
-                  {filteredTeamPerformance.results.map((item, idx) => {
-                    const maxPts = Math.max(...filteredTeamPerformance.results.map(s => s.points), 40);
-                    const ptsPct = Math.min(100, (item.points / maxPts) * 100);
-                    const killsPct = Math.min(100, (item.kills / maxPts) * 100);
-
-                    return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-800 truncate max-w-[200px] sm:max-w-xs flex items-center gap-1">
-                            <span>{item.scrimName}</span>
-                            <span className="text-[9px] text-slate-500 font-mono">[{item.eventType?.slice(0, 4) || 'Scri'}]</span>
-                          </span>
-                          <span className="font-mono text-slate-500 text-[10px]">
-                            {item.points} PTS • {item.kills} K ({item.date})
-                          </span>
-                        </div>
-                        
-                        <div className="h-4 bg-slate-200/80 rounded-lg overflow-hidden flex flex-col justify-center gap-0.5 p-0.5">
-                          <div 
-                            style={{ width: `${Math.max(5, ptsPct)}%` }} 
-                            className="h-1.5 bg-lime-500 rounded-full transition-all"
-                          />
-                          <div 
-                            style={{ width: `${Math.max(5, killsPct)}%` }} 
-                            className="h-1 bg-slate-800 rounded-full transition-all"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                onClick={() => handleShareToInstagramStory(
-                  performanceTeam, 
-                  filteredTeamPerformance, 
-                  selectedPerformanceHost === 'ALL' 
-                    ? 'ALL' 
-                    : (organizersList.find(h => h.id === selectedPerformanceHost || h.name === selectedPerformanceHost)?.name || selectedPerformanceHost),
-                  performanceModalCategory === 'ALL' ? 'Official Scrim & Tour' : (performanceModalCategory === 'Tour' ? 'Tournament' : 'Scrim')
-                )}
-                disabled={isGeneratingStory}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 transition"
-              >
-                <Share className="w-4 h-4"/>
-                <span>{isGeneratingStory ? 'Rendering Card...' : 'Share to IG Story'}</span>
-              </button>
-
-              <button
-                onClick={() => setIsPerformanceModalOpen(false)}
-                className="px-4 py-2.5 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
-              >
-                Close
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* DEVELOPER FEEDBACK MODAL */}
-      {isFeedbackModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center">
-                  <Bug className="w-4 h-4"/>
-                </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-950">Developer Feedback & Bug Report</h3>
-                  <span className="text-[10px] text-slate-400">Direct message to ry.khor</span>
-                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-lime-400 text-slate-950 font-mono">
+                  {inspectedPost.rank || 'Featured'}
+                </span>
+                <span className="text-xs text-slate-400 font-mono">{inspectedPost.date}</span>
               </div>
-              <button onClick={() => setIsFeedbackModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
-            </div>
-
-            <form onSubmit={handleSubmitFeedback} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Category</label>
-                <select
-                  value={feedbackCategory}
-                  onChange={(e) => setFeedbackCategory(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                >
-                  <option value="Bug Report">🐛 Bug Report / Error</option>
-                  <option value="Feature Request">💡 Feature Request / Suggestion</option>
-                  <option value="UI/Design Feedback">🎨 UI & Design Feedback</option>
-                  <option value="Other Inquiry">💬 General Inquiry</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Your Email (Optional)</label>
-                <input
-                  type="email"
-                  placeholder="name@email.com (if follow-up is needed)"
-                  value={feedbackEmail}
-                  onChange={(e) => setFeedbackEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Message / Issue Details</label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="Describe the bug or feature recommendation in detail..."
-                  value={feedbackMessage}
-                  onChange={(e) => setFeedbackMessage(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsFeedbackModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSendingFeedback}
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
-                >
-                  {isSendingFeedback ? 'Sending...' : 'Send Feedback'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: EDIT HOST PROFILE */}
-      {isProfileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
-                <User className="w-4 h-4 text-lime-600"/>
-                <span>Public Host Profile & Avatar</span>
-              </h3>
-              <button onClick={() => setIsProfileModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
-            </div>
-
-            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Host Profile Picture</label>
-                <div className="flex items-center space-x-3">
-                  {avatarFile ? (
-                    <div className="w-12 h-12 rounded-2xl bg-lime-100 border border-lime-300 flex items-center justify-center font-bold text-lime-800 text-[10px]">
-                      Selected
-                    </div>
-                  ) : profileAvatarUrl ? (
-                    <img src={profileAvatarUrl} alt="Avatar" className="w-12 h-12 rounded-2xl object-cover border border-slate-200" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-                      <User className="w-5 h-5"/>
-                    </div>
-                  )}
-
-                  <label className="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
-                    <Upload className="w-4 h-4 text-lime-600"/>
-                    <span className="truncate">{avatarFile ? avatarFile.name : 'Upload Profile Photo'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAvatarFile(e.target.files[0] || null)}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Organizer Display Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. RYKHOR Esports Organizer"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Official Contact (WhatsApp / Telegram)</label>
-                <input
-                  type="text"
-                  placeholder="+60123456789 or @username"
-                  value={profileContact}
-                  onChange={(e) => setProfileContact(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">About / Host Bio</label>
-                <textarea
-                  rows="3"
-                  placeholder="Tell teams about your upcoming tournaments or regular scrim schedules..."
-                  value={profileBio}
-                  onChange={(e) => setProfileBio(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingProfile}
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
-                >
-                  {isSavingProfile ? 'Saving...' : 'Save Profile'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: EDIT EVENT SETTINGS - INCLUDES HOST NAME DIRECTLY */}
-      {isEditScrimModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
-                <Edit3 className="w-4 h-4 text-lime-600"/>
-                <span>Edit Event Settings</span>
-              </h3>
-              <button onClick={() => setIsEditScrimModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
-            </div>
-
-            <form onSubmit={handleUpdateScrimSettings} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Event Category</label>
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setEditEventType('Scrim')}
-                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600')}
-                  >
-                    Scrim (Practice)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditEventType('Tour')}
-                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600')}
-                  >
-                    Tour (Official Tournament)
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Event Title</label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-slate-500 uppercase font-bold mb-1">Host / Organizer Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={editHostName}
-                    onChange={(e) => setEditHostName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 uppercase font-bold mb-1">Tier / Division</label>
-                  <select
-                    value={editTier}
-                    onChange={(e) => setEditTier(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none font-semibold"
-                  >
-                    {TIER_OPTIONS.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Change Event Logo (Optional)</label>
-                <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2.5 text-slate-700 cursor-pointer transition">
-                  <Upload className="w-4 h-4 text-lime-600"/>
-                  <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setEditLogoFile(e.target.files[0] || null)}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Host Contact</label>
-                <input
-                  type="text"
-                  value={editContact}
-                  onChange={(e) => setEditContact(e.target.value)}
-                  placeholder="e.g. +60123456789"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Description & Rules (Shown on Poster)</label>
-                <textarea
-                  rows="2"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditScrimModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingEdit}
-                  className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
-                >
-                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* PUBLIC DETAILS MODAL */}
-      {inspectedScrim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
-            
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-3">
-                {inspectedScrim.logo_url && (
-                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm" />
-                )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={'text-[10px] font-black px-2 py-0.5 rounded-full font-mono ' + (
-                      inspectedScrim.event_type === 'Tour'
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                        : 'bg-lime-100 text-lime-800 border border-lime-300'
-                    )}>
-                      {(inspectedScrim.event_type || 'Scrim').toUpperCase()}
-                    </span>
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
-                      {inspectedScrim.tier || 'Tier 1'}
-                    </span>
-                    <span className="text-[10px] text-slate-500">{inspectedScrim.date}</span>
-                    {inspectedScrim.is_finished && (
-                      <span className="text-[10px] bg-slate-900 text-lime-400 font-black px-2 py-0.5 rounded-full uppercase">
-                        Final
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-950 mt-0.5">
-                    {inspectedScrim.title}
-                  </h3>
-                </div>
-              </div>
-
               <button 
-                onClick={() => setInspectedScrim(null)} 
+                onClick={() => setInspectedPost(null)}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Host / Organizer</span>
-                <span className="font-bold text-slate-900">{inspectedScrim.host_name || 'Official Host'}</span>
-                <p className="text-[11px] text-slate-600 mt-0.5">{inspectedScrim.description}</p>
-              </div>
-
-              {inspectedScrim.host_contact && (
-                <a
-                  href={inspectedScrim.host_contact.startsWith('http') 
-                    ? inspectedScrim.host_contact 
-                    : (inspectedScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                      ? 'https://wa.me/' + inspectedScrim.host_contact.replace(/[^0-9]/g, '')
-                      : 'https://t.me/' + inspectedScrim.host_contact.replace('@', ''))
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
-                >
-                  <MessageCircle className="w-3.5 h-3.5"/>
-                  <span>PM Host</span>
-                </a>
+            <div className="relative bg-black rounded-2xl overflow-hidden aspect-video flex items-center justify-center border border-slate-200">
+              {inspectedPost.media_type === 'video' ? (
+                <video src={inspectedPost.media_url} controls className="w-full h-full object-cover" />
+              ) : (
+                <img src={inspectedPost.media_url} alt={inspectedPost.title} className="w-full h-full object-cover" />
               )}
             </div>
 
-            <div className="space-y-2">
-              <span className="text-xs font-black uppercase text-slate-900 tracking-wider block">
-                Final Standings
-              </span>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                  <span className="font-bold text-slate-900">Author: [{inspectedPost.team_tag}] {inspectedPost.author}</span>
+                  <span className="font-mono text-lime-700 font-bold">{inspectedPost.tournament}</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black text-slate-950">{inspectedPost.title}</h2>
+              </div>
 
-              <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                {calculateLeaderboard(inspectedScrim, 'overall').map((teamRow) => (
-                  <div
-                    key={teamRow.teamId}
-                    className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center space-x-2.5">
-                      <span className={'w-6 text-center font-black ' + (teamRow.rank === 1 ? 'text-lime-700' : 'text-slate-500')}>
-                        #{teamRow.rank}
-                      </span>
-                      <span className="font-bold text-slate-900">{teamRow.teamName}</span>
-                      {teamRow.wwcd > 0 && (
-                        <span className="text-[9px] text-lime-800 bg-lime-100 border border-lime-300 px-1.5 py-0.2 rounded font-mono font-bold">
-                          🍗 x{teamRow.wwcd}
-                        </span>
-                      )}
-                    </div>
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Content Details & Caption</span>
+                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{inspectedPost.caption}</p>
+              </div>
 
-                    <div className="flex items-center space-x-3 text-right font-mono">
-                      <span className="text-slate-500 text-[11px]">{teamRow.killPts} K</span>
-                      <span className="text-lime-700 font-black text-sm">{teamRow.totalPts} PTS</span>
+              {inspectedPost.external_url && (
+                <div className="p-3 bg-lime-50 border border-lime-200 rounded-2xl flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 bg-lime-400 text-slate-950 rounded-xl">
+                      {inspectedPost.platform === 'tiktok' ? <TikTokIcon className="w-4 h-4"/> : inspectedPost.platform === 'instagram' ? <InstagramIcon className="w-4 h-4"/> : <LinkIcon className="w-4 h-4"/>}
+                    </span>
+                    <div>
+                      <span className="text-xs font-bold text-slate-950 block">Linked on {inspectedPost.platform ? inspectedPost.platform.toUpperCase() : 'External Platform'}</span>
+                      <span className="text-[10px] text-slate-500 truncate max-w-xs block">{inspectedPost.external_url}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <a
+                    href={inspectedPost.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-slate-950 text-lime-400 font-bold text-xs rounded-xl flex items-center gap-1 hover:bg-slate-800 transition"
+                  >
+                    <span>Visit</span>
+                    <ExternalLink className="w-3 h-3"/>
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 text-right">
               <button
-                onClick={() => setInspectedScrim(null)}
-                className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold rounded-xl text-xs"
+                onClick={() => setInspectedPost(null)}
+                className="px-4 py-2 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
               >
                 Close
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* PUBLISH POSTER MODAL */}
+      {/* FEATURE 3: PUBLISH CONTENT WITH SOCIAL MEDIA / FILE OPTIONS */}
       {isShowcaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4 text-lime-600"/>
-                <span>Publish Tournament Poster / Clip</span>
+                <Sparkles className="w-4 h-4 text-lime-600"/>
+                <span>Post Your Content</span>
               </h3>
               <button onClick={() => setIsShowcaseModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
             </div>
 
             <form onSubmit={handleCreateShowcasePost} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Post Type</label>
-                <select
-                  value={postType}
-                  onChange={(e) => setPostType(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                >
-                  <option value="poster">Tournament Poster (Image)</option>
-                  <option value="clip">Gameplay Highlight (Video File)</option>
-                </select>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Source Type</label>
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setPostSourceMode('upload')}
+                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (postSourceMode === 'upload' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600')}
+                  >
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPostSourceMode('social_link')}
+                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (postSourceMode === 'social_link' ? 'bg-slate-950 text-white shadow-xs' : 'text-slate-600')}
+                  >
+                    TikTok / Instagram Link
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -3807,32 +3404,75 @@ export default function App() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. PMSL SEA Spring Qualifier Open Slot"
+                  placeholder="e.g. Grand Final Matchday Highlights"
                   value={postTitle}
                   onChange={(e) => setPostTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Select File</label>
-                <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-3 text-slate-700 cursor-pointer transition">
-                  <Upload className="w-4 h-4 text-lime-600"/>
-                  <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Click to Upload Image / MP4'}</span>
-                  <input
-                    type="file"
-                    accept={postType === 'clip' ? 'video/*' : 'image/*'}
-                    onChange={(e) => setShowcaseFile(e.target.files[0] || null)}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+              {postSourceMode === 'upload' ? (
+                <div>
+                  <label className="block text-slate-500 uppercase font-bold mb-1">Select File from Device</label>
+                  <label className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-xl p-3 text-slate-700 cursor-pointer transition">
+                    <Upload className="w-4 h-4 text-lime-600"/>
+                    <span className="font-medium truncate">{showcaseFile ? showcaseFile.name : 'Click to Upload Image / MP4 Video'}</span>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => setShowcaseFile(e.target.files[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-slate-500 uppercase font-bold mb-1">Platform</label>
+                      <select
+                        value={socialPlatform}
+                        onChange={(e) => setSocialPlatform(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none font-semibold"
+                      >
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="web">Other Website Link</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-500 uppercase font-bold mb-1">Content Badge</label>
+                      <input
+                        type="text"
+                        value={postRankBadge}
+                        onChange={(e) => setPostRankBadge(e.target.value)}
+                        placeholder="e.g. Viral Clip"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 uppercase font-bold mb-1">Platform URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={externalSocialUrl}
+                      onChange={(e) => setExternalSocialUrl(e.target.value)}
+                      placeholder="https://www.tiktok.com/@... or https://instagram.com/reel/..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
-                <label className="block text-slate-500 uppercase font-bold mb-1">Description / Registration Link</label>
+                <label className="block text-slate-500 uppercase font-bold mb-1">Caption / Tournament Info</label>
                 <textarea
                   rows="3"
-                  placeholder="Registration requirements, entry fee, prizes, or Google Form links..."
+                  placeholder="Share details, team tags, or requirements..."
                   value={postCaption}
                   onChange={(e) => setPostCaption(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
@@ -3852,7 +3492,7 @@ export default function App() {
                   disabled={isUploadingShowcase}
                   className="px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black shadow-xs"
                 >
-                  {isUploadingShowcase ? 'Uploading...' : 'Publish'}
+                  {isUploadingShowcase ? 'Publishing...' : 'Publish Content'}
                 </button>
               </div>
             </form>
