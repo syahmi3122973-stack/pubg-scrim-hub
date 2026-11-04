@@ -77,11 +77,67 @@ const TikTokIcon = ({ className = "w-3.5 h-3.5" }) => (
   </svg>
 );
 
-const getTikTokVideoId = (url) => {
-  if (!url) return null;
-  const match = url.match(/video\/(\d+)/);
-  return match ? match[1] : null;
-};
+function TikTokPreviewCard({ post }) {
+  const fallbackThumbnail = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80";
+
+  return (
+    <div className="relative w-full max-w-[320px] mx-auto aspect-[9/15] rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex flex-col justify-between p-4 group select-none">
+      <img
+        src={post.media_url || fallbackThumbnail}
+        alt={post.title}
+        className="absolute inset-0 w-full h-full object-cover opacity-60 scale-100 group-hover:scale-105 transition-transform duration-500 ease-out"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-slate-950/95" />
+
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-[11px] font-bold">
+          <TikTokIcon className="w-3.5 h-3.5 text-[#00f2fe]" />
+          <span>TikTok Clip</span>
+        </div>
+
+        <span className="px-2.5 py-0.5 rounded-full bg-lime-400 text-slate-950 text-[10px] font-mono font-black uppercase tracking-wider shadow-sm">
+          {post.rank || 'Highlight'}
+        </span>
+      </div>
+
+      <a
+        href={post.external_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative z-10 flex flex-col items-center justify-center my-auto group/btn cursor-pointer"
+      >
+        <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:bg-lime-400 group-hover/btn:text-slate-950 group-hover/btn:border-lime-300">
+          <Play className="w-7 h-7 fill-current translate-x-0.5" />
+        </div>
+        <span className="mt-2.5 text-xs font-mono font-semibold text-slate-300 tracking-wide uppercase group-hover/btn:text-white transition-colors">
+          Tap to Watch Clip
+        </span>
+      </a>
+
+      <div className="relative z-10 space-y-3 pt-4">
+        <div>
+          <span className="text-[10px] font-mono text-lime-400 uppercase tracking-wider block font-bold">
+            @{post.author || 'creator'} • {post.tournament || 'SCRIM HUB'}
+          </span>
+          <h4 className="text-sm font-black text-white line-clamp-2 leading-snug mt-0.5">
+            {post.title}
+          </h4>
+        </div>
+
+        <a
+          href={post.external_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 text-xs font-black flex items-center justify-center gap-2 shadow-lg transition-all"
+        >
+          <TikTokIcon className="w-4 h-4" />
+          <span>Open in TikTok App</span>
+          <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+        </a>
+      </div>
+    </div>
+  );
+}
 
 const getPlacementPoints = (placement) => {
   const p = parseInt(placement, 10);
@@ -140,9 +196,7 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 export default function App() {
   const [activeTab, setActiveTab] = useState('teams');
   
-  // Teams State - Synced from Supabase
   const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
-
   const [scrims, setScrims] = useState([]);
   const [posts, setPosts] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -153,18 +207,14 @@ export default function App() {
   const [tierFilter, setTierFilter] = useState('All');
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
-
-  // Team Stats Category Scope ('ALL' | 'Scrim' | 'Tour')
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
 
-  // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Modals
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
@@ -175,7 +225,6 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Bug Report');
   const [feedbackEmail, setFeedbackEmail] = useState('');
@@ -199,7 +248,6 @@ export default function App() {
         setCurrentUser(session?.user || null);
       });
 
-      // 1. Fetch dynamic teams
       const { data: teamsData } = await supabase
         .from('teams')
         .select('*')
@@ -209,7 +257,6 @@ export default function App() {
         setTeams(teamsData);
       }
 
-      // 2. Fetch scrims
       const { data: scrimData } = await supabase
         .from('scrims')
         .select('*')
@@ -227,7 +274,6 @@ export default function App() {
         setAdminSelectedScrimId(sorted[0].id);
       }
 
-      // 3. Fetch showcase posts
       const { data: postData } = await supabase
         .from('posts')
         .select('*')
@@ -237,7 +283,6 @@ export default function App() {
         setPosts(postData);
       }
 
-      // 4. Fetch profiles
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*');
@@ -404,10 +449,9 @@ export default function App() {
     }
   };
 
-  // Create Scrim / Tournament States
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newHostName, setNewHostName] = useState('');
-  const [newEventType, setNewEventType] = useState('Scrim'); // 'Scrim' | 'Tour'
+  const [newEventType, setNewEventType] = useState('Scrim');
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
@@ -415,7 +459,6 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // Edit Scrim States
   const [editTitle, setEditTitle] = useState('');
   const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
@@ -478,7 +521,6 @@ export default function App() {
     }));
   }, [activeAdminScrim, selectedMatchIdx, teams]);
 
-  // LEADERBOARD SCOPED STRICTLY TO CURRENT LOGGED-IN ADMIN
   const filteredScrims = useMemo(() => {
     if (!currentUser) return [];
 
@@ -503,7 +545,6 @@ export default function App() {
     }
   }, [filteredScrims, selectedScrimId]);
 
-  // DELETE SESSION
   const handleDeleteScrim = async (scrimId) => {
     if (!currentUser) return;
     const target = scrims.find(s => s.id === scrimId);
@@ -940,7 +981,6 @@ export default function App() {
     });
   };
 
-  // POSTER DOWNLOAD - 100% DIRECT FROM SESSION DATA
   const handleDownloadPoster = async () => {
     if (!leaderboardData.length) {
       showToast('No data available to download poster!');
@@ -971,7 +1011,6 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background Gradient
     const bg = ctx.createLinearGradient(0, 0, 0, 1560);
     bg.addColorStop(0, '#f8fafc');
     bg.addColorStop(0.5, '#f1f5f9');
@@ -979,11 +1018,9 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1560);
 
-    // Accent line
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
-    // 1. Session Logo (Top Left)
     const logoX = 60;
     const logoY = 55;
     const logoSize = 110;
@@ -1008,7 +1045,6 @@ export default function App() {
     }
     ctx.restore();
 
-    // 2. Session Header Info
     const titleX = 195;
     ctx.fillStyle = '#4d7c0f';
     ctx.font = 'bold 18px monospace';
@@ -1027,7 +1063,6 @@ export default function App() {
     ctx.font = '600 15px sans-serif';
     ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 580, 160);
 
-    // 3. Table Header
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 195, 960, 46);
 
@@ -1040,7 +1075,6 @@ export default function App() {
     ctx.fillText('KILLS', 815, 224);
     ctx.fillText('TOTAL PTS', 920, 224);
 
-    // 4. Standings Rows
     const rows = leaderboardData.slice(0, 16);
     let y = 275;
     rows.forEach((row, i) => {
@@ -1077,7 +1111,6 @@ export default function App() {
       y += 54;
     });
 
-    // 5. Host & Session Information Card
     const cardY = 1175;
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
@@ -1108,7 +1141,6 @@ export default function App() {
     const cleanDesc = sessionDesc.length > 85 ? `"${sessionDesc.slice(0, 82)}..."` : `"${sessionDesc}"`;
     ctx.fillText(cleanDesc, 95, cardY + 125);
 
-    // 6. Watermark Footer
     ctx.fillStyle = '#64748b';
     ctx.font = 'bold 13px monospace';
     ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, 1530);
@@ -1130,7 +1162,6 @@ export default function App() {
     }
   };
 
-  // INSTAGRAM STORY INFOGRAPHIC ENGINE
   const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
       showToast('No statistics available to generate card!');
@@ -1445,7 +1476,6 @@ export default function App() {
     }
   }, [teams, selectedTeamProfile]);
 
-  // Aggregated Team Stats
   const teamsStats = useMemo(() => {
     const stats = {};
 
@@ -1612,10 +1642,9 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
-  // SHOWCASE POSTING & LINK BINDING
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
-  const [postSourceMode, setPostSourceMode] = useState('upload'); // 'upload' | 'social_link'
+  const [postSourceMode, setPostSourceMode] = useState('upload');
   const [postTitle, setPostTitle] = useState('');
   const [postType, setPostType] = useState('poster');
   const [postTournament, setPostTournament] = useState('');
@@ -1623,7 +1652,7 @@ export default function App() {
   const [postCaption, setPostCaption] = useState('');
   const [showcaseFile, setShowcaseFile] = useState(null);
   const [externalSocialUrl, setExternalSocialUrl] = useState('');
-  const [socialPlatform, setSocialPlatform] = useState('instagram'); // 'instagram' | 'tiktok' | 'youtube' | 'web'
+  const [socialPlatform, setSocialPlatform] = useState('instagram');
   const [isUploadingShowcase, setIsUploadingShowcase] = useState(false);
 
   const handleCreateShowcasePost = async (e) => {
@@ -1718,7 +1747,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
-      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
           <CheckCircle className="w-4 h-4 text-lime-400"/>
@@ -2023,7 +2051,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: LEADERBOARD (SCOPED TO AUTHENTICATED ADMIN) */}
+        {/* VIEW 2: LEADERBOARD (SCOPED TO CURRENT ADMIN) */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
             {!currentUser ? (
@@ -2542,7 +2570,6 @@ export default function App() {
         {activeTab === 'about' && (
           <div className="space-y-4">
             
-            {/* Hero Card */}
             <div className="bg-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800">
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none"></div>
               
@@ -2560,7 +2587,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pillars Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-2">
                 <div className="w-10 h-10 rounded-2xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center font-black">
@@ -2593,7 +2619,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Platform Credits */}
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                 <div>
@@ -2875,7 +2900,6 @@ export default function App() {
                             <span>{activeAdminScrim.is_finished ? 'Reopen' : 'Conclude'}</span>
                           </button>
 
-                          {/* DELETE SESSION BUTTON */}
                           <button
                             onClick={() => handleDeleteScrim(activeAdminScrim.id)}
                             className="px-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
@@ -3310,43 +3334,16 @@ export default function App() {
             </div>
 
             {/* Media Display: Native Video / Image / TikTok Interactive Card */}
-            <div className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200">
+            <div className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 p-2 sm:p-4">
               {inspectedPost.platform === 'tiktok' ? (
-                <div className="w-full max-w-sm mx-auto p-4 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 rounded-2xl">
-                  <div className="relative w-full aspect-[9/12] max-h-[460px] rounded-xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center group">
-                    <img 
-                      src={inspectedPost.media_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80"} 
-                      alt="" 
-                      className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 p-4 space-y-3">
-                      <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-xl">
-                        <Play className="w-8 h-8 fill-white translate-x-0.5 text-white"/>
-                      </div>
-                      <div>
-                        <span className="text-sm font-black text-white block">Watch on TikTok</span>
-                        <span className="text-[11px] text-slate-300">Opens official video & comments</span>
-                      </div>
-                      <a
-                        href={inspectedPost.external_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-5 py-2.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg transition"
-                      >
-                        <TikTokIcon className="w-4 h-4"/>
-                        <span>Play Full Clip</span>
-                        <ExternalLink className="w-3.5 h-3.5"/>
-                      </a>
-                    </div>
-                  </div>
-                </div>
+                <TikTokPreviewCard post={inspectedPost} />
               ) : inspectedPost.media_type === 'video' ? (
                 <div className="w-full aspect-video">
-                  <video src={inspectedPost.media_url} controls className="w-full h-full object-cover" />
+                  <video src={inspectedPost.media_url} controls className="w-full h-full object-cover rounded-xl" />
                 </div>
               ) : (
                 <div className="w-full aspect-video">
-                  <img src={inspectedPost.media_url} alt={inspectedPost.title} className="w-full h-full object-cover" />
+                  <img src={inspectedPost.media_url} alt={inspectedPost.title} className="w-full h-full object-cover rounded-xl" />
                 </div>
               )}
             </div>
