@@ -483,7 +483,7 @@ export default function App() {
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [inputMap, setInputMap] = useState('Erangel');
   
-  // Dynamic Match Slots (Default 16, Admin can scale 2 to 24)
+  // Dynamic Match Slots (Default 16, Admin boleh laras 2 ke 24)
   const [matchSlots, setMatchSlots] = useState(() => {
     return Array.from({ length: 16 }, (_, idx) => {
       const tm = INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
@@ -586,183 +586,17 @@ export default function App() {
     showToast(`Team slot ${matchSlots.length} removed.`);
   };
 
-  const filteredScrims = useMemo(() => {
-    if (!currentUser) return [];
+  // Penapis pilihan nombor kedudukan (Rank) yang belum diambil oleh pasukan lain
+  const getAvailablePlacements = (currentIdx, currentPlacement) => {
+    const taken = new Set(
+      matchSlots
+        .filter((_, i) => i !== currentIdx)
+        .map(s => Number(s.placement))
+    );
 
-    return scrims.filter(s => {
-      const isOwner = isAuthorizedAdmin(s);
-      const matchTier = tierFilter === 'All' || s.tier === tierFilter;
-      const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
-      const matchSearch = s.title.toLowerCase().includes(searchScrimQuery.toLowerCase()) || 
-                          (s.tier && s.tier.toLowerCase().includes(searchScrimQuery.toLowerCase()));
-      return isOwner && matchTier && matchType && matchSearch;
-    });
-  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery, currentUser]);
-
-  const activePublicScrim = useMemo(() => {
-    if (!filteredScrims.length) return null;
-    return filteredScrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || null;
-  }, [filteredScrims, selectedScrimId]);
-
-  useEffect(() => {
-    if (filteredScrims.length > 0 && !filteredScrims.some(s => s.id === selectedScrimId)) {
-      setSelectedScrimId(filteredScrims[0].id);
-    }
-  }, [filteredScrims, selectedScrimId]);
-
-  const handleDeleteScrim = async (scrimId) => {
-    if (!currentUser) return;
-    const target = scrims.find(s => s.id === scrimId);
-    if (!target || !isAuthorizedAdmin(target)) {
-      showToast('You do not have permission to delete this session!');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to permanently delete "${target.title}"? All match results will be removed.`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('scrims').delete().eq('id', scrimId);
-      if (error) throw error;
-
-      const updated = scrims.filter(s => s.id !== scrimId);
-      setScrims(updated);
-
-      if (adminSelectedScrimId === scrimId) {
-        setAdminSelectedScrimId(updated[0]?.id || '');
-      }
-      if (selectedScrimId === scrimId) {
-        setSelectedScrimId(updated[0]?.id || '');
-      }
-
-      showToast('Session deleted successfully!');
-    } catch (err) {
-      showToast('Failed to delete session: ' + err.message);
-    }
-  };
-
-  const openEditScrimModal = () => {
-    if (!activeAdminScrim) return;
-    setEditTitle(activeAdminScrim.title || '');
-    setEditHostName(activeAdminScrim.host_name || '');
-    setEditEventType(activeAdminScrim.event_type || 'Scrim');
-    setEditTier(activeAdminScrim.tier || 'Tier 1 (Pro)');
-    setEditDesc(activeAdminScrim.description || '');
-    setEditContact(activeAdminScrim.host_contact || '');
-    setEditLogoFile(null);
-    setIsEditScrimModalOpen(true);
-  };
-
-  const handleUpdateScrimSettings = async (e) => {
-    e.preventDefault();
-    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
-      showToast('Access denied!');
-      return;
-    }
-
-    try {
-      setIsSavingEdit(true);
-      let updatedLogoUrl = activeAdminScrim.logo_url;
-
-      if (editLogoFile) {
-        updatedLogoUrl = await uploadMediaToSupabase(editLogoFile, 'logos');
-      }
-
-      const updatedData = {
-        title: editTitle.trim(),
-        host_name: editHostName.trim() || activeAdminScrim.host_name || 'Tournament Organizer',
-        event_type: editEventType,
-        tier: editTier,
-        description: editDesc.trim(),
-        host_contact: editContact.trim(),
-        logo_url: updatedLogoUrl
-      };
-
-      const { error } = await supabase
-        .from('scrims')
-        .update(updatedData)
-        .eq('id', activeAdminScrim.id);
-
-      if (error) {
-        showToast('Update failed: ' + error.message);
-      } else {
-        const merged = { ...activeAdminScrim, ...updatedData };
-        setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
-        setIsEditScrimModalOpen(false);
-        showToast('Event settings saved successfully!');
-      }
-    } catch (err) {
-      showToast('Failed to upload logo: ' + err.message);
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
-
-  const handleToggleFinishScrim = async () => {
-    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
-      showToast('Only authorized hosts can change lock status!');
-      return;
-    }
-
-    const nextState = !activeAdminScrim.is_finished;
-    const { error } = await supabase
-      .from('scrims')
-      .update({ is_finished: nextState })
-      .eq('id', activeAdminScrim.id);
-
-    if (error) {
-      showToast('Status update failed: ' + error.message);
-    } else {
-      const updated = { ...activeAdminScrim, is_finished: nextState };
-      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
-      setSelectedScrimId(activeAdminScrim.id);
-      showToast(nextState ? '🏁 Session marked as COMPLETED (Locked)!' : '🔓 Session reopened for scoring.');
-    }
-  };
-
-  const handleAddNewMatch = () => {
-    if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Cannot add rounds to a concluded session!');
-      return;
-    }
-    const currentTotal = activeAdminScrim?.matches?.length || 0;
-    const newMatchNumber = currentTotal + 1;
-    setSelectedMatchIdx(newMatchNumber - 1);
-    showToast(`Match ${newMatchNumber} ready for entry!`);
-  };
-
-  const handleRemoveLastMatch = async () => {
-    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
-    if (activeAdminScrim.is_finished) {
-      showToast('⚠️ Cannot delete rounds from a concluded session!');
-      return;
-    }
-
-    const currentMatches = activeAdminScrim.matches || [];
-    if (currentMatches.length === 0) {
-      showToast('No rounds available to delete.');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to delete Match ${currentMatches.length}?`)) return;
-
-    const trimmed = currentMatches.slice(0, -1);
-    const updated = {
-      ...activeAdminScrim,
-      matches: trimmed,
-      total_matches: trimmed.length
-    };
-
-    const { error } = await supabase.from('scrims').upsert(updated);
-
-    if (error) {
-      showToast('Error: ' + error.message);
-    } else {
-      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
-      setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
-      showToast('Last round removed successfully.');
-    }
+    return Array.from({ length: matchSlots.length }, (_, i) => i + 1).filter(
+      num => num === Number(currentPlacement) || !taken.has(num)
+    );
   };
 
   const handleSlotChange = (index, field, value) => {
@@ -2078,7 +1912,7 @@ export default function App() {
                         onClick={() => setInspectedScrim(item.scrimData)}
                         className="p-3.5 bg-slate-50 hover:bg-white active:scale-[0.99] border border-slate-200 hover:border-lime-400 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition shadow-xs"
                       >
-                        {/* Info Sesi & Host (Auto truncate & wrap) */}
+                        {/* Info Sesi & Host */}
                         <div className="flex items-center space-x-3 min-w-0 flex-1">
                           {item.scrimData?.logo_url && (
                             <img 
@@ -2115,7 +1949,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Statistik & Kedudukan (Tersusun kemas di baris bawah pada telefon) */}
+                        {/* Statistik & Kedudukan */}
                         <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/70 flex-shrink-0">
                           <div className="text-left sm:text-right">
                             <span className="text-[9px] text-slate-400 uppercase font-bold block">Kills</span>
@@ -2180,7 +2014,7 @@ export default function App() {
               <>
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
                   
-                  {/* Pemilihan Sesi Yang Dibaiki Responsif */}
+                  {/* Pemilihan Sesi Responsif */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 w-full sm:flex-1 min-w-0">
                       <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
@@ -3437,7 +3271,7 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Mobile Cards (Menggunakan Dropdown Rank) */}
+                {/* Mobile Cards (Menggunakan Dropdown Rank Unik) */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -3477,7 +3311,7 @@ export default function App() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                          {/* Dropdown Rank Mobile */}
+                          {/* Dropdown Rank Mobile Berfilter */}
                           <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-500 uppercase font-bold">Rank:</span>
                             <select
@@ -3486,7 +3320,7 @@ export default function App() {
                               onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                               className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-900 text-xs focus:outline-none focus:border-lime-500"
                             >
-                              {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                              {getAvailablePlacements(idx, row.placement).map((num) => (
                                 <option key={num} value={num}>
                                   #{num} {num === 1 ? '👑' : ''}
                                 </option>
@@ -3524,7 +3358,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Desktop Table (Menggunakan Dropdown Rank) */}
+                {/* Desktop Table (Menggunakan Dropdown Rank Berfilter) */}
                 <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -3559,11 +3393,11 @@ export default function App() {
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.placement}
                                   onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                  className="w-20 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs"
+                                  className="w-24 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs"
                                 >
-                                  {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                                  {getAvailablePlacements(idx, row.placement).map((num) => (
                                     <option key={num} value={num}>
-                                      #{num}
+                                      #{num} {num === 1 ? '👑' : ''}
                                     </option>
                                   ))}
                                 </select>
@@ -4157,8 +3991,8 @@ export default function App() {
                   href={inspectedScrim.host_contact.startsWith('http') 
                     ? inspectedScrim.host_contact 
                     : (inspectedScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                      ? 'https://wa.me/' + inspectedScrim.host_contact.replace(/[^0-9]/g, '')
-                      : 'https://t.me/' + inspectedScrim.host_contact.replace('@', ''))
+                      ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
+                      : 'https://t.me/' + host.contact.replace('@', ''))
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -4234,6 +4068,7 @@ export default function App() {
               </button>
             </div>
 
+            {/* Media Display */}
             <div className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 p-2 sm:p-4">
               {inspectedPost.platform === 'tiktok' ? (
                 <TikTokPreviewCard post={inspectedPost} />
