@@ -4662,29 +4662,59 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Match Title & Map Selection */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                        <div>
-                          <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
-                            Nama Sesi Kejohanan
-                          </label>
-                          <input
-                            type="text"
-                            disabled
-                            value={activeAdminScrim?.title || 'PUBG Mobile Scrim'}
-                            className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 cursor-not-allowed"
-                          />
+                      {/* Match Title & Map Selection (Dengan Butang Highlight Edit Event Settings) */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+                        {/* Nama Sesi Kejohanan & Butang Edit Event Settings */}
+                        <div className="lg:col-span-8 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-[11px] uppercase font-bold text-slate-700">
+                              Nama Sesi Kejohanan
+                            </label>
+                            <span className="text-[10px] text-lime-700 font-bold hidden sm:inline">
+                              Tukar Nama • Logo • Peraturan
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-col sm:flex-row">
+                            <button
+                              type="button"
+                              onClick={openEditScrimModal}
+                              className="w-full sm:flex-1 bg-slate-50 hover:bg-lime-50/60 border border-slate-200 hover:border-lime-400 rounded-xl px-3 py-2 text-xs font-black text-slate-950 text-left transition flex items-center justify-between group cursor-pointer shadow-2xs"
+                              title="Tekan untuk buka card Edit Event Settings"
+                            >
+                              <span className="truncate group-hover:text-lime-900">
+                                {activeAdminScrim?.title || 'PUBG Mobile Scrim'}
+                              </span>
+                              <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-lime-700 flex-shrink-0 ml-1.5 transition"/>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={openEditScrimModal}
+                              className="w-full sm:w-auto px-3.5 py-2 bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95 border border-lime-500/50 whitespace-nowrap flex-shrink-0"
+                              title="Buka card Edit Event Settings untuk ubah logo, tajuk & description"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-slate-950"/>
+                              <span>Edit Event Settings</span>
+                            </button>
+                          </div>
+
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1 pt-0.5">
+                            <span className="text-lime-700 font-bold">💡 Tip:</span>
+                            <span>Tekan untuk tukar nama kejohanan, muat naik <strong>logo rasmi</strong> &amp; kemaskini <strong>description / peraturan</strong> poster.</span>
+                          </p>
                         </div>
 
-                        <div>
-                          <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
+                        {/* Pilih Map */}
+                        <div className="lg:col-span-4 space-y-1">
+                          <label className="block text-[11px] uppercase font-bold text-slate-700">
                             Pilih Map (Pusingan Match {selectedMatchIdx + 1})
                           </label>
                           <select
                             disabled={activeAdminScrim?.is_finished}
                             value={inputMap}
                             onChange={(e) => setInputMap(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition cursor-pointer"
                           >
                             <option value="Erangel">Erangel</option>
                             <option value="Miramar">Miramar</option>
@@ -5534,6 +5564,13 @@ export default function App() {
                 <span>Edit Event Settings</span>
               </h3>
               <button onClick={() => setIsEditScrimModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            </div>
+
+            <div className="bg-lime-50 border border-lime-200 text-slate-800 p-2.5 rounded-2xl flex items-center gap-2 text-xs">
+              <span className="text-base flex-shrink-0">💡</span>
+              <span className="leading-snug">
+                Di sini anda boleh tukar <strong>nama sesi kejohanan</strong>, muat naik <strong>logo rasmi</strong> untuk poster, dan kemaskini <strong>description / peraturan</strong>.
+              </span>
             </div>
 
             <form onSubmit={handleUpdateScrimSettings} className="space-y-3 text-xs">
