@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { toPng } from 'html-to-image';
 import { 
   Trophy, 
   Shield, 
@@ -48,7 +49,11 @@ import {
   Globe,
   Link as LinkIcon,
   Video,
-  HelpCircle
+  HelpCircle,
+  Zap,
+  Crown,
+  RotateCcw,
+  Cloud
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -184,6 +189,59 @@ const INITIAL_FALLBACK_TEAMS = [
   { id: 'tm_24', name: 'S2G Esports', tag: 'S2G' }
 ];
 
+const PLAYGROUND_MAPS = [
+  { id: 'Erangel', name: 'Erangel', badge: 'bg-lime-500/20 text-lime-400 border-lime-500/30' },
+  { id: 'Miramar', name: 'Miramar', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+  { id: 'Sanhok', name: 'Sanhok', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  { id: 'Vikendi', name: 'Vikendi', badge: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' }
+];
+
+const DEFAULT_PLAYGROUND_TEAMS = [
+  { name: 'Geek Fam', elims: 9, placement: 1, wwcd: true },
+  { name: 'SEM9', elims: 6, placement: 2, wwcd: false },
+  { name: 'YALL', elims: 5, placement: 3, wwcd: false },
+  { name: 'Bigetron RA', elims: 7, placement: 4, wwcd: false },
+  { name: 'Vampire Esports', elims: 4, placement: 5, wwcd: false },
+  { name: 'Morph Team', elims: 3, placement: 6, wwcd: false },
+  { name: 'Alter Ego', elims: 5, placement: 7, wwcd: false },
+  { name: 'FaZe Clan', elims: 2, placement: 8, wwcd: false },
+  { name: "D'Xavier", elims: 4, placement: 9, wwcd: false },
+  { name: 'Talon Esports', elims: 3, placement: 10, wwcd: false },
+  { name: '4Rivals', elims: 2, placement: 11, wwcd: false },
+  { name: 'Genesis Esports', elims: 1, placement: 12, wwcd: false },
+  { name: 'HomeBois', elims: 2, placement: 13, wwcd: false },
+  { name: 'Todak', elims: 1, placement: 14, wwcd: false },
+  { name: 'Crit VIP', elims: 0, placement: 15, wwcd: false },
+  { name: 'RSG', elims: 1, placement: 16, wwcd: false },
+];
+
+const generateDefaultPresetSlots = () => {
+  return DEFAULT_PLAYGROUND_TEAMS.map((t, idx) => {
+    const placePts = getPlacementPoints(t.placement);
+    return {
+      slot: idx + 1,
+      teamName: t.name,
+      placement: t.placement,
+      elims: t.elims,
+      wwcd: t.wwcd,
+      placePts,
+      totalPts: placePts + t.elims
+    };
+  });
+};
+
+const generateBlankSlots = () => {
+  return Array.from({ length: 16 }, (_, idx) => ({
+    slot: idx + 1,
+    teamName: '',
+    placement: '',
+    elims: 0,
+    wwcd: false,
+    placePts: 0,
+    totalPts: 0
+  }));
+};
+
 const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
@@ -203,7 +261,317 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('teams');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (['playground', 'standings', 'leaderboard', 'teams', 'hosts', 'showcase', 'about', 'admin'].includes(hash)) {
+        return hash === 'standings' ? 'leaderboard' : hash;
+      }
+    } catch (e) {}
+    return 'playground';
+  });
+  
+  // Playground Local-First State & Poster Ref
+  const posterRef = useRef(null);
+  const [isDownloadingPoster, setIsDownloadingPoster] = useState(false);
+  const [isSavingCloudMatch, setIsSavingCloudMatch] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingCloudSync, setPendingCloudSync] = useState(false);
+
+  const [activeMatch, setActiveMatch] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scrim_active_match');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.slots) && parsed.slots.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse localStorage scrim_active_match:', e);
+    }
+    return {
+      title: 'Night Scrim Match 1',
+      map: 'Erangel',
+      slots: generateDefaultPresetSlots(),
+      synced: false
+    };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('scrim_active_match', JSON.stringify(activeMatch));
+    } catch (e) {
+      console.warn('Failed to sync scrim_active_match to localStorage:', e);
+    }
+  }, [activeMatch]);
+
+  const sortedPosterLeaderboard = useMemo(() => {
+    return [...activeMatch.slots].sort((a, b) => {
+      // 1. Total Points (descending)
+      if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
+      // 2. Elims (descending, tiebreaker 1)
+      if (b.elims !== a.elims) return b.elims - a.elims;
+      // 3. Placement (ascending, tiebreaker 2: lower rank number is better)
+      const placeA = Number(a.placement) || 999;
+      const placeB = Number(b.placement) || 999;
+      if (placeA !== placeB) return placeA - placeB;
+      // 4. Slot # ascending
+      return a.slot - b.slot;
+    });
+  }, [activeMatch.slots]);
+
+  const handlePlaygroundSlotChange = (index, field, value) => {
+    setActiveMatch(prev => {
+      const updatedSlots = [...prev.slots];
+      const row = { ...updatedSlots[index] };
+
+      if (field === 'teamName') {
+        row.teamName = value;
+      } else if (field === 'elims') {
+        const e = Math.max(0, parseInt(value, 10) || 0);
+        row.elims = e;
+        row.totalPts = row.placePts + e;
+      } else if (field === 'placement') {
+        const newPlace = value === '' ? '' : parseInt(value, 10);
+        const oldPlace = row.placement !== '' && !isNaN(parseInt(row.placement, 10)) ? parseInt(row.placement, 10) : '';
+
+        if (newPlace === '' || isNaN(newPlace)) {
+          row.placement = '';
+          row.placePts = 0;
+          row.wwcd = false;
+          row.totalPts = row.elims;
+          updatedSlots[index] = row;
+        } else {
+          const conflictIdx = updatedSlots.findIndex((s, i) => i !== index && Number(s.placement) === newPlace);
+          row.placement = newPlace;
+          row.placePts = getPlacementPoints(newPlace);
+          row.wwcd = newPlace === 1;
+          row.totalPts = row.placePts + row.elims;
+          updatedSlots[index] = row;
+
+          if (conflictIdx !== -1) {
+            const conflicting = { ...updatedSlots[conflictIdx] };
+            conflicting.placement = oldPlace !== '' ? oldPlace : '';
+            conflicting.placePts = conflicting.placement !== '' ? getPlacementPoints(conflicting.placement) : 0;
+            conflicting.wwcd = conflicting.placement === 1;
+            conflicting.totalPts = conflicting.placePts + conflicting.elims;
+            updatedSlots[conflictIdx] = conflicting;
+          }
+        }
+      } else if (field === 'wwcd') {
+        const isNowWWCD = Boolean(value);
+        if (isNowWWCD) {
+          const existingChampIdx = updatedSlots.findIndex((s, i) => i !== index && Number(s.placement) === 1);
+          const oldPlace = row.placement !== '' && !isNaN(parseInt(row.placement, 10)) ? parseInt(row.placement, 10) : '';
+          row.placement = 1;
+          row.placePts = 10;
+          row.wwcd = true;
+          row.totalPts = 10 + row.elims;
+          updatedSlots[index] = row;
+
+          if (existingChampIdx !== -1) {
+            const prevChamp = { ...updatedSlots[existingChampIdx] };
+            prevChamp.placement = oldPlace !== '' ? oldPlace : '';
+            prevChamp.placePts = prevChamp.placement !== '' ? getPlacementPoints(prevChamp.placement) : 0;
+            prevChamp.wwcd = false;
+            prevChamp.totalPts = prevChamp.placePts + prevChamp.elims;
+            updatedSlots[existingChampIdx] = prevChamp;
+          }
+        } else {
+          row.wwcd = false;
+          row.placement = '';
+          row.placePts = 0;
+          row.totalPts = row.elims;
+          updatedSlots[index] = row;
+        }
+      }
+
+      return { ...prev, slots: updatedSlots, synced: false };
+    });
+  };
+
+  const handleCellKeyDown = (e, rowIdx, colName) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (colName === 'teamName') {
+        const nextInput = document.querySelector(`[data-cell="teamName-${rowIdx + 1}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select?.();
+        }
+      } else if (colName === 'elims') {
+        const nextInput = document.querySelector(`[data-cell="elims-${rowIdx + 1}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select?.();
+        }
+      } else if (colName === 'placement') {
+        const nextInput = document.querySelector(`[data-cell="placement-${rowIdx + 1}"]`);
+        if (nextInput) nextInput.focus();
+      }
+    } else if (e.key === 'ArrowDown') {
+      const nextInput = document.querySelector(`[data-cell="${colName}-${rowIdx + 1}"]`);
+      if (nextInput) {
+        e.preventDefault();
+        nextInput.focus();
+        nextInput.select?.();
+      }
+    } else if (e.key === 'ArrowUp') {
+      const prevInput = document.querySelector(`[data-cell="${colName}-${rowIdx - 1}"]`);
+      if (prevInput) {
+        e.preventDefault();
+        prevInput.focus();
+        prevInput.select?.();
+      }
+    }
+  };
+
+  const handleClearPlaygroundForm = () => {
+    if (!window.confirm('Clear all team names and scores from this match?')) return;
+    setActiveMatch(prev => ({
+      ...prev,
+      slots: generateBlankSlots(),
+      synced: false
+    }));
+    showToast('Form cleared! Ready for fresh entry.');
+  };
+
+  const handleResetPlaygroundToDefault = () => {
+    setActiveMatch(prev => ({
+      ...prev,
+      title: 'Night Scrim Match 1',
+      map: 'Erangel',
+      slots: generateDefaultPresetSlots(),
+      synced: false
+    }));
+    showToast('Reset to default preset squads!');
+  };
+
+  const handleDownloadPlaygroundPoster = async () => {
+    if (!posterRef.current) return;
+    try {
+      setIsDownloadingPoster(true);
+      const dataUrl = await toPng(posterRef.current, {
+        quality: 0.98,
+        pixelRatio: 2,
+        backgroundColor: '#0D0D0D'
+      });
+      const link = document.createElement('a');
+      const cleanTitle = (activeMatch.title || 'scrim-match-results')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-');
+      link.download = `${cleanTitle}-${activeMatch.map.toLowerCase()}.png`;
+      link.href = dataUrl;
+      link.click();
+      showToast('🎉 High-res poster PNG downloaded!');
+    } catch (err) {
+      console.error('Error generating poster:', err);
+      showToast('Failed to download poster: ' + err.message);
+    } finally {
+      setIsDownloadingPoster(false);
+    }
+  };
+
+  const syncMatchToCloud = async (user, matchToSync) => {
+    if (!user || !matchToSync) return;
+    try {
+      setIsSavingCloudMatch(true);
+      const matchId = 'match_' + Date.now();
+
+      // 1. Dual-write attempt to public.matches & public.match_results
+      try {
+        await supabase.from('matches').insert([{
+          id: matchId,
+          title: matchToSync.title || 'Night Scrim Match 1',
+          map: matchToSync.map || 'Erangel',
+          user_id: user.id,
+          created_at: new Date().toISOString()
+        }]);
+
+        const resultsPayload = matchToSync.slots.map(s => ({
+          match_id: matchId,
+          slot_no: s.slot,
+          team_name: s.teamName || `Slot #${s.slot}`,
+          placement: Number(s.placement) || s.slot,
+          elims: Number(s.elims) || 0,
+          placement_pts: Number(s.placePts) || 0,
+          total_pts: Number(s.totalPts) || 0,
+          wwcd: s.wwcd ? 1 : (Number(s.placement) === 1 ? 1 : 0)
+        }));
+        await supabase.from('match_results').insert(resultsPayload);
+      } catch (tableErr) {
+        console.info('public.matches sync note:', tableErr);
+      }
+
+      // 2. Also save into public.scrims table for integration with tournaments & leaderboards
+      const compiledResults = matchToSync.slots.map(s => {
+        const cleanName = s.teamName ? s.teamName.trim() : `Slot #${s.slot}`;
+        return {
+          teamId: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase(),
+          teamName: cleanName,
+          tag: cleanName.slice(0, 4).toUpperCase(),
+          placement: Number(s.placement) || s.slot,
+          kills: Number(s.elims) || 0,
+          placePts: Number(s.placePts) || 0,
+          totalPts: Number(s.totalPts) || 0,
+          wwcd: s.wwcd ? 1 : (Number(s.placement) === 1 ? 1 : 0)
+        };
+      });
+
+      const newSession = {
+        id: 'scrim_' + Date.now(),
+        title: matchToSync.title || 'Night Scrim Match 1',
+        event_type: 'Scrim',
+        tier: 'Tier 1 (Pro)',
+        description: `Official Scrim match on ${matchToSync.map || 'Erangel'}.`,
+        date: new Date().toISOString().split('T')[0],
+        logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+        host_name: profileName || user.email.split('@')[0],
+        host_contact: profileContact || '',
+        total_matches: 1,
+        matches: [{
+          matchNo: 1,
+          map: matchToSync.map || 'Erangel',
+          results: compiledResults
+        }],
+        created_by: user.id,
+        co_hosts: [],
+        claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
+        is_finished: false
+      };
+
+      const { error } = await supabase.from('scrims').insert([newSession]);
+      if (!error) {
+        setScrims(prev => [newSession, ...prev]);
+        setAdminSelectedScrimId(newSession.id);
+        setSelectedScrimId(newSession.id);
+      }
+
+      setActiveMatch(prev => ({ ...prev, synced: true }));
+      try {
+        localStorage.setItem('scrim_active_match', JSON.stringify({ ...matchToSync, synced: true }));
+      } catch (e) {}
+
+      showToast('🚀 Match saved to your account dashboard!');
+      setIsAuthModalOpen(false);
+      setPendingCloudSync(false);
+    } catch (err) {
+      console.error('Error syncing match to cloud:', err);
+      showToast('Match sync note: ' + err.message);
+    } finally {
+      setIsSavingCloudMatch(false);
+    }
+  };
+
+  const handleSaveMatchClick = () => {
+    if (!currentUser) {
+      setPendingCloudSync(true);
+      setIsAuthModalOpen(true);
+    } else {
+      syncMatchToCloud(currentUser, activeMatch);
+    }
+  };
   
   const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
   const [scrims, setScrims] = useState([]);
@@ -326,7 +694,7 @@ export default function App() {
     setAuthLoading(true);
 
     if (isRegisterMode) {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: authEmail,
         password: authPassword
       });
@@ -336,6 +704,13 @@ export default function App() {
       } else {
         showToast('Registration complete! Please sign in.');
         setIsRegisterMode(false);
+        if (data?.user) {
+          setCurrentUser(data.user);
+          setIsAuthModalOpen(false);
+          if (pendingCloudSync) {
+            await syncMatchToCloud(data.user, activeMatch);
+          }
+        }
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -349,6 +724,10 @@ export default function App() {
         setCurrentUser(data.user);
         showToast('Welcome back, ' + data.user.email);
         setAuthPassword('');
+        setIsAuthModalOpen(false);
+        if (pendingCloudSync) {
+          await syncMatchToCloud(data.user, activeMatch);
+        }
       }
     }
     setAuthLoading(false);
@@ -1996,6 +2375,13 @@ export default function App() {
 
           <nav className="hidden md:flex space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
             <button
+              onClick={() => setActiveTab('playground')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'playground' ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' : 'text-slate-600 hover:text-slate-950')}
+            >
+              <Zap className="w-4 h-4 text-lime-400 fill-current"/>
+              <span>Quick Scorer</span>
+            </button>
+            <button
               onClick={() => setActiveTab('teams')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
             >
@@ -2040,20 +2426,46 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-xl">
+                  <User className="w-3.5 h-3.5 text-lime-600" />
+                  <span className="text-xs font-bold text-slate-800 max-w-[130px] truncate">
+                    {profileName || currentUser.email.split('@')[0]}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl transition flex items-center gap-1"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsRegisterMode(false);
+                  setPendingCloudSync(false);
+                  setIsAuthModalOpen(true);
+                }}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-950 hover:bg-slate-800 text-lime-400 border border-slate-800 transition flex items-center gap-1.5 shadow-sm"
+                title="Sign in to your host account"
+              >
+                <Lock className="w-3.5 h-3.5 text-lime-400" />
+                <span>Login / Sign Up</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
-              className="px-2.5 py-1 bg-slate-200/80 hover:bg-lime-100 hover:text-lime-800 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-300/80"
+              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
               title="Report Bug / Feedback to Developer ry.khor"
             >
               <Bug className="w-3.5 h-3.5 text-lime-600"/>
               <span className="hidden sm:inline">Feedback</span>
             </button>
-
-            <div className="flex md:hidden items-center gap-1.5">
-              {currentUser && (
-                <span className="w-2.5 h-2.5 rounded-full bg-lime-500 animate-pulse" title="Admin Active" />
-              )}
-            </div>
           </div>
 
         </div>
@@ -2061,6 +2473,405 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6">
+
+        {/* VIEW 0: PLAYGROUND SPLIT-SCREEN WORKSPACE (ROOT ROUTE /) */}
+        {activeTab === 'playground' && (
+          <div className="space-y-6">
+            
+            {/* Split Screen Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* LEFT PANEL: Quick Input Grid (16 Slots) */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                  
+                  {/* Match Details Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Zap className="w-4 h-4 text-lime-600 fill-current"/>
+                        <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-800 bg-lime-100 px-2 py-0.5 rounded-full">
+                          LIVE MATCH SCORER • 16 SLOTS
+                        </span>
+                      </div>
+                      <h2 className="text-base sm:text-lg font-black text-slate-950">Quick Match Scoring Workspace</h2>
+                      <p className="text-xs text-slate-500">Fast keyboard entry (Tab &amp; Enter) with real-time official point calculation.</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={handleClearPlaygroundForm}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
+                        title="Clear all teams and scores"
+                      >
+                        <Trash2 className="w-3.5 h-3.5"/>
+                        <span>Clear</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetPlaygroundToDefault}
+                        className="px-2.5 py-1.5 bg-lime-100 hover:bg-lime-200 text-lime-800 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-lime-300"
+                        title="Reset to sample esports teams"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5"/>
+                        <span>Reset Default</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Match Title & Map Selector */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
+                        Match Title / Fixture Name
+                      </label>
+                      <input
+                        type="text"
+                        value={activeMatch.title}
+                        onChange={(e) => setActiveMatch(prev => ({ ...prev, title: e.target.value, synced: false }))}
+                        placeholder="e.g. Night Scrim Match 1"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
+                        Battleground Map
+                      </label>
+                      <div className="grid grid-cols-4 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        {PLAYGROUND_MAPS.map(m => {
+                          const isSelected = activeMatch.map === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setActiveMatch(prev => ({ ...prev, map: m.id, synced: false }))}
+                              className={'py-1.5 px-1 rounded-lg text-xs font-black transition text-center ' + (
+                                isSelected 
+                                  ? 'bg-slate-950 text-lime-400 shadow-xs' 
+                                  : 'text-slate-600 hover:text-slate-950'
+                              )}
+                            >
+                              {m.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Input Grid Table (16 Slots) */}
+                  <div className="border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs bg-white">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-950 text-white uppercase text-[10px] font-bold tracking-wider border-b border-slate-800">
+                          <tr>
+                            <th className="py-2.5 px-3 w-12 text-center">Slot</th>
+                            <th className="py-2.5 px-3 min-w-[150px]">Team Name</th>
+                            <th className="py-2.5 px-2 w-24 text-center">Placement</th>
+                            <th className="py-2.5 px-2 w-28 text-center">Elims</th>
+                            <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
+                            <th className="py-2.5 px-3 w-20 text-center text-lime-400">Total Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-mono">
+                          {activeMatch.slots.map((row, idx) => {
+                            const isWWCD = Number(row.placement) === 1 || row.wwcd;
+                            return (
+                              <tr 
+                                key={idx} 
+                                className={'transition ' + (isWWCD ? 'bg-lime-50/70 hover:bg-lime-50' : 'hover:bg-slate-50/80')}
+                              >
+                                {/* Slot # */}
+                                <td className="py-2 px-3 text-center text-slate-400 font-bold">
+                                  #{String(row.slot).padStart(2, '0')}
+                                </td>
+
+                                {/* Team Name */}
+                                <td className="py-2 px-3 font-sans">
+                                  <input
+                                    type="text"
+                                    data-cell={`teamName-${idx}`}
+                                    value={row.teamName}
+                                    onChange={(e) => handlePlaygroundSlotChange(idx, 'teamName', e.target.value)}
+                                    onKeyDown={(e) => handleCellKeyDown(e, idx, 'teamName')}
+                                    placeholder={`Squad ${row.slot}...`}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-semibold focus:outline-none focus:border-lime-500 placeholder:text-slate-400 placeholder:font-normal"
+                                  />
+                                </td>
+
+                                {/* Placement */}
+                                <td className="py-2 px-2 text-center">
+                                  <select
+                                    data-cell={`placement-${idx}`}
+                                    value={row.placement || ''}
+                                    onChange={(e) => handlePlaygroundSlotChange(idx, 'placement', e.target.value)}
+                                    onKeyDown={(e) => handleCellKeyDown(e, idx, 'placement')}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs text-center"
+                                  >
+                                    <option value="">--</option>
+                                    {Array.from({ length: 16 }, (_, i) => i + 1).map((num) => (
+                                      <option key={num} value={num}>
+                                        #{num} {num === 1 ? '👑' : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+
+                                {/* Elims */}
+                                <td className="py-2 px-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handlePlaygroundSlotChange(idx, 'elims', Math.max(0, row.elims - 1))}
+                                      className="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-black text-xs transition"
+                                    >
+                                      -
+                                    </button>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      data-cell={`elims-${idx}`}
+                                      value={row.elims}
+                                      onChange={(e) => handlePlaygroundSlotChange(idx, 'elims', e.target.value)}
+                                      onKeyDown={(e) => handleCellKeyDown(e, idx, 'elims')}
+                                      className="w-10 bg-slate-50 border border-slate-200 rounded text-center py-0.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handlePlaygroundSlotChange(idx, 'elims', row.elims + 1)}
+                                      className="w-5 h-5 rounded bg-lime-400 hover:bg-lime-300 text-slate-950 flex items-center justify-center font-black text-xs transition"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </td>
+
+                                {/* WWCD Toggle */}
+                                <td className="py-2 px-2 text-center font-sans">
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePlaygroundSlotChange(idx, 'wwcd', !isWWCD)}
+                                    className={'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition ' + (
+                                      isWWCD 
+                                        ? 'bg-lime-400 text-slate-950 shadow-xs' 
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                    )}
+                                  >
+                                    {isWWCD ? '👑 WWCD' : 'No'}
+                                  </button>
+                                </td>
+
+                                {/* Total Points */}
+                                <td className="py-2 px-3 text-center">
+                                  <div className="font-mono font-black text-xs text-lime-800 bg-lime-100 px-2 py-0.5 rounded border border-lime-200 inline-block">
+                                    {row.totalPts}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Scoring Formula Note */}
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-[11px] text-slate-600 flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
+                      <span>
+                        <strong>Official PMGC Point System:</strong> 1st: 10 pts, 2nd: 6, 3rd: 5, 4th: 4, 5th: 3, 6th: 2, 7th-8th: 1, 9th-16th: 0. Each Elim = 1 pt.
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      Total Pts = Place Pts + Elims
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* RIGHT PANEL: Sticky Real-Time Poster Preview */}
+              <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5">
+                
+                {/* Visual Esports Leaderboard Card (Dark Aesthetic #0D0D0D) */}
+                <div 
+                  ref={posterRef}
+                  className="bg-[#0D0D0D] text-white rounded-3xl p-5 border border-slate-800 shadow-2xl relative overflow-hidden font-sans select-none"
+                  style={{ backgroundColor: '#0D0D0D' }}
+                >
+                  {/* Angled background accents */}
+                  <div className="absolute -top-16 -right-16 w-48 h-48 bg-lime-500/15 rounded-full blur-3xl pointer-events-none"></div>
+                  <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                  {/* Poster Header */}
+                  <div className="relative pb-3 mb-3 border-b border-slate-800/80">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-lg bg-lime-400 flex items-center justify-center text-slate-950 font-black text-xs">
+                          SH
+                        </div>
+                        <span className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-lime-400">
+                          PUBG MOBILE ESPORTS
+                        </span>
+                      </div>
+
+                      {/* Map Badge */}
+                      <span className={'text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border ' + (
+                        PLAYGROUND_MAPS.find(m => m.id === activeMatch.map)?.badge || 'bg-lime-500/20 text-lime-400 border-lime-500/30'
+                      )}>
+                        {activeMatch.map.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-black uppercase tracking-wider text-white truncate">
+                      {activeMatch.title || 'NIGHT SCRIM MATCH 1'}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-mono tracking-tight uppercase flex items-center gap-2 mt-0.5">
+                      <span>OFFICIAL MATCH RESULTS</span>
+                      <span>•</span>
+                      <span>16 COMPETING SQUADS</span>
+                    </p>
+                  </div>
+
+                  {/* Leaderboard Table (Sorted: Total Pts desc > Elims desc > Placement asc) */}
+                  <div className="space-y-1 relative font-mono text-xs">
+                    {/* Header Row */}
+                    <div className="grid grid-cols-12 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800">
+                      <div className="col-span-2 text-center">RANK</div>
+                      <div className="col-span-5 text-left font-sans pl-1">SQUAD / TEAM</div>
+                      <div className="col-span-2 text-center">PLACE</div>
+                      <div className="col-span-1 text-center">ELIM</div>
+                      <div className="col-span-2 text-center text-lime-400">TOTAL</div>
+                    </div>
+
+                    {/* 16 Sorted Rows */}
+                    <div className="space-y-1">
+                      {sortedPosterLeaderboard.map((row, pos) => {
+                        const isChamp = pos === 0;
+                        const rankNumber = pos + 1;
+                        return (
+                          <div 
+                            key={row.slot}
+                            className={'grid grid-cols-12 items-center px-2 py-1 rounded-lg text-xs transition ' + (
+                              isChamp 
+                                ? 'bg-gradient-to-r from-lime-500/25 via-lime-500/10 to-transparent border-l-4 border-l-lime-400 text-white font-bold' 
+                                : rankNumber <= 3
+                                ? 'bg-slate-900/60 border-l-2 border-l-slate-400 text-slate-200'
+                                : 'bg-slate-900/30 text-slate-300 hover:bg-slate-900/50'
+                            )}
+                          >
+                            {/* Rank */}
+                            <div className="col-span-2 text-center font-bold flex items-center justify-center gap-1">
+                              {isChamp ? (
+                                <span className="text-lime-400 font-black flex items-center gap-0.5">
+                                  👑 #1
+                                </span>
+                              ) : rankNumber === 2 ? (
+                                <span className="text-slate-300">#2</span>
+                              ) : rankNumber === 3 ? (
+                                <span className="text-amber-500">#3</span>
+                              ) : (
+                                <span className="text-slate-500">#{rankNumber}</span>
+                              )}
+                            </div>
+
+                            {/* Squad Name */}
+                            <div className="col-span-5 text-left font-sans truncate pl-1 flex items-center gap-1.5">
+                              <span className="truncate font-semibold text-white">
+                                {row.teamName || `Slot #${row.slot}`}
+                              </span>
+                              {isChamp && (
+                                <span className="text-[8px] bg-lime-400 text-slate-950 font-black px-1 rounded uppercase tracking-wider">
+                                  WWCD
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Place Pts */}
+                            <div className="col-span-2 text-center text-slate-400">
+                              {row.placePts}
+                            </div>
+
+                            {/* Elims */}
+                            <div className="col-span-1 text-center font-bold text-slate-300">
+                              {row.elims}
+                            </div>
+
+                            {/* Total Points */}
+                            <div className="col-span-2 text-center font-black text-lime-400 font-mono">
+                              {row.totalPts}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Poster Footer */}
+                  <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between text-[9px] font-mono text-slate-400 uppercase tracking-wider">
+                    <span>GENERATED VIA SCRIM HUB</span>
+                    <span>TIEBREAK: ELIMS &gt; PLACEMENT</span>
+                  </div>
+                </div>
+
+                {/* Primary Action Buttons */}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPlaygroundPoster}
+                    disabled={isDownloadingPoster}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-lime-400 to-lime-300 hover:from-lime-300 hover:to-lime-200 text-slate-950 font-black rounded-2xl shadow-lg shadow-lime-400/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {isDownloadingPoster ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin"/>
+                        <span>Rendering High-Res PNG...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-slate-950"/>
+                        <span>Download Poster (PNG)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveMatchClick}
+                    disabled={isSavingCloudMatch}
+                    className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 font-bold rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {isSavingCloudMatch ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-lime-400"/>
+                        <span>Syncing to Supabase...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-4 h-4 text-lime-400"/>
+                        <span>Save Match &amp; Track Overall</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Local Storage Auto-Save Indicator */}
+                <div className="text-center">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
+                    <span>Local-First: Auto-saved to localStorage (key: scrim_active_match)</span>
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
 
         {/* VIEW 1: TEAM STATS */}
         {activeTab === 'teams' && (
@@ -3939,6 +4750,102 @@ export default function App() {
         </div>
       )}
 
+      {/* AUTH MODAL (LOGIN / SIGN UP FOR GUEST-PLAYGROUND & DASHBOARD) */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4 relative">
+            <button
+              onClick={() => {
+                setIsAuthModalOpen(false);
+                setPendingCloudSync(false);
+              }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 rounded-full p-1.5 hover:bg-slate-100 transition"
+              title="Close modal"
+            >
+              <X className="w-5 h-5"/>
+            </button>
+
+            <div className="text-center space-y-1.5 pt-1">
+              <div className="w-12 h-12 bg-lime-100 border border-lime-300 text-lime-800 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                <Lock className="w-6 h-6"/>
+              </div>
+              <h3 className="text-lg font-black text-slate-950">
+                {isRegisterMode ? 'Create Host Account' : 'Host Account Portal'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {isRegisterMode 
+                  ? 'Sign up to organize tournaments, track team analytics, and save match fixtures.' 
+                  : 'Sign in to access your tournament dashboard and save match fixtures.'}
+              </p>
+            </div>
+
+            {pendingCloudSync && (
+              <div className="p-3 bg-lime-50 border border-lime-200 rounded-2xl text-xs text-lime-900 font-semibold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-lime-600 flex-shrink-0"/>
+                <span>Your active match data is ready to be saved directly to your cloud tournament history upon signing in!</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-600 uppercase font-bold mb-1">Official Email</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                  <input
+                    type="email"
+                    required
+                    placeholder="host@esports.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-600 uppercase font-bold mb-1">Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                {authLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin"/>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <span>{isRegisterMode ? 'Register Host Account' : 'Sign In as Host'}</span>
+                )}
+              </button>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterMode(!isRegisterMode)}
+                  className="text-xs text-lime-700 hover:underline font-semibold"
+                >
+                  {isRegisterMode ? 'Already have an account? Sign In' : "Don't have a host account? Register here"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 2: DEVELOPER FEEDBACK MODAL */}
       {isFeedbackModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
@@ -4572,8 +5479,16 @@ export default function App() {
       {/* MOBILE NAVIGATION BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-1 py-1.5 flex items-center justify-around shadow-lg">
         <button
+          onClick={() => setActiveTab('playground')}
+          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'playground' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+        >
+          <Zap className="w-5 h-5"/>
+          <span className="text-[10px] mt-0.5">Scorer</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('teams')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Users className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Teams</span>
@@ -4581,31 +5496,15 @@ export default function App() {
 
         <button
           onClick={() => setActiveTab('hosts')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Award className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Hosts</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('showcase')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'showcase' ? 'text-lime-700 font-bold' : 'text-slate-400')}
-        >
-          <Sparkles className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5">Showcase</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('about')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'about' ? 'text-lime-700 font-bold' : 'text-slate-400')}
-        >
-          <Info className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5">About</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('leaderboard')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
           <Trophy className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Standings</span>
@@ -4613,9 +5512,9 @@ export default function App() {
 
         <button
           onClick={() => setActiveTab('admin')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
-          {currentUser ? <User className="w-5 h-5 text-lime-700"/> : <Lock className="w-3.5 h-3.5 text-slate-500"/>}
+          {currentUser ? <User className="w-5 h-5 text-lime-700"/> : <Lock className="w-4 h-4 text-slate-500"/>}
           <span className="text-[10px] mt-0.5">Admin</span>
         </button>
       </div>
