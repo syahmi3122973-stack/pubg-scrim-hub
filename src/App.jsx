@@ -776,7 +776,7 @@ export default function App() {
       const row = { ...updated[index] };
 
       if (field === 'placement') {
-        const p = Math.max(1, Math.min(prev.length, parseInt(value, 10) || prev.length));
+        const p = Math.max(1, Math.min(prev.length, parseInt(value, 10) || 1));
         row.placement = p;
         row.placePts = getPlacementPoints(p);
       } else if (field === 'kills') {
@@ -2736,7 +2736,7 @@ export default function App() {
                       <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">4</span>
                       <div>
                         <strong className="text-slate-900 block">Input Match Scores & Maps</strong>
-                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, or Rondo). Adjust each team's placement and eliminations.
+                        Select your active round (Match 1, Match 2...) and the battleground map (Erangel, Miramar, or Rondo). Choose the placement from the rank dropdown and enter eliminations.
                       </div>
                     </div>
 
@@ -3437,7 +3437,7 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Mobile Cards */}
+                {/* Mobile Cards (Menggunakan Dropdown Rank) */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -3477,20 +3477,21 @@ export default function App() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                          <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                          {/* Dropdown Rank Mobile */}
+                          <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-500 uppercase font-bold">Rank:</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400">#</span>
-                              <input
-                                type="number"
-                                min="1"
-                                max={matchSlots.length}
-                                disabled={activeAdminScrim?.is_finished}
-                                value={row.placement}
-                                onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                className="w-10 bg-transparent text-center font-bold text-slate-900 focus:outline-none"
-                              />
-                            </div>
+                            <select
+                              disabled={activeAdminScrim?.is_finished}
+                              value={row.placement}
+                              onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
+                              className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-900 text-xs focus:outline-none focus:border-lime-500"
+                            >
+                              {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                                <option key={num} value={num}>
+                                  #{num} {num === 1 ? '👑' : ''}
+                                </option>
+                              ))}
+                            </select>
                           </div>
 
                           <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200">
@@ -3523,7 +3524,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Desktop Table */}
+                {/* Desktop Table (Menggunakan Dropdown Rank) */}
                 <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -3554,15 +3555,18 @@ export default function App() {
                                 />
                               </td>
                               <td className="py-2.5 px-4 text-center">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={matchSlots.length}
+                                <select
                                   disabled={activeAdminScrim?.is_finished}
                                   value={row.placement}
                                   onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                  className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-900 focus:outline-none"
-                                />
+                                  className="w-20 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs"
+                                >
+                                  {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                                    <option key={num} value={num}>
+                                      #{num}
+                                    </option>
+                                  ))}
+                                </select>
                               </td>
                               <td className="py-2.5 px-4 text-center">
                                 <input
@@ -4153,8 +4157,8 @@ export default function App() {
                   href={inspectedScrim.host_contact.startsWith('http') 
                     ? inspectedScrim.host_contact 
                     : (inspectedScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                      ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
-                      : 'https://t.me/' + host.contact.replace('@', ''))
+                      ? 'https://wa.me/' + inspectedScrim.host_contact.replace(/[^0-9]/g, '')
+                      : 'https://t.me/' + inspectedScrim.host_contact.replace('@', ''))
                   }
                   target="_blank"
                   rel="noopener noreferrer"
