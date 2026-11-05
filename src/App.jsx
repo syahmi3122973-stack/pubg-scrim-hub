@@ -1159,7 +1159,7 @@ export default function App() {
   useEffect(() => {
     if (activeAdminScrim && activeAdminScrim.matches && activeAdminScrim.matches[selectedMatchIdx]) {
       const saved = activeAdminScrim.matches[selectedMatchIdx];
-      setInputMap(saved.map || 'Erangel');
+      setInputMap(saved.map || PLAYGROUND_DEFAULT_MAPS[selectedMatchIdx % 5] || 'Erangel');
       if (saved.results && saved.results.length > 0) {
         setMatchSlots(saved.results.map((r, i) => ({
           slot: i + 1,
@@ -1169,24 +1169,33 @@ export default function App() {
           placement: r.placement !== undefined && r.placement !== null && r.placement !== '' ? r.placement : '',
           kills: Number(r.kills) || 0,
           placePts: Number(r.placePts) || 0,
-          totalPts: Number(r.totalPts) || 0
+          totalPts: Number(r.totalPts) || 0,
+          wwcd: Boolean(r.wwcd || Number(r.placement) === 1)
         })));
         return;
       }
+    } else {
+      setInputMap(PLAYGROUND_DEFAULT_MAPS[selectedMatchIdx % 5] || 'Erangel');
     }
 
     setMatchSlots(prev => {
       const currentCount = prev.length || 16;
-      return Array.from({ length: currentCount }, (_, idx) => ({
-        slot: idx + 1,
-        teamId: '',
-        teamName: '',
-        tag: '',
-        placement: '',
-        kills: 0,
-        placePts: 0,
-        totalPts: 0
-      }));
+      return Array.from({ length: currentCount }, (_, idx) => {
+        const carryTeam = prev[idx]?.teamName || activeAdminScrim?.matches?.[0]?.results?.[idx]?.teamName || '';
+        const carryId = prev[idx]?.teamId || activeAdminScrim?.matches?.[0]?.results?.[idx]?.teamId || '';
+        const carryTag = prev[idx]?.tag || activeAdminScrim?.matches?.[0]?.results?.[idx]?.tag || '';
+        return {
+          slot: idx + 1,
+          teamId: carryId,
+          teamName: carryTeam,
+          tag: carryTag,
+          placement: '',
+          kills: 0,
+          placePts: 0,
+          totalPts: 0,
+          wwcd: false
+        };
+      });
     });
   }, [activeAdminScrim, selectedMatchIdx]);
 
@@ -1424,7 +1433,8 @@ export default function App() {
         placement: '',
         kills: 0,
         placePts: 0,
-        totalPts: 0
+        totalPts: 0,
+        wwcd: false
       };
 
       return [...prev, newSlot];
@@ -1447,6 +1457,58 @@ export default function App() {
     showToast(`Team slot ${matchSlots.length} removed.`);
   };
 
+  const handleClearAdminForm = () => {
+    if (activeAdminScrim?.is_finished) {
+      showToast('⚠️ Scores are locked!');
+      return;
+    }
+    setMatchSlots(prev => prev.map(s => ({
+      ...s,
+      placement: '',
+      kills: 0,
+      placePts: 0,
+      totalPts: 0,
+      wwcd: false
+    })));
+    showToast(`Markah Match ${selectedMatchIdx + 1} dikosongkan.`);
+  };
+
+  const handleAdminCellKeyDown = (e, rowIdx, colName) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (colName === 'teamName') {
+        const nextInput = document.querySelector(`[data-cell="admin-teamName-${rowIdx + 1}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select?.();
+        }
+      } else if (colName === 'elims') {
+        const nextInput = document.querySelector(`[data-cell="admin-elims-${rowIdx + 1}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select?.();
+        }
+      } else if (colName === 'placement') {
+        const nextInput = document.querySelector(`[data-cell="admin-placement-${rowIdx + 1}"]`);
+        if (nextInput) nextInput.focus();
+      }
+    } else if (e.key === 'ArrowDown') {
+      const nextInput = document.querySelector(`[data-cell="admin-${colName}-${rowIdx + 1}"]`);
+      if (nextInput) {
+        e.preventDefault();
+        nextInput.focus();
+        nextInput.select?.();
+      }
+    } else if (e.key === 'ArrowUp') {
+      const prevInput = document.querySelector(`[data-cell="admin-${colName}-${rowIdx - 1}"]`);
+      if (prevInput) {
+        e.preventDefault();
+        prevInput.focus();
+        prevInput.select?.();
+      }
+    }
+  };
+
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Scores are locked because this session has concluded!');
@@ -1466,6 +1528,7 @@ export default function App() {
         if (newPlacement === '' || isNaN(newPlacement)) {
           currentRow.placement = '';
           currentRow.placePts = 0;
+          currentRow.wwcd = false;
           currentRow.totalPts = currentRow.kills;
           updated[index] = currentRow;
         } else {
@@ -1474,6 +1537,7 @@ export default function App() {
 
           currentRow.placement = newPlacement;
           currentRow.placePts = getPlacementPoints(newPlacement);
+          currentRow.wwcd = newPlacement === 1;
           currentRow.totalPts = currentRow.placePts + currentRow.kills;
           updated[index] = currentRow;
 
@@ -1482,9 +1546,36 @@ export default function App() {
             const conflictingRow = { ...updated[conflictIdx] };
             conflictingRow.placement = oldPlacement !== '' ? oldPlacement : '';
             conflictingRow.placePts = conflictingRow.placement !== '' ? getPlacementPoints(conflictingRow.placement) : 0;
+            conflictingRow.wwcd = conflictingRow.placement === 1;
             conflictingRow.totalPts = conflictingRow.placePts + conflictingRow.kills;
             updated[conflictIdx] = conflictingRow;
           }
+        }
+      } else if (field === 'wwcd') {
+        const isNowWWCD = Boolean(value);
+        if (isNowWWCD) {
+          const existingChampIdx = updated.findIndex((s, i) => i !== index && Number(s.placement) === 1);
+          const oldPlace = currentRow.placement !== '' && !isNaN(parseInt(currentRow.placement, 10)) ? parseInt(currentRow.placement, 10) : '';
+          currentRow.placement = 1;
+          currentRow.placePts = 10;
+          currentRow.wwcd = true;
+          currentRow.totalPts = 10 + currentRow.kills;
+          updated[index] = currentRow;
+
+          if (existingChampIdx !== -1) {
+            const prevChamp = { ...updated[existingChampIdx] };
+            prevChamp.placement = oldPlace !== '' ? oldPlace : '';
+            prevChamp.placePts = prevChamp.placement !== '' ? getPlacementPoints(prevChamp.placement) : 0;
+            prevChamp.wwcd = false;
+            prevChamp.totalPts = prevChamp.placePts + prevChamp.kills;
+            updated[existingChampIdx] = prevChamp;
+          }
+        } else {
+          currentRow.wwcd = false;
+          currentRow.placement = '';
+          currentRow.placePts = 0;
+          currentRow.totalPts = currentRow.kills;
+          updated[index] = currentRow;
         }
       } else if (field === 'kills') {
         const kills = Math.max(0, parseInt(value, 10) || 0);
@@ -1502,7 +1593,7 @@ export default function App() {
           currentRow.teamId = matched.id;
           currentRow.tag = matched.tag;
         } else {
-          currentRow.teamId = cleanVal ? ('custom_' + cleanVal.replace(/\s+/g, '_').toLowerCase()) : '';
+          currentRow.teamId = cleanVal ? ('tm_' + cleanVal.replace(/\s+/g, '_').toLowerCase()) : '';
           currentRow.tag = cleanVal ? cleanVal.slice(0, 4).toUpperCase() : '';
         }
         updated[index] = currentRow;
@@ -1510,6 +1601,22 @@ export default function App() {
 
       return updated;
     });
+
+    // When teamName is changed, propagate teamName across other matches in activeAdminScrim so admin only enters once!
+    if (field === 'teamName' && activeAdminScrim && activeAdminScrim.matches) {
+      setScrims(prevScrims => prevScrims.map(scrim => {
+        if (scrim.id !== activeAdminScrim.id) return scrim;
+        const updatedMatches = (scrim.matches || []).map(m => {
+          if (!m.results) return m;
+          const updatedResults = [...m.results];
+          if (updatedResults[index]) {
+            updatedResults[index] = { ...updatedResults[index], teamName: value };
+          }
+          return { ...m, results: updatedResults };
+        });
+        return { ...scrim, matches: updatedMatches };
+      }));
+    }
   };
 
   const handleAdjustKills = (index, delta) => {
@@ -1538,7 +1645,8 @@ export default function App() {
           placement: place,
           kills: kills,
           placePts: placePts,
-          totalPts: placePts + kills
+          totalPts: placePts + kills,
+          wwcd: place === 1
         };
       });
     });
@@ -1576,9 +1684,31 @@ export default function App() {
         kills,
         placePts: placePoints,
         totalPts: placePoints + kills,
-        wwcd: validPlacement === 1 ? 1 : 0
+        wwcd: validPlacement === 1 || Boolean(s.wwcd) ? 1 : 0
       };
     });
+
+    // Register any new teams into teams directory & database so they feed into Team Performance Info
+    const sessionTeamNames = [...new Set(compiledResults.map(r => r.teamName))];
+    const newTeamsToRegister = [];
+    sessionTeamNames.forEach(tName => {
+      if (!teams.some(t => t.name.toLowerCase() === tName.toLowerCase())) {
+        newTeamsToRegister.push({
+          id: 'tm_' + tName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36),
+          name: tName,
+          tag: tName.slice(0, 4).toUpperCase()
+        });
+      }
+    });
+
+    if (newTeamsToRegister.length > 0) {
+      setTeams(prev => [...prev, ...newTeamsToRegister]);
+      try {
+        await supabase.from('teams').insert(newTeamsToRegister);
+      } catch (tErr) {
+        console.info('Teams table sync note:', tErr);
+      }
+    }
 
     const existingMatches = activeAdminScrim.matches ? [...activeAdminScrim.matches] : [];
     const matchData = {
@@ -2385,7 +2515,7 @@ export default function App() {
     }
   };
 
-  const adminMatchCount = Math.max(1, (activeAdminScrim?.matches?.length || 0), selectedMatchIdx + 1);
+  const adminMatchCount = Math.max(5, (activeAdminScrim?.matches?.length || 0), selectedMatchIdx + 1);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
@@ -2973,7 +3103,7 @@ export default function App() {
                     <div className="grid grid-cols-12 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800">
                       <div className="col-span-2 text-center">RANK</div>
                       <div className="col-span-5 text-left font-sans pl-1">SQUAD / TEAM</div>
-                      <div className="col-span-2 text-center">{posterViewMode === 'overall' ? 'WWCD' : 'PLACE'}</div>
+                      <div className="col-span-2 text-center text-slate-300">PLACE</div>
                       <div className="col-span-1 text-center">ELIM</div>
                       <div className="col-span-2 text-center text-lime-400">TOTAL</div>
                     </div>
@@ -2983,9 +3113,9 @@ export default function App() {
                       {(posterViewMode === 'overall' ? sortedOverallLeaderboard : sortedCurrentMatchLeaderboard).map((row, pos) => {
                         const isChamp = pos === 0;
                         const rankNumber = pos + 1;
-                        const wwcdDisplay = posterViewMode === 'overall' 
-                          ? (row.totalWWCD > 0 ? `${row.totalWWCD} 🍗` : '-')
-                          : (row.placePts);
+                        const placePtsDisplay = posterViewMode === 'overall' ? row.totalPlacePts : row.placePts;
+                        const hasWWCD = posterViewMode === 'overall' ? (row.totalWWCD > 0) : (Boolean(row.wwcd) || Number(row.placement) === 1);
+                        const wwcdCount = posterViewMode === 'overall' ? row.totalWWCD : 1;
 
                         const totalPoints = posterViewMode === 'overall' ? row.totalPts : row.totalPts;
                         const elimPoints = posterViewMode === 'overall' ? row.totalElims : row.elims;
@@ -3016,21 +3146,21 @@ export default function App() {
                               )}
                             </div>
 
-                            {/* Squad Name */}
+                            {/* Squad Name with Chicken Dinner Badge */}
                             <div className="col-span-5 text-left font-sans truncate pl-1 flex items-center gap-1.5">
                               <span className="truncate font-semibold text-white">
                                 {row.teamName || `Slot #${row.slot}`}
                               </span>
-                              {isChamp && (
-                                <span className="text-[8px] bg-lime-400 text-slate-950 font-black px-1 rounded uppercase tracking-wider">
-                                  WWCD
+                              {hasWWCD && (
+                                <span className="text-[8px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-0.5">
+                                  🍗 {wwcdCount > 1 ? `x${wwcdCount}` : 'WWCD'}
                                 </span>
                               )}
                             </div>
 
-                            {/* WWCD or Place Pts */}
-                            <div className="col-span-2 text-center text-slate-400 font-mono">
-                              {wwcdDisplay}
+                            {/* Point Placement */}
+                            <div className="col-span-2 text-center text-slate-300 font-mono font-bold">
+                              {placePtsDisplay}
                             </div>
 
                             {/* Elims */}
@@ -4416,294 +4546,337 @@ export default function App() {
                 {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                   
-                  {/* LEFT PANEL: Match Rounds & Scoring Table */}
+                  {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    {/* Round Controls */}
-                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-3.5 space-y-2 shadow-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-2.5">
-                        
-                        <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
-                          {Array.from({ length: adminMatchCount }, (_, idx) => {
-                            const isSaved = Boolean(activeAdminScrim?.matches && activeAdminScrim.matches[idx]?.results?.length > 0);
-                            return (
-                              <button
-                                key={idx}
-                                onClick={() => setSelectedMatchIdx(idx)}
-                                className={'px-3 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap flex items-center gap-1 ' + (
-                                  selectedMatchIdx === idx 
-                                    ? 'bg-slate-950 text-lime-400 shadow-sm' 
-                                    : 'bg-slate-100 text-slate-600 hover:text-slate-950 border border-slate-200'
-                                )}
-                              >
-                                <span>Match {idx + 1}</span>
-                                {isSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500" title="Markah Disimpan"></span>}
-                              </button>
-                            );
-                          })}
-
-                          {!activeAdminScrim?.is_finished && (
-                            <button
-                              onClick={handleAddNewMatch}
-                              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-lime-100 hover:bg-lime-200 text-lime-800 border border-lime-300 transition flex items-center gap-1"
-                            >
-                              <Plus className="w-3.5 h-3.5"/>
-                              <span>Tambah Round</span>
-                            </button>
-                          )}
-
-                          {!activeAdminScrim?.is_finished && (adminMatchCount > 1) && (
-                            <button
-                              onClick={handleRemoveLastMatch}
-                              className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
-                            >
-                              <Minus className="w-3.5 h-3.5"/>
-                              <span>Padam Round</span>
-                            </button>
-                          )}
+                    <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                      
+                      {/* Match Details Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Zap className="w-4 h-4 text-lime-600 fill-current"/>
+                            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-800 bg-lime-100 px-2 py-0.5 rounded-full">
+                              ADMIN WORKSPACE • MATCH {selectedMatchIdx + 1} OF {adminMatchCount} • {matchSlots.length} TEAMS
+                            </span>
+                          </div>
+                          <h2 className="text-base sm:text-lg font-black text-slate-950">
+                            {activeAdminScrim?.title || 'Official Scrim Scoring Workspace'}
+                          </h2>
+                          <p className="text-xs text-slate-500">
+                            Isi kedudukan dan mata elims setiap pusingan. Nama team automatik diselaraskan untuk semua pusingan match.
+                          </p>
                         </div>
 
-                        <div className="flex items-center gap-2 ml-auto flex-wrap">
-                          {/* TEAM SLOTS CONTROLS (2 to 24 teams) */}
-                          <div className="flex items-center bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200 gap-2">
-                            <span className="text-[11px] font-black text-slate-700 font-mono">
-                              {matchSlots.length}/24 Pasukan
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleAddTeamSlot}
-                              disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
-                              className="px-2 py-1 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-xs disabled:opacity-40 transition flex items-center gap-1"
-                              title="Tambah Slot Pasukan (Maksimum 24)"
-                            >
-                              <Plus className="w-3.5 h-3.5"/>
-                              <span>Tambah</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleRemoveTeamSlot}
-                              disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
-                              className="px-2 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs disabled:opacity-40 transition flex items-center gap-1"
-                              title="Kurang Slot Pasukan (Minimum 2)"
-                            >
-                              <Minus className="w-3.5 h-3.5"/>
-                              <span>Kurang</span>
-                            </button>
+                        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={handleClearAdminForm}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200 disabled:opacity-40"
+                            title="Kosongkan markah perlawanan ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5"/>
+                            <span>Clear</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRandomizeTestData}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-lime-100 hover:bg-lime-200 text-lime-800 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-lime-300 disabled:opacity-40"
+                            title="Isi markah demo rawak untuk ujian pantas"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5"/>
+                            <span>Isi Demo</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Match Navigation Selector Tabs with Micro-Tutorial (Sama seperti Scorer!) */}
+                      <div className="space-y-1.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <label className="block text-[11px] uppercase font-bold text-slate-700">
+                            Pilih Pusingan Match ({adminMatchCount} Matches)
+                          </label>
+                          <span className="text-[11px] font-medium text-lime-700 bg-lime-50 px-2 py-0.5 rounded-md border border-lime-200/80 inline-flex items-center gap-1">
+                            <span>💡 Tekan Match untuk tukar pusingan &amp; semak keputusan</span>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+                          <div className="grid grid-flow-col auto-cols-[minmax(84px,1fr)] gap-1.5 flex-1 min-w-0">
+                            {Array.from({ length: adminMatchCount }, (_, mIdx) => {
+                              const isSelected = selectedMatchIdx === mIdx;
+                              const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
+                              const hasSaved = Boolean(activeAdminScrim?.matches?.[mIdx]?.results?.length > 0);
+                              return (
+                                <button
+                                  key={mIdx}
+                                  type="button"
+                                  onClick={() => setSelectedMatchIdx(mIdx)}
+                                  className={'py-2 px-2 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ' + (
+                                    isSelected 
+                                      ? 'bg-slate-950 text-lime-400 shadow-md border border-slate-800' 
+                                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/70 bg-white/50'
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[11px]">Match {mIdx + 1}</span>
+                                    {hasSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500" title="Markah Disimpan"></span>}
+                                  </div>
+                                  <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
+                                    isSelected ? 'bg-lime-400/20 text-lime-300' : 'text-slate-500'
+                                  )}>
+                                    {savedMap}
+                                  </span>
+                                </button>
+                              );
+                            })}
                           </div>
 
+                          {/* Advanced: Add/Remove Rounds */}
+                          {!activeAdminScrim?.is_finished && (
+                            <div className="flex items-center gap-1 pl-1 border-l border-slate-300 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={handleAddNewMatch}
+                                className="p-2 rounded-xl text-xs font-bold bg-lime-100 hover:bg-lime-200 text-lime-800 border border-lime-300 transition flex items-center gap-1"
+                                title="Tambah Pusingan Match Baru"
+                              >
+                                <Plus className="w-3.5 h-3.5"/>
+                                <span className="hidden sm:inline text-[11px]">+ Round</span>
+                              </button>
+                              {adminMatchCount > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveLastMatch}
+                                  className="p-2 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
+                                  title="Padam Pusingan Match Terakhir"
+                                >
+                                  <Minus className="w-3.5 h-3.5"/>
+                                  <span className="hidden sm:inline text-[11px]">- Round</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Match Title & Map Selection */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                        <div>
+                          <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
+                            Nama Sesi Kejohanan
+                          </label>
+                          <input
+                            type="text"
+                            disabled
+                            value={activeAdminScrim?.title || 'PUBG Mobile Scrim'}
+                            className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 cursor-not-allowed"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
+                            Pilih Map (Pusingan Match {selectedMatchIdx + 1})
+                          </label>
                           <select
+                            disabled={activeAdminScrim?.is_finished}
                             value={inputMap}
                             onChange={(e) => setInputMap(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition"
                           >
                             <option value="Erangel">Erangel</option>
                             <option value="Miramar">Miramar</option>
                             <option value="Rondo">Rondo</option>
+                            <option value="Sanhok">Sanhok</option>
+                            <option value="Vikendi">Vikendi</option>
                           </select>
+                        </div>
+                      </div>
 
-                          <button
-                            onClick={handleRandomizeTestData}
-                            disabled={activeAdminScrim?.is_finished}
-                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5"/>
-                            <span className="hidden sm:inline">Isi Demo</span>
-                          </button>
+                      {/* Dynamic Team Rows Controls (+ Tambah / - Kurang Team) */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-2xl gap-2">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-lime-600 flex-shrink-0"/>
+                          <span className="text-xs font-bold text-slate-700">Jumlah Pasukan:</span>
+                          <span className="px-2.5 py-0.5 bg-lime-100 text-lime-900 border border-lime-300 rounded-md font-mono font-black text-xs">
+                            {matchSlots.length} Teams
+                          </span>
+                          <span className="text-[10px] text-slate-500 hidden sm:inline">
+                            (💡 Tekan tambah/kurang ikut slot yang bertanding)
+                          </span>
                         </div>
 
-                      </div>
-
-                      {/* Micro-Tutorial Tip for Admin */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-600 bg-lime-50/70 border border-lime-200/80 px-3 py-1.5 rounded-xl">
-                        <span className="flex items-center gap-1">
-                          <span className="text-lime-700">💡</span>
-                          <span><strong>Panduan Admin:</strong> Pilih Match, isi kedudukan (Rank) dan kills pasukan, kemudian tekan <strong>Simpan Markah</strong>. Kedudukan live dipaparkan pada poster di sebelah kanan.</span>
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          Match {selectedMatchIdx + 1} ({inputMap}) • {matchSlots.length} Pasukan
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Mobile Cards (Menggunakan Dropdown Rank Berfilter) */}
-                    <div className="md:hidden space-y-2.5">
-                      {matchSlots.map((row, idx) => {
-                        const isWWCD = Number(row.placement) === 1;
-                        return (
-                          <div
-                            key={idx}
-                            className={'p-3.5 rounded-2xl border transition ' + (
-                              isWWCD 
-                                ? 'bg-lime-50 border-lime-300 shadow-xs' 
-                                : 'bg-white border-slate-200 shadow-xs'
-                            )}
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={handleRemoveTeamSlot}
+                            disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
+                            className="px-2.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-40 shadow-2xs"
+                            title="Padam slot baris team terakhir"
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center space-x-2 flex-1 mr-2">
-                                <span className="text-[10px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
-                                  #{row.slot}
-                                </span>
-                                <input
-                                  type="text"
-                                  disabled={activeAdminScrim?.is_finished}
-                                  placeholder="Nama pasukan..."
-                                  value={row.teamName}
-                                  onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                                  className="bg-transparent font-bold text-slate-900 text-xs border-b border-transparent focus:border-lime-500 focus:outline-none flex-1 truncate placeholder:text-slate-400 placeholder:font-normal"
-                                />
-                              </div>
+                            <Minus className="w-3.5 h-3.5"/>
+                            <span>Kurang Team</span>
+                          </button>
 
-                              <div className="text-right flex items-center gap-1.5">
-                                {isWWCD && (
-                                  <span className="bg-lime-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                    WWCD
-                                  </span>
-                                )}
-                                <div className="text-xs font-black font-mono text-lime-800 bg-lime-100 px-2.5 py-1 rounded-lg border border-lime-200">
-                                  {row.totalPts} <span className="text-[9px] text-slate-500">PTS</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                              {/* Dropdown Rank Mobile */}
-                              <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold">Kedudukan:</span>
-                                <select
-                                  disabled={activeAdminScrim?.is_finished}
-                                  value={row.placement || ''}
-                                  onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-900 text-xs focus:outline-none focus:border-lime-500"
-                                >
-                                  <option value="">-- Rank --</option>
-                                  {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
-                                    <option key={num} value={num}>
-                                      #{num} {num === 1 ? '👑' : ''}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div className="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold pl-1">Kills:</span>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    disabled={activeAdminScrim?.is_finished}
-                                    onClick={() => handleAdjustKills(idx, -1)}
-                                    className="w-6 h-6 rounded-lg bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-black disabled:opacity-50"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="w-6 text-center font-mono font-bold text-slate-900 text-xs">
-                                    {row.kills}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    disabled={activeAdminScrim?.is_finished}
-                                    onClick={() => handleAdjustKills(idx, 1)}
-                                    className="w-6 h-6 rounded-lg bg-lime-400 active:bg-lime-300 text-slate-950 flex items-center justify-center font-black disabled:opacity-50"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Desktop Table (Menggunakan Dropdown Rank Berfilter) */}
-                    <div className="hidden md:block bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead className="bg-slate-950 text-white text-xs font-bold uppercase tracking-wider border-b border-slate-200">
-                            <tr>
-                              <th className="py-3 px-4 w-12 text-center">Slot</th>
-                              <th className="py-3 px-4 min-w-[200px]">Nama Pasukan</th>
-                              <th className="py-3 px-4 w-28 text-center">Kedudukan</th>
-                              <th className="py-3 px-4 w-28 text-center">Mata Kills</th>
-                              <th className="py-3 px-4 w-24 text-center">Mata Rank</th>
-                              <th className="py-3 px-4 w-24 text-center text-lime-400">Jumlah Mata</th>
-                              <th className="py-3 px-4 w-24 text-center">WWCD</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-mono text-xs">
-                            {matchSlots.map((row, idx) => {
-                              const isWWCD = Number(row.placement) === 1;
-                              return (
-                                <tr key={idx} className={isWWCD ? 'bg-lime-50/80' : 'hover:bg-slate-50'}>
-                                  <td className="py-2.5 px-4 text-center text-slate-400 font-bold">#{row.slot}</td>
-                                  <td className="py-2.5 px-4 font-sans">
-                                    <input
-                                      type="text"
-                                      disabled={activeAdminScrim?.is_finished}
-                                      placeholder="Nama pasukan..."
-                                      value={row.teamName}
-                                      onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-900 font-semibold focus:outline-none focus:border-lime-500 placeholder:text-slate-400 placeholder:font-normal"
-                                    />
-                                  </td>
-                                  <td className="py-2.5 px-4 text-center">
-                                    <select
-                                      disabled={activeAdminScrim?.is_finished}
-                                      value={row.placement || ''}
-                                      onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                      className="w-28 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs"
-                                    >
-                                      <option value="">-- Rank --</option>
-                                      {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
-                                        <option key={num} value={num}>
-                                          #{num} {num === 1 ? '👑' : ''}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </td>
-                                  <td className="py-2.5 px-4 text-center">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      disabled={activeAdminScrim?.is_finished}
-                                      value={row.kills}
-                                      onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                                      className="w-16 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 font-bold text-slate-900 focus:outline-none"
-                                    />
-                                  </td>
-                                  <td className="py-2.5 px-4 text-center text-slate-500 font-bold">{row.placePts}</td>
-                                  <td className="py-2.5 px-4 text-center text-lime-700 font-extrabold text-sm">{row.totalPts}</td>
-                                  <td className="py-2.5 px-4 text-center font-sans">
-                                    {isWWCD ? (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-lime-400 text-slate-950">
-                                        WWCD
-                                      </span>
-                                    ) : (
-                                      <span className="text-slate-300">-</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                          <button
+                            type="button"
+                            onClick={handleAddTeamSlot}
+                            disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
+                            className="px-2.5 py-1 bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 rounded-xl text-xs font-black transition flex items-center gap-1 disabled:opacity-40 shadow-xs"
+                            title="Tambah slot baris team baru"
+                          >
+                            <Plus className="w-3.5 h-3.5"/>
+                            <span>Tambah Team</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="fixed md:static bottom-16 md:bottom-auto left-0 right-0 p-3 bg-white/90 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t md:border-t-0 border-slate-200 z-30">
-                      <button
-                        onClick={handleSaveMatchScore}
-                        disabled={activeAdminScrim?.is_finished}
-                        className={'w-full py-3 md:py-2.5 font-black rounded-2xl md:rounded-xl shadow-lg text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition ' + (
-                          activeAdminScrim?.is_finished 
-                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                            : 'bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-slate-950 shadow-lime-400/20'
-                        )}
-                      >
-                        <Save className="w-4 h-4"/>
-                        <span>{activeAdminScrim?.is_finished ? 'Markah Telah Dikunci (Selesai)' : `Simpan Markah Match ${selectedMatchIdx + 1}`}</span>
-                      </button>
-                    </div>
+                      {/* Micro Tutorial for Table */}
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                        <Info className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
+                        <span>💡 <strong>Isi nama team sekali sahaja</strong> — nama team automatik diselaraskan untuk semua pusingan match.</span>
+                      </div>
 
+                      {/* Quick Input Grid Table (Identikal seperti Scorer) */}
+                      <div className="border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs bg-white">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-950 text-white uppercase text-[10px] font-bold tracking-wider border-b border-slate-800">
+                              <tr>
+                                <th className="py-2.5 px-3 w-12 text-center">Slot</th>
+                                <th className="py-2.5 px-3 min-w-[150px]">Team Name</th>
+                                <th className="py-2.5 px-2 w-24 text-center">Placement</th>
+                                <th className="py-2.5 px-2 w-28 text-center">Elims</th>
+                                <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
+                                <th className="py-2.5 px-3 w-20 text-center text-lime-400">Total Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-mono">
+                              {matchSlots.map((row, idx) => {
+                                const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
+                                return (
+                                  <tr 
+                                    key={idx} 
+                                    className={'transition ' + (isWWCD ? 'bg-lime-50/70 hover:bg-lime-50' : 'hover:bg-slate-50/80')}
+                                  >
+                                    {/* Slot # */}
+                                    <td className="py-2 px-3 text-center text-slate-400 font-bold">
+                                      #{String(row.slot).padStart(2, '0')}
+                                    </td>
+
+                                    {/* Team Name */}
+                                    <td className="py-2 px-3 font-sans">
+                                      <input
+                                        type="text"
+                                        disabled={activeAdminScrim?.is_finished}
+                                        data-cell={`admin-teamName-${idx}`}
+                                        value={row.teamName}
+                                        onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
+                                        onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
+                                        placeholder={`Squad ${row.slot}...`}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-semibold focus:outline-none focus:border-lime-500 placeholder:text-slate-400 placeholder:font-normal disabled:bg-slate-100 disabled:text-slate-500"
+                                      />
+                                    </td>
+
+                                    {/* Placement Dropdown */}
+                                    <td className="py-2 px-2 text-center">
+                                      <select
+                                        disabled={activeAdminScrim?.is_finished}
+                                        data-cell={`admin-placement-${idx}`}
+                                        value={row.placement || ''}
+                                        onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
+                                        onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs text-center disabled:bg-slate-100"
+                                      >
+                                        <option value="">--</option>
+                                        {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                                          <option key={num} value={num}>
+                                            #{num} {num === 1 ? '👑' : ''}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+
+                                    {/* Elims with - / + buttons */}
+                                    <td className="py-2 px-2 text-center">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <button
+                                          type="button"
+                                          disabled={activeAdminScrim?.is_finished}
+                                          onClick={() => handleAdjustKills(idx, -1)}
+                                          className="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-black text-xs transition disabled:opacity-40"
+                                        >
+                                          -
+                                        </button>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          disabled={activeAdminScrim?.is_finished}
+                                          data-cell={`admin-elims-${idx}`}
+                                          value={row.kills}
+                                          onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
+                                          onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
+                                          className="w-10 bg-slate-50 border border-slate-200 rounded text-center py-0.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 disabled:bg-slate-100"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={activeAdminScrim?.is_finished}
+                                          onClick={() => handleAdjustKills(idx, 1)}
+                                          className="w-5 h-5 rounded bg-lime-400 hover:bg-lime-300 text-slate-950 flex items-center justify-center font-black text-xs transition disabled:opacity-40"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </td>
+
+                                    {/* WWCD Button */}
+                                    <td className="py-2 px-2 text-center font-sans">
+                                      <button
+                                        type="button"
+                                        disabled={activeAdminScrim?.is_finished}
+                                        onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
+                                        className={'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition ' + (
+                                          isWWCD 
+                                            ? 'bg-lime-400 text-slate-950 shadow-xs' 
+                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                        )}
+                                      >
+                                        {isWWCD ? '👑 WWCD' : 'No'}
+                                      </button>
+                                    </td>
+
+                                    {/* Total Pts */}
+                                    <td className="py-2 px-3 text-center text-lime-700 font-extrabold text-sm">
+                                      {row.totalPts}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Save Button */}
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={handleSaveMatchScore}
+                          disabled={activeAdminScrim?.is_finished}
+                          className={'w-full py-3 font-black rounded-2xl shadow-lg text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition ' + (
+                            activeAdminScrim?.is_finished 
+                              ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                              : 'bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-slate-950 shadow-lime-400/20 active:scale-[0.99]'
+                          )}
+                        >
+                          <Save className="w-4 h-4"/>
+                          <span>{activeAdminScrim?.is_finished ? 'Markah Telah Dikunci (Selesai)' : `Simpan Markah Match ${selectedMatchIdx + 1}`}</span>
+                        </button>
+                      </div>
+
+                    </div>
                   </div>
 
                   {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
@@ -4789,12 +4962,11 @@ export default function App() {
                         <table className="w-full text-left font-mono text-[11px]">
                           <thead>
                             <tr className="text-[9px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
-                              <th className="py-1.5 px-1 w-7 text-center">#</th>
+                              <th className="py-1.5 px-1 w-8 text-center">#</th>
                               <th className="py-1.5 px-2">TEAM NAME</th>
-                              <th className="py-1.5 px-1 w-7 text-center">M</th>
-                              <th className="py-1.5 px-1 w-8 text-center text-amber-300">WWCD</th>
-                              <th className="py-1.5 px-1 w-8 text-center">PLACE</th>
-                              <th className="py-1.5 px-1 w-8 text-center">KILLS</th>
+                              <th className="py-1.5 px-1 w-8 text-center">M</th>
+                              <th className="py-1.5 px-1 w-10 text-center text-slate-300">PLACE</th>
+                              <th className="py-1.5 px-1 w-8 text-center">ELIM</th>
                               <th className="py-1.5 px-2 w-10 text-center font-black text-lime-400">TOTAL</th>
                             </tr>
                           </thead>
@@ -4802,7 +4974,7 @@ export default function App() {
                             {adminLiveStandings.map((row, pos) => {
                               const isTop1 = pos === 0;
                               const isTop3 = pos < 3;
-                              const isWWCD = Number(row.wwcd) > 0;
+                              const hasWWCD = Number(row.wwcd) > 0;
                               return (
                                 <tr 
                                   key={pos} 
@@ -4827,14 +4999,18 @@ export default function App() {
                                       {pos === 0 ? '👑1' : `#${pos + 1}`}
                                     </span>
                                   </td>
-                                  <td className="py-1.5 px-2 font-sans font-bold truncate max-w-[120px]">
-                                    {row.teamName}
+                                  <td className="py-1.5 px-2 font-sans font-bold truncate max-w-[130px]">
+                                    <div className="flex items-center gap-1.5 truncate">
+                                      <span className="truncate">{row.teamName}</span>
+                                      {hasWWCD && (
+                                        <span className="text-[8px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-0.5">
+                                          🍗 {row.wwcd > 1 ? `x${row.wwcd}` : 'WWCD'}
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
                                   <td className="py-1.5 px-1 text-center text-slate-400">{row.matchesPlayed}</td>
-                                  <td className="py-1.5 px-1 text-center font-bold text-amber-300">
-                                    {isWWCD ? `🍗${row.wwcd}` : '-'}
-                                  </td>
-                                  <td className="py-1.5 px-1 text-center text-slate-400">{row.placePts}</td>
+                                  <td className="py-1.5 px-1 text-center font-bold text-slate-200">{row.placePts}</td>
                                   <td className="py-1.5 px-1 text-center text-slate-300">{row.killPts}</td>
                                   <td className="py-1.5 px-2 text-center font-black text-lime-400 bg-lime-400/10">
                                     {row.totalPts}
