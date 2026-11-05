@@ -1243,7 +1243,7 @@ export default function App() {
     }
   };
 
-  // INSTAGRAM STORY INFOGRAPHIC ENGINE
+// INSTAGRAM STORY INFOGRAPHIC ENGINE
   const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
       showToast('No statistics available to generate card!');
@@ -1266,12 +1266,13 @@ export default function App() {
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
 
+      // Grid background lines
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
       ctx.lineWidth = 1;
       for (let i = 0; i < 1080; i += 60) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
-        ctx.lineTo(1920);
+        ctx.lineTo(i, 1920);
         ctx.stroke();
       }
 
