@@ -53,7 +53,8 @@ import {
   Zap,
   Crown,
   RotateCcw,
-  Cloud
+  Cloud,
+  ShieldCheck
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -193,8 +194,11 @@ const PLAYGROUND_MAPS = [
   { id: 'Erangel', name: 'Erangel', badge: 'bg-lime-500/20 text-lime-400 border-lime-500/30' },
   { id: 'Miramar', name: 'Miramar', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   { id: 'Sanhok', name: 'Sanhok', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-  { id: 'Vikendi', name: 'Vikendi', badge: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' }
+  { id: 'Vikendi', name: 'Vikendi', badge: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+  { id: 'Rondo', name: 'Rondo', badge: 'bg-teal-500/20 text-teal-400 border-teal-500/30' }
 ];
+
+const PLAYGROUND_DEFAULT_MAPS = ['Erangel', 'Erangel', 'Miramar', 'Miramar', 'Rondo'];
 
 const DEFAULT_PLAYGROUND_TEAMS = [
   { name: 'Geek Fam', elims: 9, placement: 1, wwcd: true },
@@ -215,31 +219,39 @@ const DEFAULT_PLAYGROUND_TEAMS = [
   { name: 'RSG', elims: 1, placement: 16, wwcd: false },
 ];
 
-const generateDefaultPresetSlots = () => {
-  return DEFAULT_PLAYGROUND_TEAMS.map((t, idx) => {
-    const placePts = getPlacementPoints(t.placement);
-    return {
-      slot: idx + 1,
-      teamName: t.name,
-      placement: t.placement,
-      elims: t.elims,
-      wwcd: t.wwcd,
-      placePts,
-      totalPts: placePts + t.elims
-    };
-  });
-};
+const createDefaultPlaygroundSession = (teamCount = 16) => {
+  const defaultMaps = PLAYGROUND_DEFAULT_MAPS;
+  const initialTeams = DEFAULT_PLAYGROUND_TEAMS.slice(0, teamCount);
+  while (initialTeams.length < teamCount) {
+    initialTeams.push({ name: `Squad ${initialTeams.length + 1}`, elims: 0, placement: '', wwcd: false });
+  }
 
-const generateBlankSlots = () => {
-  return Array.from({ length: 16 }, (_, idx) => ({
-    slot: idx + 1,
-    teamName: '',
-    placement: '',
-    elims: 0,
-    wwcd: false,
-    placePts: 0,
-    totalPts: 0
+  const matches = defaultMaps.map((mapName, mIdx) => ({
+    matchNo: mIdx + 1,
+    title: `Match ${mIdx + 1}`,
+    map: mapName,
+    slots: initialTeams.map((t, idx) => {
+      const placement = mIdx === 0 ? t.placement : '';
+      const elims = mIdx === 0 ? t.elims : 0;
+      const wwcd = mIdx === 0 ? Boolean(t.wwcd) : false;
+      const placePts = placement !== '' ? getPlacementPoints(placement) : 0;
+      return {
+        slot: idx + 1,
+        teamName: t.name,
+        placement,
+        elims,
+        wwcd,
+        placePts,
+        totalPts: placePts + elims
+      };
+    })
   }));
+
+  return {
+    title: 'PUBG Mobile Scrim Season',
+    matches,
+    synced: false
+  };
 };
 
 const uploadMediaToSupabase = async (file, folder = 'uploads') => {
@@ -278,117 +290,284 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingCloudSync, setPendingCloudSync] = useState(false);
 
-  const [activeMatch, setActiveMatch] = useState(() => {
+  const [currentPlaygroundMatchIdx, setCurrentPlaygroundMatchIdx] = useState(0);
+  const [posterViewMode, setPosterViewMode] = useState('overall'); // 'overall' (default) or 'match'
+
+  const [playgroundSession, setPlaygroundSession] = useState(() => {
     try {
       const saved = localStorage.getItem('scrim_active_match');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed.slots) && parsed.slots.length > 0) {
+        if (parsed && Array.isArray(parsed.matches) && parsed.matches.length > 0) {
           return parsed;
+        }
+        if (parsed && Array.isArray(parsed.slots) && parsed.slots.length > 0) {
+          const m1Slots = parsed.slots;
+          const defaultMaps = PLAYGROUND_DEFAULT_MAPS;
+          const matches = defaultMaps.map((mapName, mIdx) => ({
+            matchNo: mIdx + 1,
+            title: `Match ${mIdx + 1}`,
+            map: mIdx === 0 ? (parsed.map || mapName) : mapName,
+            slots: m1Slots.map(s => ({
+              slot: s.slot,
+              teamName: s.teamName,
+              placement: mIdx === 0 ? s.placement : '',
+              elims: mIdx === 0 ? s.elims : 0,
+              wwcd: mIdx === 0 ? Boolean(s.wwcd) : false,
+              placePts: mIdx === 0 ? s.placePts : 0,
+              totalPts: mIdx === 0 ? s.totalPts : 0
+            }))
+          }));
+          return {
+            title: parsed.title || 'PUBG Mobile Scrim Season',
+            matches,
+            synced: false
+          };
         }
       }
     } catch (e) {
       console.warn('Failed to parse localStorage scrim_active_match:', e);
     }
-    return {
-      title: 'Night Scrim Match 1',
-      map: 'Erangel',
-      slots: generateDefaultPresetSlots(),
-      synced: false
-    };
+    return createDefaultPlaygroundSession(16);
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem('scrim_active_match', JSON.stringify(activeMatch));
+      localStorage.setItem('scrim_active_match', JSON.stringify(playgroundSession));
     } catch (e) {
       console.warn('Failed to sync scrim_active_match to localStorage:', e);
     }
-  }, [activeMatch]);
+  }, [playgroundSession]);
 
-  const sortedPosterLeaderboard = useMemo(() => {
-    return [...activeMatch.slots].sort((a, b) => {
+  const currentMatch = useMemo(() => {
+    return playgroundSession.matches[currentPlaygroundMatchIdx] || playgroundSession.matches[0];
+  }, [playgroundSession, currentPlaygroundMatchIdx]);
+
+  // Overall Standings across all 5 matches
+  const sortedOverallLeaderboard = useMemo(() => {
+    if (!playgroundSession || !playgroundSession.matches || playgroundSession.matches.length === 0) return [];
+    const firstMatchSlots = playgroundSession.matches[0]?.slots || [];
+    const slotCount = firstMatchSlots.length;
+    
+    const aggregated = [];
+    for (let i = 0; i < slotCount; i++) {
+      const slotNum = i + 1;
+      const teamName = firstMatchSlots[i]?.teamName || `Squad ${slotNum}`;
+      let totalWWCD = 0;
+      let totalPlacePts = 0;
+      let totalElims = 0;
+      let bestPlacement = 999;
+      let matchesPlayed = 0;
+
+      playgroundSession.matches.forEach(m => {
+        const slotData = m.slots?.[i];
+        if (slotData) {
+          const elims = Number(slotData.elims) || 0;
+          const placePts = Number(slotData.placePts) || 0;
+          const isWWCD = slotData.wwcd || Number(slotData.placement) === 1;
+          if (isWWCD) totalWWCD += 1;
+          totalElims += elims;
+          totalPlacePts += placePts;
+
+          if (slotData.placement !== '' && !isNaN(Number(slotData.placement))) {
+            const p = Number(slotData.placement);
+            if (p < bestPlacement) bestPlacement = p;
+            matchesPlayed += 1;
+          }
+        }
+      });
+
+      const totalPts = totalPlacePts + totalElims;
+      aggregated.push({
+        slot: slotNum,
+        teamName,
+        totalWWCD,
+        totalPlacePts,
+        totalElims,
+        totalPts,
+        bestPlacement,
+        matchesPlayed
+      });
+    }
+
+    return aggregated.sort((a, b) => {
       // 1. Total Points (descending)
       if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
-      // 2. Elims (descending, tiebreaker 1)
+      // 2. Total Elims (descending, tiebreaker 1)
+      if (b.totalElims !== a.totalElims) return b.totalElims - a.totalElims;
+      // 3. Total WWCD (descending, tiebreaker 2)
+      if (b.totalWWCD !== a.totalWWCD) return b.totalWWCD - a.totalWWCD;
+      // 4. Best single match placement (ascending, tiebreaker 3)
+      if (a.bestPlacement !== b.bestPlacement) return a.bestPlacement - b.bestPlacement;
+      // 5. Slot # ascending
+      return a.slot - b.slot;
+    });
+  }, [playgroundSession]);
+
+  // Current single match sorted leaderboard
+  const sortedCurrentMatchLeaderboard = useMemo(() => {
+    if (!currentMatch || !currentMatch.slots) return [];
+    return [...currentMatch.slots].sort((a, b) => {
+      if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
       if (b.elims !== a.elims) return b.elims - a.elims;
-      // 3. Placement (ascending, tiebreaker 2: lower rank number is better)
       const placeA = Number(a.placement) || 999;
       const placeB = Number(b.placement) || 999;
       if (placeA !== placeB) return placeA - placeB;
-      // 4. Slot # ascending
       return a.slot - b.slot;
     });
-  }, [activeMatch.slots]);
+  }, [currentMatch]);
 
-  const handlePlaygroundSlotChange = (index, field, value) => {
-    setActiveMatch(prev => {
-      const updatedSlots = [...prev.slots];
-      const row = { ...updatedSlots[index] };
-
-      if (field === 'teamName') {
-        row.teamName = value;
-      } else if (field === 'elims') {
-        const e = Math.max(0, parseInt(value, 10) || 0);
-        row.elims = e;
-        row.totalPts = row.placePts + e;
-      } else if (field === 'placement') {
-        const newPlace = value === '' ? '' : parseInt(value, 10);
-        const oldPlace = row.placement !== '' && !isNaN(parseInt(row.placement, 10)) ? parseInt(row.placement, 10) : '';
-
-        if (newPlace === '' || isNaN(newPlace)) {
-          row.placement = '';
-          row.placePts = 0;
-          row.wwcd = false;
-          row.totalPts = row.elims;
-          updatedSlots[index] = row;
-        } else {
-          const conflictIdx = updatedSlots.findIndex((s, i) => i !== index && Number(s.placement) === newPlace);
-          row.placement = newPlace;
-          row.placePts = getPlacementPoints(newPlace);
-          row.wwcd = newPlace === 1;
-          row.totalPts = row.placePts + row.elims;
-          updatedSlots[index] = row;
-
-          if (conflictIdx !== -1) {
-            const conflicting = { ...updatedSlots[conflictIdx] };
-            conflicting.placement = oldPlace !== '' ? oldPlace : '';
-            conflicting.placePts = conflicting.placement !== '' ? getPlacementPoints(conflicting.placement) : 0;
-            conflicting.wwcd = conflicting.placement === 1;
-            conflicting.totalPts = conflicting.placePts + conflicting.elims;
-            updatedSlots[conflictIdx] = conflicting;
+  const handlePlaygroundSlotChange = (slotIndex, field, value) => {
+    setPlaygroundSession(prev => {
+      const updatedMatches = prev.matches.map((m, mIdx) => {
+        // If teamName changes, keep team names in sync across all matches!
+        if (field === 'teamName') {
+          const updatedSlots = [...m.slots];
+          if (updatedSlots[slotIndex]) {
+            updatedSlots[slotIndex] = { ...updatedSlots[slotIndex], teamName: value };
           }
+          return { ...m, slots: updatedSlots };
         }
-      } else if (field === 'wwcd') {
-        const isNowWWCD = Boolean(value);
-        if (isNowWWCD) {
-          const existingChampIdx = updatedSlots.findIndex((s, i) => i !== index && Number(s.placement) === 1);
+
+        // Other fields apply ONLY to the currently selected match
+        if (mIdx !== currentPlaygroundMatchIdx) return m;
+
+        const updatedSlots = [...m.slots];
+        const row = { ...updatedSlots[slotIndex] };
+
+        if (field === 'elims') {
+          const e = Math.max(0, parseInt(value, 10) || 0);
+          row.elims = e;
+          row.totalPts = row.placePts + e;
+          updatedSlots[slotIndex] = row;
+        } else if (field === 'placement') {
+          const newPlace = value === '' ? '' : parseInt(value, 10);
           const oldPlace = row.placement !== '' && !isNaN(parseInt(row.placement, 10)) ? parseInt(row.placement, 10) : '';
-          row.placement = 1;
-          row.placePts = 10;
-          row.wwcd = true;
-          row.totalPts = 10 + row.elims;
-          updatedSlots[index] = row;
 
-          if (existingChampIdx !== -1) {
-            const prevChamp = { ...updatedSlots[existingChampIdx] };
-            prevChamp.placement = oldPlace !== '' ? oldPlace : '';
-            prevChamp.placePts = prevChamp.placement !== '' ? getPlacementPoints(prevChamp.placement) : 0;
-            prevChamp.wwcd = false;
-            prevChamp.totalPts = prevChamp.placePts + prevChamp.elims;
-            updatedSlots[existingChampIdx] = prevChamp;
+          if (newPlace === '' || isNaN(newPlace)) {
+            row.placement = '';
+            row.placePts = 0;
+            row.wwcd = false;
+            row.totalPts = row.elims;
+            updatedSlots[slotIndex] = row;
+          } else {
+            const conflictIdx = updatedSlots.findIndex((s, i) => i !== slotIndex && Number(s.placement) === newPlace);
+            row.placement = newPlace;
+            row.placePts = getPlacementPoints(newPlace);
+            row.wwcd = newPlace === 1;
+            row.totalPts = row.placePts + row.elims;
+            updatedSlots[slotIndex] = row;
+
+            if (conflictIdx !== -1) {
+              const conflicting = { ...updatedSlots[conflictIdx] };
+              conflicting.placement = oldPlace !== '' ? oldPlace : '';
+              conflicting.placePts = conflicting.placement !== '' ? getPlacementPoints(conflicting.placement) : 0;
+              conflicting.wwcd = conflicting.placement === 1;
+              conflicting.totalPts = conflicting.placePts + conflicting.elims;
+              updatedSlots[conflictIdx] = conflicting;
+            }
           }
-        } else {
-          row.wwcd = false;
-          row.placement = '';
-          row.placePts = 0;
-          row.totalPts = row.elims;
-          updatedSlots[index] = row;
-        }
-      }
+        } else if (field === 'wwcd') {
+          const isNowWWCD = Boolean(value);
+          if (isNowWWCD) {
+            const existingChampIdx = updatedSlots.findIndex((s, i) => i !== slotIndex && Number(s.placement) === 1);
+            const oldPlace = row.placement !== '' && !isNaN(parseInt(row.placement, 10)) ? parseInt(row.placement, 10) : '';
+            row.placement = 1;
+            row.placePts = 10;
+            row.wwcd = true;
+            row.totalPts = 10 + row.elims;
+            updatedSlots[slotIndex] = row;
 
-      return { ...prev, slots: updatedSlots, synced: false };
+            if (existingChampIdx !== -1) {
+              const prevChamp = { ...updatedSlots[existingChampIdx] };
+              prevChamp.placement = oldPlace !== '' ? oldPlace : '';
+              prevChamp.placePts = prevChamp.placement !== '' ? getPlacementPoints(prevChamp.placement) : 0;
+              prevChamp.wwcd = false;
+              prevChamp.totalPts = prevChamp.placePts + prevChamp.elims;
+              updatedSlots[existingChampIdx] = prevChamp;
+            }
+          } else {
+            row.wwcd = false;
+            row.placement = '';
+            row.placePts = 0;
+            row.totalPts = row.elims;
+            updatedSlots[slotIndex] = row;
+          }
+        }
+
+        return { ...m, slots: updatedSlots };
+      });
+
+      return { ...prev, matches: updatedMatches, synced: false };
     });
+  };
+
+  const handleAddPlaygroundTeam = () => {
+    setPlaygroundSession(prev => {
+      const currentCount = prev.matches[0]?.slots?.length || 16;
+      if (currentCount >= 24) {
+        showToast('Maximum 24 teams reached!');
+        return prev;
+      }
+      const newSlotNo = currentCount + 1;
+      const defaultName = `Squad ${newSlotNo}`;
+
+      const updatedMatches = prev.matches.map(m => ({
+        ...m,
+        slots: [
+          ...m.slots,
+          {
+            slot: newSlotNo,
+            teamName: defaultName,
+            placement: '',
+            elims: 0,
+            wwcd: false,
+            placePts: 0,
+            totalPts: 0
+          }
+        ]
+      }));
+
+      showToast(`+ Slot #${newSlotNo} ditambah! Jumlah pasukan: ${newSlotNo}`);
+      return { ...prev, matches: updatedMatches, synced: false };
+    });
+  };
+
+  const handleRemovePlaygroundTeam = () => {
+    setPlaygroundSession(prev => {
+      const currentCount = prev.matches[0]?.slots?.length || 16;
+      if (currentCount <= 2) {
+        showToast('Minimum 2 pasukan diperlukan!');
+        return prev;
+      }
+      const updatedMatches = prev.matches.map(m => ({
+        ...m,
+        slots: m.slots.slice(0, -1)
+      }));
+
+      showToast(`- Slot #${currentCount} dipadam. Jumlah pasukan: ${currentCount - 1}`);
+      return { ...prev, matches: updatedMatches, synced: false };
+    });
+  };
+
+  const handleSetPlaygroundMap = (mapId) => {
+    setPlaygroundSession(prev => {
+      const updatedMatches = prev.matches.map((m, idx) => {
+        if (idx === currentPlaygroundMatchIdx) {
+          return { ...m, map: mapId };
+        }
+        return m;
+      });
+      return { ...prev, matches: updatedMatches, synced: false };
+    });
+  };
+
+  const handleSetPlaygroundTitle = (newTitle) => {
+    setPlaygroundSession(prev => ({
+      ...prev,
+      title: newTitle,
+      synced: false
+    }));
   };
 
   const handleCellKeyDown = (e, rowIdx, colName) => {
@@ -428,24 +607,28 @@ export default function App() {
   };
 
   const handleClearPlaygroundForm = () => {
-    if (!window.confirm('Clear all team names and scores from this match?')) return;
-    setActiveMatch(prev => ({
-      ...prev,
-      slots: generateBlankSlots(),
-      synced: false
-    }));
-    showToast('Form cleared! Ready for fresh entry.');
+    if (!window.confirm('Kosongkan semua markah untuk kesemua 5 match? (Nama team dikekalkan)')) return;
+    setPlaygroundSession(prev => {
+      const updatedMatches = prev.matches.map(m => ({
+        ...m,
+        slots: m.slots.map(s => ({
+          ...s,
+          placement: '',
+          elims: 0,
+          wwcd: false,
+          placePts: 0,
+          totalPts: 0
+        }))
+      }));
+      return { ...prev, matches: updatedMatches, synced: false };
+    });
+    showToast('Markah dikosongkan! Sedia untuk rekod baru.');
   };
 
   const handleResetPlaygroundToDefault = () => {
-    setActiveMatch(prev => ({
-      ...prev,
-      title: 'Night Scrim Match 1',
-      map: 'Erangel',
-      slots: generateDefaultPresetSlots(),
-      synced: false
-    }));
-    showToast('Reset to default preset squads!');
+    setPlaygroundSession(createDefaultPlaygroundSession(16));
+    setCurrentPlaygroundMatchIdx(0);
+    showToast('Reset ke 5 match default (Erangel, Erangel, Miramar, Miramar, Rondo)!');
   };
 
   const handleDownloadPlaygroundPoster = async () => {
@@ -458,13 +641,16 @@ export default function App() {
         backgroundColor: '#0D0D0D'
       });
       const link = document.createElement('a');
-      const cleanTitle = (activeMatch.title || 'scrim-match-results')
+      const cleanTitle = (playgroundSession.title || 'pubg-scrim-results')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-');
-      link.download = `${cleanTitle}-${activeMatch.map.toLowerCase()}.png`;
+      const suffix = posterViewMode === 'overall' 
+        ? 'overall-standings-5-matches' 
+        : `match-${currentPlaygroundMatchIdx + 1}-${currentMatch.map.toLowerCase()}`;
+      link.download = `${cleanTitle}-${suffix}.png`;
       link.href = dataUrl;
       link.click();
-      showToast('🎉 High-res poster PNG downloaded!');
+      showToast('🎉 High-res Overall Leaderboard PNG downloaded!');
     } catch (err) {
       console.error('Error generating poster:', err);
       showToast('Failed to download poster: ' + err.message);
@@ -473,68 +659,43 @@ export default function App() {
     }
   };
 
-  const syncMatchToCloud = async (user, matchToSync) => {
-    if (!user || !matchToSync) return;
+  const syncMatchToCloud = async (user, sessionToSync) => {
+    if (!user || !sessionToSync) return;
     try {
       setIsSavingCloudMatch(true);
-      const matchId = 'match_' + Date.now();
+      const sessionId = 'scrim_' + Date.now();
 
-      // 1. Dual-write attempt to public.matches & public.match_results
-      try {
-        await supabase.from('matches').insert([{
-          id: matchId,
-          title: matchToSync.title || 'Night Scrim Match 1',
-          map: matchToSync.map || 'Erangel',
-          user_id: user.id,
-          created_at: new Date().toISOString()
-        }]);
-
-        const resultsPayload = matchToSync.slots.map(s => ({
-          match_id: matchId,
-          slot_no: s.slot,
-          team_name: s.teamName || `Slot #${s.slot}`,
-          placement: Number(s.placement) || s.slot,
-          elims: Number(s.elims) || 0,
-          placement_pts: Number(s.placePts) || 0,
-          total_pts: Number(s.totalPts) || 0,
-          wwcd: s.wwcd ? 1 : (Number(s.placement) === 1 ? 1 : 0)
-        }));
-        await supabase.from('match_results').insert(resultsPayload);
-      } catch (tableErr) {
-        console.info('public.matches sync note:', tableErr);
-      }
-
-      // 2. Also save into public.scrims table for integration with tournaments & leaderboards
-      const compiledResults = matchToSync.slots.map(s => {
-        const cleanName = s.teamName ? s.teamName.trim() : `Slot #${s.slot}`;
-        return {
-          teamId: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase(),
-          teamName: cleanName,
-          tag: cleanName.slice(0, 4).toUpperCase(),
-          placement: Number(s.placement) || s.slot,
-          kills: Number(s.elims) || 0,
-          placePts: Number(s.placePts) || 0,
-          totalPts: Number(s.totalPts) || 0,
-          wwcd: s.wwcd ? 1 : (Number(s.placement) === 1 ? 1 : 0)
-        };
-      });
+      // Compile all matches
+      const compiledMatches = sessionToSync.matches.map((m, mIdx) => ({
+        matchNo: mIdx + 1,
+        map: m.map,
+        results: m.slots.map(s => {
+          const cleanName = s.teamName ? s.teamName.trim() : `Slot #${s.slot}`;
+          return {
+            teamId: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase(),
+            teamName: cleanName,
+            tag: cleanName.slice(0, 4).toUpperCase(),
+            placement: Number(s.placement) || s.slot,
+            kills: Number(s.elims) || 0,
+            placePts: Number(s.placePts) || 0,
+            totalPts: Number(s.totalPts) || 0,
+            wwcd: s.wwcd ? 1 : (Number(s.placement) === 1 ? 1 : 0)
+          };
+        })
+      }));
 
       const newSession = {
-        id: 'scrim_' + Date.now(),
-        title: matchToSync.title || 'Night Scrim Match 1',
+        id: sessionId,
+        title: sessionToSync.title || 'PUBG Mobile Scrim Season',
         event_type: 'Scrim',
         tier: 'Tier 1 (Pro)',
-        description: `Official Scrim match on ${matchToSync.map || 'Erangel'}.`,
+        description: `Official 5-Match Scrim: Erangel, Erangel, Miramar, Miramar, Rondo.`,
         date: new Date().toISOString().split('T')[0],
         logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
         host_name: profileName || user.email.split('@')[0],
         host_contact: profileContact || '',
-        total_matches: 1,
-        matches: [{
-          matchNo: 1,
-          map: matchToSync.map || 'Erangel',
-          results: compiledResults
-        }],
+        total_matches: sessionToSync.matches.length,
+        matches: compiledMatches,
         created_by: user.id,
         co_hosts: [],
         claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
@@ -548,12 +709,12 @@ export default function App() {
         setSelectedScrimId(newSession.id);
       }
 
-      setActiveMatch(prev => ({ ...prev, synced: true }));
+      setPlaygroundSession(prev => ({ ...prev, synced: true }));
       try {
-        localStorage.setItem('scrim_active_match', JSON.stringify({ ...matchToSync, synced: true }));
+        localStorage.setItem('scrim_active_match', JSON.stringify({ ...sessionToSync, synced: true }));
       } catch (e) {}
 
-      showToast('🚀 Match saved to your account dashboard!');
+      showToast('🚀 All 5 matches saved to your account dashboard!');
       setIsAuthModalOpen(false);
       setPendingCloudSync(false);
     } catch (err) {
@@ -569,7 +730,7 @@ export default function App() {
       setPendingCloudSync(true);
       setIsAuthModalOpen(true);
     } else {
-      syncMatchToCloud(currentUser, activeMatch);
+      syncMatchToCloud(currentUser, playgroundSession);
     }
   };
   
@@ -708,7 +869,7 @@ export default function App() {
           setCurrentUser(data.user);
           setIsAuthModalOpen(false);
           if (pendingCloudSync) {
-            await syncMatchToCloud(data.user, activeMatch);
+            await syncMatchToCloud(data.user, playgroundSession);
           }
         }
       }
@@ -726,7 +887,7 @@ export default function App() {
         setAuthPassword('');
         setIsAuthModalOpen(false);
         if (pendingCloudSync) {
-          await syncMatchToCloud(data.user, activeMatch);
+          await syncMatchToCloud(data.user, playgroundSession);
         }
       }
     }
@@ -2373,55 +2534,64 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="hidden md:flex space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
+          <nav className="hidden md:flex space-x-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-semibold items-center">
             <button
               onClick={() => setActiveTab('playground')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'playground' ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' : 'text-slate-600 hover:text-slate-950')}
+              className={'flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'playground' 
+                  ? 'bg-slate-950 text-lime-400 shadow-md font-black ring-2 ring-lime-400/40 border border-slate-800' 
+                  : 'bg-slate-900 text-lime-400/90 hover:bg-slate-950 font-bold border border-slate-800'
+              )}
             >
               <Zap className="w-4 h-4 text-lime-400 fill-current"/>
               <span>Quick Scorer</span>
             </button>
             <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'leaderboard' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950'
+              )}
+            >
+              <Trophy className="w-4 h-4 text-lime-600"/>
+              <span>Standings</span>
+            </button>
+            <button
               onClick={() => setActiveTab('teams')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'teams' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'teams' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950'
+              )}
             >
               <Users className="w-4 h-4 text-lime-600"/>
               <span>Team Stats</span>
             </button>
             <button
-              onClick={() => setActiveTab('hosts')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'hosts' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
-            >
-              <Award className="w-4 h-4 text-lime-600"/>
-              <span>Host Profiles</span>
-            </button>
-            <button
               onClick={() => setActiveTab('showcase')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'showcase' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'showcase' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950'
+              )}
             >
               <Sparkles className="w-4 h-4 text-lime-600"/>
               <span>Showcase</span>
             </button>
             <button
               onClick={() => setActiveTab('about')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'about' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'about' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950'
+              )}
             >
               <Info className="w-4 h-4 text-lime-600"/>
               <span>About</span>
             </button>
             <button
-              onClick={() => setActiveTab('leaderboard')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
-            >
-              <Trophy className="w-4 h-4 text-lime-600"/>
-              <span>Standings</span>
-            </button>
-            <button
               onClick={() => setActiveTab('admin')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'admin' ? 'bg-lime-400 text-slate-950 shadow-sm font-black border border-lime-500/40' : 'text-slate-600 hover:text-slate-950')}
+              className={'flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'admin' 
+                  ? 'bg-lime-400 text-slate-950 shadow-md font-black ring-2 ring-lime-500/50 border border-lime-500' 
+                  : 'bg-lime-400/20 text-lime-950 hover:bg-lime-400/30 font-black border border-lime-400/40'
+              )}
             >
-              {currentUser ? <User className="w-4 h-4 text-slate-950"/> : <Lock className="w-3.5 h-3.5 text-slate-500"/>}
-              <span>Admin Scrim</span>
+              {currentUser ? <User className="w-4 h-4 text-slate-950"/> : <Lock className="w-3.5 h-3.5 text-slate-950"/>}
+              <span>Admin Workspace</span>
             </button>
           </nav>
 
@@ -2481,8 +2651,32 @@ export default function App() {
             {/* Split Screen Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
-              {/* LEFT PANEL: Quick Input Grid (16 Slots) */}
+              {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
               <div className="lg:col-span-7 space-y-4">
+                
+                {/* Advanced Admin Shortcut Notice */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl border border-slate-800 shadow-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse"></span>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-lime-400">
+                        Perlukan Sistem Scrim Lengkap &amp; Terperinci?
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-snug">
+                      Page Admin menyediakan ciri <strong>Advanced &amp; Lebih Detail</strong> — multi-day tournament, sistem markah custom, jemputan co-host &amp; simpanan rekod cloud.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('admin')}
+                    className="self-start sm:self-auto px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap active:scale-95 border border-lime-500/40"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-slate-950"/>
+                    <span>Buka Page Admin →</span>
+                  </button>
+                </div>
+
                 <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
                   
                   {/* Match Details Header */}
@@ -2491,11 +2685,11 @@ export default function App() {
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <Zap className="w-4 h-4 text-lime-600 fill-current"/>
                         <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-800 bg-lime-100 px-2 py-0.5 rounded-full">
-                          LIVE MATCH SCORER • 16 SLOTS
+                          5-MATCH SCORER WORKSPACE • {currentMatch.slots.length} TEAMS
                         </span>
                       </div>
                       <h2 className="text-base sm:text-lg font-black text-slate-950">Quick Match Scoring Workspace</h2>
-                      <p className="text-xs text-slate-500">Fast keyboard entry (Tab &amp; Enter) with real-time official point calculation.</p>
+                      <p className="text-xs text-slate-500">5 pusingan match dengan kiraan markah automatik dan poster Overall Standings.</p>
                     </div>
 
                     <div className="flex items-center gap-1.5 self-start sm:self-auto">
@@ -2503,7 +2697,7 @@ export default function App() {
                         type="button"
                         onClick={handleClearPlaygroundForm}
                         className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
-                        title="Clear all teams and scores"
+                        title="Kosongkan semua markah perlawanan"
                       >
                         <Trash2 className="w-3.5 h-3.5"/>
                         <span>Clear</span>
@@ -2512,7 +2706,7 @@ export default function App() {
                         type="button"
                         onClick={handleResetPlaygroundToDefault}
                         className="px-2.5 py-1.5 bg-lime-100 hover:bg-lime-200 text-lime-800 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-lime-300"
-                        title="Reset to sample esports teams"
+                        title="Reset semula ke preset 5 match asal"
                       >
                         <RefreshCw className="w-3.5 h-3.5"/>
                         <span>Reset Default</span>
@@ -2520,34 +2714,71 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* 5-Match Navigation Selector Tabs */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] uppercase font-bold text-slate-600">
+                        Pilih Pusingan Match (5 Matches)
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-500">
+                        Sedang diedit: <strong className="text-slate-900">Match {currentPlaygroundMatchIdx + 1} ({currentMatch.map})</strong>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                      {playgroundSession.matches.map((m, mIdx) => {
+                        const isSelected = currentPlaygroundMatchIdx === mIdx;
+                        return (
+                          <button
+                            key={mIdx}
+                            type="button"
+                            onClick={() => setCurrentPlaygroundMatchIdx(mIdx)}
+                            className={'py-2 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ' + (
+                              isSelected 
+                                ? 'bg-slate-950 text-lime-400 shadow-md border border-slate-800' 
+                                : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/70'
+                            )}
+                          >
+                            <span className="text-[11px]">Match {mIdx + 1}</span>
+                            <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded ' + (
+                              isSelected ? 'bg-lime-400/20 text-lime-300 font-bold' : 'text-slate-500'
+                            )}>
+                              {m.map}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Match Title & Map Selector */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
-                        Match Title / Fixture Name
+                        Nama Kejohanan / Scrim Title
                       </label>
                       <input
                         type="text"
-                        value={activeMatch.title}
-                        onChange={(e) => setActiveMatch(prev => ({ ...prev, title: e.target.value, synced: false }))}
-                        placeholder="e.g. Night Scrim Match 1"
+                        value={playgroundSession.title}
+                        onChange={(e) => handleSetPlaygroundTitle(e.target.value)}
+                        placeholder="e.g. Night Scrim Season 1"
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition"
                       />
                     </div>
 
                     <div>
                       <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
-                        Battleground Map
+                        Map (Match {currentPlaygroundMatchIdx + 1})
                       </label>
-                      <div className="grid grid-cols-4 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                      <div className="grid grid-cols-5 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                         {PLAYGROUND_MAPS.map(m => {
-                          const isSelected = activeMatch.map === m.id;
+                          const isSelected = currentMatch.map === m.id;
                           return (
                             <button
                               key={m.id}
                               type="button"
-                              onClick={() => setActiveMatch(prev => ({ ...prev, map: m.id, synced: false }))}
-                              className={'py-1.5 px-1 rounded-lg text-xs font-black transition text-center ' + (
+                              onClick={() => handleSetPlaygroundMap(m.id)}
+                              className={'py-1.5 px-0.5 rounded-lg text-[10px] font-black transition text-center ' + (
                                 isSelected 
                                   ? 'bg-slate-950 text-lime-400 shadow-xs' 
                                   : 'text-slate-600 hover:text-slate-950'
@@ -2561,7 +2792,42 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Quick Input Grid Table (16 Slots) */}
+                  {/* Dynamic Team Rows Controls (+ Tambah / - Kurang Team) */}
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-lime-600"/>
+                      <span className="text-xs font-bold text-slate-700">Jumlah Pasukan:</span>
+                      <span className="px-2.5 py-0.5 bg-lime-100 text-lime-900 border border-lime-300 rounded-md font-mono font-black text-xs">
+                        {currentMatch.slots.length} Teams
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleRemovePlaygroundTeam}
+                        disabled={currentMatch.slots.length <= 2}
+                        className="px-2.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-40 shadow-2xs"
+                        title="Padam slot baris team terakhir"
+                      >
+                        <Minus className="w-3.5 h-3.5"/>
+                        <span>Kurang Team</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleAddPlaygroundTeam}
+                        disabled={currentMatch.slots.length >= 24}
+                        className="px-2.5 py-1 bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 rounded-xl text-xs font-black transition flex items-center gap-1 disabled:opacity-40 shadow-xs"
+                        title="Tambah slot baris team baru"
+                      >
+                        <Plus className="w-3.5 h-3.5"/>
+                        <span>Tambah Team</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Input Grid Table */}
                   <div className="border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs bg-white">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs">
@@ -2576,7 +2842,7 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 font-mono">
-                          {activeMatch.slots.map((row, idx) => {
+                          {currentMatch.slots.map((row, idx) => {
                             const isWWCD = Number(row.placement) === 1 || row.wwcd;
                             return (
                               <tr 
@@ -2588,7 +2854,7 @@ export default function App() {
                                   #{String(row.slot).padStart(2, '0')}
                                 </td>
 
-                                {/* Team Name */}
+                                {/* Team Name (Synchronized across all 5 matches) */}
                                 <td className="py-2 px-3 font-sans">
                                   <input
                                     type="text"
@@ -2601,7 +2867,7 @@ export default function App() {
                                   />
                                 </td>
 
-                                {/* Placement */}
+                                {/* Placement Dropdown (Scales dynamically with total slots) */}
                                 <td className="py-2 px-2 text-center">
                                   <select
                                     data-cell={`placement-${idx}`}
@@ -2611,7 +2877,7 @@ export default function App() {
                                     className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs text-center"
                                   >
                                     <option value="">--</option>
-                                    {Array.from({ length: 16 }, (_, i) => i + 1).map((num) => (
+                                    {Array.from({ length: currentMatch.slots.length }, (_, i) => i + 1).map((num) => (
                                       <option key={num} value={num}>
                                         #{num} {num === 1 ? '👑' : ''}
                                       </option>
@@ -2663,7 +2929,7 @@ export default function App() {
                                   </button>
                                 </td>
 
-                                {/* Total Points */}
+                                {/* Total Points for current match */}
                                 <td className="py-2 px-3 text-center">
                                   <div className="font-mono font-black text-xs text-lime-800 bg-lime-100 px-2 py-0.5 rounded border border-lime-200 inline-block">
                                     {row.totalPts}
@@ -2682,7 +2948,7 @@ export default function App() {
                     <div className="flex items-center gap-1.5">
                       <Info className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
                       <span>
-                        <strong>Official PMGC Point System:</strong> 1st: 10 pts, 2nd: 6, 3rd: 5, 4th: 4, 5th: 3, 6th: 2, 7th-8th: 1, 9th-16th: 0. Each Elim = 1 pt.
+                        <strong>Sistem Mata Rasmi PMGC:</strong> 1st: 10 pts, 2nd: 6, 3rd: 5, 4th: 4, 5th: 3, 6th: 2, 7th-8th: 1, 9th+: 0. Setiap Elim = 1 pt.
                       </span>
                     </div>
                     <span className="font-mono text-[10px] text-slate-400">
@@ -2693,13 +2959,41 @@ export default function App() {
                 </div>
               </div>
 
-              {/* RIGHT PANEL: Sticky Real-Time Poster Preview */}
+              {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings) */}
               <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5">
                 
+                {/* Poster Display Toggle: Overall Standings (Default) vs Single Match */}
+                <div className="flex items-center justify-between bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPosterViewMode('overall')}
+                    className={'flex-1 py-1.5 px-2 rounded-xl font-black text-center transition flex items-center justify-center gap-1.5 ' + (
+                      posterViewMode === 'overall'
+                        ? 'bg-lime-400 text-slate-950 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    )}
+                  >
+                    <Trophy className="w-3.5 h-3.5"/>
+                    <span>🏆 Overall Standings (5 Matches)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosterViewMode('match')}
+                    className={'flex-1 py-1.5 px-2 rounded-xl font-bold text-center transition flex items-center justify-center gap-1.5 ' + (
+                      posterViewMode === 'match'
+                        ? 'bg-lime-400 text-slate-950 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    )}
+                  >
+                    <Zap className="w-3.5 h-3.5"/>
+                    <span>Round {currentPlaygroundMatchIdx + 1} Saja</span>
+                  </button>
+                </div>
+
                 {/* Visual Esports Leaderboard Card (Dark Aesthetic #0D0D0D) */}
                 <div 
                   ref={posterRef}
-                  className="bg-[#0D0D0D] text-white rounded-3xl p-5 border border-slate-800 shadow-2xl relative overflow-hidden font-sans select-none"
+                  className="bg-[#0D0D0D] text-white rounded-3xl p-5 border border-slate-800 shadow-2xl relative font-sans select-none overflow-hidden"
                   style={{ backgroundColor: '#0D0D0D' }}
                 >
                   {/* Angled background accents */}
@@ -2718,40 +3012,53 @@ export default function App() {
                         </span>
                       </div>
 
-                      {/* Map Badge */}
-                      <span className={'text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border ' + (
-                        PLAYGROUND_MAPS.find(m => m.id === activeMatch.map)?.badge || 'bg-lime-500/20 text-lime-400 border-lime-500/30'
-                      )}>
-                        {activeMatch.map.toUpperCase()}
+                      {/* Mode Badge */}
+                      <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border bg-lime-500/20 text-lime-400 border-lime-500/30">
+                        {posterViewMode === 'overall' ? 'OVERALL • 5 ROUNDS' : `${currentMatch.map.toUpperCase()} • ROUND ${currentPlaygroundMatchIdx + 1}`}
                       </span>
                     </div>
 
                     <h3 className="text-lg font-black uppercase tracking-wider text-white truncate">
-                      {activeMatch.title || 'NIGHT SCRIM MATCH 1'}
+                      {playgroundSession.title ? `${playgroundSession.title.toUpperCase()} ${posterViewMode === 'overall' ? '• OVERALL' : `• R${currentPlaygroundMatchIdx + 1}`}` : 'PUBG MOBILE SCRIM • OVERALL'}
                     </h3>
+                    
                     <p className="text-[10px] text-slate-400 font-mono tracking-tight uppercase flex items-center gap-2 mt-0.5">
-                      <span>OFFICIAL MATCH RESULTS</span>
+                      <span>{posterViewMode === 'overall' ? '5 ROUNDS COMBINED' : `ROUND ${currentPlaygroundMatchIdx + 1} (${currentMatch.map})`}</span>
                       <span>•</span>
-                      <span>16 COMPETING SQUADS</span>
+                      <span>{currentMatch.slots.length} COMPETING SQUADS</span>
                     </p>
+
+                    {posterViewMode === 'overall' && (
+                      <div className="flex items-center gap-1 mt-2 text-[9px] font-mono font-bold text-slate-400">
+                        <span className="text-lime-400">MAPS:</span>
+                        <span>ERANGEL • ERANGEL • MIRAMAR • MIRAMAR • RONDO</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Leaderboard Table (Sorted: Total Pts desc > Elims desc > Placement asc) */}
+                  {/* Leaderboard Table */}
                   <div className="space-y-1 relative font-mono text-xs">
                     {/* Header Row */}
                     <div className="grid grid-cols-12 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800">
                       <div className="col-span-2 text-center">RANK</div>
                       <div className="col-span-5 text-left font-sans pl-1">SQUAD / TEAM</div>
-                      <div className="col-span-2 text-center">PLACE</div>
+                      <div className="col-span-2 text-center">{posterViewMode === 'overall' ? 'WWCD' : 'PLACE'}</div>
                       <div className="col-span-1 text-center">ELIM</div>
                       <div className="col-span-2 text-center text-lime-400">TOTAL</div>
                     </div>
 
-                    {/* 16 Sorted Rows */}
+                    {/* Sorted Rows */}
                     <div className="space-y-1">
-                      {sortedPosterLeaderboard.map((row, pos) => {
+                      {(posterViewMode === 'overall' ? sortedOverallLeaderboard : sortedCurrentMatchLeaderboard).map((row, pos) => {
                         const isChamp = pos === 0;
                         const rankNumber = pos + 1;
+                        const wwcdDisplay = posterViewMode === 'overall' 
+                          ? (row.totalWWCD > 0 ? `${row.totalWWCD} 🍗` : '-')
+                          : (row.placePts);
+
+                        const totalPoints = posterViewMode === 'overall' ? row.totalPts : row.totalPts;
+                        const elimPoints = posterViewMode === 'overall' ? row.totalElims : row.elims;
+
                         return (
                           <div 
                             key={row.slot}
@@ -2790,19 +3097,19 @@ export default function App() {
                               )}
                             </div>
 
-                            {/* Place Pts */}
-                            <div className="col-span-2 text-center text-slate-400">
-                              {row.placePts}
+                            {/* WWCD or Place Pts */}
+                            <div className="col-span-2 text-center text-slate-400 font-mono">
+                              {wwcdDisplay}
                             </div>
 
                             {/* Elims */}
                             <div className="col-span-1 text-center font-bold text-slate-300">
-                              {row.elims}
+                              {elimPoints}
                             </div>
 
                             {/* Total Points */}
                             <div className="col-span-2 text-center font-black text-lime-400 font-mono">
-                              {row.totalPts}
+                              {totalPoints}
                             </div>
                           </div>
                         );
@@ -2813,7 +3120,7 @@ export default function App() {
                   {/* Poster Footer */}
                   <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between text-[9px] font-mono text-slate-400 uppercase tracking-wider">
                     <span>GENERATED VIA SCRIM HUB</span>
-                    <span>TIEBREAK: ELIMS &gt; PLACEMENT</span>
+                    <span>TIEBREAK: ELIMS &gt; WWCD &gt; RANK</span>
                   </div>
                 </div>
 
@@ -2833,7 +3140,7 @@ export default function App() {
                     ) : (
                       <>
                         <Download className="w-4 h-4 text-slate-950"/>
-                        <span>Download Poster (PNG)</span>
+                        <span>Download {posterViewMode === 'overall' ? 'Overall Leaderboard' : `Round ${currentPlaygroundMatchIdx + 1}`} (PNG)</span>
                       </>
                     )}
                   </button>
@@ -2847,12 +3154,12 @@ export default function App() {
                     {isSavingCloudMatch ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin text-lime-400"/>
-                        <span>Syncing to Supabase...</span>
+                        <span>Menyimpan 5 Match ke Cloud...</span>
                       </>
                     ) : (
                       <>
                         <Cloud className="w-4 h-4 text-lime-400"/>
-                        <span>Save Match &amp; Track Overall</span>
+                        <span>Simpan Sesi (5 Matches) &amp; Track Overall</span>
                       </>
                     )}
                   </button>
@@ -5477,45 +5784,49 @@ export default function App() {
       )}
 
       {/* MOBILE NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-1 py-1.5 flex items-center justify-around shadow-lg">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => setActiveTab('playground')}
-          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'playground' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex items-center gap-1.5 py-1.5 px-3 rounded-2xl transition-all shadow-sm ' + (
+            activeTab === 'playground' 
+              ? 'bg-slate-950 text-lime-400 font-black ring-2 ring-lime-400/50 shadow-lime-500/10' 
+              : 'bg-slate-900 text-lime-400/90 hover:text-lime-300 border border-slate-800 font-bold'
+          )}
         >
-          <Zap className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5">Scorer</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('teams')}
-          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-400')}
-        >
-          <Users className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5">Teams</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('hosts')}
-          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
-        >
-          <Award className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5">Hosts</span>
+          <Zap className="w-4 h-4 text-lime-400 fill-current"/>
+          <span className="text-xs font-black uppercase tracking-wider">Scorer</span>
         </button>
 
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          className={'flex flex-col items-center py-1 px-2.5 rounded-xl transition ' + (
+            activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-500 hover:text-slate-900'
+          )}
         >
           <Trophy className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">Standings</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('admin')}
-          className={'flex flex-col items-center py-1 px-1.5 rounded-xl transition ' + (activeTab === 'admin' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+          onClick={() => setActiveTab('teams')}
+          className={'flex flex-col items-center py-1 px-2.5 rounded-xl transition ' + (
+            activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-500 hover:text-slate-900'
+          )}
         >
-          {currentUser ? <User className="w-5 h-5 text-lime-700"/> : <Lock className="w-4 h-4 text-slate-500"/>}
-          <span className="text-[10px] mt-0.5">Admin</span>
+          <Users className="w-5 h-5"/>
+          <span className="text-[10px] mt-0.5">Teams</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('admin')}
+          className={'flex items-center gap-1.5 py-1.5 px-3 rounded-2xl transition-all shadow-sm ' + (
+            activeTab === 'admin' 
+              ? 'bg-lime-400 text-slate-950 font-black ring-2 ring-lime-500/60' 
+              : 'bg-lime-400/20 text-lime-950 hover:bg-lime-400/30 border border-lime-400/50 font-bold'
+          )}
+        >
+          {currentUser ? <User className="w-4 h-4 text-slate-950"/> : <Lock className="w-3.5 h-3.5 text-slate-950"/>}
+          <span className="text-xs font-black uppercase tracking-wider">Admin</span>
         </button>
       </div>
 
