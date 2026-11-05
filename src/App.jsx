@@ -1084,6 +1084,7 @@ export default function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Background Gradient
     const bg = ctx.createLinearGradient(0, 0, 0, canvasHeight);
     bg.addColorStop(0, '#f8fafc');
     bg.addColorStop(0.5, '#f1f5f9');
@@ -1091,9 +1092,11 @@ export default function App() {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, canvasHeight);
 
+    // Accent line
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
+    // 1. Session Logo (Top Left)
     const logoX = 60;
     const logoY = 55;
     const logoSize = 110;
@@ -1118,6 +1121,7 @@ export default function App() {
     }
     ctx.restore();
 
+    // 2. Session Header Info
     const titleX = 195;
     ctx.fillStyle = '#4d7c0f';
     ctx.font = 'bold 18px monospace';
@@ -1136,6 +1140,7 @@ export default function App() {
     ctx.font = '600 15px sans-serif';
     ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 580, 160);
 
+    // 3. Table Header
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(60, 195, 960, 46);
 
@@ -1148,6 +1153,7 @@ export default function App() {
     ctx.fillText('KILLS', 815, 224);
     ctx.fillText('TOTAL PTS', 920, 224);
 
+    // 4. Standings Rows (Up to 24 teams)
     const rows = leaderboardData.slice(0, 24);
     let y = 275;
     rows.forEach((row, i) => {
@@ -1170,7 +1176,7 @@ export default function App() {
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
       ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 15px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
@@ -1184,6 +1190,7 @@ export default function App() {
       y += rowHeight;
     });
 
+    // 5. Host & Session Information Card
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.roundRect(60, cardY, 960, 150, 18);
@@ -1213,6 +1220,7 @@ export default function App() {
     const cleanDesc = sessionDesc.length > 85 ? `"${sessionDesc.slice(0, 82)}..."` : `"${sessionDesc}"`;
     ctx.fillText(cleanDesc, 95, cardY + 125);
 
+    // 6. Watermark Footer
     ctx.fillStyle = '#64748b';
     ctx.font = 'bold 13px monospace';
     ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, canvasHeight - 30);
@@ -1234,7 +1242,7 @@ export default function App() {
     }
   };
 
-  // INSTAGRAM STORY INFOGRAPHIC ENGINE (FIXED Canvas lineTo arguments)
+  // INSTAGRAM STORY INFOGRAPHIC ENGINE
   const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
       showToast('No statistics available to generate card!');
@@ -1257,7 +1265,7 @@ export default function App() {
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Grid background lines (Fixed lineTo call)
+      // Grid background lines
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
       ctx.lineWidth = 1;
       for (let i = 0; i < 1080; i += 60) {
@@ -1716,7 +1724,6 @@ export default function App() {
     };
   }, [performanceTeam, selectedPerformanceHost, performanceModalCategory]);
 
-  // SHOWCASE POSTING & LINK BINDING
   const [showcaseFilter, setShowcaseFilter] = useState('all');
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postSourceMode, setPostSourceMode] = useState('upload');
@@ -2067,16 +2074,21 @@ export default function App() {
                       <div
                         key={idx}
                         onClick={() => setInspectedScrim(item.scrimData)}
-                        className="p-3 bg-slate-50 hover:bg-white active:scale-[0.99] border border-slate-200 hover:border-lime-400 rounded-2xl flex items-center justify-between cursor-pointer transition shadow-xs"
+                        className="p-3.5 bg-slate-50 hover:bg-white active:scale-[0.99] border border-slate-200 hover:border-lime-400 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition shadow-xs"
                       >
-                        <div className="flex items-center space-x-3">
+                        {/* Info Sesi & Host (Auto truncate & wrap) */}
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
                           {item.scrimData?.logo_url && (
-                            <img src={item.scrimData.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover border border-slate-200" />
+                            <img 
+                              src={item.scrimData.logo_url} 
+                              alt="" 
+                              className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0" 
+                            />
                           )}
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
-                              <span>{item.scrimName}</span>
-                              <span className={'text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ' + (
+                              <span className="truncate max-w-[150px] sm:max-w-none">{item.scrimName}</span>
+                              <span className={'text-[9px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ' + (
                                 (item.eventType || 'Scrim') === 'Tour' 
                                   ? 'bg-amber-100 text-amber-900 border border-amber-300' 
                                   : 'bg-lime-100 text-lime-900 border border-lime-300'
@@ -2084,31 +2096,35 @@ export default function App() {
                                 {(item.eventType || 'Scrim').toUpperCase()}
                               </span>
                               {item.isFinished && (
-                                <span className="text-[9px] bg-slate-200 text-slate-800 px-1 rounded font-mono">Final</span>
+                                <span className="text-[9px] bg-slate-200 text-slate-800 px-1 rounded font-mono flex-shrink-0">
+                                  Final
+                                </span>
                               )}
-                              <ExternalLink className="w-3 h-3 text-slate-400"/>
+                              <ExternalLink className="w-3 h-3 text-slate-400 flex-shrink-0"/>
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                            
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1 flex-wrap">
                               <span className="text-lime-700 font-bold">{item.scrimTier}</span>
                               <span>•</span>
-                              <span>Host: {item.hostName}</span>
+                              <span className="truncate max-w-[120px] sm:max-w-none">Host: {item.hostName}</span>
                               <span>•</span>
-                              <span>{item.date}</span>
+                              <span className="font-mono">{item.date}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-3 text-right">
-                          <div>
+                        {/* Statistik & Kedudukan (Tersusun kemas di baris bawah pada telefon) */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/70 flex-shrink-0">
+                          <div className="text-left sm:text-right">
                             <span className="text-[9px] text-slate-400 uppercase font-bold block">Kills</span>
-                            <span className="text-xs font-mono font-bold text-slate-700">{item.kills} K</span>
+                            <span className="text-xs font-mono font-bold text-slate-800">{item.kills} K</span>
                           </div>
-                          <div>
+                          <div className="text-left sm:text-right">
                             <span className="text-[9px] text-slate-400 uppercase font-bold block">Points</span>
                             <span className="text-xs font-mono font-black text-lime-700">{item.points} PTS</span>
                           </div>
-                          <div className="w-16 text-right">
-                            <span className="text-xs font-black">
+                          <div className="text-right pl-1">
+                            <span className="text-xs font-black font-mono px-2.5 py-1 rounded-xl bg-slate-200/80 border border-slate-300 text-slate-900 inline-block">
                               {item.ranking === 1 ? '👑 #1' : '#' + item.ranking}
                             </span>
                           </div>
@@ -2162,10 +2178,11 @@ export default function App() {
               <>
                 <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
                   
+                  {/* Pemilihan Sesi Yang Dibaiki Responsif */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 w-full sm:flex-1 min-w-0">
                       <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
-                        <Radio className="w-3.5 h-3.5 text-lime-600"/>
+                        <Radio className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
                         Session:
                       </span>
                       <select
@@ -2174,7 +2191,7 @@ export default function App() {
                           setSelectedScrimId(e.target.value);
                           setLeaderboardFilter('overall');
                         }}
-                        className="flex-1 max-w-md bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 transition"
+                        className="w-full sm:max-w-md bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-lime-500 transition truncate"
                       >
                         {filteredScrims.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -4134,8 +4151,8 @@ export default function App() {
                   href={inspectedScrim.host_contact.startsWith('http') 
                     ? inspectedScrim.host_contact 
                     : (inspectedScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                      ? 'https://wa.me/' + inspectedScrim.host_contact.replace(/[^0-9]/g, '')
-                      : 'https://t.me/' + inspectedScrim.host_contact.replace('@', ''))
+                      ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
+                      : 'https://t.me/' + host.contact.replace('@', ''))
                   }
                   target="_blank"
                   rel="noopener noreferrer"
