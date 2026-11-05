@@ -1176,7 +1176,7 @@ export default function App() {
       ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
 
       ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 15px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.fillText(String(row.wwcd || 0), 725, y + 4);
 
       ctx.fillStyle = '#334155';
@@ -1837,14 +1837,16 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER NAVIGATION */}
+      {/* HEADER NAVIGATION DENGAN LOGO GAMBAR BARU */}
       <header className="border-b border-slate-200/90 bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-lime-400 flex items-center justify-center text-slate-950 shadow-md shadow-lime-400/30 font-black border border-lime-500/30">
-              <Swords className="w-5 h-5"/>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="SCRIM HUB Logo" 
+              className="w-9 h-9 rounded-xl object-cover shadow-md shadow-lime-400/30 border border-lime-500/30" 
+            />
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-base font-black tracking-wider text-slate-950">SCRIM HUB</span>
