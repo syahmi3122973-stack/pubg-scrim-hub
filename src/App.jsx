@@ -256,8 +256,20 @@ export default function App() {
       const user = session?.user || null;
       setCurrentUser(user);
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setCurrentUser(session?.user || null);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const u = session?.user || null;
+        setCurrentUser(u);
+        if (!u || event === 'SIGNED_OUT') {
+          setProfileName('');
+          setProfileContact('');
+          setProfileBio('');
+          setProfileAvatarUrl('');
+          setAvatarFile(null);
+          setNewHostName('');
+          setNewHostContact('');
+          setNewScrimTitle('');
+          setAdminSelectedScrimId('');
+        }
       });
 
       const { data: teamsData } = await supabase
@@ -345,6 +357,15 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
+    setProfileName('');
+    setProfileContact('');
+    setProfileBio('');
+    setProfileAvatarUrl('');
+    setAvatarFile(null);
+    setNewHostName('');
+    setNewHostContact('');
+    setNewScrimTitle('');
+    setAdminSelectedScrimId('');
     showToast('Logged out successfully.');
   };
 
@@ -378,16 +399,66 @@ export default function App() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
-    if (currentUser && profiles.length > 0) {
-      const myProfile = profiles.find(p => p.id === currentUser.id);
-      if (myProfile) {
-        setProfileName(myProfile.display_name || '');
-        setProfileContact(myProfile.contact || '');
-        setProfileBio(myProfile.bio || '');
-        setProfileAvatarUrl(myProfile.avatar_url || '');
+    let isMounted = true;
+
+    async function syncUserProfile() {
+      if (!currentUser) {
+        setProfileName('');
+        setProfileContact('');
+        setProfileBio('');
+        setProfileAvatarUrl('');
+        setAvatarFile(null);
+        return;
+      }
+
+      const cached = profiles.find(p => p.id === currentUser.id);
+      if (cached) {
+        setProfileName(cached.display_name || '');
+        setProfileContact(cached.contact || '');
+        setProfileBio(cached.bio || '');
+        setProfileAvatarUrl(cached.avatar_url || '');
+      } else {
+        setProfileName('');
+        setProfileContact('');
+        setProfileBio('');
+        setProfileAvatarUrl('');
+      }
+
+      try {
+        const { data: userProf } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        if (isMounted) {
+          if (userProf) {
+            setProfileName(userProf.display_name || '');
+            setProfileContact(userProf.contact || '');
+            setProfileBio(userProf.bio || '');
+            setProfileAvatarUrl(userProf.avatar_url || '');
+            setProfiles(prev => {
+              const filtered = prev.filter(p => p.id !== userProf.id);
+              return [...filtered, userProf];
+            });
+          } else {
+            setProfileName('');
+            setProfileContact('');
+            setProfileBio('');
+            setProfileAvatarUrl('');
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
       }
     }
-  }, [currentUser, profiles]);
+
+    syncUserProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -485,19 +556,16 @@ export default function App() {
   
   // Dynamic Match Slots
   const [matchSlots, setMatchSlots] = useState(() => {
-    return Array.from({ length: 16 }, (_, idx) => {
-      const tm = INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
-      return {
-        slot: idx + 1,
-        teamId: tm.id,
-        teamName: tm.name,
-        tag: tm.tag,
-        placement: idx + 1,
-        kills: 0,
-        placePts: getPlacementPoints(idx + 1),
-        totalPts: getPlacementPoints(idx + 1)
-      };
-    });
+    return Array.from({ length: 16 }, (_, idx) => ({
+      slot: idx + 1,
+      teamId: '',
+      teamName: '',
+      tag: '',
+      placement: '',
+      kills: 0,
+      placePts: 0,
+      totalPts: 0
+    }));
   });
 
   useEffect(() => {
@@ -507,13 +575,13 @@ export default function App() {
       if (saved.results && saved.results.length > 0) {
         setMatchSlots(saved.results.map((r, i) => ({
           slot: i + 1,
-          teamId: r.teamId,
-          teamName: r.teamName,
-          tag: r.tag,
-          placement: r.placement,
-          kills: r.kills,
-          placePts: r.placePts,
-          totalPts: r.totalPts
+          teamId: r.teamId || '',
+          teamName: r.teamName || '',
+          tag: r.tag || '',
+          placement: r.placement !== undefined && r.placement !== null && r.placement !== '' ? r.placement : '',
+          kills: Number(r.kills) || 0,
+          placePts: Number(r.placePts) || 0,
+          totalPts: Number(r.totalPts) || 0
         })));
         return;
       }
@@ -521,21 +589,18 @@ export default function App() {
 
     setMatchSlots(prev => {
       const currentCount = prev.length || 16;
-      return Array.from({ length: currentCount }, (_, idx) => {
-        const tm = teams[idx] || INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
-        return {
-          slot: idx + 1,
-          teamId: tm.id,
-          teamName: tm.name,
-          tag: tm.tag,
-          placement: idx + 1,
-          kills: 0,
-          placePts: getPlacementPoints(idx + 1),
-          totalPts: getPlacementPoints(idx + 1)
-        };
-      });
+      return Array.from({ length: currentCount }, (_, idx) => ({
+        slot: idx + 1,
+        teamId: '',
+        teamName: '',
+        tag: '',
+        placement: '',
+        kills: 0,
+        placePts: 0,
+        totalPts: 0
+      }));
     });
-  }, [activeAdminScrim, selectedMatchIdx, teams]);
+  }, [activeAdminScrim, selectedMatchIdx]);
 
   // Restorasi filteredScrims dan activePublicScrim yang hilang
   const filteredScrims = useMemo(() => {
@@ -673,15 +738,49 @@ export default function App() {
     }
   };
 
-  const handleAddNewMatch = () => {
+  const handleAddNewMatch = async () => {
     if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Cannot add rounds to a concluded session!');
       return;
     }
-    const currentTotal = activeAdminScrim?.matches?.length || 0;
-    const newMatchNumber = currentTotal + 1;
-    setSelectedMatchIdx(newMatchNumber - 1);
-    showToast(`Match ${newMatchNumber} ready for entry!`);
+    if (!activeAdminScrim) {
+      showToast('Please create or select a session first!');
+      return;
+    }
+
+    const currentMatches = activeAdminScrim.matches ? [...activeAdminScrim.matches] : [];
+    
+    // If no match exists yet in session, ensure match 1 exists
+    if (currentMatches.length === 0) {
+      currentMatches.push({
+        matchNo: 1,
+        map: 'Erangel',
+        results: []
+      });
+    }
+
+    const nextMatchNo = currentMatches.length + 1;
+    const newMatch = {
+      matchNo: nextMatchNo,
+      map: 'Erangel',
+      results: []
+    };
+    const updatedMatches = [...currentMatches, newMatch];
+    const updatedScrim = {
+      ...activeAdminScrim,
+      matches: updatedMatches,
+      total_matches: updatedMatches.length
+    };
+
+    setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+    setSelectedMatchIdx(updatedMatches.length - 1);
+    showToast(`Match ${nextMatchNo} added!`);
+
+    try {
+      await supabase.from('scrims').upsert(updatedScrim);
+    } catch (err) {
+      console.error('Error persisting new round:', err);
+    }
   };
 
   const handleRemoveLastMatch = async () => {
@@ -692,8 +791,8 @@ export default function App() {
     }
 
     const currentMatches = activeAdminScrim.matches || [];
-    if (currentMatches.length === 0) {
-      showToast('No rounds available to delete.');
+    if (currentMatches.length <= 1) {
+      showToast('Minimum 1 match round required.');
       return;
     }
 
@@ -706,14 +805,14 @@ export default function App() {
       total_matches: trimmed.length
     };
 
-    const { error } = await supabase.from('scrims').upsert(updated);
+    setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updated : s));
+    setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
+    showToast('Last round removed successfully.');
 
-    if (error) {
-      showToast('Error: ' + error.message);
-    } else {
-      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
-      setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
-      showToast('Last round removed successfully.');
+    try {
+      await supabase.from('scrims').upsert(updated);
+    } catch (err) {
+      console.error('Error removing round:', err);
     }
   };
 
@@ -729,21 +828,15 @@ export default function App() {
 
     setMatchSlots(prev => {
       const nextSlotNum = prev.length + 1;
-      const fallbackTeam = teams[nextSlotNum - 1] || INITIAL_FALLBACK_TEAMS[nextSlotNum - 1] || {
-        id: `tm_${nextSlotNum}`,
-        name: `Team ${nextSlotNum}`,
-        tag: `T${nextSlotNum}`
-      };
-
       const newSlot = {
         slot: nextSlotNum,
-        teamId: fallbackTeam.id,
-        teamName: fallbackTeam.name,
-        tag: fallbackTeam.tag,
-        placement: nextSlotNum,
+        teamId: '',
+        teamName: '',
+        tag: '',
+        placement: '',
         kills: 0,
-        placePts: getPlacementPoints(nextSlotNum),
-        totalPts: getPlacementPoints(nextSlotNum)
+        placePts: 0,
+        totalPts: 0
       };
 
       return [...prev, newSlot];
@@ -766,19 +859,6 @@ export default function App() {
     showToast(`Team slot ${matchSlots.length} removed.`);
   };
 
-  // Penapis pilihan nombor kedudukan (Rank) unik
-  const getAvailablePlacements = (currentIdx, currentPlacement) => {
-    const taken = new Set(
-      matchSlots
-        .filter((_, i) => i !== currentIdx)
-        .map(s => Number(s.placement))
-    );
-
-    return Array.from({ length: matchSlots.length }, (_, i) => i + 1).filter(
-      num => num === Number(currentPlacement) || !taken.has(num)
-    );
-  };
-
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Scores are locked because this session has concluded!');
@@ -787,28 +867,59 @@ export default function App() {
 
     setMatchSlots(prev => {
       const updated = [...prev];
-      const row = { ...updated[index] };
+      const currentRow = { ...updated[index] };
 
       if (field === 'placement') {
-        const p = Math.max(1, Math.min(prev.length, parseInt(value, 10) || 1));
-        row.placement = p;
-        row.placePts = getPlacementPoints(p);
-      } else if (field === 'kills') {
-        row.kills = Math.max(0, parseInt(value, 10) || 0);
-      } else if (field === 'teamName') {
-        row.teamName = value;
-        const matched = teams.find(t => t.name.toLowerCase() === value.toLowerCase() || t.tag.toLowerCase() === value.toLowerCase());
-        if (matched) {
-          row.teamId = matched.id;
-          row.tag = matched.tag;
+        const newPlacement = value === '' ? '' : parseInt(value, 10);
+        const oldPlacement = currentRow.placement !== '' && !isNaN(parseInt(currentRow.placement, 10))
+          ? parseInt(currentRow.placement, 10)
+          : '';
+
+        if (newPlacement === '' || isNaN(newPlacement)) {
+          currentRow.placement = '';
+          currentRow.placePts = 0;
+          currentRow.totalPts = currentRow.kills;
+          updated[index] = currentRow;
         } else {
-          row.teamId = 'custom_' + value.replace(/ /g, '_').toLowerCase();
-          row.tag = value.slice(0, 4).toUpperCase();
+          // Check if another slot currently has this placement
+          const conflictIdx = updated.findIndex((r, i) => i !== index && Number(r.placement) === newPlacement);
+
+          currentRow.placement = newPlacement;
+          currentRow.placePts = getPlacementPoints(newPlacement);
+          currentRow.totalPts = currentRow.placePts + currentRow.kills;
+          updated[index] = currentRow;
+
+          // If another team already had this rank, swap cleanly!
+          if (conflictIdx !== -1) {
+            const conflictingRow = { ...updated[conflictIdx] };
+            conflictingRow.placement = oldPlacement !== '' ? oldPlacement : '';
+            conflictingRow.placePts = conflictingRow.placement !== '' ? getPlacementPoints(conflictingRow.placement) : 0;
+            conflictingRow.totalPts = conflictingRow.placePts + conflictingRow.kills;
+            updated[conflictIdx] = conflictingRow;
+          }
         }
+      } else if (field === 'kills') {
+        const kills = Math.max(0, parseInt(value, 10) || 0);
+        currentRow.kills = kills;
+        currentRow.totalPts = currentRow.placePts + kills;
+        updated[index] = currentRow;
+      } else if (field === 'teamName') {
+        currentRow.teamName = value;
+        const cleanVal = value.trim();
+        const matched = teams.find(t => 
+          t.name.toLowerCase() === cleanVal.toLowerCase() || 
+          t.tag.toLowerCase() === cleanVal.toLowerCase()
+        );
+        if (matched) {
+          currentRow.teamId = matched.id;
+          currentRow.tag = matched.tag;
+        } else {
+          currentRow.teamId = cleanVal ? ('custom_' + cleanVal.replace(/\s+/g, '_').toLowerCase()) : '';
+          currentRow.tag = cleanVal ? cleanVal.slice(0, 4).toUpperCase() : '';
+        }
+        updated[index] = currentRow;
       }
 
-      row.totalPts = row.placePts + row.kills;
-      updated[index] = row;
       return updated;
     });
   };
@@ -860,29 +971,35 @@ export default function App() {
       return;
     }
 
-    const compiledResults = matchSlots.map(s => ({
-      teamId: s.teamId || 'tm_' + s.teamName,
-      teamName: s.teamName,
-      tag: s.tag || s.teamName.slice(0, 4).toUpperCase(),
-      placement: Number(s.placement),
-      kills: Number(s.kills),
-      placePts: Number(s.placePts),
-      totalPts: Number(s.totalPts),
-      wwcd: Number(s.placement) === 1 ? 1 : 0
-    }));
+    const compiledResults = matchSlots.map((s, idx) => {
+      const p = parseInt(s.placement, 10);
+      const validPlacement = !isNaN(p) && p > 0 ? p : idx + 1;
+      const placePoints = getPlacementPoints(validPlacement);
+      const kills = Number(s.kills) || 0;
+      const cleanName = s.teamName && s.teamName.trim() ? s.teamName.trim() : `Team ${s.slot}`;
+      const tag = s.tag || cleanName.slice(0, 4).toUpperCase();
+      const teamId = s.teamId || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase());
+
+      return {
+        teamId,
+        teamName: cleanName,
+        tag,
+        placement: validPlacement,
+        kills,
+        placePts: placePoints,
+        totalPts: placePoints + kills,
+        wwcd: validPlacement === 1 ? 1 : 0
+      };
+    });
 
     const existingMatches = activeAdminScrim.matches ? [...activeAdminScrim.matches] : [];
     const matchData = {
       matchNo: selectedMatchIdx + 1,
-      map: inputMap,
+      map: inputMap || 'Erangel',
       results: compiledResults
     };
 
-    if (existingMatches[selectedMatchIdx]) {
-      existingMatches[selectedMatchIdx] = matchData;
-    } else {
-      existingMatches.push(matchData);
-    }
+    existingMatches[selectedMatchIdx] = matchData;
 
     const updatedScrim = {
       ...activeAdminScrim,
