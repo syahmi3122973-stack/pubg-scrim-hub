@@ -1955,7 +1955,7 @@ export default function App() {
     }
   };
 
-  const adminMatchCount = Math.max(1, (activeAdminScrim?.matches?.length || 0));
+  const adminMatchCount = Math.max(1, (activeAdminScrim?.matches?.length || 0), selectedMatchIdx + 1);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
@@ -3474,7 +3474,7 @@ export default function App() {
                     
                     <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
                       {Array.from({ length: adminMatchCount }, (_, idx) => {
-                        const isSaved = activeAdminScrim?.matches && activeAdminScrim.matches[idx];
+                        const isSaved = Boolean(activeAdminScrim?.matches && activeAdminScrim.matches[idx]?.results?.length > 0);
                         return (
                           <button
                             key={idx}
@@ -3486,7 +3486,7 @@ export default function App() {
                             )}
                           >
                             <span>Match {idx + 1}</span>
-                            {isSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500"></span>}
+                            {isSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500" title="Scores Saved"></span>}
                           </button>
                         );
                       })}
@@ -3501,7 +3501,7 @@ export default function App() {
                         </button>
                       )}
 
-                      {!activeAdminScrim?.is_finished && (activeAdminScrim?.matches?.length > 1) && (
+                      {!activeAdminScrim?.is_finished && (adminMatchCount > 1) && (
                         <button
                           onClick={handleRemoveLastMatch}
                           className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
@@ -3589,9 +3589,10 @@ export default function App() {
                             <input
                               type="text"
                               disabled={activeAdminScrim?.is_finished}
+                              placeholder="Enter team name..."
                               value={row.teamName}
                               onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                              className="bg-transparent font-bold text-slate-900 text-xs border-b border-transparent focus:border-lime-500 focus:outline-none flex-1 truncate"
+                              className="bg-transparent font-bold text-slate-900 text-xs border-b border-transparent focus:border-lime-500 focus:outline-none flex-1 truncate placeholder:text-slate-400 placeholder:font-normal"
                             />
                           </div>
 
@@ -3608,16 +3609,17 @@ export default function App() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                          {/* Dropdown Rank Mobile Berfilter */}
+                          {/* Dropdown Rank Mobile */}
                           <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200">
                             <span className="text-[10px] text-slate-500 uppercase font-bold">Rank:</span>
                             <select
                               disabled={activeAdminScrim?.is_finished}
-                              value={row.placement}
+                              value={row.placement || ''}
                               onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                               className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-900 text-xs focus:outline-none focus:border-lime-500"
                             >
-                              {getAvailablePlacements(idx, row.placement).map((num) => (
+                              <option value="">-- Rank --</option>
+                              {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
                                 <option key={num} value={num}>
                                   #{num} {num === 1 ? '👑' : ''}
                                 </option>
@@ -3680,19 +3682,21 @@ export default function App() {
                                 <input
                                   type="text"
                                   disabled={activeAdminScrim?.is_finished}
+                                  placeholder="Enter team name..."
                                   value={row.teamName}
                                   onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-900 font-semibold focus:outline-none focus:border-lime-500"
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-900 font-semibold focus:outline-none focus:border-lime-500 placeholder:text-slate-400 placeholder:font-normal"
                                 />
                               </td>
                               <td className="py-2.5 px-4 text-center">
                                 <select
                                   disabled={activeAdminScrim?.is_finished}
-                                  value={row.placement}
+                                  value={row.placement || ''}
                                   onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                  className="w-24 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs"
+                                  className="w-28 bg-slate-50 border border-slate-200 text-center rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs"
                                 >
-                                  {getAvailablePlacements(idx, row.placement).map((num) => (
+                                  <option value="">-- Rank --</option>
+                                  {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
                                     <option key={num} value={num}>
                                       #{num} {num === 1 ? '👑' : ''}
                                     </option>
