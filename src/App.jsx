@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toPng } from 'html-to-image';
 import { 
   Trophy, 
-  Shield, 
   Swords, 
   Search, 
   Plus, 
@@ -11,7 +10,6 @@ import {
   Users, 
   Copy, 
   Play, 
-  Heart, 
   Save, 
   RefreshCw, 
   Check, 
@@ -27,37 +25,30 @@ import {
   Share2, 
   ExternalLink, 
   Upload, 
-  Calendar, 
-  Image as ImageIcon, 
   X, 
   Eye, 
   Trash2, 
   Edit3, 
   LockKeyhole, 
   Unlock, 
-  CheckSquare, 
   Award, 
   TrendingUp, 
   BarChart2, 
   Info, 
   Bug, 
   Crosshair, 
-  Radio, 
-  Send, 
   Share, 
-  Medal,
-  Globe,
-  Link as LinkIcon,
-  Video,
-  HelpCircle,
-  Zap,
-  Crown,
-  RotateCcw,
-  Cloud,
-  ShieldCheck,
-  Menu,
-  Database,
-  Clock
+  Medal, 
+  Globe, 
+  Link as LinkIcon, 
+  Video, 
+  HelpCircle, 
+  Zap, 
+  Cloud, 
+  ShieldCheck, 
+  Menu, 
+  Database, 
+  Clock 
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -193,14 +184,6 @@ const INITIAL_FALLBACK_TEAMS = [
   { id: 'tm_24', name: 'S2G Esports', tag: 'S2G' }
 ];
 
-const PLAYGROUND_MAPS = [
-  { id: 'Erangel', name: 'Erangel', badge: 'bg-lime-500/20 text-lime-400 border-lime-500/30' },
-  { id: 'Miramar', name: 'Miramar', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-  { id: 'Sanhok', name: 'Sanhok', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-  { id: 'Vikendi', name: 'Vikendi', badge: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
-  { id: 'Rondo', name: 'Rondo', badge: 'bg-teal-500/20 text-teal-400 border-teal-500/30' }
-];
-
 const PLAYGROUND_DEFAULT_MAPS = ['Erangel', 'Erangel', 'Miramar', 'Miramar', 'Rondo'];
 
 const DEFAULT_PLAYGROUND_TEAMS = [
@@ -284,7 +267,9 @@ export default function App() {
         if (hash === 'database') return 'teams';
         return hash;
       }
-    } catch (e) {}
+    } catch {
+      // ignore
+    }
     return 'playground';
   });
 
@@ -296,10 +281,6 @@ export default function App() {
   const [adminPosterViewMode, setAdminPosterViewMode] = useState('overall'); // 'overall' or 'match'
   const [isDownloadingAdminPoster, setIsDownloadingAdminPoster] = useState(false);
   const [isCreateScrimOpen, setIsCreateScrimOpen] = useState(false);
-
-  // History Tab Details Modal State
-  const [historyDetailScrim, setHistoryDetailScrim] = useState(null);
-  const [historyLeaderboardFilter, setHistoryLeaderboardFilter] = useState('overall');
   
   // Playground Local-First State & Poster Ref
   const posterRef = useRef(null);
@@ -575,18 +556,6 @@ export default function App() {
     });
   };
 
-  const handleSetPlaygroundMap = (mapId) => {
-    setPlaygroundSession(prev => {
-      const updatedMatches = prev.matches.map((m, idx) => {
-        if (idx === currentPlaygroundMatchIdx) {
-          return { ...m, map: mapId };
-        }
-        return m;
-      });
-      return { ...prev, matches: updatedMatches, synced: false };
-    });
-  };
-
   const handleSetPlaygroundTitle = (newTitle) => {
     setPlaygroundSession(prev => ({
       ...prev,
@@ -787,7 +756,9 @@ export default function App() {
       setPlaygroundSession(prev => ({ ...prev, synced: true }));
       try {
         localStorage.setItem('scrim_active_match', JSON.stringify({ ...sessionToSync, synced: true }));
-      } catch (e) {}
+      } catch {
+        // ignore
+      }
 
       showToast('🚀 5 Match disimpan ke Dashboard & Rekod Prestasi Pasukan dikemaskini!');
       setIsAuthModalOpen(false);
@@ -848,6 +819,25 @@ export default function App() {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
   const [searchHostQuery, setSearchHostQuery] = useState('');
+
+  // User Profile States
+  const [profileName, setProfileName] = useState('');
+  const [profileContact, setProfileContact] = useState('');
+  const [profileBio, setProfileBio] = useState('');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // New Scrim Modal States
+  const [newScrimTitle, setNewScrimTitle] = useState('');
+  const [newHostName, setNewHostName] = useState('');
+  const [newEventType, setNewEventType] = useState('Scrim');
+  const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
+  const [newScrimDesc, setNewScrimDesc] = useState('');
+  const [newScrimDate, setNewScrimDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [newHostContact, setNewHostContact] = useState('');
+  const [logoFile, setLogoFile] = useState(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -984,17 +974,17 @@ export default function App() {
     showToast('Logged out successfully.');
   };
 
-  const isAuthorizedAdmin = (scrim) => {
+  const isAuthorizedAdmin = useCallback((scrim) => {
     if (!currentUser || !scrim) return false;
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
     const isCoHost = scrim.co_hosts && scrim.co_hosts.includes(currentUser.id);
     return isOwner || isCoHost;
-  };
+  }, [currentUser]);
 
   const adminHostedScrims = useMemo(() => {
     if (!currentUser) return [];
     return scrims.filter(s => isAuthorizedAdmin(s));
-  }, [scrims, currentUser]);
+  }, [scrims, currentUser, isAuthorizedAdmin]);
 
   useEffect(() => {
     if (adminHostedScrims.length > 0 && !adminHostedScrims.some(s => s.id === adminSelectedScrimId)) {
@@ -1005,13 +995,6 @@ export default function App() {
   const activeAdminScrim = useMemo(() => {
     return adminHostedScrims.find(s => s.id === adminSelectedScrimId) || adminHostedScrims[0] || null;
   }, [adminHostedScrims, adminSelectedScrimId]);
-
-  const [profileName, setProfileName] = useState('');
-  const [profileContact, setProfileContact] = useState('');
-  const [profileBio, setProfileBio] = useState('');
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -1073,7 +1056,7 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [currentUser]);
+  }, [currentUser, profiles]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -1147,16 +1130,6 @@ export default function App() {
     }
   };
 
-  const [newScrimTitle, setNewScrimTitle] = useState('');
-  const [newHostName, setNewHostName] = useState('');
-  const [newEventType, setNewEventType] = useState('Scrim');
-  const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
-  const [newScrimDesc, setNewScrimDesc] = useState('');
-  const [newScrimDate, setNewScrimDate] = useState(new Date().toISOString().split('T')[0]);
-  const [newHostContact, setNewHostContact] = useState('');
-  const [logoFile, setLogoFile] = useState(null);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-
   const [editTitle, setEditTitle] = useState('');
   const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
@@ -1229,7 +1202,7 @@ export default function App() {
                           (s.tier && s.tier.toLowerCase().includes(searchScrimQuery.toLowerCase()));
       return isOwner && matchTier && matchType && matchSearch;
     });
-  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery, currentUser]);
+  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery, currentUser, isAuthorizedAdmin]);
 
   const activePublicScrim = useMemo(() => {
     if (!filteredScrims.length) return null;
@@ -1701,7 +1674,6 @@ export default function App() {
     });
   };
 
-  const [leaderboardFilter, setLeaderboardFilter] = useState('overall');
   const [copyFeedback, setCopyFeedback] = useState(false);
 
   const calculateLeaderboard = (targetScrim, filterType) => {
@@ -1762,10 +1734,6 @@ export default function App() {
       }));
     }
   };
-
-  const leaderboardData = useMemo(() => {
-    return calculateLeaderboard(activePublicScrim, leaderboardFilter);
-  }, [activePublicScrim, leaderboardFilter]);
 
   // Admin Live Standings (Overall or Live Match Slots)
   const adminLiveStandings = useMemo(() => {
@@ -1838,201 +1806,6 @@ export default function App() {
     }).catch(() => {
       showToast('Gagal menyalin teks standings.');
     });
-  };
-
-  // POSTER DOWNLOAD - DYNAMIC UP TO 24 TEAMS WITHOUT OVERLAPPING
-  const handleDownloadPoster = async () => {
-    if (!leaderboardData.length) {
-      showToast('No data available to download poster!');
-      return;
-    }
-
-    const loadImage = (url) => {
-      return new Promise((resolve) => {
-        if (!url) return resolve(null);
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
-    };
-
-    showToast('Rendering tournament poster...');
-
-    const sessionLogo = await loadImage(activePublicScrim?.logo_url);
-    const hostName = activePublicScrim?.host_name || 'TOURNAMENT ORGANIZER';
-    const hostContact = activePublicScrim?.host_contact || '';
-    const sessionDesc = activePublicScrim?.description || 'Official PUBG Mobile competitive match fixture.';
-
-    const totalRows = Math.min(leaderboardData.length, 24);
-    const rowHeight = totalRows > 16 ? 44 : 54;
-    const rowsTotalHeight = totalRows * rowHeight;
-    const cardY = 275 + rowsTotalHeight + 25;
-    const canvasHeight = Math.max(1560, cardY + 160 + 80);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = canvasHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Background Gradient
-    const bg = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-    bg.addColorStop(0, '#f8fafc');
-    bg.addColorStop(0.5, '#f1f5f9');
-    bg.addColorStop(1, '#e2e8f0');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, 1080, canvasHeight);
-
-    // Accent line
-    ctx.fillStyle = '#84cc16';
-    ctx.fillRect(0, 0, 1080, 14);
-
-    // 1. Session Logo
-    const logoX = 60;
-    const logoY = 55;
-    const logoSize = 110;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(logoX, logoY, logoSize, logoSize, 20);
-    ctx.fillStyle = '#0f172a';
-    ctx.fill();
-    ctx.clip();
-
-    if (sessionLogo) {
-      ctx.drawImage(sessionLogo, logoX, logoY, logoSize, logoSize);
-    } else {
-      ctx.fillStyle = '#84cc16';
-      ctx.fillRect(logoX, logoY, logoSize, logoSize);
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 44px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🏆', logoX + logoSize / 2, logoY + 70);
-      ctx.textAlign = 'left';
-    }
-    ctx.restore();
-
-    // 2. Session Header Info
-    const titleX = 195;
-    ctx.fillStyle = '#4d7c0f';
-    ctx.font = 'bold 18px monospace';
-    ctx.fillText('SCRIM HUB  •  TACTICAL ESPORTS', titleX, 80);
-
-    ctx.fillStyle = '#0f172a';
-    ctx.font = '900 34px sans-serif';
-    const mainTitle = (activePublicScrim?.title || 'PUBG MOBILE COMPETITIVE').toUpperCase();
-    ctx.fillText(mainTitle.length > 26 ? mainTitle.slice(0, 24) + '...' : mainTitle, titleX, 125);
-
-    ctx.fillStyle = '#65a30d';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillText(`[${(activePublicScrim?.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM').toUpperCase()} - ${(activePublicScrim?.tier || 'Tier 1').toUpperCase()}]`, titleX, 160);
-
-    ctx.fillStyle = '#64748b';
-    ctx.font = '600 15px sans-serif';
-    ctx.fillText(`Date: ${activePublicScrim?.date || ''}  •  ${leaderboardFilter === 'overall' ? 'Overall Standings' : 'Match ' + (parseInt(leaderboardFilter, 10) + 1)}`, 580, 160);
-
-    // 3. Table Header
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(60, 195, 960, 46);
-
-    ctx.fillStyle = '#bef264';
-    ctx.font = 'bold 15px monospace';
-    ctx.fillText('RANK', 85, 224);
-    ctx.fillText('TEAM NAME', 200, 224);
-    ctx.fillText('MATCH', 580, 224);
-    ctx.fillText('WWCD', 700, 224);
-    ctx.fillText('KILLS', 815, 224);
-    ctx.fillText('TOTAL PTS', 920, 224);
-
-    // 4. Standings Rows
-    const rows = leaderboardData.slice(0, 24);
-    let y = 275;
-    rows.forEach((row, i) => {
-      if (i % 2 === 0) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
-        ctx.fillRect(60, y - (rowHeight / 2) + 4, 960, rowHeight - 4);
-      }
-
-      ctx.fillStyle = row.rank === 1 ? '#65a30d' : row.rank === 2 ? '#334155' : row.rank === 3 ? '#64748b' : '#94a3b8';
-      ctx.font = totalRows > 16 ? '900 16px monospace' : '900 19px monospace';
-      ctx.fillText('#' + row.rank, 85, y + 4);
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = totalRows > 16 ? 'bold 15px sans-serif' : 'bold 17px sans-serif';
-      const name = row.teamName.length > 24 ? row.teamName.slice(0, 22) + '..' : row.teamName;
-      ctx.fillText(name, 200, y + 4);
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '500 15px monospace';
-      ctx.fillText(String(row.matchesPlayed || 1), 605, y + 4);
-
-      ctx.fillStyle = row.wwcd > 0 ? '#65a30d' : '#94a3b8';
-      ctx.font = 'bold 16px monospace';
-      ctx.fillText(String(row.wwcd || 0), 725, y + 4);
-
-      ctx.fillStyle = '#334155';
-      ctx.font = '500 15px monospace';
-      ctx.fillText(String(row.killPts || 0), 835, y + 4);
-
-      ctx.fillStyle = '#4d7c0f';
-      ctx.font = totalRows > 16 ? '900 18px monospace' : '900 21px monospace';
-      ctx.fillText(String(row.totalPts || 0), 945, y + 4);
-
-      y += rowHeight;
-    });
-
-    // 5. Host & Session Information Card
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.roundRect(60, cardY, 960, 150, 18);
-    ctx.fill();
-
-    ctx.fillStyle = '#84cc16';
-    ctx.beginPath();
-    ctx.roundRect(60, cardY, 12, 150, [18, 0, 0, 18]);
-    ctx.fill();
-
-    ctx.fillStyle = '#bef264';
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText('OFFICIAL EVENT HOST & SESSION DETAILS', 95, cardY + 32);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '900 24px sans-serif';
-    ctx.fillText(hostName.toUpperCase(), 95, cardY + 68);
-
-    if (hostContact) {
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '600 14px monospace';
-      ctx.fillText(`Contact: ${hostContact}`, 95, cardY + 95);
-    }
-
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = 'italic 500 14px sans-serif';
-    const cleanDesc = sessionDesc.length > 85 ? `"${sessionDesc.slice(0, 82)}..."` : `"${sessionDesc}"`;
-    ctx.fillText(cleanDesc, 95, cardY + 125);
-
-    // 6. Watermark Footer
-    ctx.fillStyle = '#64748b';
-    ctx.font = 'bold 13px monospace';
-    ctx.fillText('SCRIM HUB  •  ENGINEERED BY RY.KHOR', 60, canvasHeight - 30);
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#4d7c0f';
-    ctx.fillText('scrim.rykhor.my', 1020, canvasHeight - 30);
-    ctx.textAlign = 'left';
-
-    try {
-      const image = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `${(activePublicScrim?.title || 'scrim-hub').replace(/\s+/g, '-').toLowerCase()}-standings.png`;
-      link.href = image;
-      link.click();
-      showToast('Tournament poster downloaded successfully!');
-    } catch (err) {
-      showToast('Download error: ' + err.message);
-    }
   };
 
   // INSTAGRAM STORY INFOGRAPHIC ENGINE
@@ -2344,12 +2117,7 @@ export default function App() {
 
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState('');
-
-  useEffect(() => {
-    if (teams.length > 0 && !selectedTeamProfile) {
-      setSelectedTeamProfile(teams[0].name);
-    }
-  }, [teams, selectedTeamProfile]);
+  const currentSelectedTeam = selectedTeamProfile || (teams.length > 0 ? teams[0].name : '');
 
   const teamsStats = useMemo(() => {
     const stats = {};
@@ -2439,7 +2207,7 @@ export default function App() {
     );
   }, [teamsStats, teamSearchQuery]);
 
-  const activeTeamData = teamsStats[selectedTeamProfile] || Object.values(teamsStats)[0];
+  const activeTeamData = teamsStats[currentSelectedTeam] || Object.values(teamsStats)[0];
 
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
@@ -2521,8 +2289,8 @@ export default function App() {
   const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
   const [postSourceMode, setPostSourceMode] = useState('upload');
   const [postTitle, setPostTitle] = useState('');
-  const [postType, setPostType] = useState('poster');
-  const [postTournament, setPostTournament] = useState('');
+  const [postType, _setPostType] = useState('poster');
+  const [postTournament, _setPostTournament] = useState('');
   const [postRankBadge, setPostRankBadge] = useState('Official Tournament');
   const [postCaption, setPostCaption] = useState('');
   const [showcaseFile, setShowcaseFile] = useState(null);
@@ -3403,7 +3171,7 @@ export default function App() {
                     key={t.name}
                     onClick={() => setSelectedTeamProfile(t.name)}
                     className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (
-                      selectedTeamProfile === t.name 
+                      currentSelectedTeam === t.name 
                         ? 'bg-slate-950 text-lime-400 shadow-sm font-mono' 
                         : 'bg-white text-slate-600 hover:text-slate-950 border border-slate-200 hover:border-slate-300'
                     )}
