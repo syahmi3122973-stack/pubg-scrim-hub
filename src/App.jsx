@@ -2003,13 +2003,6 @@ export default function App() {
               <span>Team Stats</span>
             </button>
             <button
-              onClick={() => setActiveTab('leaderboard')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
-            >
-              <Trophy className="w-4 h-4 text-lime-600"/>
-              <span>Leaderboard</span>
-            </button>
-            <button
               onClick={() => setActiveTab('hosts')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'hosts' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
             >
@@ -2029,6 +2022,13 @@ export default function App() {
             >
               <Info className="w-4 h-4 text-lime-600"/>
               <span>About</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ' + (activeTab === 'leaderboard' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950')}
+            >
+              <Trophy className="w-4 h-4 text-lime-600"/>
+              <span>Standings</span>
             </button>
             <button
               onClick={() => setActiveTab('admin')}
@@ -4580,14 +4580,6 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('leaderboard')}
-          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
-        >
-          <Trophy className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5">Standings</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('hosts')}
           className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'hosts' ? 'text-lime-700 font-bold' : 'text-slate-400')}
         >
@@ -4609,6 +4601,14 @@ export default function App() {
         >
           <Info className="w-5 h-5"/>
           <span className="text-[10px] mt-0.5">About</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('leaderboard')}
+          className={'flex flex-col items-center py-1 px-2 rounded-xl transition ' + (activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-400')}
+        >
+          <Trophy className="w-5 h-5"/>
+          <span className="text-[10px] mt-0.5">Standings</span>
         </button>
 
         <button
