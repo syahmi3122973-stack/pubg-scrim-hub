@@ -483,7 +483,7 @@ export default function App() {
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [inputMap, setInputMap] = useState('Erangel');
   
-  // Dynamic Match Slots (Default 16, Admin boleh laras 2 ke 24)
+  // Dynamic Match Slots
   const [matchSlots, setMatchSlots] = useState(() => {
     return Array.from({ length: 16 }, (_, idx) => {
       const tm = INITIAL_FALLBACK_TEAMS[idx] || { id: `tm_${idx + 1}`, name: `Team ${idx + 1}`, tag: `T${idx + 1}` };
@@ -537,6 +537,186 @@ export default function App() {
     });
   }, [activeAdminScrim, selectedMatchIdx, teams]);
 
+  // Restorasi filteredScrims dan activePublicScrim yang hilang
+  const filteredScrims = useMemo(() => {
+    if (!currentUser) return [];
+
+    return scrims.filter(s => {
+      const isOwner = isAuthorizedAdmin(s);
+      const matchTier = tierFilter === 'All' || s.tier === tierFilter;
+      const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
+      const matchSearch = s.title.toLowerCase().includes(searchScrimQuery.toLowerCase()) || 
+                          (s.tier && s.tier.toLowerCase().includes(searchScrimQuery.toLowerCase()));
+      return isOwner && matchTier && matchType && matchSearch;
+    });
+  }, [scrims, tierFilter, leaderboardEventTypeFilter, searchScrimQuery, currentUser]);
+
+  const activePublicScrim = useMemo(() => {
+    if (!filteredScrims.length) return null;
+    return filteredScrims.find(s => s.id === selectedScrimId) || filteredScrims[0] || null;
+  }, [filteredScrims, selectedScrimId]);
+
+  useEffect(() => {
+    if (filteredScrims.length > 0 && !filteredScrims.some(s => s.id === selectedScrimId)) {
+      setSelectedScrimId(filteredScrims[0].id);
+    }
+  }, [filteredScrims, selectedScrimId]);
+
+  const handleDeleteScrim = async (scrimId) => {
+    if (!currentUser) return;
+    const target = scrims.find(s => s.id === scrimId);
+    if (!target || !isAuthorizedAdmin(target)) {
+      showToast('You do not have permission to delete this session!');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to permanently delete "${target.title}"? All match results will be removed.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('scrims').delete().eq('id', scrimId);
+      if (error) throw error;
+
+      const updated = scrims.filter(s => s.id !== scrimId);
+      setScrims(updated);
+
+      if (adminSelectedScrimId === scrimId) {
+        setAdminSelectedScrimId(updated[0]?.id || '');
+      }
+      if (selectedScrimId === scrimId) {
+        setSelectedScrimId(updated[0]?.id || '');
+      }
+
+      showToast('Session deleted successfully!');
+    } catch (err) {
+      showToast('Failed to delete session: ' + err.message);
+    }
+  };
+
+  const openEditScrimModal = () => {
+    if (!activeAdminScrim) return;
+    setEditTitle(activeAdminScrim.title || '');
+    setEditHostName(activeAdminScrim.host_name || '');
+    setEditEventType(activeAdminScrim.event_type || 'Scrim');
+    setEditTier(activeAdminScrim.tier || 'Tier 1 (Pro)');
+    setEditDesc(activeAdminScrim.description || '');
+    setEditContact(activeAdminScrim.host_contact || '');
+    setEditLogoFile(null);
+    setIsEditScrimModalOpen(true);
+  };
+
+  const handleUpdateScrimSettings = async (e) => {
+    e.preventDefault();
+    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
+      showToast('Access denied!');
+      return;
+    }
+
+    try {
+      setIsSavingEdit(true);
+      let updatedLogoUrl = activeAdminScrim.logo_url;
+
+      if (editLogoFile) {
+        updatedLogoUrl = await uploadMediaToSupabase(editLogoFile, 'logos');
+      }
+
+      const updatedData = {
+        title: editTitle.trim(),
+        host_name: editHostName.trim() || activeAdminScrim.host_name || 'Tournament Organizer',
+        event_type: editEventType,
+        tier: editTier,
+        description: editDesc.trim(),
+        host_contact: editContact.trim(),
+        logo_url: updatedLogoUrl
+      };
+
+      const { error } = await supabase
+        .from('scrims')
+        .update(updatedData)
+        .eq('id', activeAdminScrim.id);
+
+      if (error) {
+        showToast('Update failed: ' + error.message);
+      } else {
+        const merged = { ...activeAdminScrim, ...updatedData };
+        setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
+        setIsEditScrimModalOpen(false);
+        showToast('Event settings saved successfully!');
+      }
+    } catch (err) {
+      showToast('Failed to upload logo: ' + err.message);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleToggleFinishScrim = async () => {
+    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
+      showToast('Only authorized hosts can change lock status!');
+      return;
+    }
+
+    const nextState = !activeAdminScrim.is_finished;
+    const { error } = await supabase
+      .from('scrims')
+      .update({ is_finished: nextState })
+      .eq('id', activeAdminScrim.id);
+
+    if (error) {
+      showToast('Status update failed: ' + error.message);
+    } else {
+      const updated = { ...activeAdminScrim, is_finished: nextState };
+      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
+      setSelectedScrimId(activeAdminScrim.id);
+      showToast(nextState ? '🏁 Session marked as COMPLETED (Locked)!' : '🔓 Session reopened for scoring.');
+    }
+  };
+
+  const handleAddNewMatch = () => {
+    if (activeAdminScrim?.is_finished) {
+      showToast('⚠️ Cannot add rounds to a concluded session!');
+      return;
+    }
+    const currentTotal = activeAdminScrim?.matches?.length || 0;
+    const newMatchNumber = currentTotal + 1;
+    setSelectedMatchIdx(newMatchNumber - 1);
+    showToast(`Match ${newMatchNumber} ready for entry!`);
+  };
+
+  const handleRemoveLastMatch = async () => {
+    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
+    if (activeAdminScrim.is_finished) {
+      showToast('⚠️ Cannot delete rounds from a concluded session!');
+      return;
+    }
+
+    const currentMatches = activeAdminScrim.matches || [];
+    if (currentMatches.length === 0) {
+      showToast('No rounds available to delete.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete Match ${currentMatches.length}?`)) return;
+
+    const trimmed = currentMatches.slice(0, -1);
+    const updated = {
+      ...activeAdminScrim,
+      matches: trimmed,
+      total_matches: trimmed.length
+    };
+
+    const { error } = await supabase.from('scrims').upsert(updated);
+
+    if (error) {
+      showToast('Error: ' + error.message);
+    } else {
+      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
+      setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
+      showToast('Last round removed successfully.');
+    }
+  };
+
   const handleAddTeamSlot = () => {
     if (activeAdminScrim?.is_finished) {
       showToast('⚠️ Scores are locked because this session has concluded!');
@@ -586,7 +766,7 @@ export default function App() {
     showToast(`Team slot ${matchSlots.length} removed.`);
   };
 
-  // Penapis pilihan nombor kedudukan (Rank) yang belum diambil oleh pasukan lain
+  // Penapis pilihan nombor kedudukan (Rank) unik
   const getAvailablePlacements = (currentIdx, currentPlacement) => {
     const taken = new Set(
       matchSlots
@@ -930,7 +1110,7 @@ export default function App() {
     ctx.fillStyle = '#84cc16';
     ctx.fillRect(0, 0, 1080, 14);
 
-    // 1. Session Logo (Top Left)
+    // 1. Session Logo
     const logoX = 60;
     const logoY = 55;
     const logoSize = 110;
@@ -987,7 +1167,7 @@ export default function App() {
     ctx.fillText('KILLS', 815, 224);
     ctx.fillText('TOTAL PTS', 920, 224);
 
-    // 4. Standings Rows (Up to 24 teams)
+    // 4. Standings Rows
     const rows = leaderboardData.slice(0, 24);
     let y = 275;
     rows.forEach((row, i) => {
@@ -3271,7 +3451,7 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Mobile Cards (Menggunakan Dropdown Rank Unik) */}
+                {/* Mobile Cards (Menggunakan Dropdown Rank Berfilter) */}
                 <div className="md:hidden space-y-2.5">
                   {matchSlots.map((row, idx) => {
                     const isWWCD = Number(row.placement) === 1;
@@ -3991,8 +4171,8 @@ export default function App() {
                   href={inspectedScrim.host_contact.startsWith('http') 
                     ? inspectedScrim.host_contact 
                     : (inspectedScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                      ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
-                      : 'https://t.me/' + host.contact.replace('@', ''))
+                      ? 'https://wa.me/' + inspectedScrim.host_contact.replace(/[^0-9]/g, '')
+                      : 'https://t.me/' + inspectedScrim.host_contact.replace('@', ''))
                   }
                   target="_blank"
                   rel="noopener noreferrer"
