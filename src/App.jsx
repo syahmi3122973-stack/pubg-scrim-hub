@@ -332,7 +332,6 @@ export default function App() {
   const [pendingCloudSync, setPendingCloudSync] = useState(false);
 
   const [currentPlaygroundMatchIdx, setCurrentPlaygroundMatchIdx] = useState(0);
-  const [quickScorerMobileTab, setQuickScorerMobileTab] = useState('form'); // 'form' or 'leaderboard' on mobile
   const [posterViewMode, setPosterViewMode] = useState('overall'); // 'overall' (default) or 'match'
 
   const [playgroundSession, setPlaygroundSession] = useState(() => {
@@ -386,6 +385,15 @@ export default function App() {
       console.warn('Failed to sync scrim_active_match to localStorage:', e);
     }
   }, [playgroundSession]);
+
+  // Pastikan skrin sentiasa kembali ke atas (scroll to top) apabila bertukar tab/feature
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 20);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   // Keyboard navigation untuk slide presentation panduan
   useEffect(() => {
@@ -719,21 +727,25 @@ export default function App() {
     }, 60);
   };
 
+  const navigateToTab = (tab) => {
+    setIsQuickCreateModalOpen(false);
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 15);
+  };
+
   const handleStartScoringSession = () => {
-    setActiveTab('scorer');
-    setQuickScorerMobileTab('form');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToTab('scorer');
   };
 
   const handlePlusActionClick = () => {
     if (currentUser) {
       setIsQuickCreateModalOpen((prev) => !prev);
     } else {
-      setIsQuickCreateModalOpen(false);
-      setActiveTab('scorer');
-      setQuickScorerMobileTab('form');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      showToast('Quick Scorer: Sedia untuk isi markah & jana poster!');
+      navigateToTab('scorer');
+      showToast('⚡ Quick Scorer: Sedia untuk isi markah & jana poster!');
     }
   };
 
@@ -2713,7 +2725,7 @@ export default function App() {
 
           <nav className="hidden md:flex space-x-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 text-xs font-semibold items-center shadow-2xs">
             <button
-              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('playground'); }}
+              onClick={() => navigateToTab('playground')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'playground' || activeTab === 'home'
                   ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
@@ -2724,7 +2736,7 @@ export default function App() {
               <span>Home</span>
             </button>
             <button
-              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('history'); }}
+              onClick={() => navigateToTab('history')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'history' || activeTab === 'leaderboard'
                   ? 'bg-amber-500 text-slate-950 shadow-sm font-black border border-amber-600' 
@@ -2732,10 +2744,10 @@ export default function App() {
               )}
             >
               <Trophy className={'w-4 h-4 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-slate-950' : 'text-amber-500')} />
-              <span>Standings</span>
+              <span>Rekod</span>
             </button>
             <button
-              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('teams'); }}
+              onClick={() => navigateToTab('teams')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'teams'
                   ? 'bg-indigo-600 text-white shadow-sm font-black border border-indigo-700' 
@@ -2743,10 +2755,10 @@ export default function App() {
               )}
             >
               <Users className={'w-4 h-4 ' + (activeTab === 'teams' ? 'text-white' : 'text-indigo-600')} />
-              <span>Teams</span>
+              <span>Hall of Fame</span>
             </button>
             <button
-              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('admin'); }}
+              onClick={() => navigateToTab('admin')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'admin'
                   ? 'bg-emerald-600 text-white shadow-sm font-black border border-emerald-700' 
@@ -2944,7 +2956,7 @@ export default function App() {
 
                   <button
                     type="button"
-                    onClick={() => setActiveTab('admin')}
+                    onClick={() => navigateToTab('admin')}
                     className="px-3.5 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 transition flex items-center gap-2 shadow-xs active:scale-95"
                     title="Buka Admin Workspace untuk kejohanan rasmi"
                   >
@@ -2984,9 +2996,9 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Pillar 2: Standings */}
+                {/* Pillar 2: Rekod */}
                 <div 
-                  onClick={() => setActiveTab('history')}
+                  onClick={() => navigateToTab('history')}
                   className="group p-4 bg-white/95 hover:bg-amber-950/10 border border-slate-200/90 hover:border-amber-400 rounded-3xl cursor-pointer transition-all duration-200 shadow-xs hover:shadow-lg flex flex-col justify-between space-y-3 active:scale-[0.99]"
                 >
                   <div className="flex items-center justify-between">
@@ -2999,21 +3011,21 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-950 group-hover:text-amber-950 transition-colors">
-                      Live Standings
+                      Rekod Kejohanan
                     </h3>
                     <p className="text-[11px] text-slate-500 group-hover:text-slate-600 leading-snug mt-1 transition-colors">
                       Kedudukan rasmi kejohanan, rekod pusingan &amp; ranking komuniti terkini.
                     </p>
                   </div>
                   <div className="flex items-center text-xs font-black text-amber-700 gap-1 pt-1">
-                    <span>Lihat Kedudukan</span>
+                    <span>Lihat Rekod</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
 
-                {/* Pillar 3: Teams */}
+                {/* Pillar 3: Hall of Fame */}
                 <div 
-                  onClick={() => setActiveTab('teams')}
+                  onClick={() => navigateToTab('teams')}
                   className="group p-4 bg-white/95 hover:bg-indigo-950/10 border border-slate-200/90 hover:border-indigo-400 rounded-3xl cursor-pointer transition-all duration-200 shadow-xs hover:shadow-lg flex flex-col justify-between space-y-3 active:scale-[0.99]"
                 >
                   <div className="flex items-center justify-between">
@@ -3021,19 +3033,19 @@ export default function App() {
                       <Users className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-mono font-bold uppercase text-indigo-900 bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-300">
-                      Roster
+                      Hall of Fame
                     </span>
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-950 group-hover:text-indigo-950 transition-colors">
-                      Direktori Pasukan
+                      Hall of Fame
                     </h3>
                     <p className="text-[11px] text-slate-500 group-hover:text-slate-600 leading-snug mt-1 transition-colors">
                       Profil pasukan, win-rate WWCD &amp; kad story Instagram rasmi.
                     </p>
                   </div>
                   <div className="flex items-center text-xs font-black text-indigo-700 gap-1 pt-1">
-                    <span>Terokai Pasukan</span>
+                    <span>Lihat Hall of Fame</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -3045,36 +3057,49 @@ export default function App() {
 
         {/* DEDICATED QUICK SCORER TAB (KHAS TEMPAT KIRA QUICK SCORE) */}
         {activeTab === 'scorer' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-card-entrance">
             
             {/* Top Navigation & Status Bar */}
-            <div className="flex items-center justify-between p-3.5 sm:p-4 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl shadow-xs">
-              <button
-                type="button"
-                onClick={() => setActiveTab('playground')}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition active:scale-95"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Kembali ke Home</span>
-              </button>
-              
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl shadow-xs">
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('playground')}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition active:scale-95"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Kembali ke Home</span>
+                </button>
+                
                 <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
                 <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider bg-lime-100 text-lime-900 px-2.5 py-1 rounded-full border border-lime-300">
                   ⚡ Khas Tempat Kira Quick Score
                 </span>
               </div>
+
+              {/* Instant Jump to Live Leaderboard Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-lime-400 text-xs font-black transition border border-slate-800 shadow-xs active:scale-95 shrink-0"
+                title="Lompat terus ke Live Leaderboard & Poster"
+              >
+                <Trophy className="w-3.5 h-3.5 text-lime-400" />
+                <span>Live Leaderboard &amp; Poster ↓</span>
+              </button>
             </div>
 
             {/* Split Screen Grid */}
             <div id="quick-scorer-workspace" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
               
               {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
-              <div className={'lg:col-span-7 space-y-4 ' + (quickScorerMobileTab === 'form' ? 'block' : 'hidden lg:block')}>
+              <div className="lg:col-span-7 space-y-4">
                 
                 <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
                   
-                  {/* Clean Workspace Header with Actions & Mobile Switcher */}
+                  {/* Clean Workspace Header with Actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-black shadow-xs shrink-0">
@@ -3089,32 +3114,18 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                      {/* Mobile View Switcher (lg:hidden) */}
-                      <div className="lg:hidden flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setQuickScorerMobileTab('form')}
-                          className={'px-2.5 py-1 rounded-lg font-bold transition ' + (
-                            quickScorerMobileTab === 'form'
-                              ? 'bg-slate-950 text-lime-400 shadow-xs'
-                              : 'text-slate-600'
-                          )}
-                        >
-                          Borang
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setQuickScorerMobileTab('leaderboard')}
-                          className={'px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 ' + (
-                            quickScorerMobileTab === 'leaderboard'
-                              ? 'bg-slate-950 text-lime-400 shadow-xs'
-                              : 'text-slate-600'
-                          )}
-                        >
-                          <span>Poster</span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
-                        </button>
-                      </div>
+                      {/* Mobile Shortcut to Live Leaderboard */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="lg:hidden px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-xl text-xs font-black transition flex items-center gap-1 border border-slate-800 shadow-xs active:scale-95"
+                        title="Skrol ke Live Leaderboard"
+                      >
+                        <Trophy className="w-3.5 h-3.5 text-lime-400" />
+                        <span>Poster ↓</span>
+                      </button>
 
                       <button
                         type="button"
@@ -3354,37 +3365,31 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        setQuickScorerMobileTab('leaderboard');
-                        setTimeout(() => {
-                          posterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 50);
+                        document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
                       className="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-slate-800 shadow-md active:scale-98"
                     >
                       <Trophy className="w-4 h-4 text-lime-400" />
-                      <span>Lihat Live Leaderboard &amp; Poster (⚡ Siap Terkini) →</span>
+                      <span>Lihat Live Leaderboard &amp; Poster (⚡ Siap Terkini) ↓</span>
                     </button>
                   </div>
 
                 </div>
               </div>
 
-              {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings) */}
-              <div className={'lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 ' + (quickScorerMobileTab === 'leaderboard' ? 'block' : 'hidden lg:block')}>
+              {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings - Always Visible) */}
+              <div id="quick-scorer-leaderboard" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
 
                 {/* Mobile Back to Scoring Form Button */}
                 <div className="lg:hidden">
                   <button
                     type="button"
                     onClick={() => {
-                      setQuickScorerMobileTab('form');
-                      setTimeout(() => {
-                        document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 50);
+                      document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
-                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-800 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-2xs"
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-800 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-2xs active:scale-95"
                   >
-                    <span>← Kembali ke Borang Isi Markah</span>
+                    <span>↑ Kembali ke Borang Isi Markah</span>
                   </button>
                 </div>
                 
@@ -3641,11 +3646,11 @@ export default function App() {
                     <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                     <span className="text-[10px] uppercase font-mono font-black tracking-wider text-indigo-950 bg-indigo-100 border border-indigo-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>ESPORTS TEAMS DIRECTORY &amp; CLUB ROSTER</span>
+                      <span>HALL OF FAME &amp; TEAMS DIRECTORY</span>
                     </span>
                   </div>
                   <h2 className="text-lg sm:text-xl font-black text-slate-950">
-                    Direktori Pasukan &amp; Statistik Prestasi
+                    Hall of Fame &amp; Direktori Pasukan
                   </h2>
                   <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
                     Terokai profil pasukan PUBG Mobile, kadar kemenangan WWCD, purata mata kills, dan jana kad statistik 9:16 sedia untuk Instagram Story &amp; WhatsApp.
@@ -3857,24 +3862,17 @@ export default function App() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                      <span>PMGC OFFICIAL STANDINGS &amp; HALL OF FAME</span>
-                    </span>
-                  </div>
                   <h2 className="text-lg sm:text-xl font-black text-slate-950">
                     Live Leaderboard &amp; Rekod Kejohanan
                   </h2>
-                  <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                  <p className="text-xs text-slate-500 max-w-2xl leading-relaxed mt-1">
                     Kedudukan langsung kejohanan &amp; scrim komuniti secara real-time. Sistem mengira mata PMGC rasmi dan ranking automatik — tanpa perlukan spreadsheet Google Sheet manual yang lambat dan mudah tersilap formula.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   <button
-                    onClick={() => setActiveTab('admin')}
+                    onClick={() => navigateToTab('admin')}
                     className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs shadow-amber-500/20 active:scale-95"
                   >
                     <Plus className="w-4 h-4"/>
@@ -6960,7 +6958,7 @@ export default function App() {
             className="fixed inset-0"
             onClick={() => setIsQuickCreateModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 z-10 animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 z-10 animate-card-entrance">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-black shadow-sm">
@@ -6984,12 +6982,7 @@ export default function App() {
               {/* Option 1: Quick Scorer */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsQuickCreateModalOpen(false);
-                  setActiveTab('scorer');
-                  setQuickScorerMobileTab('form');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onClick={() => navigateToTab('scorer')}
                 className="w-full p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition flex items-center gap-3 text-left group active:scale-[0.99]"
               >
                 <div className="w-10 h-10 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
@@ -7010,8 +7003,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsQuickCreateModalOpen(false);
-                  setActiveTab('admin');
+                  navigateToTab('admin');
                   setIsCreateScrimOpen(true);
                 }}
                 className="w-full p-3.5 rounded-2xl border-2 border-lime-400 bg-lime-50/50 hover:bg-lime-100/60 transition flex items-center gap-3 text-left group active:scale-[0.99]"
@@ -7041,10 +7033,7 @@ export default function App() {
           {/* Tab 1: Home */}
           <button
             type="button"
-            onClick={() => {
-              setIsQuickCreateModalOpen(false);
-              setActiveTab('playground');
-            }}
+            onClick={() => navigateToTab('playground')}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'playground' || activeTab === 'home'
                 ? 'text-slate-950 font-black'
@@ -7060,13 +7049,10 @@ export default function App() {
             <span className="text-[10px] mt-1 tracking-tight">Home</span>
           </button>
 
-          {/* Tab 2: Leaderboard */}
+          {/* Tab 2: Rekod */}
           <button
             type="button"
-            onClick={() => {
-              setIsQuickCreateModalOpen(false);
-              setActiveTab('history');
-            }}
+            onClick={() => navigateToTab('history')}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
                 ? 'text-amber-950 font-black'
@@ -7079,7 +7065,7 @@ export default function App() {
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-500"></span>
               )}
             </div>
-            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-950 font-black' : '')}>Standings</span>
+            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-950 font-black' : '')}>Rekod</span>
           </button>
 
           {/* Tab 3: Prominent Center Action [ + ] Button */}
@@ -7102,13 +7088,10 @@ export default function App() {
             </span>
           </div>
 
-          {/* Tab 4: Teams */}
+          {/* Tab 4: Hall of Fame */}
           <button
             type="button"
-            onClick={() => {
-              setIsQuickCreateModalOpen(false);
-              setActiveTab('teams');
-            }}
+            onClick={() => navigateToTab('teams')}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'teams'
                 ? 'text-indigo-950 font-black'
@@ -7121,16 +7104,13 @@ export default function App() {
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
               )}
             </div>
-            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'teams' ? 'text-indigo-950 font-black' : '')}>Teams</span>
+            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'teams' ? 'text-indigo-950 font-black' : '')}>Hall of Fame</span>
           </button>
 
           {/* Tab 5: Profile / Admin */}
           <button
             type="button"
-            onClick={() => {
-              setIsQuickCreateModalOpen(false);
-              setActiveTab('admin');
-            }}
+            onClick={() => navigateToTab('admin')}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'admin'
                 ? 'text-emerald-950 font-black'
