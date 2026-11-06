@@ -666,6 +666,12 @@ export default function App() {
     setPlaygroundSession(createDemoPlaygroundSession(16));
     setCurrentPlaygroundMatchIdx(0);
     showToast('Data contoh demo dimuatkan! Anda boleh lihat contoh kiraan & rupa poster.');
+    setTimeout(() => {
+      const el = document.getElementById('quick-scorer-workspace');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
   };
 
   const handleDownloadPlaygroundPoster = async () => {
@@ -2828,10 +2834,128 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* PERBANDINGAN PERANAN: QUICK SCORER VS ADMIN WORKSPACE (Simple, Fast-to-Scan) */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                    ⚡ Perbezaan Peranan: Pilih Mod Sesuai Untuk Anda
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* CARD 1: Quick Scorer */}
+                  <div className="bg-slate-50/90 border border-slate-200/80 hover:border-lime-400/60 rounded-2xl p-4 transition shadow-2xs flex flex-col justify-between gap-3">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-slate-900 text-lime-400 flex items-center justify-center font-black">
+                            <Zap className="w-4 h-4 fill-current" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-slate-950">Quick Scorer</h3>
+                            <span className="text-[10px] text-lime-800 font-bold bg-lime-100/90 px-2 py-0.5 rounded-md border border-lime-200">
+                              Percuma • Tanpa Login
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Casual / Harian</span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                        Kira mata 1 hingga 5 match pantas terus dalam browser dan terus muat turun poster kedudukan.
+                      </p>
+
+                      <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
+                        <li className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                          <span>Terus guna tanpa perlu buat akaun</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                          <span>Format standard 5 pusingan match</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                          <span>Download poster HD terus ke telefon / laptop</span>
+                        </li>
+                      </ul>
+                      
+                      <div className="text-[11px] text-slate-500 font-normal italic pt-1 border-t border-slate-200/60">
+                        💡 <strong>Sesuai untuk:</strong> Marshall pantas, scrim harian &amp; kiraan santai.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById('quick-scorer-workspace');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="w-full py-2.5 px-3 bg-white hover:bg-slate-100 text-slate-950 border border-slate-300 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-lime-600 fill-current" />
+                      <span>Mula Kira di Bawah ↓</span>
+                    </button>
+                  </div>
+
+                  {/* CARD 2: Admin Workspace */}
+                  <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 rounded-2xl p-4 text-white transition shadow-sm flex flex-col justify-between gap-3">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-lime-400 text-slate-950 flex items-center justify-center font-black">
+                            <ShieldCheck className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-white">Admin Workspace</h3>
+                            <span className="text-[10px] text-slate-950 font-black bg-lime-400 px-2 py-0.5 rounded-md">
+                              Penganjur &amp; Kejohanan Rasmi
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-lime-400 uppercase">Pro / Organizer</span>
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                        Sistem lengkap pengurusan: Rekod tersimpan di cloud, multi-day league, jemput co-host &amp; database sejarah pasukan.
+                      </p>
+
+                      <ul className="space-y-1.5 text-xs text-slate-200 font-medium">
+                        <li className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
+                          <span>Simpan rekod ke Cloud selamanya</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
+                          <span>Pusingan tanpa had &amp; multi-day tournament</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
+                          <span>Jemput co-host isi mata &amp; database sejarah team</span>
+                        </li>
+                      </ul>
+
+                      <div className="text-[11px] text-slate-400 font-normal italic pt-1 border-t border-slate-800">
+                        👑 <strong>Sesuai untuk:</strong> Penganjur liga, kejohanan clan &amp; marshall rasmi.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('admin')}
+                      className="w-full py-2.5 px-3 bg-lime-400 hover:bg-lime-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-xs active:scale-95"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
+                      <span>Masuk Admin Workspace →</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Split Screen Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div id="quick-scorer-workspace" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
               
               {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
               <div className="lg:col-span-7 space-y-4">
@@ -4334,68 +4458,169 @@ export default function App() {
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="max-w-md mx-auto my-8 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl space-y-5">
-                <div className="text-center space-y-1.5">
-                  <div className="w-12 h-12 bg-lime-100 border border-lime-300 text-lime-800 rounded-2xl flex items-center justify-center mx-auto">
-                    <Lock className="w-6 h-6"/>
+              <div className="max-w-4xl mx-auto my-6 sm:my-8 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xl">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  
+                  {/* LEFT COLUMN: Kenapa Perlu Admin / Kelebihan */}
+                  <div className="lg:col-span-7 space-y-4 lg:border-r border-slate-200/80 lg:pr-8 pb-6 lg:pb-0 border-b lg:border-b-0">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-lime-100 text-lime-950 border border-lime-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                      <ShieldCheck className="w-3.5 h-3.5 text-lime-700" />
+                      <span>Eksklusif Untuk Penganjur &amp; Host Scrim</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-950 leading-tight">
+                        Kenapa Perlu Daftar Akaun Admin?
+                      </h2>
+                      <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                        Akaun Admin direka khas untuk penganjur kejohanan esports yang perlukan sistem pengurusan tersusun, selamat dan tanpa risiko kehilangan data.
+                      </p>
+                    </div>
+
+                    {/* 5 Senarai Kelebihan Admin */}
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Cloud className="w-4 h-4 text-lime-700" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-slate-900">1. Simpan Rekod Cloud Selamanya</h4>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Semua rekod match &amp; leaderboard tersimpan selamat di cloud database. Akses dari mana-mana telefon atau laptop tanpa risiko data hilang bila refresh browser.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Trophy className="w-4 h-4 text-lime-700" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-slate-900">2. Pusingan Tanpa Had &amp; Multi-Day Scrim</h4>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Bukan sekadar 5 pusingan match — anda boleh anjurkan kejohanan berminggu-minggu, pusingan kelayakan (Qualifiers, Semi-Finals) hingga ke Grand Finals.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Users className="w-4 h-4 text-lime-700" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-slate-900">3. Jemput Co-Host &amp; Marshall</h4>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Kongsi kod penganjur kepada staf atau marshall kejohanan anda untuk bantu mengisi keputusan dan menyemak mata perlawanan secara serentak.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Database className="w-4 h-4 text-lime-700" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-slate-900">4. Database Prestasi &amp; Sejarah Pasukan</h4>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Data perlawanan automatik disimpan ke profil pasukan. Pantau rekod kills, WWCD dan konsistensi setiap skuad sepanjang musim.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Sparkles className="w-4 h-4 text-lime-700" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-slate-900">5. Custom Logo &amp; Branding Penaja</h4>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Muat naik logo penganjur, nama penaja dan penerangan sesi yang terpapar secara profesional pada poster Overall Standings.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <h2 className="text-lg font-black text-slate-950">
-                    Portal Akaun Admin / Penganjur
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Log masuk untuk anjurkan Scrim &amp; Kejohanan rasmi, urus markah pusingan, dan kemaskini rekod pasukan.
-                  </p>
+
+                  {/* RIGHT COLUMN: Form Login / Register */}
+                  <div className="lg:col-span-5 space-y-5">
+                    <div className="space-y-1.5">
+                      <div className="w-10 h-10 bg-lime-100 border border-lime-300 text-lime-800 rounded-xl flex items-center justify-center shadow-xs">
+                        <Lock className="w-5 h-5"/>
+                      </div>
+                      <h3 className="text-lg font-black text-slate-950">
+                        {isRegisterMode ? 'Daftar Akaun Penganjur' : 'Log Masuk Akaun Admin'}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {isRegisterMode 
+                          ? 'Daftar percuma dalam beberapa saat untuk mula anjurkan kejohanan rasmi anda.'
+                          : 'Sila masukkan emel & kata laluan akaun penganjur anda.'}
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+                      <div>
+                        <label className="block text-slate-600 uppercase font-bold mb-1">Emel Rasmi Penganjur</label>
+                        <div className="relative">
+                          <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                          <input
+                            type="email"
+                            required
+                            placeholder="admin@esports.com"
+                            value={authEmail}
+                            onChange={(e) => setAuthEmail(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-600 uppercase font-bold mb-1">Kata Laluan</label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                          <input
+                            type="password"
+                            required
+                            placeholder="••••••••"
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={authLoading}
+                        className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                      >
+                        {authLoading ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin"/>
+                            <span>Sedang Memproses...</span>
+                          </>
+                        ) : (
+                          <span>{isRegisterMode ? 'Daftar Akaun Percuma' : 'Log Masuk Admin'}</span>
+                        )}
+                      </button>
+
+                      <div className="text-center pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsRegisterMode(!isRegisterMode)}
+                          className="text-xs text-lime-700 hover:underline font-semibold"
+                        >
+                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun admin? Daftar Percuma di sini"}
+                        </button>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+                        <ShieldCheck className="w-3.5 h-3.5 text-lime-600" />
+                        <span>Percuma selamanya untuk komuniti esports</span>
+                      </div>
+                    </form>
+                  </div>
+
                 </div>
-
-                <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
-                  <div>
-                    <label className="block text-slate-600 uppercase font-bold mb-1">Emel Rasmi Admin</label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
-                      <input
-                        type="email"
-                        required
-                        placeholder="admin@esports.com"
-                        value={authEmail}
-                        onChange={(e) => setAuthEmail(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-600 uppercase font-bold mb-1">Kata Laluan</label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider"
-                  >
-                    {authLoading ? 'Sila tunggu...' : isRegisterMode ? 'Daftar Akaun Admin' : 'Log Masuk Admin'}
-                  </button>
-
-                  <div className="text-center pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsRegisterMode(!isRegisterMode)}
-                      className="text-xs text-lime-700 hover:underline font-semibold"
-                    >
-                      {isRegisterMode ? 'Sudah ada akaun? Log Masuk' : "Belum ada akaun admin? Daftar di sini"}
-                    </button>
-                  </div>
-                </form>
               </div>
             ) : (
               <div className="space-y-4 sm:space-y-6">
@@ -5452,6 +5677,28 @@ export default function App() {
                 <span>Your active match data is ready to be saved directly to your cloud tournament history upon signing in!</span>
               </div>
             )}
+
+            {/* Kelebihan Akaun Admin / Host */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 text-xs text-slate-700">
+              <span className="font-bold text-slate-900 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
+                <ShieldCheck className="w-3.5 h-3.5 text-lime-600" />
+                <span>Kelebihan Akaun Penganjur (Admin):</span>
+              </span>
+              <ul className="grid grid-cols-1 gap-1 text-[11px] text-slate-600">
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                  <span>Simpan rekod perlawanan ke Cloud selamanya</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                  <span>Pusingan tanpa had &amp; format multi-day kejohanan</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
+                  <span>Jemput co-host isi mata &amp; database sejarah pasukan</span>
+                </li>
+              </ul>
+            </div>
 
             <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
               <div>
