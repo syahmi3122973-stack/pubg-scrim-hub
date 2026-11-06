@@ -51,7 +51,8 @@ import {
   Clock,
   BookOpen,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Home
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -291,9 +292,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['playground', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'admin'].includes(hash)) {
+      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'admin'].includes(hash)) {
         if (hash === 'standings' || hash === 'leaderboard') return 'history';
         if (hash === 'database') return 'teams';
+        if (hash === 'home') return 'playground';
         return hash;
       }
     } catch {
@@ -321,6 +323,7 @@ export default function App() {
   const [adminPosterViewMode, setAdminPosterViewMode] = useState('overall'); // 'overall' or 'match'
   const [isDownloadingAdminPoster, setIsDownloadingAdminPoster] = useState(false);
   const [isCreateScrimOpen, setIsCreateScrimOpen] = useState(false);
+  const [isQuickCreateModalOpen, setIsQuickCreateModalOpen] = useState(false);
   
   // Playground Local-First State & Poster Ref
   const posterRef = useRef(null);
@@ -724,6 +727,21 @@ export default function App() {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 50);
+  };
+
+  const handlePlusActionClick = () => {
+    if (currentUser) {
+      setIsQuickCreateModalOpen(true);
+    } else {
+      setActiveTab('playground');
+      setTimeout(() => {
+        const el = document.getElementById('quick-scorer-workspace');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+      showToast('Quick Scorer: Sedia untuk isi markah & jana poster!');
+    }
   };
 
   const handleOpenGuide = (slideIdx = 0) => {
@@ -2666,74 +2684,97 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER NAVIGATION DENGAN LOGO GAMBAR BARU */}
+      {/* HEADER NAVIGATION BERSEPADU */}
       <header className="border-b border-slate-200/90 bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          <div className="flex items-center space-x-2.5">
-            <img 
-              src="/logo.png" 
-              alt="SCRIM HUB Logo" 
-              className="w-9 h-9 rounded-xl object-cover shadow-md shadow-lime-400/30 border border-lime-500/30" 
-            />
+          <div 
+            onClick={() => setActiveTab('playground')}
+            className="flex items-center space-x-2.5 cursor-pointer select-none group"
+            title="Kembali ke Laman Utama"
+          >
+            <div className="relative">
+              <img 
+                src="/logo.png" 
+                alt="RYKHOR Scrim Hub Logo" 
+                className="w-9 h-9 rounded-xl object-cover shadow-md shadow-lime-400/20 border border-lime-500/30 group-hover:scale-105 transition-transform" 
+              />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-lime-500 border-2 border-white animate-pulse" title="Sistem Aktif"></span>
+            </div>
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-base font-black tracking-wider text-slate-950">SCRIM HUB</span>
+                <span className="text-base font-black tracking-wider text-slate-950 group-hover:text-lime-700 transition-colors">
+                  RYKHOR
+                </span>
                 <span className="text-[10px] text-slate-500 font-mono tracking-tight lowercase">
-                  by <span className="text-lime-600 font-extrabold">ry.khor</span>
+                  scrim hub
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] block text-slate-400 font-semibold uppercase tracking-wider">
-                  Tactical Esports Management
+                  PUBG Mobile Esports
                 </span>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse" title="System Live"></span>
               </div>
             </div>
           </div>
 
-          <nav className="hidden md:flex space-x-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-semibold items-center">
+          <nav className="hidden md:flex space-x-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 text-xs font-semibold items-center shadow-2xs">
             <button
               onClick={() => setActiveTab('playground')}
-              className={'flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl transition-all ' + (
-                activeTab === 'playground' 
-                  ? 'bg-slate-950 text-lime-400 shadow-md font-black ring-2 ring-lime-400/40 border border-slate-800' 
-                  : 'bg-slate-900 text-lime-400/90 hover:bg-slate-950 font-bold border border-slate-800'
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'playground' || activeTab === 'home'
+                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              <Zap className="w-4 h-4 text-lime-400 fill-current"/>
-              <span>Quick Scorer</span>
+              <Home className="w-4 h-4"/>
+              <span>Home</span>
             </button>
             <button
               onClick={() => setActiveTab('history')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
-                activeTab === 'history' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950'
+                activeTab === 'history' || activeTab === 'leaderboard'
+                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              <Clock className="w-4 h-4 text-lime-600"/>
-              <span>History</span>
+              <Trophy className="w-4 h-4 text-amber-500"/>
+              <span>Leaderboard</span>
             </button>
             <button
               onClick={() => setActiveTab('teams')}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
-                activeTab === 'teams' ? 'bg-white text-slate-950 shadow-sm font-black border border-slate-200/60' : 'text-slate-600 hover:text-slate-950'
+                activeTab === 'teams'
+                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              <Database className="w-4 h-4 text-lime-600"/>
-              <span>Database</span>
+              <Users className="w-4 h-4 text-lime-600"/>
+              <span>Teams</span>
             </button>
             <button
               onClick={() => setActiveTab('admin')}
-              className={'flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl transition-all ' + (
-                activeTab === 'admin' 
-                  ? 'bg-lime-400 text-slate-950 shadow-md font-black ring-2 ring-lime-500/50 border border-lime-500' 
-                  : 'bg-lime-400/20 text-lime-950 hover:bg-lime-400/30 font-black border border-lime-400/40'
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+                activeTab === 'admin'
+                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              {currentUser ? <User className="w-4 h-4 text-slate-950"/> : <Lock className="w-3.5 h-3.5 text-slate-950"/>}
-              <span>Admin Workspace</span>
+              {currentUser ? <ShieldCheck className="w-4 h-4 text-lime-600"/> : <Lock className="w-3.5 h-3.5 text-slate-500"/>}
+              <span>{currentUser ? 'Admin Hub' : 'Admin'}</span>
             </button>
           </nav>
+
+          {/* Desktop Central Quick Scorer / Action CTA */}
+          <button
+            type="button"
+            onClick={handlePlusActionClick}
+            className="hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/50 shadow-xs transition active:scale-95"
+            title="Kira markah sepantas kilat di Quick Scorer"
+          >
+            <Zap className="w-3.5 h-3.5 text-slate-950 fill-current" />
+            <span>+ Quick Scorer</span>
+          </button>
 
           <div className="flex items-center gap-2">
             {currentUser ? (
@@ -2816,6 +2857,19 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
+                          setActiveTab('hosts');
+                          setIsNavMenuOpen(false);
+                        }}
+                        className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-slate-50 transition ' + (
+                          activeTab === 'hosts' ? 'text-lime-700 font-bold bg-lime-50/50' : 'text-slate-700'
+                        )}
+                      >
+                        <Flame className="w-4 h-4 text-lime-600"/>
+                        <span className="font-semibold">Direktori Host</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
                           setActiveTab('about');
                           setIsNavMenuOpen(false);
                         }}
@@ -2853,7 +2907,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
 
         {/* VIEW 0: PLAYGROUND SPLIT-SCREEN WORKSPACE (ROOT ROUTE /) */}
-        {activeTab === 'playground' && (
+        {(activeTab === 'playground' || activeTab === 'home') && (
           <div className="space-y-6">
             
             {/* THREADS-STYLE HERO BANNER: PENERANGAN MUDAH & INTUITIF */}
@@ -6774,51 +6828,192 @@ export default function App() {
         </div>
       )}
 
-      {/* MOBILE NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-2 py-1.5 flex items-center justify-around shadow-2xl">
-        <button
-          onClick={() => setActiveTab('playground')}
-          className={'flex items-center gap-1.5 py-1.5 px-3 rounded-2xl transition-all shadow-sm ' + (
-            activeTab === 'playground' 
-              ? 'bg-slate-950 text-lime-400 font-black ring-2 ring-lime-400/50 shadow-lime-500/10' 
-              : 'bg-slate-900 text-lime-400/90 hover:text-lime-300 border border-slate-800 font-bold'
-          )}
-        >
-          <Zap className="w-4 h-4 text-lime-400 fill-current"/>
-          <span className="text-xs font-black uppercase tracking-wider">Scorer</span>
-        </button>
+      {/* QUICK CREATE ACTION SHEET MODAL (FOR LOGGED IN ORGANIZERS) */}
+      {isQuickCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div 
+            className="fixed inset-0"
+            onClick={() => setIsQuickCreateModalOpen(false)}
+          />
+          <div className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 z-10 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-black shadow-sm">
+                  <Plus className="w-5 h-5 stroke-[3]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-950">Mulakan Sesi Scrim</h3>
+                  <p className="text-[11px] text-slate-500">Pilih jenis tindakan yang ingin dimulakan</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickCreateModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-        <button
-          onClick={() => setActiveTab('history')}
-          className={'flex flex-col items-center py-1 px-2.5 rounded-xl transition ' + (
-            activeTab === 'history' || activeTab === 'leaderboard' ? 'text-lime-700 font-bold' : 'text-slate-500 hover:text-slate-900'
-          )}
-        >
-          <Clock className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5 font-bold">History</span>
-        </button>
+            <div className="space-y-2.5">
+              {/* Option 1: Quick Scorer */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsQuickCreateModalOpen(false);
+                  setActiveTab('playground');
+                  setTimeout(() => {
+                    document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 60);
+                }}
+                className="w-full p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition flex items-center gap-3 text-left group active:scale-[0.99]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                  <Zap className="w-5 h-5 fill-current" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-950">Quick Scorer (Pantas)</span>
+                    <span className="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">1-5 Match</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Kira markah serta-merta tanpa perlu simpan ke database rasmi.
+                  </p>
+                </div>
+              </button>
 
-        <button
-          onClick={() => setActiveTab('teams')}
-          className={'flex flex-col items-center py-1 px-2.5 rounded-xl transition ' + (
-            activeTab === 'teams' ? 'text-lime-700 font-bold' : 'text-slate-500 hover:text-slate-900'
-          )}
-        >
-          <Database className="w-5 h-5"/>
-          <span className="text-[10px] mt-0.5 font-bold">Database</span>
-        </button>
+              {/* Option 2: Admin Cloud Tournament */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsQuickCreateModalOpen(false);
+                  setActiveTab('admin');
+                  setIsCreateScrimOpen(true);
+                }}
+                className="w-full p-3.5 rounded-2xl border-2 border-lime-400 bg-lime-50/50 hover:bg-lime-100/60 transition flex items-center gap-3 text-left group active:scale-[0.99]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-lime-400 text-slate-950 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-950">Kejohanan Rasmi (Cloud)</span>
+                    <span className="text-[9px] font-black text-lime-900 bg-lime-200 px-1.5 py-0.5 rounded">Admin</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    Cipta kejohanan penuh, multi-day, database pasukan & jemput co-host.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-        <button
-          onClick={() => setActiveTab('admin')}
-          className={'flex items-center gap-1.5 py-1.5 px-3 rounded-2xl transition-all shadow-sm ' + (
-            activeTab === 'admin' 
-              ? 'bg-lime-400 text-slate-950 font-black ring-2 ring-lime-500/60' 
-              : 'bg-lime-400/20 text-lime-950 hover:bg-lime-400/30 border border-lime-400/50 font-bold'
-          )}
-        >
-          {currentUser ? <User className="w-4 h-4 text-slate-950"/> : <Lock className="w-3.5 h-3.5 text-slate-950"/>}
-          <span className="text-xs font-black uppercase tracking-wider">Admin</span>
-        </button>
+      {/* MODERN 5-TAB MOBILE DOCK (Threads / Discord Style) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl border-t border-slate-200/90 z-50 px-2 py-1.5 shadow-[0_-8px_25px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          
+          {/* Tab 1: Home */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('playground')}
+            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+              activeTab === 'playground' || activeTab === 'home'
+                ? 'text-slate-950 font-black'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
+            )}
+          >
+            <div className="relative">
+              <Home className={'w-5 h-5 ' + (activeTab === 'playground' || activeTab === 'home' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              {(activeTab === 'playground' || activeTab === 'home') && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1 tracking-tight">Home</span>
+          </button>
+
+          {/* Tab 2: Leaderboard */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+              activeTab === 'history' || activeTab === 'leaderboard'
+                ? 'text-slate-950 font-black'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
+            )}
+          >
+            <div className="relative">
+              <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              {(activeTab === 'history' || activeTab === 'leaderboard') && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1 tracking-tight">Standings</span>
+          </button>
+
+          {/* Tab 3: Prominent Center Action [ + ] Button */}
+          <div className="relative -top-2 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={handlePlusActionClick}
+              className="w-12 h-12 rounded-2xl bg-slate-950 hover:bg-slate-900 active:scale-95 text-lime-400 border-2 border-lime-400/80 shadow-lg shadow-lime-400/20 flex items-center justify-center transition-all duration-200 group"
+              title="Kira markah cepat atau cipta kejohanan"
+              aria-label="Create or Quick Score"
+            >
+              <Plus className="w-6 h-6 stroke-[3] group-hover:rotate-90 transition-transform duration-200" />
+            </button>
+            <span className="text-[9px] font-black tracking-wider uppercase text-slate-800 mt-0.5">Kira</span>
+          </div>
+
+          {/* Tab 4: Teams */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('teams')}
+            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+              activeTab === 'teams'
+                ? 'text-slate-950 font-black'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
+            )}
+          >
+            <div className="relative">
+              <Users className={'w-5 h-5 ' + (activeTab === 'teams' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              {activeTab === 'teams' && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1 tracking-tight">Teams</span>
+          </button>
+
+          {/* Tab 5: Profile / Admin */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('admin')}
+            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+              activeTab === 'admin'
+                ? 'text-slate-950 font-black'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
+            )}
+          >
+            <div className="relative">
+              {currentUser ? (
+                <ShieldCheck className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              ) : (
+                <User className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              )}
+              {currentUser && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-lime-500 border-2 border-white"></span>
+              )}
+              {activeTab === 'admin' && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1 tracking-tight">
+              {currentUser ? 'Admin' : 'Profile'}
+            </span>
+          </button>
+
+        </div>
       </div>
 
     </div>
