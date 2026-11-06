@@ -2880,11 +2880,11 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleStartScoringSession}
-                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-900 text-lime-400 border border-slate-800 transition flex items-center gap-2 shadow-2xs group active:scale-95"
+                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-900 text-lime-400 border border-slate-800 transition flex items-center justify-center gap-2 shadow-2xs group active:scale-95"
                     title="Mula kira markah perlawanan sekarang di Quick Scorer"
                   >
-                    <Zap className="w-4 h-4 text-lime-400 group-hover:scale-110 transition-transform" />
-                    <span>Kira Sekarang ↓</span>
+                    <Zap className="w-4 h-4 text-lime-400 group-hover:scale-110 transition-transform shrink-0" />
+                    <span>Kira Sekarang (Quick Score)</span>
                   </button>
 
                   <button
@@ -2932,81 +2932,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* DUA CARA MENGGUNAKAN SCRIM HUB (Akses Terbuka & Bebas Untuk Semua) */}
-              <div className="pt-2 border-t border-slate-100">
-                <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-800">
-                          Pilihan Mod Penggunaan
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 font-normal">
-                        Semua ciri boleh diakses oleh sesiapa sahaja — pilih cara yang paling sesuai dengan sesi anda:
-                      </p>
-                    </div>
-
-                    <span className="self-start sm:self-auto text-[10px] font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-2xs">
-                      ⚡ Akses Terbuka Tanpa Had
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Option 1: Quick Scorer */}
-                    <div 
-                      onClick={() => {
-                        const el = document.getElementById('quick-scorer-workspace');
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                      className="group p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl cursor-pointer transition shadow-2xs flex items-center justify-between gap-3 active:scale-[0.99]"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-800 group-hover:bg-slate-950 group-hover:text-lime-400 flex items-center justify-center flex-shrink-0 transition-colors shadow-2xs">
-                          <Zap className="w-5 h-5 fill-current" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-xs sm:text-sm font-black text-slate-950 truncate">Quick Scorer</h3>
-                            <span className="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">Tanpa Login</span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 truncate">
-                            Kira 1-5 match di borang bawah &amp; jana poster terus.
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-slate-400 group-hover:text-slate-950 text-xs font-bold transition flex items-center gap-0.5 flex-shrink-0">
-                        Mula ↓
-                      </span>
-                    </div>
-
-                    {/* Option 2: Admin Workspace */}
-                    <div 
-                      onClick={() => setActiveTab('admin')}
-                      className="group p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl cursor-pointer transition shadow-2xs flex items-center justify-between gap-3 active:scale-[0.99]"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-lime-100 text-lime-900 group-hover:bg-lime-400 group-hover:text-slate-950 flex items-center justify-center flex-shrink-0 transition-colors shadow-2xs">
-                          <ShieldCheck className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-xs sm:text-sm font-black text-slate-950 truncate">Admin Workspace</h3>
-                            <span className="text-[9px] font-bold text-lime-800 bg-lime-100 px-1.5 py-0.5 rounded border border-lime-200/80">Simpan Cloud</span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 truncate">
-                            Multi-day tournament, jemput co-host &amp; database pasukan.
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-slate-400 group-hover:text-slate-950 text-xs font-bold transition flex items-center gap-0.5 flex-shrink-0">
-                        Buka →
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Split Screen Grid */}
