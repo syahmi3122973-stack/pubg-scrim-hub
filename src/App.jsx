@@ -731,9 +731,11 @@ export default function App() {
 
   const handlePlusActionClick = () => {
     if (currentUser) {
-      setIsQuickCreateModalOpen(true);
+      setIsQuickCreateModalOpen((prev) => !prev);
     } else {
+      setIsQuickCreateModalOpen(false);
       setActiveTab('playground');
+      setQuickScorerMobileTab('form');
       setTimeout(() => {
         const el = document.getElementById('quick-scorer-workspace');
         if (el) {
@@ -2720,7 +2722,7 @@ export default function App() {
 
           <nav className="hidden md:flex space-x-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 text-xs font-semibold items-center shadow-2xs">
             <button
-              onClick={() => setActiveTab('playground')}
+              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('playground'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'playground' || activeTab === 'home'
                   ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
@@ -2731,7 +2733,7 @@ export default function App() {
               <span>Home</span>
             </button>
             <button
-              onClick={() => setActiveTab('history')}
+              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('history'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'history' || activeTab === 'leaderboard'
                   ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
@@ -2742,7 +2744,7 @@ export default function App() {
               <span>Leaderboard</span>
             </button>
             <button
-              onClick={() => setActiveTab('teams')}
+              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('teams'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'teams'
                   ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
@@ -2753,7 +2755,7 @@ export default function App() {
               <span>Teams</span>
             </button>
             <button
-              onClick={() => setActiveTab('admin')}
+              onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('admin'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'admin'
                   ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
@@ -3176,221 +3178,163 @@ export default function App() {
 
             </div>
 
-            {/* LIVE LEADERBOARD VALUE HIGHLIGHT (SUPERIOR TO SPREADSHEETS) */}
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl border border-slate-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-lime-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg shadow-lime-400/20">
-                  <Trophy className="w-6 h-6 stroke-[2.5]" />
-                </div>
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] uppercase font-mono font-black tracking-widest text-lime-400 bg-lime-400/15 px-2.5 py-0.5 rounded-full border border-lime-400/30 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
-                      <span>LIVE PMGC LEADERBOARD</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-bold hidden sm:inline">• Kelebihan Utama Berbanding Spreadsheet</span>
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-black text-white">
-                    Kiraan Langsung &amp; Ranking Automatik Saat Anda Menaip
-                  </h3>
-                  <p className="text-[11px] text-slate-400 max-w-xl leading-relaxed">
-                    Sistem mengira mata PMGC rasmi, tie-breaker automatik, dan menjana poster HD serentak — tanpa formula Excel/Google Sheet yang mudah tersilap.
-                  </p>
-                </div>
-              </div>
-
-              {/* Mobile View Switcher (lg:hidden) */}
-              <div className="lg:hidden w-full sm:w-auto flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setQuickScorerMobileTab('form')}
-                  className={'flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ' + (
-                    quickScorerMobileTab === 'form'
-                      ? 'bg-lime-400 text-slate-950 font-black shadow-xs'
-                      : 'text-slate-400 hover:text-white'
-                  )}
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Isi Markah</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickScorerMobileTab('leaderboard')}
-                  className={'flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ' + (
-                    quickScorerMobileTab === 'leaderboard'
-                      ? 'bg-lime-400 text-slate-950 font-black shadow-xs'
-                      : 'text-slate-400 hover:text-white'
-                  )}
-                >
-                  <Trophy className="w-3.5 h-3.5" />
-                  <span>Live Poster</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
-                </button>
-              </div>
-            </div>
-
             {/* Split Screen Grid */}
             <div id="quick-scorer-workspace" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
               
               {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
               <div className={'lg:col-span-7 space-y-4 ' + (quickScorerMobileTab === 'form' ? 'block' : 'hidden lg:block')}>
                 
-                <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
                   
-                  {/* Match Details Header */}
+                  {/* Clean Workspace Header with Actions & Mobile Switcher */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <Zap className="w-4 h-4 text-lime-600 fill-current"/>
-                        <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-800 bg-lime-100 px-2 py-0.5 rounded-full">
-                          5-MATCH SCORER WORKSPACE • {currentMatch.slots.length} TEAMS
-                        </span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-black shadow-xs shrink-0">
+                        <Zap className="w-5 h-5 fill-current"/>
                       </div>
-                      <h2 className="text-base sm:text-lg font-black text-slate-950">Quick Match Scoring Workspace</h2>
-                      <p className="text-xs text-slate-500">Pilih pusingan match, masukkan kedudukan (#) dan kills untuk kiraan mata automatik.</p>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-sm sm:text-base font-black text-slate-950">Quick Scorer</h2>
+                          <span className="text-[10px] font-mono font-black uppercase text-lime-900 bg-lime-100 px-2 py-0.5 rounded-full border border-lime-300">
+                            Live PMGC • Auto-Calc
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Kira mata langsung &amp; jana poster HD automatik tanpa spreadsheet.
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                      <button
-                        type="button"
-                        onClick={handleClearPlaygroundForm}
-                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
-                        title="Kosongkan semua markah perlawanan (nama team dikekalkan)"
-                      >
-                        <Trash2 className="w-3.5 h-3.5"/>
-                        <span>Clear Markah</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleResetPlaygroundToDefault}
-                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
-                        title="Reset semula ke format bersih (Slot 1..16)"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5"/>
-                        <span>Reset Bersih</span>
-                      </button>
+                      {/* Mobile View Switcher (lg:hidden) */}
+                      <div className="lg:hidden flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setQuickScorerMobileTab('form')}
+                          className={'px-2.5 py-1 rounded-lg font-bold transition ' + (
+                            quickScorerMobileTab === 'form'
+                              ? 'bg-slate-950 text-lime-400 shadow-xs'
+                              : 'text-slate-600'
+                          )}
+                        >
+                          Borang
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuickScorerMobileTab('leaderboard')}
+                          className={'px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 ' + (
+                            quickScorerMobileTab === 'leaderboard'
+                              ? 'bg-slate-950 text-lime-400 shadow-xs'
+                              : 'text-slate-600'
+                          )}
+                        >
+                          <span>Poster</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
+                        </button>
+                      </div>
+
                       <button
                         type="button"
                         onClick={handleLoadDemoPlaygroundData}
-                        className="px-2.5 py-1.5 bg-lime-100 hover:bg-lime-200 text-lime-900 rounded-xl text-xs font-black transition flex items-center gap-1 border border-lime-300"
-                        title="Muat contoh preset demo"
+                        className="px-2.5 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs"
+                        title="Muat contoh preset demo untuk cuba segera"
                       >
-                        <Eye className="w-3.5 h-3.5 text-lime-700"/>
+                        <Eye className="w-3.5 h-3.5 text-slate-950"/>
                         <span>Contoh Demo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleClearPlaygroundForm}
+                        className="px-2 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
+                        title="Kosongkan markah perlawanan ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5"/>
+                        <span className="hidden sm:inline">Clear</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResetPlaygroundToDefault}
+                        className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
+                        title="Reset semula ke format asal (Slot 1..16)"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5"/>
+                        <span className="hidden sm:inline">Reset</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* 5-Match Navigation Selector Tabs with Micro-Tutorial */}
-                  <div className="space-y-1.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                      <label className="block text-[11px] uppercase font-bold text-slate-700">
-                        Pilih Pusingan Match (5 Matches)
-                      </label>
-                      <span className="text-[11px] font-medium text-lime-700 bg-lime-50 px-2 py-0.5 rounded-md border border-lime-200/80 inline-flex items-center gap-1">
-                        <span>💡 Tekan Match 1 hingga 5 untuk isi markah setiap pusingan</span>
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-5 gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-                      {playgroundSession.matches.map((m, mIdx) => {
-                        const isSelected = currentPlaygroundMatchIdx === mIdx;
-                        return (
-                          <button
-                            key={mIdx}
-                            type="button"
-                            onClick={() => setCurrentPlaygroundMatchIdx(mIdx)}
-                            className={'py-2 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ' + (
-                              isSelected 
-                                ? 'bg-slate-950 text-lime-400 shadow-md border border-slate-800' 
-                                : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/70'
-                            )}
-                          >
-                            <span className="text-[11px]">Match {mIdx + 1}</span>
-                            <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
-                              isSelected ? 'bg-lime-400/20 text-lime-300' : 'text-slate-500'
-                            )}>
-                              {m.map}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                  {/* 5-Match Segmented Bar */}
+                  <div className="grid grid-cols-5 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                    {playgroundSession.matches.map((m, mIdx) => {
+                      const isSelected = currentPlaygroundMatchIdx === mIdx;
+                      return (
+                        <button
+                          key={mIdx}
+                          type="button"
+                          onClick={() => setCurrentPlaygroundMatchIdx(mIdx)}
+                          className={'py-1.5 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ' + (
+                            isSelected 
+                              ? 'bg-slate-950 text-lime-400 shadow-md border border-slate-800' 
+                              : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/70'
+                          )}
+                        >
+                          <span className="text-[11px]">Match {mIdx + 1}</span>
+                          <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
+                            isSelected ? 'bg-lime-400/20 text-lime-300' : 'text-slate-400'
+                          )}>
+                            {m.map}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  {/* Match Title & Fixed Map Info (Pilihan Map manual dibuang untuk elak keliru) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                    <div>
-                      <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
-                        Nama Kejohanan / Sesi Scrim
-                      </label>
+                  {/* Title & Inline Team Slot Stepper (Clean Single Row) */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                    <div className="flex-1 min-w-[200px]">
                       <input
                         type="text"
                         value={playgroundSession.title}
                         onChange={(e) => handleSetPlaygroundTitle(e.target.value)}
-                        placeholder="e.g. Night Scrim Season 1"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition"
+                        placeholder="Nama Kejohanan / Sesi Scrim (e.g. Scrim Malam Minggu)"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 transition placeholder:text-slate-400 placeholder:font-normal"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] uppercase font-bold text-slate-600 mb-1">
-                        Battleground Map (Pusingan Match {currentPlaygroundMatchIdx + 1})
-                      </label>
-                      <div className="bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between">
-                        <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
-                          <span>{currentMatch.map.toUpperCase()}</span>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl shrink-0">
+                      <span className="text-[11px] font-bold text-slate-600">Slot:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleRemovePlaygroundTeam}
+                          disabled={currentMatch.slots.length <= 2}
+                          className="w-6 h-6 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-700 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition shadow-2xs"
+                          title="Padam slot baris team terakhir"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="font-mono font-black text-xs text-slate-950 px-1">
+                          {currentMatch.slots.length} Teams
                         </span>
-                        <span className="text-[10px] font-mono font-bold bg-slate-900 text-lime-400 px-2 py-0.5 rounded-lg border border-slate-800 uppercase tracking-wider">
-                          Fixed Rotation
-                        </span>
+                        <button
+                          type="button"
+                          onClick={handleAddPlaygroundTeam}
+                          disabled={currentMatch.slots.length >= 24}
+                          className="w-6 h-6 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
+                          title="Tambah slot baris team baru"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Dynamic Team Rows Controls (+ Tambah / - Kurang Team) */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-2xl gap-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-lime-600 flex-shrink-0"/>
-                      <span className="text-xs font-bold text-slate-700">Jumlah Pasukan:</span>
-                      <span className="px-2.5 py-0.5 bg-lime-100 text-lime-900 border border-lime-300 rounded-md font-mono font-black text-xs">
-                        {currentMatch.slots.length} Teams
-                      </span>
-                      <span className="text-[10px] text-slate-500 hidden sm:inline">
-                        (💡 Tekan tambah/kurang ikut slot yang bertanding)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={handleRemovePlaygroundTeam}
-                        disabled={currentMatch.slots.length <= 2}
-                        className="px-2.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-40 shadow-2xs"
-                        title="Padam slot baris team terakhir"
-                      >
-                        <Minus className="w-3.5 h-3.5"/>
-                        <span>Kurang Team</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleAddPlaygroundTeam}
-                        disabled={currentMatch.slots.length >= 24}
-                        className="px-2.5 py-1 bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 rounded-xl text-xs font-black transition flex items-center gap-1 disabled:opacity-40 shadow-xs"
-                        title="Tambah slot baris team baru"
-                      >
-                        <Plus className="w-3.5 h-3.5"/>
-                        <span>Tambah Team</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Micro Tutorial for Table */}
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                    <Info className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
-                    <span>💡 <strong>Isi nama team sekali sahaja</strong> — automatik disimpan untuk semua 5 pusingan match.</span>
+                  {/* Micro Hint */}
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 px-1">
+                    <Info className="w-3.5 h-3.5 text-lime-600 shrink-0"/>
+                    <span>Nama team automatik diselaraskan ke semua 5 perlawanan. Gunakan kekunci anak panah (Arrow Keys) untuk taip pantas.</span>
                   </div>
 
                   {/* Quick Input Grid Table */}
@@ -7122,12 +7066,12 @@ export default function App() {
 
       {/* QUICK CREATE ACTION SHEET MODAL (FOR LOGGED IN ORGANIZERS) */}
       {isQuickCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
           <div 
             className="fixed inset-0"
             onClick={() => setIsQuickCreateModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 z-10 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 z-10 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-black shadow-sm">
@@ -7154,6 +7098,7 @@ export default function App() {
                 onClick={() => {
                   setIsQuickCreateModalOpen(false);
                   setActiveTab('playground');
+                  setQuickScorerMobileTab('form');
                   setTimeout(() => {
                     document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }, 60);
@@ -7209,7 +7154,10 @@ export default function App() {
           {/* Tab 1: Home */}
           <button
             type="button"
-            onClick={() => setActiveTab('playground')}
+            onClick={() => {
+              setIsQuickCreateModalOpen(false);
+              setActiveTab('playground');
+            }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'playground' || activeTab === 'home'
                 ? 'text-slate-950 font-black'
@@ -7228,7 +7176,10 @@ export default function App() {
           {/* Tab 2: Leaderboard */}
           <button
             type="button"
-            onClick={() => setActiveTab('history')}
+            onClick={() => {
+              setIsQuickCreateModalOpen(false);
+              setActiveTab('history');
+            }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
                 ? 'text-slate-950 font-black'
@@ -7261,7 +7212,10 @@ export default function App() {
           {/* Tab 4: Teams */}
           <button
             type="button"
-            onClick={() => setActiveTab('teams')}
+            onClick={() => {
+              setIsQuickCreateModalOpen(false);
+              setActiveTab('teams');
+            }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'teams'
                 ? 'text-slate-950 font-black'
@@ -7280,7 +7234,10 @@ export default function App() {
           {/* Tab 5: Profile / Admin */}
           <button
             type="button"
-            onClick={() => setActiveTab('admin')}
+            onClick={() => {
+              setIsQuickCreateModalOpen(false);
+              setActiveTab('admin');
+            }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'admin'
                 ? 'text-slate-950 font-black'
