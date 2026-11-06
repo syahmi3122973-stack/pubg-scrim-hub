@@ -716,6 +716,16 @@ export default function App() {
     }, 60);
   };
 
+  const handleStartScoringSession = () => {
+    setActiveTab('playground');
+    setTimeout(() => {
+      const el = document.getElementById('quick-scorer-workspace');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
+
   const handleOpenGuide = (slideIdx = 0) => {
     setCurrentGuideSlide(slideIdx);
     setIsGuideModalOpen(true);
@@ -2869,12 +2879,12 @@ export default function App() {
                 <div className="flex flex-wrap sm:flex-nowrap md:flex-col gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={handleLoadDemoPlaygroundData}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition flex items-center gap-2 shadow-2xs group"
-                    title="Muat data contoh kejohanan untuk melihat rupa poster"
+                    onClick={handleStartScoringSession}
+                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-900 text-lime-400 border border-slate-800 transition flex items-center gap-2 shadow-2xs group active:scale-95"
+                    title="Mula kira markah perlawanan sekarang di Quick Scorer"
                   >
-                    <Eye className="w-4 h-4 text-slate-600 group-hover:text-slate-950" />
-                    <span>Muat Contoh Demo (Preset)</span>
+                    <Zap className="w-4 h-4 text-lime-400 group-hover:scale-110 transition-transform" />
+                    <span>Kira Sekarang ↓</span>
                   </button>
 
                   <button
