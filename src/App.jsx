@@ -333,6 +333,7 @@ export default function App() {
   const [pendingCloudSync, setPendingCloudSync] = useState(false);
 
   const [currentPlaygroundMatchIdx, setCurrentPlaygroundMatchIdx] = useState(0);
+  const [quickScorerMobileTab, setQuickScorerMobileTab] = useState('form'); // 'form' or 'leaderboard' on mobile
   const [posterViewMode, setPosterViewMode] = useState('overall'); // 'overall' (default) or 'match'
 
   const [playgroundSession, setPlaygroundSession] = useState(() => {
@@ -3176,11 +3177,64 @@ export default function App() {
 
             </div>
 
+            {/* LIVE LEADERBOARD VALUE HIGHLIGHT (SUPERIOR TO SPREADSHEETS) */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl border border-slate-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-lime-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg shadow-lime-400/20">
+                  <Trophy className="w-6 h-6 stroke-[2.5]" />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] uppercase font-mono font-black tracking-widest text-lime-400 bg-lime-400/15 px-2.5 py-0.5 rounded-full border border-lime-400/30 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
+                      <span>LIVE PMGC LEADERBOARD</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold hidden sm:inline">• Kelebihan Utama Berbanding Spreadsheet</span>
+                  </div>
+                  <h3 className="text-xs sm:text-sm font-black text-white">
+                    Kiraan Langsung &amp; Ranking Automatik Saat Anda Menaip
+                  </h3>
+                  <p className="text-[11px] text-slate-400 max-w-xl leading-relaxed">
+                    Sistem mengira mata PMGC rasmi, tie-breaker automatik, dan menjana poster HD serentak — tanpa formula Excel/Google Sheet yang mudah tersilap.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mobile View Switcher (lg:hidden) */}
+              <div className="lg:hidden w-full sm:w-auto flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setQuickScorerMobileTab('form')}
+                  className={'flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ' + (
+                    quickScorerMobileTab === 'form'
+                      ? 'bg-lime-400 text-slate-950 font-black shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  )}
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Isi Markah</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickScorerMobileTab('leaderboard')}
+                  className={'flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ' + (
+                    quickScorerMobileTab === 'leaderboard'
+                      ? 'bg-lime-400 text-slate-950 font-black shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  )}
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span>Live Poster</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
+                </button>
+              </div>
+            </div>
+
             {/* Split Screen Grid */}
             <div id="quick-scorer-workspace" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
               
               {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
-              <div className="lg:col-span-7 space-y-4">
+              <div className={'lg:col-span-7 space-y-4 ' + (quickScorerMobileTab === 'form' ? 'block' : 'hidden lg:block')}>
                 
                 <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
                   
@@ -3469,11 +3523,44 @@ export default function App() {
                     </span>
                   </div>
 
+                  {/* Mobile Jump to Live Leaderboard Button */}
+                  <div className="lg:hidden pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickScorerMobileTab('leaderboard');
+                        setTimeout(() => {
+                          posterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 50);
+                      }}
+                      className="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-slate-800 shadow-md active:scale-98"
+                    >
+                      <Trophy className="w-4 h-4 text-lime-400" />
+                      <span>Lihat Live Leaderboard &amp; Poster (⚡ Siap Terkini) →</span>
+                    </button>
+                  </div>
+
                 </div>
               </div>
 
               {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings) */}
-              <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5">
+              <div className={'lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 ' + (quickScorerMobileTab === 'leaderboard' ? 'block' : 'hidden lg:block')}>
+
+                {/* Mobile Back to Scoring Form Button */}
+                <div className="lg:hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickScorerMobileTab('form');
+                      setTimeout(() => {
+                        document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 50);
+                    }}
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-800 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-2xs"
+                  >
+                    <span>← Kembali ke Borang Isi Markah</span>
+                  </button>
+                </div>
                 
                 {/* Clean State Helper Pill */}
                 {!hasAnyPlaygroundScores && (
@@ -3541,8 +3628,9 @@ export default function App() {
                         <div className="w-6 h-6 rounded-lg bg-lime-400 flex items-center justify-center text-slate-950 font-black text-xs">
                           SH
                         </div>
-                        <span className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-lime-400">
-                          PUBG MOBILE ESPORTS
+                        <span className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-lime-400 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
+                          <span>LIVE PMGC LEADERBOARD</span>
                         </span>
                       </div>
 
@@ -3928,31 +4016,35 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: MATCH HISTORY & REKOD SESI (MENGGANTIKAN STANDINGS LAMA) */}
+        {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
           <div className="space-y-4">
             
             {/* Header Card */}
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-6 shadow-sm space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Clock className="w-3.5 h-3.5 text-lime-600"/>
-                    <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-700 bg-lime-100 px-2 py-0.5 rounded-full">
-                      MATCH HISTORY &amp; REKOD SESI
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
+                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-lime-900 bg-lime-100 border border-lime-300 px-2.5 py-0.5 rounded-full">
+                      LIVE ESPORTS LEADERBOARD • FORMAT RASMI PMGC
                     </span>
                   </div>
-                  <h2 className="text-base sm:text-lg font-black text-slate-950">Match History &amp; Rekod Penganjur</h2>
-                  <p className="text-xs text-slate-500">Semak senarai semua kejohanan &amp; perlawanan scrim lepas. Boleh semak kedudukan penuh, edit markah, atau padam rekod.</p>
+                  <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                    Live Leaderboard &amp; Rekod Kejohanan
+                  </h2>
+                  <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                    Kedudukan langsung kejohanan &amp; scrim komuniti secara real-time. Sistem mengira mata PMGC rasmi dan ranking automatik — tanpa perlukan spreadsheet Google Sheet manual yang lambat dan mudah tersilap formula.
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-auto">
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setActiveTab('admin')}
-                    className="px-3.5 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+                    className="px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs active:scale-95"
                   >
                     <Plus className="w-4 h-4"/>
-                    <span>+ Cipta Sesi Baru</span>
+                    <span>+ Cipta Sesi Kejohanan</span>
                   </button>
                 </div>
               </div>
@@ -4123,10 +4215,10 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setInspectedScrim(s)}
-                            className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
+                            className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-lime-400 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm active:scale-95"
                           >
-                            <Eye className="w-3.5 h-3.5 text-lime-400"/>
-                            <span>View Details</span>
+                            <Trophy className="w-3.5 h-3.5 text-lime-400"/>
+                            <span>Live Standings &amp; Poster</span>
                           </button>
 
                           <button
@@ -6728,9 +6820,15 @@ export default function App() {
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase text-slate-900 tracking-wider block">
-                Final Standings
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
+                  <span>Live Official Standings</span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
+                  PMGC Formula (1st=10pts, 1pt/elim)
+                </span>
+              </div>
 
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
                 {calculateLeaderboard(inspectedScrim, 'overall').map((teamRow) => (
@@ -6757,6 +6855,9 @@ export default function App() {
                   </div>
                 ))}
               </div>
+              <p className="text-[10px] text-slate-400 font-mono text-center pt-1">
+                *Kedudukan disusun automatik mengikut Total PTS → Placement PTS → Kill PTS → WWCD.
+              </p>
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
