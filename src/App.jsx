@@ -48,7 +48,10 @@ import {
   ShieldCheck, 
   Menu, 
   Database, 
-  Clock 
+  Clock,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -302,6 +305,10 @@ export default function App() {
   // Top Right Hamburger 3-Line Menu State
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
+  // Guide Presentation Modal State
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [currentGuideSlide, setCurrentGuideSlide] = useState(0);
+
   // Admin Live Leaderboard Poster Ref & State
   const adminPosterRef = useRef(null);
   const [adminPosterViewMode, setAdminPosterViewMode] = useState('overall'); // 'overall' or 'match'
@@ -369,6 +376,22 @@ export default function App() {
       console.warn('Failed to sync scrim_active_match to localStorage:', e);
     }
   }, [playgroundSession]);
+
+  // Keyboard navigation untuk slide presentation panduan
+  useEffect(() => {
+    if (!isGuideModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight') {
+        setCurrentGuideSlide(prev => Math.min(prev + 1, 3));
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentGuideSlide(prev => Math.max(prev - 1, 0));
+      } else if (e.key === 'Escape') {
+        setIsGuideModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isGuideModalOpen]);
 
   const currentMatch = useMemo(() => {
     return playgroundSession.matches[currentPlaygroundMatchIdx] || playgroundSession.matches[0];
@@ -2706,6 +2729,18 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
+                          setIsGuideModalOpen(true);
+                          setCurrentGuideSlide(0);
+                          setIsNavMenuOpen(false);
+                        }}
+                        className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-lime-50/70 text-slate-800 transition font-bold"
+                      >
+                        <BookOpen className="w-4 h-4 text-lime-600"/>
+                        <span>Slide Panduan App</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
                           setActiveTab('showcase');
                           setIsNavMenuOpen(false);
                         }}
@@ -4361,7 +4396,7 @@ export default function App() {
                   <p className="text-xs text-slate-500">System infrastructure and developer identity.</p>
                 </div>
                 <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto border border-slate-200">
-                  v2.6.0 • PRODUCTION READY
+                  v2.7.0 • PRODUCTION READY
                 </span>
               </div>
 
@@ -5594,6 +5629,368 @@ export default function App() {
               >
                 Close
               </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 0: SLIDE PRESENTATION PANDUAN APLIKASI (QUICK SCORER & ADMIN FOCUS) */}
+      {isGuideModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-4 relative overflow-hidden flex flex-col max-h-[92vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
+                    <span>Slide Panduan SCRIM HUB</span>
+                    <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">v2.7.0</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400">Tekankan cara penggunaan Quick Scorer &amp; Admin</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono font-bold text-slate-400 hidden sm:inline">
+                  Slide {currentGuideSlide + 1} / 4
+                </span>
+                <button 
+                  onClick={() => setIsGuideModalOpen(false)} 
+                  className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+                  title="Tutup panduan"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Jump Category Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-shrink-0 no-scrollbar">
+              {[
+                { label: '1. Pengenalan', idx: 0 },
+                { label: '2. Quick Scorer ⚡', idx: 1 },
+                { label: '3. Admin Workspace 🛡️', idx: 2 },
+                { label: '4. Database & Rekod 📊', idx: 3 },
+              ].map(item => {
+                const isActive = currentGuideSlide === item.idx;
+                return (
+                  <button
+                    key={item.idx}
+                    type="button"
+                    onClick={() => setCurrentGuideSlide(item.idx)}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ' + (
+                      isActive
+                        ? 'bg-slate-950 text-lime-400 shadow-sm border border-slate-800 font-black'
+                        : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600 border border-slate-200/80'
+                    )}
+                  >
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Slide Body (Scrollable if needed on mobile) */}
+            <div className="flex-1 overflow-y-auto pr-1 py-1 space-y-4">
+              
+              {/* SLIDE 0: PENGENALAN */}
+              {currentGuideSlide === 0 && (
+                <div className="space-y-3.5 animate-in fade-in">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-mono font-black text-lime-800 bg-lime-100 px-2.5 py-0.5 rounded-full border border-lime-300">
+                      PENGENALAN PLATFORM
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                      Selamat Datang ke SCRIM HUB
+                    </h2>
+                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                      SCRIM HUB ialah platform pengurusan &amp; kalkulator mata scrim PUBG Mobile paling pantas. 100% percuma &amp; terbuka untuk semua — daripada squad sparring santai hinggalah kejohanan komuniti rasmi.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <span className="text-[10px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">1. Format Rasmi</span>
+                      <h4 className="text-xs font-bold text-slate-900">Standard Mata PMGC</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug">#1 (10pts), #2 (6pts), #3 (5pts) hingga ke #8 (1pt) + 1 mata untuk setiap elim.</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <span className="text-[10px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">2. Poster Automatik</span>
+                      <h4 className="text-xs font-bold text-slate-900">Live Overall Standings</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug">Visual leaderboard resolusi tinggi siap dijana terus untuk WhatsApp, Discord &amp; Story.</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <span className="text-[10px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">3. Dua Mod Selesa</span>
+                      <h4 className="text-xs font-bold text-slate-900">Pantas atau Cloud</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug">Guna Quick Scorer tanpa login, atau daftar Admin untuk anjur kejohanan bersiri.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SLIDE 1: PANDUAN QUICK SCORER (TEKANAN UTAMA) */}
+              {currentGuideSlide === 1 && (
+                <div className="space-y-3.5 animate-in fade-in">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-mono font-black text-lime-900 bg-lime-100 px-2.5 py-0.5 rounded-full border border-lime-300">
+                        PANDUAN 1: QUICK SCORER
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Tanpa Perlu Login</span>
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                      Cara Guna Quick Scorer (Kiraan Pantas)
+                    </h2>
+                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                      Direka untuk pusingan harian atau semakan keputusan segera. Buka web dan terus masukkan mata di borang tanpa perlu sebarang persediaan.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">1</span>
+                        <h4 className="text-xs font-bold text-slate-900">Pilih Pusingan Match</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Tekan tab <strong>Match 1</strong> hingga <strong>Match 5</strong> di bar pusingan. Anda juga boleh menamakan sesi perlawanan anda.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">2</span>
+                        <h4 className="text-xs font-bold text-slate-900">Taip Nama Pasukan</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Masukkan nama skuad di lajur <em>Team Name</em>. Nama pasukan automatik diselaraskan untuk kesemua 5 match!
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">3</span>
+                        <h4 className="text-xs font-bold text-slate-900">Pilih Kedudukan &amp; Kills</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Pilih nombor kedudukan (contoh: <code>#1 👑</code>) &amp; taip jumlah kills. Sistem automatik menjana mata rasmi dan lencana Chicken Dinner (🍗).
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">4</span>
+                        <h4 className="text-xs font-bold text-slate-900">Download Poster Standings</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Semak Live Overall Standings di sebelah kanan. Tekan butang <strong>Download Poster</strong> untuk simpan fail grafik HD.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-lime-50 border border-lime-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <span className="text-xs text-lime-950">
+                      💡 <strong>Tip Cepat:</strong> Guna butang <em>Tambah/Kurang Team</em> untuk tetapkan 2 hingga 24 skuad.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsGuideModalOpen(false);
+                        setActiveTab('playground');
+                        setTimeout(() => {
+                          document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 80);
+                      }}
+                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-2xs self-start sm:self-auto shrink-0"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span>Buka Quick Scorer Sekarang ↓</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* SLIDE 2: PANDUAN ADMIN WORKSPACE (TEKANAN UTAMA) */}
+              {currentGuideSlide === 2 && (
+                <div className="space-y-3.5 animate-in fade-in">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-mono font-black text-slate-950 bg-lime-400 px-2.5 py-0.5 rounded-full border border-lime-500">
+                        PANDUAN 2: ADMIN WORKSPACE
+                      </span>
+                      <span className="text-[10px] font-bold text-lime-800 bg-lime-100 px-2 py-0.5 rounded-md border border-lime-200">Simpanan Cloud</span>
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                      Cara Guna Admin Workspace (Penganjur Rasmi)
+                    </h2>
+                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                      Direka khas untuk penganjur kejohanan, liga bertingkat (Qualifiers/Finals) dan clan esports yang memerlukan rekod tersimpan selamat.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">1</span>
+                        <h4 className="text-xs font-bold text-slate-900">Daftar Akaun Penganjur</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Buka tab <strong>Admin Workspace</strong> dan masukkan emel anda. Pendaftaran adalah terbuka &amp; segera untuk simpan data ke Cloud.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">2</span>
+                        <h4 className="text-xs font-bold text-slate-900">Cipta Sesi Kejohanan</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Tekan <strong>+ Sesi Kejohanan Baru</strong>. Tetapkan nama kejohanan, format (Scrim/Tour), dan pusingan match tanpa had.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">3</span>
+                        <h4 className="text-xs font-bold text-slate-900">Isi Keputusan &amp; Live Ranking</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Antara muka sama mudah macam Scorer! Rekod kedudukan &amp; kills dengan Live Leaderboard poster di sebelah kanan.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">4</span>
+                        <h4 className="text-xs font-bold text-slate-900">Kunci &amp; Tamatkan Sesi</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug pl-7">
+                        Bila kejohanan tamat, tekan <strong>Tamatkan Sesi</strong> untuk arkibkan data kekal dan kemaskini prestasi pasukan ke Database.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <span className="text-xs text-slate-300">
+                      👑 <strong>Ciri Hebat Admin:</strong> Boleh jemput <em>Co-Host</em> isi markah serentak dan muat naik logo penaja rasmi.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsGuideModalOpen(false);
+                        setActiveTab('admin');
+                      }}
+                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-2xs self-start sm:self-auto shrink-0"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
+                      <span>Buka Admin Workspace →</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* SLIDE 3: HISTORY & DATABASE */}
+              {currentGuideSlide === 3 && (
+                <div className="space-y-3.5 animate-in fade-in">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-mono font-black text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                      REKOD &amp; ANALITIK
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                      Arkib History &amp; Database Prestasi
+                    </h2>
+                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                      Semua kejohanan yang disimpan di Admin secara automatik terhimpun dalam arkib rekod dan profil analitik setiap skuad.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-lime-600"/>
+                        <span>Tab History (Arkib Kejohanan)</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Senarai perlawanan lepas yang pernah dianjurkan. Boleh semak keputusan detail setiap match, kemaskini jika ada ralat, atau padam sesi lama.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Database className="w-4 h-4 text-lime-600"/>
+                        <span>Tab Database (Prestasi Pasukan)</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Statistik pasukan sepanjang musim: Jumlah kills, mata purata, bilangan Chicken Dinner (WWCD) &amp; graf prestasi perlawanan.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-pink-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-black uppercase text-pink-700">📸 Kongsi ke Instagram Story</span>
+                      <p className="text-[11px] text-slate-700 leading-snug">
+                        Di tab Database, tekan mana-mana kad pasukan dan pilih <strong>Share to IG Story</strong> untuk jana visual kad esport siap kongsi!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer Controls (Next / Prev & Indicators) */}
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setCurrentGuideSlide(prev => Math.max(prev - 1, 0))}
+                disabled={currentGuideSlide === 0}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Sebelumnya</span>
+              </button>
+
+              {/* Progress Dots */}
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2, 3].map(dotIdx => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => setCurrentGuideSlide(dotIdx)}
+                    className={'h-2 rounded-full transition-all ' + (
+                      currentGuideSlide === dotIdx 
+                        ? 'w-6 bg-lime-500' 
+                        : 'w-2 bg-slate-300 hover:bg-slate-400'
+                    )}
+                    title={`Lompat ke slide ${dotIdx + 1}`}
+                  />
+                ))}
+              </div>
+
+              {currentGuideSlide < 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setCurrentGuideSlide(prev => Math.min(prev + 1, 3))}
+                  className="px-4 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 transition flex items-center gap-1 shadow-xs active:scale-95"
+                >
+                  <span>Seterusnya</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsGuideModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-800 text-lime-400 transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                >
+                  <span>Selesai &amp; Mula Guna 🚀</span>
+                </button>
+              )}
             </div>
 
           </div>
