@@ -186,7 +186,7 @@ const INITIAL_FALLBACK_TEAMS = [
 
 const PLAYGROUND_DEFAULT_MAPS = ['Erangel', 'Erangel', 'Miramar', 'Miramar', 'Rondo'];
 
-const DEFAULT_PLAYGROUND_TEAMS = [
+const DEMO_PLAYGROUND_TEAMS = [
   { name: 'Geek Fam', elims: 9, placement: 1, wwcd: true },
   { name: 'SEM9', elims: 6, placement: 2, wwcd: false },
   { name: 'YALL', elims: 5, placement: 3, wwcd: false },
@@ -205,11 +205,37 @@ const DEFAULT_PLAYGROUND_TEAMS = [
   { name: 'RSG', elims: 1, placement: 16, wwcd: false },
 ];
 
+// Sesi Scrim Bersih: Tiada markah atau nama team pro sedia ada supaya tidak mengelirukan pengunjung baru
 const createDefaultPlaygroundSession = (teamCount = 16) => {
   const defaultMaps = PLAYGROUND_DEFAULT_MAPS;
-  const initialTeams = DEFAULT_PLAYGROUND_TEAMS.slice(0, teamCount);
+  const matches = defaultMaps.map((mapName, mIdx) => ({
+    matchNo: mIdx + 1,
+    title: `Match ${mIdx + 1}`,
+    map: mapName,
+    slots: Array.from({ length: teamCount }, (_, idx) => ({
+      slot: idx + 1,
+      teamName: `Slot ${idx + 1}`,
+      placement: '',
+      elims: 0,
+      wwcd: false,
+      placePts: 0,
+      totalPts: 0
+    }))
+  }));
+
+  return {
+    title: 'PUBG Mobile Scrim Session',
+    matches,
+    synced: false
+  };
+};
+
+// Sesi Scrim Demo: Digunakan secara eksplisit jika pengguna ingin pratonton fungsi poster & kiraan mata
+const createDemoPlaygroundSession = (teamCount = 16) => {
+  const defaultMaps = PLAYGROUND_DEFAULT_MAPS;
+  const initialTeams = DEMO_PLAYGROUND_TEAMS.slice(0, teamCount);
   while (initialTeams.length < teamCount) {
-    initialTeams.push({ name: `Squad ${initialTeams.length + 1}`, elims: 0, placement: '', wwcd: false });
+    initialTeams.push({ name: `Slot ${initialTeams.length + 1}`, elims: 0, placement: '', wwcd: false });
   }
 
   const matches = defaultMaps.map((mapName, mIdx) => ({
@@ -234,7 +260,7 @@ const createDefaultPlaygroundSession = (teamCount = 16) => {
   }));
 
   return {
-    title: 'PUBG Mobile Scrim Season',
+    title: 'PUBG Mobile Scrim Demo',
     matches,
     synced: false
   };
@@ -298,6 +324,12 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && Array.isArray(parsed.matches) && parsed.matches.length > 0) {
+          // Migrasi: Jika cache menyimpan mock default lama (Geek Fam & SEM9), gantikan dengan format bersih
+          const firstTeam = parsed.matches[0]?.slots?.[0]?.teamName;
+          const secondTeam = parsed.matches[0]?.slots?.[1]?.teamName;
+          if (firstTeam === 'Geek Fam' && secondTeam === 'SEM9') {
+            return createDefaultPlaygroundSession(16);
+          }
           return parsed;
         }
         if (parsed && Array.isArray(parsed.slots) && parsed.slots.length > 0) {
@@ -404,6 +436,10 @@ export default function App() {
       return a.slot - b.slot;
     });
   }, [playgroundSession]);
+
+  const hasAnyPlaygroundScores = useMemo(() => {
+    return sortedOverallLeaderboard.some(r => r.totalPts > 0 || r.matchesPlayed > 0);
+  }, [sortedOverallLeaderboard]);
 
   // Current single match sorted leaderboard
   const sortedCurrentMatchLeaderboard = useMemo(() => {
@@ -620,9 +656,16 @@ export default function App() {
   };
 
   const handleResetPlaygroundToDefault = () => {
+    if (!window.confirm('Reset semula borang ke 16 slot kosong asal?')) return;
     setPlaygroundSession(createDefaultPlaygroundSession(16));
     setCurrentPlaygroundMatchIdx(0);
-    showToast('Reset ke 5 match default (Erangel, Erangel, Miramar, Miramar, Rondo)!');
+    showToast('Borang dikosongkan ke format asal (16 slot bersih)!');
+  };
+
+  const handleLoadDemoPlaygroundData = () => {
+    setPlaygroundSession(createDemoPlaygroundSession(16));
+    setCurrentPlaygroundMatchIdx(0);
+    showToast('Data contoh demo dimuatkan! Anda boleh lihat contoh kiraan & rupa poster.');
   };
 
   const handleDownloadPlaygroundPoster = async () => {
@@ -2710,35 +2753,89 @@ export default function App() {
         {activeTab === 'playground' && (
           <div className="space-y-6">
             
+            {/* THREADS-STYLE HERO BANNER: PENERANGAN MUDAH & INTUITIF */}
+            <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
+                {/* Headline & Value Proposition */}
+                <div className="space-y-2.5 max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-lime-100/90 border border-lime-300/80 rounded-full text-lime-950 text-xs font-black tracking-wide">
+                    <Sparkles className="w-3.5 h-3.5 text-lime-700" />
+                    <span>Kalkulator &amp; Pengurusan Scrim PUBG Mobile</span>
+                  </div>
+                  
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-950 leading-tight">
+                    Kira markah scrim sepantas kilat &amp; jana poster rasmi automatik.
+                  </h1>
+
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                    Direka khas untuk organizer komuniti &amp; pemain PUBG Mobile. Tak perlu spreadsheet rumit — cuma pilih kedudukan (#) dan mata kills, sistem akan kira mengikut format rasmi PMGC dan hasilkan poster Overall Standings berkualiti tinggi sedia dikongsi.
+                  </p>
+                </div>
+
+                {/* Quick Action Buttons */}
+                <div className="flex flex-wrap sm:flex-nowrap md:flex-col gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleLoadDemoPlaygroundData}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition flex items-center gap-2 shadow-2xs group"
+                    title="Muat data contoh kejohanan untuk melihat rupa poster"
+                  >
+                    <Eye className="w-4 h-4 text-slate-600 group-hover:text-slate-950" />
+                    <span>Muat Contoh Demo (Preset)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('admin')}
+                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 transition flex items-center gap-2 shadow-xs active:scale-95"
+                    title="Buka Admin Workspace untuk kejohanan rasmi"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-slate-950" />
+                    <span>Urus Kejohanan (Admin) →</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3 Intuitive Steps (Threads-Style Clean Cards) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
+                <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-200/60 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-xl bg-lime-100 text-lime-900 border border-lime-300 flex items-center justify-center font-black text-xs shrink-0">
+                    1
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-slate-900">Tanpa Perlu Login</h4>
+                    <p className="text-[11px] text-slate-500 leading-snug">Terus isi mata Match 1 hingga 5 di borang bawah — percuma dan sedia guna serta-merta.</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-200/60 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-xl bg-lime-100 text-lime-900 border border-lime-300 flex items-center justify-center font-black text-xs shrink-0">
+                    2
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-slate-900">Standard Rasmi PMGC</h4>
+                    <p className="text-[11px] text-slate-500 leading-snug">Kiraan mata automatik: 1st (10pts), 2nd (6pts) + 1 mata untuk setiap elim.</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-200/60 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-xl bg-lime-100 text-lime-900 border border-lime-300 flex items-center justify-center font-black text-xs shrink-0">
+                    3
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-slate-900">Poster HD Sekelip Mata</h4>
+                    <p className="text-[11px] text-slate-500 leading-snug">Muat turun grafik kedudukan Overall Standings sedia untuk WhatsApp &amp; Discord.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Split Screen Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
               <div className="lg:col-span-7 space-y-4">
                 
-                {/* Advanced Admin Shortcut Notice */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl border border-slate-800 shadow-sm">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse"></span>
-                      <span className="text-[11px] font-black uppercase tracking-wider text-lime-400">
-                        Perlukan Sistem Scrim Lengkap &amp; Terperinci?
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-snug">
-                      Page Admin menyediakan ciri <strong>Advanced &amp; Lebih Detail</strong> — multi-day tournament, sistem markah custom, jemputan co-host &amp; simpanan rekod cloud.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('admin')}
-                    className="self-start sm:self-auto px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap active:scale-95 border border-lime-500/40"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-slate-950"/>
-                    <span>Buka Page Admin →</span>
-                  </button>
-                </div>
-
                 <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
                   
                   {/* Match Details Header */}
@@ -2751,27 +2848,36 @@ export default function App() {
                         </span>
                       </div>
                       <h2 className="text-base sm:text-lg font-black text-slate-950">Quick Match Scoring Workspace</h2>
-                      <p className="text-xs text-slate-500">5 pusingan match dengan kiraan markah automatik dan poster Overall Standings.</p>
+                      <p className="text-xs text-slate-500">Pilih pusingan match, masukkan kedudukan (#) dan kills untuk kiraan mata automatik.</p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
                       <button
                         type="button"
                         onClick={handleClearPlaygroundForm}
                         className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
-                        title="Kosongkan semua markah perlawanan"
+                        title="Kosongkan semua markah perlawanan (nama team dikekalkan)"
                       >
                         <Trash2 className="w-3.5 h-3.5"/>
-                        <span>Clear</span>
+                        <span>Clear Markah</span>
                       </button>
                       <button
                         type="button"
                         onClick={handleResetPlaygroundToDefault}
-                        className="px-2.5 py-1.5 bg-lime-100 hover:bg-lime-200 text-lime-800 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-lime-300"
-                        title="Reset semula ke preset 5 match asal"
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200"
+                        title="Reset semula ke format bersih (Slot 1..16)"
                       >
                         <RefreshCw className="w-3.5 h-3.5"/>
-                        <span>Reset Default</span>
+                        <span>Reset Bersih</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLoadDemoPlaygroundData}
+                        className="px-2.5 py-1.5 bg-lime-100 hover:bg-lime-200 text-lime-900 rounded-xl text-xs font-black transition flex items-center gap-1 border border-lime-300"
+                        title="Muat contoh preset demo"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-lime-700"/>
+                        <span>Contoh Demo</span>
                       </button>
                     </div>
                   </div>
@@ -3023,6 +3129,27 @@ export default function App() {
               {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings) */}
               <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5">
                 
+                {/* Clean State Helper Pill */}
+                {!hasAnyPlaygroundScores && (
+                  <div className="flex items-center justify-between gap-2 p-3 bg-white/95 border border-slate-200/90 rounded-2xl shadow-2xs text-xs text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-lime-600 flex-shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs">Borang Bersih &amp; Sedia Diisi</div>
+                        <div className="text-[11px] text-slate-500">Poster akan dikemaskini langsung bila anda isi kedudukan &amp; kills.</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLoadDemoPlaygroundData}
+                      className="px-2.5 py-1 bg-lime-100 hover:bg-lime-200 text-lime-900 border border-lime-300 rounded-xl font-bold text-[11px] whitespace-nowrap transition"
+                      title="Lihat contoh poster dengan data demo"
+                    >
+                      Cuba Demo
+                    </button>
+                  </div>
+                )}
+
                 {/* Poster Display Toggle: Overall Standings (Default) vs Single Match */}
                 <div className="flex items-center justify-between bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs">
                   <button
@@ -3111,7 +3238,6 @@ export default function App() {
                     {/* Sorted Rows */}
                     <div className="space-y-1">
                       {(posterViewMode === 'overall' ? sortedOverallLeaderboard : sortedCurrentMatchLeaderboard).map((row, pos) => {
-                        const isChamp = pos === 0;
                         const rankNumber = pos + 1;
                         const placePtsDisplay = posterViewMode === 'overall' ? row.totalPlacePts : row.placePts;
                         const hasWWCD = posterViewMode === 'overall' ? (row.totalWWCD > 0) : (Boolean(row.wwcd) || Number(row.placement) === 1);
@@ -3119,6 +3245,7 @@ export default function App() {
 
                         const totalPoints = posterViewMode === 'overall' ? row.totalPts : row.totalPts;
                         const elimPoints = posterViewMode === 'overall' ? row.totalElims : row.elims;
+                        const isChamp = pos === 0 && (totalPoints > 0 || hasWWCD);
 
                         return (
                           <div 
