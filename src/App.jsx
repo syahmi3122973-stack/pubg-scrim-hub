@@ -2853,7 +2853,7 @@ export default function App() {
                         )}
                       >
                         <Sparkles className="w-4 h-4 text-lime-600"/>
-                        <span className="font-semibold">Showcase Poster</span>
+                        <span className="font-semibold">Content</span>
                       </button>
                       <button
                         type="button"
@@ -2953,230 +2953,9 @@ export default function App() {
                   </button>
                 </div>
               </div>
-
-              {/* 3 Intuitive Steps (Threads-Style Clean Cards) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
-                <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-200/60 flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-lime-100 text-lime-900 border border-lime-300 flex items-center justify-center font-black text-xs shrink-0">
-                    1
-                  </div>
-                  <div className="space-y-0.5">
-                    <h4 className="text-xs font-bold text-slate-900">Tanpa Perlu Login</h4>
-                    <p className="text-[11px] text-slate-500 leading-snug">Terus isi mata Match 1 hingga 5 di borang bawah — sedia digunakan terus tanpa sebarang persediaan.</p>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-200/60 flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-lime-100 text-lime-900 border border-lime-300 flex items-center justify-center font-black text-xs shrink-0">
-                    2
-                  </div>
-                  <div className="space-y-0.5">
-                    <h4 className="text-xs font-bold text-slate-900">Standard Rasmi PMGC</h4>
-                    <p className="text-[11px] text-slate-500 leading-snug">Kiraan mata automatik: 1st (10pts), 2nd (6pts) + 1 mata untuk setiap elim.</p>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-200/60 flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-lime-100 text-lime-900 border border-lime-300 flex items-center justify-center font-black text-xs shrink-0">
-                    3
-                  </div>
-                  <div className="space-y-0.5">
-                    <h4 className="text-xs font-bold text-slate-900">Poster HD Sekelip Mata</h4>
-                    <p className="text-[11px] text-slate-500 leading-snug">Muat turun grafik kedudukan Overall Standings sedia untuk WhatsApp &amp; Discord.</p>
-                  </div>
-                </div>
-              </div>
-
             </div>
-
-            {/* ESPORTS DISCOVERY & RECENT ACTIVITY FEED (FACEIT / LIQUEPEDIA / THREADS STYLE) */}
-            <div className="space-y-3.5">
-              
-              {/* Section Header */}
-              <div className="flex items-center justify-between gap-3 px-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-lime-500 animate-pulse"></div>
-                  <h2 className="text-sm sm:text-base font-black text-slate-950 tracking-tight">
-                    Aktiviti Scrim &amp; Keputusan Terkini
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('history')}
-                  className="text-xs font-bold text-lime-700 hover:text-lime-800 transition flex items-center gap-1 group"
-                >
-                  <span>Lihat Semua ({scrims.length})</span>
-                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </div>
-
-              {/* Discovery Grid: 2-3 Recent Scrims Cards (or Empty/Placeholder) */}
-              {scrims && scrims.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {scrims.slice(0, 3).map((s) => {
-                    const overallScores = calculateLeaderboard(s, 'overall');
-                    const champion = overallScores[0];
-                    const isFinished = s.is_finished;
-                    const matchCount = s.matches?.length || 0;
-
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => setInspectedScrim(s)}
-                        className="group bg-white/95 hover:bg-slate-50/90 backdrop-blur-xl border border-slate-200/90 hover:border-lime-400 rounded-3xl p-4 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between gap-3 relative active:scale-[0.99]"
-                      >
-                        <div className="space-y-2">
-                          {/* Badges */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={'text-[9px] font-black px-2 py-0.5 rounded-full font-mono ' + (
-                                s.event_type === 'Tour' 
-                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                  : 'bg-lime-100 text-lime-900 border border-lime-300'
-                              )}>
-                                {s.event_type === 'Tour' ? '🏆 TOURNAMENT' : '🔥 SCRIM'}
-                              </span>
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
-                                {s.tier || 'Tier 1'}
-                              </span>
-                              {isFinished ? (
-                                <span className="text-[9px] bg-slate-900 text-lime-400 font-black px-1.5 py-0.5 rounded-md font-mono">
-                                  Final
-                                </span>
-                              ) : (
-                                <span className="text-[9px] bg-lime-50 text-lime-800 font-bold px-1.5 py-0.5 rounded-md border border-lime-200 font-mono">
-                                  Live
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-slate-400" />
-                              <span>{s.date || 'Terkini'}</span>
-                            </span>
-                          </div>
-
-                          {/* Tournament Title */}
-                          <h3 className="text-xs sm:text-sm font-black text-slate-950 group-hover:text-lime-700 transition-colors line-clamp-1">
-                            {s.title}
-                          </h3>
-
-                          {/* Champion / Top Standings Preview */}
-                          {champion ? (
-                            <div className="p-2.5 bg-slate-50/80 rounded-2xl border border-slate-200/60 flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-5 h-5 rounded-lg bg-amber-400 text-slate-950 font-black text-[10px] flex items-center justify-center shrink-0">
-                                  👑
-                                </span>
-                                <span className="text-xs font-bold text-slate-900 truncate">
-                                  {champion.teamName || 'TBD'}
-                                </span>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className="text-[10px] font-mono font-black text-lime-700">
-                                  {champion.totalPts} PTS
-                                </span>
-                                <span className="text-[9px] text-slate-400 font-mono block">
-                                  {champion.killPts} Kills
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-2.5 bg-slate-50 rounded-2xl text-[11px] text-slate-400 text-center">
-                              {matchCount} Matches direkodkan
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Card Footer */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
-                          <span className="truncate max-w-[140px]">
-                            Host: {s.host || 'Komuniti'}
-                          </span>
-                          <span className="text-slate-900 font-bold group-hover:text-lime-700 flex items-center gap-0.5 shrink-0 text-xs">
-                            Lihat Penuh →
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* Empty state: Community prompt */
-                <div className="p-5 bg-white/90 border border-slate-200/80 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-2xl bg-lime-100 text-lime-900 flex items-center justify-center font-black shrink-0">
-                      <Trophy className="w-5 h-5 text-lime-700" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-950">
-                        Belum Ada Sesi Kejohanan Diterbitkan
-                      </h3>
-                      <p className="text-[11px] text-slate-500">
-                        Penganjur boleh log masuk ke Admin Workspace untuk simpan dan terbitkan rekod kejohanan rasmi ke suapan ini.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('admin')}
-                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 transition shrink-0 active:scale-95"
-                  >
-                    Buka Admin Workspace →
-                  </button>
-                </div>
-              )}
-
-              {/* Community Showcase Reel (If Posts Exist) */}
-              {posts && posts.length > 0 && (
-                <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-lime-600" />
-                      <h3 className="text-xs sm:text-sm font-black text-slate-950">
-                        Sorotan Poster Komuniti
-                      </h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('showcase')}
-                      className="text-xs font-bold text-slate-600 hover:text-slate-950 transition flex items-center gap-1"
-                    >
-                      <span>Lihat Semua ({posts.length})</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {posts.slice(0, 4).map((p) => (
-                      <div
-                        key={p.id}
-                        onClick={() => setInspectedPost(p)}
-                        className="group relative aspect-video bg-slate-900 rounded-2xl overflow-hidden cursor-pointer border border-slate-200/80 hover:border-lime-400 transition shadow-2xs"
-                      >
-                        {p.image_url ? (
-                          <img
-                            src={p.image_url}
-                            alt={p.caption || 'Community Poster'}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
-                            Poster
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-2">
-                          <p className="text-[10px] font-bold text-white line-clamp-1 group-hover:text-lime-300">
-                            {p.caption || p.author || 'Showcase'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* HOME EXPLORATION TILES (QUICK NAVIGATION PILLARS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
+            {/* HOME EXPLORATION TILES (QUICK NAVIGATION PILLARS) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 
                 {/* Pillar 1: Quick Scorer */}
                 <div 
@@ -3261,8 +3040,6 @@ export default function App() {
 
               </div>
 
-            </div>
-
           </div>
         )}
 
@@ -3304,14 +3081,9 @@ export default function App() {
                         <Zap className="w-5 h-5 fill-current"/>
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-sm sm:text-base font-black text-slate-950">Quick Scorer</h2>
-                          <span className="text-[10px] font-mono font-black uppercase text-lime-900 bg-lime-100 px-2 py-0.5 rounded-full border border-lime-300">
-                            Live PMGC • Auto-Calc
-                          </span>
-                        </div>
+                        <h2 className="text-sm sm:text-base font-black text-slate-950">Quick Scorer</h2>
                         <p className="text-[11px] text-slate-500">
-                          Kira mata langsung &amp; jana poster HD automatik tanpa spreadsheet.
+                          Kira mata langsung &amp; jana poster HD automatik
                         </p>
                       </div>
                     </div>
