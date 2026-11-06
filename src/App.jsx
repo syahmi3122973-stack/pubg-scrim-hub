@@ -305,8 +305,15 @@ export default function App() {
   // Top Right Hamburger 3-Line Menu State
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
-  // Guide Presentation Modal State
-  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  // Guide Presentation Modal State (Auto-buka jika URL ada #guide atau #panduan)
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(() => {
+    try {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      return hash === 'guide' || hash === 'panduan' || hash === 'tutorial';
+    } catch {
+      return false;
+    }
+  });
   const [currentGuideSlide, setCurrentGuideSlide] = useState(0);
 
   // Admin Live Leaderboard Poster Ref & State
@@ -392,6 +399,18 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isGuideModalOpen]);
+
+  // Dengar perubahan URL hash untuk buka panduan jika pelawat tekan pautan #guide
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (hash === 'guide' || hash === 'panduan' || hash === 'tutorial') {
+        setIsGuideModalOpen(true);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const currentMatch = useMemo(() => {
     return playgroundSession.matches[currentPlaygroundMatchIdx] || playgroundSession.matches[0];
@@ -695,6 +714,43 @@ export default function App() {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 60);
+  };
+
+  const handleOpenGuide = (slideIdx = 0) => {
+    setCurrentGuideSlide(slideIdx);
+    setIsGuideModalOpen(true);
+    setIsNavMenuOpen(false);
+    try {
+      if (window.location.hash !== '#guide') {
+        window.history.pushState(null, '', '#guide');
+      }
+    } catch {}
+  };
+
+  const handleCloseGuide = () => {
+    setIsGuideModalOpen(false);
+    try {
+      if (window.location.hash === '#guide' || window.location.hash === '#panduan' || window.location.hash === '#tutorial') {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    } catch {}
+  };
+
+  const handleCopyGuideLink = () => {
+    try {
+      const url = `${window.location.origin}${window.location.pathname}#guide`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          showToast('🔗 Link panduan disalin! Boleh dikongsi kepada sesiapa.');
+        }).catch(() => {
+          showToast(`🔗 Link panduan: ${url}`);
+        });
+      } else {
+        showToast(`🔗 Link panduan: ${url}`);
+      }
+    } catch {
+      showToast('Pautan: ' + window.location.href);
+    }
   };
 
   const handleDownloadPlaygroundPoster = async () => {
@@ -2728,11 +2784,7 @@ export default function App() {
                     <div className="py-1">
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsGuideModalOpen(true);
-                          setCurrentGuideSlide(0);
-                          setIsNavMenuOpen(false);
-                        }}
+                        onClick={() => handleOpenGuide(0)}
                         className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-lime-50/70 text-slate-800 transition font-bold"
                       >
                         <BookOpen className="w-4 h-4 text-lime-600"/>
@@ -5637,30 +5689,40 @@ export default function App() {
 
       {/* MODAL 0: SLIDE PRESENTATION PANDUAN APLIKASI (QUICK SCORER & ADMIN FOCUS) */}
       {isGuideModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-4 relative overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl max-w-2xl w-full p-3.5 sm:p-6 shadow-2xl space-y-3 sm:space-y-4 relative overflow-hidden flex flex-col h-[94vh] sm:h-auto sm:max-h-[88vh]">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-3 flex-shrink-0 gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-lime-100 border border-lime-300 text-lime-800 flex items-center justify-center flex-shrink-0 shadow-2xs">
                   <BookOpen className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
-                    <span>Slide Panduan SCRIM HUB</span>
-                    <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">v2.7.0</span>
-                  </h3>
-                  <span className="text-[10px] text-slate-400">Tekankan cara penggunaan Quick Scorer &amp; Admin</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-black text-xs sm:text-sm text-slate-950 truncate">
+                      Slide Panduan SCRIM HUB
+                    </h3>
+                    <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded border border-slate-200">v2.7.0</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 block truncate">Panduan Penggunaan Quick Scorer &amp; Admin</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-bold text-slate-400 hidden sm:inline">
-                  Slide {currentGuideSlide + 1} / 4
-                </span>
+              {/* Action Buttons: Copy Link + Close */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyGuideLink}
+                  className="px-2.5 py-1 bg-lime-100 hover:bg-lime-200 text-lime-950 border border-lime-300 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs active:scale-95"
+                  title="Salin pautan terus panduan ini untuk dikongsi (#guide)"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-lime-700" />
+                  <span className="text-[11px] font-bold hidden xs:inline sm:inline">Salin Link</span>
+                </button>
+
                 <button 
-                  onClick={() => setIsGuideModalOpen(false)} 
+                  onClick={handleCloseGuide} 
                   className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
                   title="Tutup panduan"
                 >
@@ -5669,13 +5731,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick Jump Category Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-shrink-0 no-scrollbar">
+            {/* Quick Jump Category Pills (Mobile horizontal swipe) */}
+            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 flex-shrink-0 no-scrollbar touch-pan-x">
               {[
-                { label: '1. Pengenalan', idx: 0 },
+                { label: '1. Intro', idx: 0 },
                 { label: '2. Quick Scorer ⚡', idx: 1 },
                 { label: '3. Admin Workspace 🛡️', idx: 2 },
-                { label: '4. Database & Rekod 📊', idx: 3 },
+                { label: '4. Database 📊', idx: 3 },
               ].map(item => {
                 const isActive = currentGuideSlide === item.idx;
                 return (
@@ -5683,7 +5745,7 @@ export default function App() {
                     key={item.idx}
                     type="button"
                     onClick={() => setCurrentGuideSlide(item.idx)}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ' + (
+                    className={'px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1 flex-shrink-0 ' + (
                       isActive
                         ? 'bg-slate-950 text-lime-400 shadow-sm border border-slate-800 font-black'
                         : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600 border border-slate-200/80'
@@ -5695,17 +5757,17 @@ export default function App() {
               })}
             </div>
 
-            {/* Slide Body (Scrollable if needed on mobile) */}
-            <div className="flex-1 overflow-y-auto pr-1 py-1 space-y-4">
+            {/* Slide Body (Scrollable with mobile touch momentum) */}
+            <div className="flex-1 overflow-y-auto pr-1 py-1 space-y-3 sm:space-y-3.5 touch-pan-y">
               
               {/* SLIDE 0: PENGENALAN */}
               {currentGuideSlide === 0 && (
-                <div className="space-y-3.5 animate-in fade-in">
+                <div className="space-y-3 animate-in fade-in">
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-mono font-black text-lime-800 bg-lime-100 px-2.5 py-0.5 rounded-full border border-lime-300">
+                    <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-lime-800 bg-lime-100 px-2.5 py-0.5 rounded-full border border-lime-300">
                       PENGENALAN PLATFORM
                     </span>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                    <h2 className="text-base sm:text-xl font-black text-slate-950">
                       Selamat Datang ke SCRIM HUB
                     </h2>
                     <p className="text-xs text-slate-600 leading-relaxed font-normal">
@@ -5713,19 +5775,19 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
-                      <span className="text-[10px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">1. Format Rasmi</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 pt-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
+                      <span className="text-[9px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">1. Format Rasmi</span>
                       <h4 className="text-xs font-bold text-slate-900">Standard Mata PMGC</h4>
                       <p className="text-[11px] text-slate-500 leading-snug">#1 (10pts), #2 (6pts), #3 (5pts) hingga ke #8 (1pt) + 1 mata untuk setiap elim.</p>
                     </div>
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
-                      <span className="text-[10px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">2. Poster Automatik</span>
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
+                      <span className="text-[9px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">2. Poster Automatik</span>
                       <h4 className="text-xs font-bold text-slate-900">Live Overall Standings</h4>
                       <p className="text-[11px] text-slate-500 leading-snug">Visual leaderboard resolusi tinggi siap dijana terus untuk WhatsApp, Discord &amp; Story.</p>
                     </div>
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
-                      <span className="text-[10px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">3. Dua Mod Selesa</span>
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
+                      <span className="text-[9px] font-black uppercase text-lime-700 bg-lime-100/80 px-2 py-0.5 rounded inline-block">3. Dua Mod Selesa</span>
                       <h4 className="text-xs font-bold text-slate-900">Pantas atau Cloud</h4>
                       <p className="text-[11px] text-slate-500 leading-snug">Guna Quick Scorer tanpa login, atau daftar Admin untuk anjur kejohanan bersiri.</p>
                     </div>
@@ -5735,15 +5797,15 @@ export default function App() {
 
               {/* SLIDE 1: PANDUAN QUICK SCORER (TEKANAN UTAMA) */}
               {currentGuideSlide === 1 && (
-                <div className="space-y-3.5 animate-in fade-in">
+                <div className="space-y-3 animate-in fade-in">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-mono font-black text-lime-900 bg-lime-100 px-2.5 py-0.5 rounded-full border border-lime-300">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-lime-900 bg-lime-100 px-2.5 py-0.5 rounded-full border border-lime-300">
                         PANDUAN 1: QUICK SCORER
                       </span>
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Tanpa Perlu Login</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Tanpa Perlu Login</span>
                     </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                    <h2 className="text-base sm:text-xl font-black text-slate-950">
                       Cara Guna Quick Scorer (Kiraan Pantas)
                     </h2>
                     <p className="text-xs text-slate-600 leading-relaxed font-normal">
@@ -5751,10 +5813,10 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">1</span>
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                         <h4 className="text-xs font-bold text-slate-900">Pilih Pusingan Match</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5762,9 +5824,9 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">2</span>
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center flex-shrink-0">2</span>
                         <h4 className="text-xs font-bold text-slate-900">Taip Nama Pasukan</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5772,19 +5834,19 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">3</span>
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center flex-shrink-0">3</span>
                         <h4 className="text-xs font-bold text-slate-900">Pilih Kedudukan &amp; Kills</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
-                        Pilih nombor kedudukan (contoh: <code>#1 👑</code>) &amp; taip jumlah kills. Sistem automatik menjana mata rasmi dan lencana Chicken Dinner (🍗).
+                        Pilih nombor kedudukan (contoh: <code>#1 👑</code>) &amp; taip jumlah kills. Sistem automatik mengira mata rasmi dan badge Chicken Dinner (🍗).
                       </p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center">4</span>
+                        <span className="w-5 h-5 rounded-full bg-slate-950 text-lime-400 font-black text-[10px] flex items-center justify-center flex-shrink-0">4</span>
                         <h4 className="text-xs font-bold text-slate-900">Download Poster Standings</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5793,20 +5855,20 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-lime-50 border border-lime-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <span className="text-xs text-lime-950">
-                      💡 <strong>Tip Cepat:</strong> Guna butang <em>Tambah/Kurang Team</em> untuk tetapkan 2 hingga 24 skuad.
+                  <div className="p-2.5 sm:p-3 bg-lime-50 border border-lime-200/80 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-[11px] sm:text-xs text-lime-950 leading-snug">
+                      💡 <strong>Tip Cepat:</strong> Guna butang <em>Tambah/Kurang Team</em> untuk tetapkan 2 hingga 24 slot skuad.
                     </span>
                     <button
                       type="button"
                       onClick={() => {
-                        setIsGuideModalOpen(false);
+                        handleCloseGuide();
                         setActiveTab('playground');
                         setTimeout(() => {
                           document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }, 80);
                       }}
-                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-2xs self-start sm:self-auto shrink-0"
+                      className="w-full sm:w-auto px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-2xs shrink-0 active:scale-95"
                     >
                       <Zap className="w-3.5 h-3.5 fill-current" />
                       <span>Buka Quick Scorer Sekarang ↓</span>
@@ -5817,15 +5879,15 @@ export default function App() {
 
               {/* SLIDE 2: PANDUAN ADMIN WORKSPACE (TEKANAN UTAMA) */}
               {currentGuideSlide === 2 && (
-                <div className="space-y-3.5 animate-in fade-in">
+                <div className="space-y-3 animate-in fade-in">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-mono font-black text-slate-950 bg-lime-400 px-2.5 py-0.5 rounded-full border border-lime-500">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-slate-950 bg-lime-400 px-2.5 py-0.5 rounded-full border border-lime-500">
                         PANDUAN 2: ADMIN WORKSPACE
                       </span>
-                      <span className="text-[10px] font-bold text-lime-800 bg-lime-100 px-2 py-0.5 rounded-md border border-lime-200">Simpanan Cloud</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-lime-800 bg-lime-100 px-2 py-0.5 rounded-md border border-lime-200">Simpanan Cloud</span>
                     </div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                    <h2 className="text-base sm:text-xl font-black text-slate-950">
                       Cara Guna Admin Workspace (Penganjur Rasmi)
                     </h2>
                     <p className="text-xs text-slate-600 leading-relaxed font-normal">
@@ -5833,10 +5895,10 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">1</span>
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                         <h4 className="text-xs font-bold text-slate-900">Daftar Akaun Penganjur</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5844,9 +5906,9 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">2</span>
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center flex-shrink-0">2</span>
                         <h4 className="text-xs font-bold text-slate-900">Cipta Sesi Kejohanan</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5854,9 +5916,9 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">3</span>
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center flex-shrink-0">3</span>
                         <h4 className="text-xs font-bold text-slate-900">Isi Keputusan &amp; Live Ranking</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5864,9 +5926,9 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center">4</span>
+                        <span className="w-5 h-5 rounded-full bg-lime-400 text-slate-950 font-black text-[10px] flex items-center justify-center flex-shrink-0">4</span>
                         <h4 className="text-xs font-bold text-slate-900">Kunci &amp; Tamatkan Sesi</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-7">
@@ -5875,17 +5937,17 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <span className="text-xs text-slate-300">
+                  <div className="p-2.5 sm:p-3 bg-slate-900 text-white rounded-xl sm:rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-[11px] sm:text-xs text-slate-300 leading-snug">
                       👑 <strong>Ciri Hebat Admin:</strong> Boleh jemput <em>Co-Host</em> isi markah serentak dan muat naik logo penaja rasmi.
                     </span>
                     <button
                       type="button"
                       onClick={() => {
-                        setIsGuideModalOpen(false);
+                        handleCloseGuide();
                         setActiveTab('admin');
                       }}
-                      className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-2xs self-start sm:self-auto shrink-0"
+                      className="w-full sm:w-auto px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-2xs shrink-0 active:scale-95"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
                       <span>Buka Admin Workspace →</span>
@@ -5896,12 +5958,12 @@ export default function App() {
 
               {/* SLIDE 3: HISTORY & DATABASE */}
               {currentGuideSlide === 3 && (
-                <div className="space-y-3.5 animate-in fade-in">
+                <div className="space-y-3 animate-in fade-in">
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-mono font-black text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                    <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                       REKOD &amp; ANALITIK
                     </span>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                    <h2 className="text-base sm:text-xl font-black text-slate-950">
                       Arkib History &amp; Database Prestasi
                     </h2>
                     <p className="text-xs text-slate-600 leading-relaxed font-normal">
@@ -5909,8 +5971,8 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                    <div className="p-2.5 sm:p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-lime-600"/>
                         <span>Tab History (Arkib Kejohanan)</span>
@@ -5920,7 +5982,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                    <div className="p-2.5 sm:p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1">
                       <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                         <Database className="w-4 h-4 text-lime-600"/>
                         <span>Tab Database (Prestasi Pasukan)</span>
@@ -5931,7 +5993,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-pink-200 rounded-2xl flex items-center justify-between gap-3">
+                  <div className="p-2.5 sm:p-3 bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-pink-200 rounded-xl sm:rounded-2xl flex items-center justify-between gap-2.5">
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-black uppercase text-pink-700">📸 Kongsi ke Instagram Story</span>
                       <p className="text-[11px] text-slate-700 leading-snug">
@@ -5945,15 +6007,15 @@ export default function App() {
             </div>
 
             {/* Modal Footer Controls (Next / Prev & Indicators) */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3 flex-shrink-0">
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 sm:pt-3 flex-shrink-0 gap-2">
               <button
                 type="button"
                 onClick={() => setCurrentGuideSlide(prev => Math.max(prev - 1, 0))}
                 disabled={currentGuideSlide === 0}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 shrink-0"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>Sebelumnya</span>
+                <span className="hidden xs:inline sm:inline">Sebelumnya</span>
               </button>
 
               {/* Progress Dots */}
@@ -5965,7 +6027,7 @@ export default function App() {
                     onClick={() => setCurrentGuideSlide(dotIdx)}
                     className={'h-2 rounded-full transition-all ' + (
                       currentGuideSlide === dotIdx 
-                        ? 'w-6 bg-lime-500' 
+                        ? 'w-5 sm:w-6 bg-lime-500' 
                         : 'w-2 bg-slate-300 hover:bg-slate-400'
                     )}
                     title={`Lompat ke slide ${dotIdx + 1}`}
@@ -5977,7 +6039,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentGuideSlide(prev => Math.min(prev + 1, 3))}
-                  className="px-4 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 transition flex items-center gap-1 shadow-xs active:scale-95"
+                  className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 transition flex items-center gap-1 shadow-xs active:scale-95 shrink-0"
                 >
                   <span>Seterusnya</span>
                   <ChevronRight className="w-4 h-4" />
@@ -5985,10 +6047,10 @@ export default function App() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => setIsGuideModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-800 text-lime-400 transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                  onClick={handleCloseGuide}
+                  className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-800 text-lime-400 transition flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
                 >
-                  <span>Selesai &amp; Mula Guna 🚀</span>
+                  <span>Selesai 🚀</span>
                 </button>
               )}
             </div>
