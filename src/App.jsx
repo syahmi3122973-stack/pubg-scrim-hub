@@ -2774,7 +2774,7 @@ export default function App() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                    Direka khas untuk organizer komuniti &amp; pemain PUBG Mobile. Tak perlu spreadsheet rumit — cuma pilih kedudukan (#) dan mata kills, sistem akan kira mengikut format rasmi PMGC dan hasilkan poster Overall Standings berkualiti tinggi sedia dikongsi.
+                    Dibina terbuka untuk semua — penganjur kejohanan rasmi, komuniti scrim, hinggalah ke pemain PUBG Mobile. Tak perlu spreadsheet rumit: cuma pilih kedudukan (#) dan mata kills, sistem akan automatik kira mengikut format rasmi PMGC dan hasilkan poster Overall Standings berkualiti tinggi.
                   </p>
                 </div>
 
@@ -2835,120 +2835,78 @@ export default function App() {
                 </div>
               </div>
 
-              {/* PERBANDINGAN PERANAN: QUICK SCORER VS ADMIN WORKSPACE (Simple, Fast-to-Scan) */}
+              {/* DUA CARA MENGGUNAKAN SCRIM HUB (Akses Terbuka & Bebas Untuk Semua) */}
               <div className="pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
-                    ⚡ Perbezaan Peranan: Pilih Mod Sesuai Untuk Anda
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {/* CARD 1: Quick Scorer */}
-                  <div className="bg-slate-50/90 border border-slate-200/80 hover:border-lime-400/60 rounded-2xl p-4 transition shadow-2xs flex flex-col justify-between gap-3">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-slate-900 text-lime-400 flex items-center justify-center font-black">
-                            <Zap className="w-4 h-4 fill-current" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-black text-slate-950">Quick Scorer</h3>
-                            <span className="text-[10px] text-lime-800 font-bold bg-lime-100/90 px-2 py-0.5 rounded-md border border-lime-200">
-                              Akses Segera • Tanpa Login
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Casual / Harian</span>
+                <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-800">
+                          Pilihan Mod Penggunaan
+                        </span>
                       </div>
-
-                      <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                        Kira mata 1 hingga 5 match pantas terus dalam browser dan terus muat turun poster kedudukan.
+                      <p className="text-xs text-slate-500 font-normal">
+                        Semua ciri boleh diakses oleh sesiapa sahaja — pilih cara yang paling sesuai dengan sesi anda:
                       </p>
-
-                      <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
-                        <li className="flex items-center gap-2">
-                          <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
-                          <span>Terus guna tanpa perlu buat akaun</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
-                          <span>Format standard 5 pusingan match</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="w-3.5 h-3.5 text-lime-600 flex-shrink-0" />
-                          <span>Download poster HD terus ke telefon / laptop</span>
-                        </li>
-                      </ul>
-                      
-                      <div className="text-[11px] text-slate-500 font-normal italic pt-1 border-t border-slate-200/60">
-                        💡 <strong>Sesuai untuk:</strong> Marshall pantas, scrim harian &amp; kiraan santai.
-                      </div>
                     </div>
 
-                    <button
-                      type="button"
+                    <span className="self-start sm:self-auto text-[10px] font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-2xs">
+                      ⚡ Akses Terbuka Tanpa Had
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Option 1: Quick Scorer */}
+                    <div 
                       onClick={() => {
                         const el = document.getElementById('quick-scorer-workspace');
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
-                      className="w-full py-2.5 px-3 bg-white hover:bg-slate-100 text-slate-950 border border-slate-300 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
+                      className="group p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl cursor-pointer transition shadow-2xs flex items-center justify-between gap-3 active:scale-[0.99]"
                     >
-                      <Zap className="w-3.5 h-3.5 text-lime-600 fill-current" />
-                      <span>Mula Kira di Bawah ↓</span>
-                    </button>
-                  </div>
-
-                  {/* CARD 2: Admin Workspace */}
-                  <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 rounded-2xl p-4 text-white transition shadow-sm flex flex-col justify-between gap-3">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-lime-400 text-slate-950 flex items-center justify-center font-black">
-                            <ShieldCheck className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-black text-white">Admin Workspace</h3>
-                            <span className="text-[10px] text-slate-950 font-black bg-lime-400 px-2 py-0.5 rounded-md">
-                              Penganjur &amp; Kejohanan Rasmi
-                            </span>
-                          </div>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-800 group-hover:bg-slate-950 group-hover:text-lime-400 flex items-center justify-center flex-shrink-0 transition-colors shadow-2xs">
+                          <Zap className="w-5 h-5 fill-current" />
                         </div>
-                        <span className="text-[10px] font-mono font-bold text-lime-400 uppercase">Pro / Organizer</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-xs sm:text-sm font-black text-slate-950 truncate">Quick Scorer</h3>
+                            <span className="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">Tanpa Login</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            Kira 1-5 match di borang bawah &amp; jana poster terus.
+                          </p>
+                        </div>
                       </div>
-
-                      <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                        Sistem lengkap pengurusan: Rekod tersimpan di cloud, multi-day league, jemput co-host &amp; database sejarah pasukan.
-                      </p>
-
-                      <ul className="space-y-1.5 text-xs text-slate-200 font-medium">
-                        <li className="flex items-center gap-2">
-                          <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                          <span>Simpan rekod ke Cloud selamanya</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                          <span>Pusingan tanpa had &amp; multi-day tournament</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                          <span>Jemput co-host isi mata &amp; database sejarah team</span>
-                        </li>
-                      </ul>
-
-                      <div className="text-[11px] text-slate-400 font-normal italic pt-1 border-t border-slate-800">
-                        👑 <strong>Sesuai untuk:</strong> Penganjur liga, kejohanan clan &amp; marshall rasmi.
-                      </div>
+                      <span className="text-slate-400 group-hover:text-slate-950 text-xs font-bold transition flex items-center gap-0.5 flex-shrink-0">
+                        Mula ↓
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
+                    {/* Option 2: Admin Workspace */}
+                    <div 
                       onClick={() => setActiveTab('admin')}
-                      className="w-full py-2.5 px-3 bg-lime-400 hover:bg-lime-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-xs active:scale-95"
+                      className="group p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl cursor-pointer transition shadow-2xs flex items-center justify-between gap-3 active:scale-[0.99]"
                     >
-                      <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
-                      <span>Masuk Admin Workspace →</span>
-                    </button>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-lime-100 text-lime-900 group-hover:bg-lime-400 group-hover:text-slate-950 flex items-center justify-center flex-shrink-0 transition-colors shadow-2xs">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-xs sm:text-sm font-black text-slate-950 truncate">Admin Workspace</h3>
+                            <span className="text-[9px] font-bold text-lime-800 bg-lime-100 px-1.5 py-0.5 rounded border border-lime-200/80">Simpan Cloud</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            Multi-day tournament, jemput co-host &amp; database pasukan.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-slate-400 group-hover:text-slate-950 text-xs font-bold transition flex items-center gap-0.5 flex-shrink-0">
+                        Buka →
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
