@@ -720,13 +720,9 @@ export default function App() {
   };
 
   const handleStartScoringSession = () => {
-    setActiveTab('playground');
-    setTimeout(() => {
-      const el = document.getElementById('quick-scorer-workspace');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
+    setActiveTab('scorer');
+    setQuickScorerMobileTab('form');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePlusActionClick = () => {
@@ -734,14 +730,9 @@ export default function App() {
       setIsQuickCreateModalOpen((prev) => !prev);
     } else {
       setIsQuickCreateModalOpen(false);
-      setActiveTab('playground');
+      setActiveTab('scorer');
       setQuickScorerMobileTab('form');
-      setTimeout(() => {
-        const el = document.getElementById('quick-scorer-workspace');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast('Quick Scorer: Sedia untuk isi markah & jana poster!');
     }
   };
@@ -2736,33 +2727,37 @@ export default function App() {
               onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('history'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'history' || activeTab === 'leaderboard'
-                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  ? 'bg-amber-500 text-slate-950 shadow-sm font-black border border-amber-600' 
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              <Trophy className="w-4 h-4 text-amber-500"/>
-              <span>Leaderboard</span>
+              <Trophy className={'w-4 h-4 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-slate-950' : 'text-amber-500')} />
+              <span>Standings</span>
             </button>
             <button
               onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('teams'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'teams'
-                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  ? 'bg-indigo-600 text-white shadow-sm font-black border border-indigo-700' 
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              <Users className="w-4 h-4 text-lime-600"/>
+              <Users className={'w-4 h-4 ' + (activeTab === 'teams' ? 'text-white' : 'text-indigo-600')} />
               <span>Teams</span>
             </button>
             <button
               onClick={() => { setIsQuickCreateModalOpen(false); setActiveTab('admin'); }}
               className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
                 activeTab === 'admin'
-                  ? 'bg-slate-950 text-lime-400 shadow-sm font-black border border-slate-800' 
+                  ? 'bg-emerald-600 text-white shadow-sm font-black border border-emerald-700' 
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60 font-bold'
               )}
             >
-              {currentUser ? <ShieldCheck className="w-4 h-4 text-lime-600"/> : <Lock className="w-3.5 h-3.5 text-slate-500"/>}
+              {currentUser ? (
+                <ShieldCheck className={'w-4 h-4 ' + (activeTab === 'admin' ? 'text-white' : 'text-emerald-600')} />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-slate-500" />
+              )}
               <span>{currentUser ? 'Admin Hub' : 'Admin'}</span>
             </button>
           </nav>
@@ -2770,12 +2765,16 @@ export default function App() {
           {/* Desktop Central Quick Scorer / Action CTA */}
           <button
             type="button"
-            onClick={handlePlusActionClick}
-            className="hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/50 shadow-xs transition active:scale-95"
+            onClick={handleStartScoringSession}
+            className={'hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition active:scale-95 ' + (
+              activeTab === 'scorer'
+                ? 'bg-lime-400 text-slate-950 ring-2 ring-lime-400/80 shadow-md'
+                : 'bg-slate-950 hover:bg-slate-900 text-lime-400 border border-slate-800'
+            )}
             title="Kira markah sepantas kilat di Quick Scorer"
           >
-            <Zap className="w-3.5 h-3.5 text-slate-950 fill-current" />
-            <span>+ Quick Scorer</span>
+            <Zap className="w-3.5 h-3.5 fill-current" />
+            <span>⚡ Quick Scorer</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -3176,6 +3175,118 @@ export default function App() {
                 </div>
               )}
 
+              {/* HOME EXPLORATION TILES (QUICK NAVIGATION PILLARS) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
+                
+                {/* Pillar 1: Quick Scorer */}
+                <div 
+                  onClick={handleStartScoringSession}
+                  className="group p-4 bg-white/95 hover:bg-slate-900 border border-slate-200/90 hover:border-slate-800 rounded-3xl cursor-pointer transition-all duration-200 shadow-xs hover:shadow-lg flex flex-col justify-between space-y-3 active:scale-[0.99]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-950 text-lime-400 group-hover:bg-lime-400 group-hover:text-slate-950 flex items-center justify-center font-black transition-colors shadow-xs">
+                      <Zap className="w-5 h-5 fill-current" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold uppercase text-lime-800 group-hover:text-lime-300 bg-lime-100 group-hover:bg-lime-950/60 px-2 py-0.5 rounded-full border border-lime-300/80 group-hover:border-lime-700">
+                      1-5 Match
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-950 group-hover:text-white transition-colors">
+                      Quick Scorer
+                    </h3>
+                    <p className="text-[11px] text-slate-500 group-hover:text-slate-400 leading-snug mt-1 transition-colors">
+                      Kira markah PMGC serta-merta &amp; muat turun poster Overall Standings live.
+                    </p>
+                  </div>
+                  <div className="flex items-center text-xs font-black text-lime-600 group-hover:text-lime-400 gap-1 pt-1">
+                    <span>Mula Mengira</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                {/* Pillar 2: Standings */}
+                <div 
+                  onClick={() => setActiveTab('history')}
+                  className="group p-4 bg-white/95 hover:bg-amber-950/10 border border-slate-200/90 hover:border-amber-400 rounded-3xl cursor-pointer transition-all duration-200 shadow-xs hover:shadow-lg flex flex-col justify-between space-y-3 active:scale-[0.99]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 group-hover:bg-amber-400 flex items-center justify-center font-black transition-colors shadow-xs">
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold uppercase text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                      Podium
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-950 group-hover:text-amber-950 transition-colors">
+                      Live Standings
+                    </h3>
+                    <p className="text-[11px] text-slate-500 group-hover:text-slate-600 leading-snug mt-1 transition-colors">
+                      Kedudukan rasmi kejohanan, rekod pusingan &amp; ranking komuniti terkini.
+                    </p>
+                  </div>
+                  <div className="flex items-center text-xs font-black text-amber-700 gap-1 pt-1">
+                    <span>Lihat Kedudukan</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                {/* Pillar 3: Teams */}
+                <div 
+                  onClick={() => setActiveTab('teams')}
+                  className="group p-4 bg-white/95 hover:bg-indigo-950/10 border border-slate-200/90 hover:border-indigo-400 rounded-3xl cursor-pointer transition-all duration-200 shadow-xs hover:shadow-lg flex flex-col justify-between space-y-3 active:scale-[0.99]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white group-hover:bg-indigo-500 flex items-center justify-center font-black transition-colors shadow-xs">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold uppercase text-indigo-900 bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-300">
+                      Roster
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-950 group-hover:text-indigo-950 transition-colors">
+                      Direktori Pasukan
+                    </h3>
+                    <p className="text-[11px] text-slate-500 group-hover:text-slate-600 leading-snug mt-1 transition-colors">
+                      Profil pasukan, win-rate WWCD &amp; kad story Instagram rasmi.
+                    </p>
+                  </div>
+                  <div className="flex items-center text-xs font-black text-indigo-700 gap-1 pt-1">
+                    <span>Terokai Pasukan</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* DEDICATED QUICK SCORER TAB (KHAS TEMPAT KIRA QUICK SCORE) */}
+        {activeTab === 'scorer' && (
+          <div className="space-y-4">
+            
+            {/* Top Navigation & Status Bar */}
+            <div className="flex items-center justify-between p-3.5 sm:p-4 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl shadow-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('playground')}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition active:scale-95"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Kembali ke Home</span>
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
+                <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider bg-lime-100 text-lime-900 px-2.5 py-1 rounded-full border border-lime-300">
+                  ⚡ Khas Tempat Kira Quick Score
+                </span>
+              </div>
             </div>
 
             {/* Split Screen Grid */}
@@ -3749,15 +3860,16 @@ export default function App() {
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3 relative overflow-hidden">
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-lime-400/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="bg-white/95 backdrop-blur-xl border border-indigo-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3 relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
-                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-lime-900 bg-lime-100 border border-lime-300 px-2.5 py-0.5 rounded-full">
-                      ESPORTS TEAMS DIRECTORY &amp; CAREER ANALYTICS
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-indigo-950 bg-indigo-100 border border-indigo-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>ESPORTS TEAMS DIRECTORY &amp; CLUB ROSTER</span>
                     </span>
                   </div>
                   <h2 className="text-lg sm:text-xl font-black text-slate-950">
@@ -3771,22 +3883,22 @@ export default function App() {
                 <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-slate-950 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
                   >
                     Semua Acara
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Scrim')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-lime-400 text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 shadow-xs' : 'text-slate-600 hover:text-slate-950')}
                   >
-                    <Flame className="w-3.5 h-3.5 text-lime-700"/>
+                    <Flame className="w-3.5 h-3.5 text-indigo-600"/>
                     <span>Scrim Sahaja</span>
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Tour')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-violet-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
                   >
-                    <Medal className="w-3.5 h-3.5 text-amber-200"/>
+                    <Medal className="w-3.5 h-3.5 text-violet-200"/>
                     <span>Kejohanan</span>
                   </button>
                 </div>
@@ -3799,7 +3911,7 @@ export default function App() {
                   placeholder="Cari nama pasukan atau tag (cth: Geek Fam, SEM9, YALL)..."
                   value={teamSearchQuery}
                   onChange={(e) => setTeamSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-950 focus:outline-none focus:border-lime-500 transition font-semibold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-950 focus:outline-none focus:border-indigo-500 transition font-semibold"
                 />
               </div>
 
@@ -3810,8 +3922,8 @@ export default function App() {
                     onClick={() => setSelectedTeamProfile(t.name)}
                     className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (
                       currentSelectedTeam === t.name 
-                        ? 'bg-slate-950 text-lime-400 shadow-sm font-mono' 
-                        : 'bg-white text-slate-600 hover:text-slate-950 border border-slate-200 hover:border-slate-300'
+                        ? 'bg-indigo-600 text-white shadow-sm font-mono font-black' 
+                        : 'bg-white text-slate-600 hover:text-indigo-950 border border-slate-200 hover:border-indigo-300'
                     )}
                   >
                     [{t.tag}] {t.name}
@@ -3968,13 +4080,16 @@ export default function App() {
           <div className="space-y-4">
             
             {/* Header Card */}
-            <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-4 sm:p-6 shadow-sm space-y-3.5">
+            <div className="bg-white/95 backdrop-blur-xl border border-amber-200/90 rounded-3xl p-4 sm:p-6 shadow-sm space-y-3.5 relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-amber-400/15 rounded-full blur-2xl pointer-events-none"></div>
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
-                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-lime-900 bg-lime-100 border border-lime-300 px-2.5 py-0.5 rounded-full">
-                      LIVE ESPORTS LEADERBOARD • FORMAT RASMI PMGC
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                      <span>PMGC OFFICIAL STANDINGS &amp; HALL OF FAME</span>
                     </span>
                   </div>
                   <h2 className="text-lg sm:text-xl font-black text-slate-950">
@@ -3988,7 +4103,7 @@ export default function App() {
                 <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setActiveTab('admin')}
-                    className="px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs active:scale-95"
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs shadow-amber-500/20 active:scale-95"
                   >
                     <Plus className="w-4 h-4"/>
                     <span>+ Cipta Sesi Kejohanan</span>
@@ -4005,7 +4120,7 @@ export default function App() {
                     placeholder="Cari sesi mengikut tajuk, tier, atau penganjur..."
                     value={searchScrimQuery}
                     onChange={(e) => setSearchScrimQuery(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-lime-500 font-semibold"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-amber-500 font-semibold"
                   />
                 </div>
 
@@ -4016,7 +4131,7 @@ export default function App() {
                       onClick={() => setLeaderboardEventTypeFilter(type)}
                       className={'px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ' + (
                         leaderboardEventTypeFilter === type 
-                          ? 'bg-slate-950 text-white shadow-xs' 
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs' 
                           : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                       )}
                     >
@@ -4030,7 +4145,7 @@ export default function App() {
                       onClick={() => setTierFilter(t)}
                       className={'px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ' + (
                         tierFilter === t 
-                          ? 'bg-lime-400 text-slate-950 font-black shadow-xs' 
+                          ? 'bg-amber-400 text-slate-950 font-black shadow-xs' 
                           : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                       )}
                     >
@@ -4073,7 +4188,7 @@ export default function App() {
                   return (
                     <div 
                       key={s.id}
-                      className="bg-white/95 backdrop-blur-xl border border-slate-200 hover:border-lime-400 rounded-3xl p-4 sm:p-5 shadow-sm transition space-y-3 flex flex-col justify-between"
+                      className="bg-white/95 backdrop-blur-xl border border-slate-200 hover:border-amber-400 rounded-3xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:shadow-amber-500/10 transition space-y-3 flex flex-col justify-between"
                     >
                       <div className="space-y-2.5">
                         {/* Badges Row */}
@@ -4090,11 +4205,11 @@ export default function App() {
                               {s.tier || 'Tier 1'}
                             </span>
                             {isFinished ? (
-                              <span className="text-[10px] bg-slate-900 text-lime-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                              <span className="text-[10px] bg-slate-900 text-amber-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
                                 🏁 Selesai
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-lime-50 text-lime-800 font-bold px-2 py-0.5 rounded-full border border-lime-200 font-mono">
+                              <span className="text-[10px] bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200 font-mono">
                                 ⚡ Ongoing
                               </span>
                             )}
@@ -4110,7 +4225,7 @@ export default function App() {
                           {s.logo_url ? (
                             <img src={s.logo_url} alt="Logo" className="w-12 h-12 rounded-2xl object-cover border border-slate-200 flex-shrink-0 mt-0.5" />
                           ) : (
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-lime-400 to-lime-300 text-slate-950 font-black flex items-center justify-center flex-shrink-0 text-lg shadow-sm border border-lime-500/20 mt-0.5">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-black flex items-center justify-center flex-shrink-0 text-lg shadow-sm border border-amber-400/30 mt-0.5">
                               {s.event_type === 'Tour' ? '🏆' : '🔥'}
                             </div>
                           )}
@@ -4122,7 +4237,7 @@ export default function App() {
                             <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 flex-wrap">
                               <span>Host: <strong className="text-slate-700">{s.host_name || 'Esports Organizer'}</strong></span>
                               <span>•</span>
-                              <span className="font-mono text-lime-700 font-bold">{matchCount} Matches</span>
+                              <span className="font-mono text-amber-800 font-bold">{matchCount} Matches</span>
                               <span>•</span>
                               <span className="font-mono">{squadCount} Squads</span>
                             </div>
@@ -4135,7 +4250,7 @@ export default function App() {
                             <div className="flex items-center gap-1.5 truncate">
                               <span className="text-xs">👑</span>
                               <span className="font-black text-slate-900 truncate">{top1?.teamName || 'Slot #1'}</span>
-                              <span className="text-[10px] font-mono text-lime-700 font-extrabold bg-lime-100 px-1.5 py-0.2 rounded">
+                              <span className="text-[10px] font-mono text-amber-950 font-extrabold bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded">
                                 {top1?.totalPts} pts
                               </span>
                             </div>
@@ -4162,9 +4277,9 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setInspectedScrim(s)}
-                            className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-lime-400 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                            className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-amber-400 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-400/30"
                           >
-                            <Trophy className="w-3.5 h-3.5 text-lime-400"/>
+                            <Trophy className="w-3.5 h-3.5 text-amber-400"/>
                             <span>Live Standings &amp; Poster</span>
                           </button>
 
@@ -4719,13 +4834,15 @@ export default function App() {
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="max-w-4xl mx-auto my-6 sm:my-8 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xl">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="max-w-4xl mx-auto my-6 sm:my-8 bg-white/95 backdrop-blur-xl border border-emerald-300/80 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
                   
                   {/* LEFT COLUMN: Kenapa Perlu Admin / Kelebihan */}
                   <div className="lg:col-span-7 space-y-4 lg:border-r border-slate-200/80 lg:pr-8 pb-6 lg:pb-0 border-b lg:border-b-0">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-lime-100 text-lime-950 border border-lime-300 rounded-full text-[11px] font-black uppercase tracking-wider">
-                      <ShieldCheck className="w-3.5 h-3.5 text-lime-700" />
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-950 border border-emerald-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                       <span>Eksklusif Untuk Penganjur &amp; Host Scrim</span>
                     </div>
 
@@ -4741,8 +4858,8 @@ export default function App() {
                     {/* 5 Senarai Kelebihan Admin */}
                     <div className="space-y-2.5 pt-1">
                       <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Cloud className="w-4 h-4 text-lime-700" />
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Cloud className="w-4 h-4 text-emerald-700" />
                         </div>
                         <div className="space-y-0.5">
                           <h4 className="text-xs font-bold text-slate-900">1. Simpan Rekod Cloud Selamanya</h4>
@@ -4753,8 +4870,8 @@ export default function App() {
                       </div>
 
                       <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Trophy className="w-4 h-4 text-lime-700" />
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Trophy className="w-4 h-4 text-emerald-700" />
                         </div>
                         <div className="space-y-0.5">
                           <h4 className="text-xs font-bold text-slate-900">2. Pusingan Tanpa Had &amp; Multi-Day Scrim</h4>
@@ -4765,8 +4882,8 @@ export default function App() {
                       </div>
 
                       <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Users className="w-4 h-4 text-lime-700" />
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Users className="w-4 h-4 text-emerald-700" />
                         </div>
                         <div className="space-y-0.5">
                           <h4 className="text-xs font-bold text-slate-900">3. Jemput Co-Host &amp; Marshall</h4>
@@ -4777,8 +4894,8 @@ export default function App() {
                       </div>
 
                       <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Database className="w-4 h-4 text-lime-700" />
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Database className="w-4 h-4 text-emerald-700" />
                         </div>
                         <div className="space-y-0.5">
                           <h4 className="text-xs font-bold text-slate-900">4. Database Prestasi &amp; Sejarah Pasukan</h4>
@@ -4789,8 +4906,8 @@ export default function App() {
                       </div>
 
                       <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-lime-100 text-lime-800 border border-lime-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Sparkles className="w-4 h-4 text-lime-700" />
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
+                          <Sparkles className="w-4 h-4 text-emerald-700" />
                         </div>
                         <div className="space-y-0.5">
                           <h4 className="text-xs font-bold text-slate-900">5. Custom Logo &amp; Branding Penaja</h4>
@@ -4805,7 +4922,7 @@ export default function App() {
                   {/* RIGHT COLUMN: Form Login / Register */}
                   <div className="lg:col-span-5 space-y-5">
                     <div className="space-y-1.5">
-                      <div className="w-10 h-10 bg-lime-100 border border-lime-300 text-lime-800 rounded-xl flex items-center justify-center shadow-xs">
+                      <div className="w-10 h-10 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl flex items-center justify-center shadow-xs">
                         <Lock className="w-5 h-5"/>
                       </div>
                       <h3 className="text-lg font-black text-slate-950">
@@ -4829,7 +4946,7 @@ export default function App() {
                             placeholder="admin@esports.com"
                             value={authEmail}
                             onChange={(e) => setAuthEmail(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
                       </div>
@@ -4844,7 +4961,7 @@ export default function App() {
                             placeholder="••••••••"
                             value={authPassword}
                             onChange={(e) => setAuthPassword(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-lime-500"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 font-semibold"
                           />
                         </div>
                       </div>
@@ -4852,7 +4969,7 @@ export default function App() {
                       <button
                         type="submit"
                         disabled={authLoading}
-                        className="w-full py-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl transition shadow-md shadow-lime-400/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition shadow-md shadow-emerald-600/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-98"
                       >
                         {authLoading ? (
                           <>
@@ -7097,11 +7214,9 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setIsQuickCreateModalOpen(false);
-                  setActiveTab('playground');
+                  setActiveTab('scorer');
                   setQuickScorerMobileTab('form');
-                  setTimeout(() => {
-                    document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 60);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="w-full p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition flex items-center gap-3 text-left group active:scale-[0.99]"
               >
@@ -7182,17 +7297,17 @@ export default function App() {
             }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
-                ? 'text-slate-950 font-black'
+                ? 'text-amber-950 font-black'
                 : 'text-slate-500 hover:text-slate-800 font-medium'
             )}
           >
             <div className="relative">
-              <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-500 stroke-[2.5]' : 'text-slate-500')} />
               {(activeTab === 'history' || activeTab === 'leaderboard') && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-500"></span>
               )}
             </div>
-            <span className="text-[10px] mt-1 tracking-tight">Standings</span>
+            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-950 font-black' : '')}>Standings</span>
           </button>
 
           {/* Tab 3: Prominent Center Action [ + ] Button */}
@@ -7200,13 +7315,19 @@ export default function App() {
             <button
               type="button"
               onClick={handlePlusActionClick}
-              className="w-12 h-12 rounded-2xl bg-slate-950 hover:bg-slate-900 active:scale-95 text-lime-400 border-2 border-lime-400/80 shadow-lg shadow-lime-400/20 flex items-center justify-center transition-all duration-200 group"
+              className={'w-12 h-12 rounded-2xl bg-slate-950 hover:bg-slate-900 active:scale-95 text-lime-400 border-2 transition-all duration-200 flex items-center justify-center group ' + (
+                activeTab === 'scorer'
+                  ? 'border-lime-400 ring-4 ring-lime-400/30 scale-105 shadow-xl shadow-lime-400/25'
+                  : 'border-lime-400/80 shadow-lg shadow-lime-400/20'
+              )}
               title="Kira markah cepat atau cipta kejohanan"
               aria-label="Create or Quick Score"
             >
               <Plus className="w-6 h-6 stroke-[3] group-hover:rotate-90 transition-transform duration-200" />
             </button>
-            <span className="text-[9px] font-black tracking-wider uppercase text-slate-800 mt-0.5">Kira</span>
+            <span className={'text-[9px] font-black tracking-wider uppercase mt-0.5 ' + (activeTab === 'scorer' ? 'text-lime-600' : 'text-slate-800')}>
+              {activeTab === 'scorer' ? 'Scorer' : 'Kira'}
+            </span>
           </div>
 
           {/* Tab 4: Teams */}
@@ -7218,17 +7339,17 @@ export default function App() {
             }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'teams'
-                ? 'text-slate-950 font-black'
+                ? 'text-indigo-950 font-black'
                 : 'text-slate-500 hover:text-slate-800 font-medium'
             )}
           >
             <div className="relative">
-              <Users className={'w-5 h-5 ' + (activeTab === 'teams' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+              <Users className={'w-5 h-5 ' + (activeTab === 'teams' ? 'text-indigo-600 stroke-[2.5]' : 'text-slate-500')} />
               {activeTab === 'teams' && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
               )}
             </div>
-            <span className="text-[10px] mt-1 tracking-tight">Teams</span>
+            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'teams' ? 'text-indigo-950 font-black' : '')}>Teams</span>
           </button>
 
           {/* Tab 5: Profile / Admin */}
@@ -7240,24 +7361,24 @@ export default function App() {
             }}
             className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
               activeTab === 'admin'
-                ? 'text-slate-950 font-black'
+                ? 'text-emerald-950 font-black'
                 : 'text-slate-500 hover:text-slate-800 font-medium'
             )}
           >
             <div className="relative">
               {currentUser ? (
-                <ShieldCheck className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+                <ShieldCheck className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-emerald-600 stroke-[2.5]' : 'text-slate-500')} />
               ) : (
-                <User className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-slate-950 stroke-[2.5]' : 'text-slate-500')} />
+                <User className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-emerald-600 stroke-[2.5]' : 'text-slate-500')} />
               )}
               {currentUser && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-lime-500 border-2 border-white"></span>
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border-2 border-white"></span>
               )}
               {activeTab === 'admin' && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-lime-500"></span>
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
               )}
             </div>
-            <span className="text-[10px] mt-1 tracking-tight">
+            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'admin' ? 'text-emerald-950 font-black' : '')}>
               {currentUser ? 'Admin' : 'Profile'}
             </span>
           </button>
