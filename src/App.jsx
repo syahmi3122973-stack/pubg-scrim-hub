@@ -2810,7 +2810,7 @@ export default function App() {
                   </div>
                   <div className="space-y-0.5">
                     <h4 className="text-xs font-bold text-slate-900">Tanpa Perlu Login</h4>
-                    <p className="text-[11px] text-slate-500 leading-snug">Terus isi mata Match 1 hingga 5 di borang bawah — percuma dan sedia guna serta-merta.</p>
+                    <p className="text-[11px] text-slate-500 leading-snug">Terus isi mata Match 1 hingga 5 di borang bawah — sedia digunakan terus tanpa sebarang persediaan.</p>
                   </div>
                 </div>
 
@@ -2855,7 +2855,7 @@ export default function App() {
                           <div>
                             <h3 className="text-sm font-black text-slate-950">Quick Scorer</h3>
                             <span className="text-[10px] text-lime-800 font-bold bg-lime-100/90 px-2 py-0.5 rounded-md border border-lime-200">
-                              Percuma • Tanpa Login
+                              Akses Segera • Tanpa Login
                             </span>
                           </div>
                         </div>
@@ -4552,7 +4552,7 @@ export default function App() {
                       </h3>
                       <p className="text-xs text-slate-500">
                         {isRegisterMode 
-                          ? 'Daftar percuma dalam beberapa saat untuk mula anjurkan kejohanan rasmi anda.'
+                          ? 'Cipta akaun penganjur dalam beberapa saat untuk mula anjurkan kejohanan rasmi anda.'
                           : 'Sila masukkan emel & kata laluan akaun penganjur anda.'}
                       </p>
                     </div>
@@ -4599,7 +4599,7 @@ export default function App() {
                             <span>Sedang Memproses...</span>
                           </>
                         ) : (
-                          <span>{isRegisterMode ? 'Daftar Akaun Percuma' : 'Log Masuk Admin'}</span>
+                          <span>{isRegisterMode ? 'Daftar Akaun Penganjur' : 'Log Masuk Admin'}</span>
                         )}
                       </button>
 
@@ -4609,13 +4609,13 @@ export default function App() {
                           onClick={() => setIsRegisterMode(!isRegisterMode)}
                           className="text-xs text-lime-700 hover:underline font-semibold"
                         >
-                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun admin? Daftar Percuma di sini"}
+                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun admin? Daftar Akaun di sini"}
                         </button>
                       </div>
 
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
                         <ShieldCheck className="w-3.5 h-3.5 text-lime-600" />
-                        <span>Percuma selamanya untuk komuniti esports</span>
+                        <span>Platform terbuka &amp; akses penuh untuk seluruh komuniti esports</span>
                       </div>
                     </form>
                   </div>
