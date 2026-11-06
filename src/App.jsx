@@ -4592,19 +4592,49 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Match Navigation Selector Tabs with Micro-Tutorial (Sama seperti Scorer!) */}
-                      <div className="space-y-1.5">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <label className="block text-[11px] uppercase font-bold text-slate-700">
-                            Pilih Pusingan Match ({adminMatchCount} Matches)
-                          </label>
-                          <span className="text-[11px] font-medium text-lime-700 bg-lime-50 px-2 py-0.5 rounded-md border border-lime-200/80 inline-flex items-center gap-1">
-                            <span>💡 Tekan Match untuk tukar pusingan &amp; semak keputusan</span>
-                          </span>
+                      {/* Match Navigation Selector Tabs with Micro-Tutorial & Match Controls */}
+                      <div className="space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <label className="block text-[11px] uppercase font-bold text-slate-700">
+                              Pilih Pusingan Match ({adminMatchCount} Matches)
+                            </label>
+                            <span className="text-[10px] text-lime-700 font-bold bg-lime-50 px-2 py-0.5 rounded-md border border-lime-200/80 hidden md:inline">
+                              💡 Tekan Match untuk tukar pusingan
+                            </span>
+                          </div>
+
+                          {/* Butang Tambah & Kurang Match (Diletakkan di bar atas supaya tidak bertindih bila scroll!) */}
+                          {!activeAdminScrim?.is_finished && (
+                            <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+                              {adminMatchCount > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveLastMatch}
+                                  className="px-2.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-700 text-slate-700 border border-slate-200 hover:border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs"
+                                  title="Padam pusingan match terakhir"
+                                >
+                                  <Minus className="w-3.5 h-3.5 text-rose-600"/>
+                                  <span>Kurang Match</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={handleAddNewMatch}
+                                className="px-2.5 py-1 bg-lime-100 hover:bg-lime-200 text-lime-950 border border-lime-300 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs"
+                                title="Tambah pusingan match baru"
+                              >
+                                <Plus className="w-3.5 h-3.5 text-lime-700"/>
+                                <span>Tambah Match</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
-                          <div className="grid grid-flow-col auto-cols-[minmax(84px,1fr)] gap-1.5 flex-1 min-w-0">
+                        {/* Match Tabs Track: Bebas sepenuhnya daripada butang tambah/kurang, scroll lancar tanpa bertindih */}
+                        <div className="p-1.5 bg-slate-100 rounded-2xl border border-slate-200 overflow-x-auto">
+                          <div className="flex items-center gap-1.5 min-w-max">
                             {Array.from({ length: adminMatchCount }, (_, mIdx) => {
                               const isSelected = selectedMatchIdx === mIdx;
                               const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
@@ -4614,15 +4644,15 @@ export default function App() {
                                   key={mIdx}
                                   type="button"
                                   onClick={() => setSelectedMatchIdx(mIdx)}
-                                  className={'py-2 px-2 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ' + (
+                                  className={'py-2 px-3 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[80px] sm:flex-1 ' + (
                                     isSelected 
                                       ? 'bg-slate-950 text-lime-400 shadow-md border border-slate-800' 
-                                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/70 bg-white/50'
+                                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/80 bg-white/70 border border-slate-200/50'
                                   )}
                                 >
                                   <div className="flex items-center gap-1">
                                     <span className="text-[11px]">Match {mIdx + 1}</span>
-                                    {hasSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500" title="Markah Disimpan"></span>}
+                                    {hasSaved && <span className="w-1.5 h-1.5 rounded-full bg-lime-500 shadow-xs" title="Markah Disimpan"></span>}
                                   </div>
                                   <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
                                     isSelected ? 'bg-lime-400/20 text-lime-300' : 'text-slate-500'
@@ -4633,32 +4663,6 @@ export default function App() {
                               );
                             })}
                           </div>
-
-                          {/* Advanced: Add/Remove Rounds */}
-                          {!activeAdminScrim?.is_finished && (
-                            <div className="flex items-center gap-1 pl-1 border-l border-slate-300 flex-shrink-0">
-                              <button
-                                type="button"
-                                onClick={handleAddNewMatch}
-                                className="p-2 rounded-xl text-xs font-bold bg-lime-100 hover:bg-lime-200 text-lime-800 border border-lime-300 transition flex items-center gap-1"
-                                title="Tambah Pusingan Match Baru"
-                              >
-                                <Plus className="w-3.5 h-3.5"/>
-                                <span className="hidden sm:inline text-[11px]">+ Round</span>
-                              </button>
-                              {adminMatchCount > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={handleRemoveLastMatch}
-                                  className="p-2 rounded-xl text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 transition flex items-center gap-1"
-                                  title="Padam Pusingan Match Terakhir"
-                                >
-                                  <Minus className="w-3.5 h-3.5"/>
-                                  <span className="hidden sm:inline text-[11px]">- Round</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
 
