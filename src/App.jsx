@@ -32,7 +32,6 @@ import {
   LockKeyhole, 
   Unlock, 
   Award, 
-  TrendingUp, 
   BarChart2, 
   Info, 
   Bug, 
@@ -3811,17 +3810,21 @@ export default function App() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Database className="w-3.5 h-3.5 text-lime-600"/>
-                    <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-lime-700 bg-lime-100 px-2 py-0.5 rounded-full">
-                      TEAM PERFORMANCE DATABASE
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
+                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-lime-900 bg-lime-100 border border-lime-300 px-2.5 py-0.5 rounded-full">
+                      ESPORTS TEAMS DIRECTORY &amp; CAREER ANALYTICS
                     </span>
                   </div>
-                  <h2 className="text-base sm:text-lg font-black text-slate-950">Team Performance Database &amp; Career Stats</h2>
-                  <p className="text-xs text-slate-500">Rekod prestasi agregat &amp; analytics kerjaya pasukan PUBG Mobile (Bukan senarai slot sesi semasa).</p>
+                  <h2 className="text-lg sm:text-xl font-black text-slate-950">
+                    Direktori Pasukan &amp; Statistik Prestasi
+                  </h2>
+                  <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+                    Terokai profil pasukan PUBG Mobile, kadar kemenangan WWCD, purata mata kills, dan jana kad statistik 9:16 sedia untuk Instagram Story &amp; WhatsApp.
+                  </p>
                 </div>
 
-                <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto">
+                <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
                     className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-slate-950 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
@@ -3902,10 +3905,10 @@ export default function App() {
                       setPerformanceModalCategory(teamStatsCategory);
                       setIsPerformanceModalOpen(true);
                     }}
-                    className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-lime-400 font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-slate-950/10 border border-slate-800"
+                    className="px-4 py-2 bg-slate-950 hover:bg-slate-900 text-lime-400 font-black rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm border border-slate-800 active:scale-95"
                   >
-                    <TrendingUp className="w-4 h-4 text-lime-400"/>
-                    <span>Team Performance Info</span>
+                    <Share2 className="w-4 h-4 text-lime-400"/>
+                    <span>Analisis Penuh &amp; Kad Story IG</span>
                   </button>
                 </div>
 
