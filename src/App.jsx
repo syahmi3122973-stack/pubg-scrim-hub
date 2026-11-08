@@ -2799,11 +2799,6 @@ export default function App() {
                   scrim hub
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] block text-slate-400 font-semibold uppercase tracking-wider">
-                  PUBG Mobile Esports
-                </span>
-              </div>
             </div>
           </div>
 
@@ -2854,7 +2849,7 @@ export default function App() {
               ) : (
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
               )}
-              <span>{currentUser ? 'Admin Hub' : 'Admin'}</span>
+              <span>Admin</span>
             </button>
           </nav>
 
@@ -2867,10 +2862,10 @@ export default function App() {
                 ? 'bg-lime-400 text-slate-950 ring-2 ring-lime-400/80 shadow-md'
                 : 'bg-slate-950 hover:bg-slate-900 text-lime-400 border border-slate-800'
             )}
-            title="Kira markah sepantas kilat di Quick Scorer"
+            title="Kira markah di Quick Scorer"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>⚡ Quick Scorer</span>
+            <span>⚡ Scorer</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -3011,41 +3006,41 @@ export default function App() {
             <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
                 {/* Headline & Value Proposition */}
-                <div className="space-y-2.5 max-w-2xl">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-lime-100/90 border border-lime-300/80 rounded-full text-lime-950 text-xs font-black tracking-wide">
+                <div className="space-y-2 max-w-2xl">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-lime-100/90 border border-lime-300/80 rounded-full text-lime-950 text-xs font-black tracking-wide">
                     <Sparkles className="w-3.5 h-3.5 text-lime-700" />
-                    <span>Kalkulator &amp; Pengurusan Scrim PUBG Mobile</span>
+                    <span>Kalkulator Scrim</span>
                   </div>
                   
                   <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-950 leading-tight">
                     Kira markah scrim sepantas kilat &amp; jana poster rasmi automatik.
                   </h1>
 
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                    Dibina terbuka untuk semua — penganjur kejohanan rasmi, komuniti scrim, hinggalah ke pemain PUBG Mobile. Tak perlu spreadsheet rumit: cuma pilih kedudukan (#) dan mata kills, sistem akan automatik kira mengikut format rasmi PMGC dan hasilkan poster Overall Standings berkualiti tinggi.
+                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
+                    Kalkulator skor PMGC &amp; penjana poster Overall Standings automatik.
                   </p>
                 </div>
 
                 {/* Action Buttons: 1 Focus Primary CTA (Electric Lime) & 1 Subtle Secondary */}
-                <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={handleStartScoringSession}
-                    className="px-5 py-3 rounded-2xl text-xs font-black bg-lime-400 hover:bg-lime-300 active:scale-95 text-slate-950 border border-lime-500/50 transition flex items-center justify-center gap-2 shadow-lg shadow-lime-400/25 uppercase tracking-wider group"
+                    className="px-5 py-2.5 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 active:scale-95 text-slate-950 border border-lime-500/50 transition flex items-center justify-center gap-2 shadow-md shadow-lime-400/20 uppercase tracking-wider group"
                     title="Mula kira markah perlawanan sekarang di Quick Scorer"
                   >
                     <Zap className="w-4 h-4 fill-current group-hover:scale-110 transition-transform shrink-0" />
-                    <span>Mula Kira Markah Sekarang</span>
+                    <span>Mula Kira</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigateToTab('admin')}
-                    className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-2 active:scale-95"
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-1.5 active:scale-95"
                     title="Buka Admin Workspace untuk kejohanan rasmi"
                   >
-                    <ShieldCheck className="w-4 h-4 text-slate-600" />
-                    <span>Urus Kejohanan (Admin) →</span>
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Admin Hub</span>
                   </button>
                 </div>
               </div>
@@ -3071,11 +3066,11 @@ export default function App() {
                       Quick Scorer
                     </h3>
                     <p className="text-[11px] text-slate-500 group-hover:text-slate-400 leading-snug mt-1 transition-colors">
-                      Kira markah PMGC serta-merta &amp; muat turun poster Overall Standings live.
+                      Kira markah PMGC &amp; jana poster Overall Standings.
                     </p>
                   </div>
                   <div className="flex items-center text-xs font-black text-lime-600 group-hover:text-lime-400 gap-1 pt-1">
-                    <span>Mula Mengira</span>
+                    <span>Mula Kira</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -3098,7 +3093,7 @@ export default function App() {
                       Rekod Kejohanan
                     </h3>
                     <p className="text-[11px] text-slate-500 group-hover:text-slate-600 leading-snug mt-1 transition-colors">
-                      Kedudukan rasmi kejohanan, rekod pusingan &amp; ranking komuniti terkini.
+                      Kedudukan rasmi &amp; arkib perlawanan terkini.
                     </p>
                   </div>
                   <div className="flex items-center text-xs font-black text-amber-700 gap-1 pt-1">
@@ -3125,11 +3120,11 @@ export default function App() {
                       Hall of Fame
                     </h3>
                     <p className="text-[11px] text-slate-500 group-hover:text-slate-600 leading-snug mt-1 transition-colors">
-                      Profil pasukan, win-rate WWCD &amp; kad story Instagram rasmi.
+                      Profil pasukan &amp; kad Instagram Story.
                     </p>
                   </div>
                   <div className="flex items-center text-xs font-black text-indigo-700 gap-1 pt-1">
-                    <span>Lihat Hall of Fame</span>
+                    <span>Lihat Pasukan</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -3149,15 +3144,15 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => navigateToTab('playground')}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition active:scale-95"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span>Kembali ke Home</span>
+                  <span>Home</span>
                 </button>
                 
                 <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
                 <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider bg-lime-100 text-lime-900 px-2.5 py-1 rounded-full border border-lime-300">
-                  ⚡ Khas Tempat Kira Quick Score
+                  ⚡ Quick Scorer
                 </span>
               </div>
 
@@ -3171,7 +3166,7 @@ export default function App() {
                 title="Tolak ke bawah untuk lihat pratonton poster dan leaderboard terkini"
               >
                 <Trophy className="w-3.5 h-3.5 text-lime-400" />
-                <span>Pratonton Poster ↓</span>
+                <span>Poster ↓</span>
               </button>
             </div>
 
@@ -3191,8 +3186,8 @@ export default function App() {
                       </div>
                       <div>
                         <h2 className="text-sm sm:text-base font-black text-slate-950">Quick Scorer</h2>
-                        <p className="text-[11px] text-slate-500">
-                          Kira mata langsung &amp; jana poster HD automatik
+                        <p className="text-[11px] text-slate-400">
+                          Kira mata &amp; poster HD
                         </p>
                       </div>
                     </div>
@@ -3219,7 +3214,7 @@ export default function App() {
                         title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
                       >
                         <Copy className="w-3.5 h-3.5 text-slate-950"/>
-                        <span>Tampal WhatsApp</span>
+                        <span>Import WA</span>
                       </button>
 
                       <button
@@ -3229,7 +3224,7 @@ export default function App() {
                         title="Muat contoh preset demo untuk cuba segera"
                       >
                         <Eye className="w-3.5 h-3.5 text-slate-950"/>
-                        <span>Contoh Demo</span>
+                        <span>Demo</span>
                       </button>
 
                       <button
@@ -3318,12 +3313,6 @@ export default function App() {
                         </button>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Micro Hint */}
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 px-1">
-                    <Info className="w-3.5 h-3.5 text-lime-600 shrink-0"/>
-                    <span>Nama team automatik diselaraskan ke semua 5 perlawanan. Gunakan kekunci anak panah (Arrow Keys) untuk taip pantas.</span>
                   </div>
 
                   {/* Quick Input Grid Table */}
@@ -3446,30 +3435,23 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Scoring Formula Note */}
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-[11px] text-slate-600 flex-wrap gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
-                      <span>
-                        <strong>Sistem Mata Rasmi PMGC:</strong> 1st: 10 pts, 2nd: 6, 3rd: 5, 4th: 4, 5th: 3, 6th: 2, 7th-8th: 1, 9th+: 0. Setiap Elim = 1 pt.
-                      </span>
-                    </div>
-                    <span className="font-mono text-[10px] text-slate-400">
-                      Total Pts = Place Pts + Elims
-                    </span>
+                  {/* PMGC Standard Scoring Micro Note */}
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono px-1">
+                    <span>PMGC: WWCD=10pts • Elim=1pt</span>
+                    <span>Total = Place + Elims</span>
                   </div>
 
                   {/* Button Di Bawah Isi Markah: Tolak Ke Bawah Ke Posisi Poster */}
-                  <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-2">
+                  <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
-                      className="w-full py-3.5 px-4 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-slate-800 shadow-md active:scale-98 uppercase tracking-wider"
+                      className="w-full py-3 px-4 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-slate-800 shadow-md active:scale-98 uppercase tracking-wider"
                     >
                       <Trophy className="w-4 h-4 text-lime-400" />
-                      <span>Lihat Pratonton Poster Keputusan (Tolak ke Bawah) ↓</span>
+                      <span>Lihat Poster ↓</span>
                     </button>
                   </div>
 
@@ -3481,9 +3463,9 @@ export default function App() {
 
                 {/* Button Di Bahagian Atas Poster: Naik Atas Ke Posisi Isi Markah */}
                 <div className="flex items-center justify-between gap-2 bg-white/95 border border-slate-200/90 rounded-2xl p-2.5 shadow-2xs">
-                  <span className="text-xs font-black text-slate-900 pl-1 flex items-center gap-1.5">
+                  <span className="text-xs font-black text-slate-950 pl-1 flex items-center gap-1.5">
                     <Trophy className="w-4 h-4 text-lime-600" />
-                    <span>Pratonton Poster</span>
+                    <span>Poster</span>
                   </span>
                   <button
                     type="button"
@@ -3493,7 +3475,7 @@ export default function App() {
                     className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-slate-300 shadow-2xs active:scale-95"
                     title="Naik semula ke posisi borang pengisian markah"
                   >
-                    <span>↑ Naik ke Posisi Isi Markah</span>
+                    <span>↑ Isi Markah</span>
                   </button>
                 </div>
                 
@@ -3530,7 +3512,7 @@ export default function App() {
                     )}
                   >
                     <Trophy className="w-3.5 h-3.5"/>
-                    <span>🏆 Overall Standings (5 Matches)</span>
+                    <span>🏆 Overall (5M)</span>
                   </button>
                   <button
                     type="button"
@@ -3542,7 +3524,7 @@ export default function App() {
                     )}
                   >
                     <Zap className="w-3.5 h-3.5"/>
-                    <span>Round {currentPlaygroundMatchIdx + 1} Saja</span>
+                    <span>Match {currentPlaygroundMatchIdx + 1}</span>
                   </button>
                 </div>
 
@@ -3692,12 +3674,12 @@ export default function App() {
                     {isDownloadingPoster ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin"/>
-                        <span>Rendering High-Res PNG...</span>
+                        <span>Rendering...</span>
                       </>
                     ) : (
                       <>
                         <Download className="w-4 h-4 text-slate-950"/>
-                        <span>Download {posterViewMode === 'overall' ? 'Overall Leaderboard' : `Round ${currentPlaygroundMatchIdx + 1}`} (PNG)</span>
+                        <span>Export PNG</span>
                       </>
                     )}
                   </button>
@@ -3711,12 +3693,12 @@ export default function App() {
                     {isSavingCloudMatch ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin text-lime-400"/>
-                        <span>Menyimpan 5 Match ke Cloud...</span>
+                        <span>Menyimpan...</span>
                       </>
                     ) : (
                       <>
                         <Cloud className="w-4 h-4 text-lime-400"/>
-                        <span>Simpan Sesi (5 Matches) &amp; Track Overall</span>
+                        <span>Simpan Cloud</span>
                       </>
                     )}
                   </button>
@@ -3731,15 +3713,15 @@ export default function App() {
                     }}
                     className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-800 rounded-2xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-xs active:scale-95"
                   >
-                    <span>↑ Selesai Semak? Naik ke Posisi Isi Markah</span>
+                    <span>↑ Isi Markah</span>
                   </button>
                 </div>
 
                 {/* Local Storage Auto-Save Indicator */}
                 <div className="text-center">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
                     <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
-                    <span>Local-First: Auto-saved to localStorage (key: scrim_active_match)</span>
+                    <span>Auto-saved</span>
                   </span>
                 </div>
 
@@ -3763,14 +3745,14 @@ export default function App() {
                     <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                     <span className="text-[10px] uppercase font-mono font-black tracking-wider text-indigo-950 bg-indigo-100 border border-indigo-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>HALL OF FAME &amp; TEAMS DIRECTORY</span>
+                      <span>Direktori Pasukan</span>
                     </span>
                   </div>
                   <h2 className="text-lg sm:text-xl font-black text-slate-950">
                     Hall of Fame &amp; Direktori Pasukan
                   </h2>
                   <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-                    Terokai profil pasukan PUBG Mobile, kadar kemenangan WWCD, purata mata kills, dan jana kad statistik 9:16 sedia untuk Instagram Story &amp; WhatsApp.
+                    Statistik pasukan, kadar WWCD &amp; kad Instagram Story.
                   </p>
                 </div>
 
@@ -3779,14 +3761,14 @@ export default function App() {
                     onClick={() => setTeamStatsCategory('ALL')}
                     className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950')}
                   >
-                    Semua Acara
+                    Semua
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Scrim')}
                     className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 shadow-xs' : 'text-slate-600 hover:text-slate-950')}
                   >
                     <Flame className="w-3.5 h-3.5 text-indigo-600"/>
-                    <span>Scrim Sahaja</span>
+                    <span>Scrim</span>
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Tour')}
@@ -3802,7 +3784,7 @@ export default function App() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
-                  placeholder="Cari nama pasukan atau tag (cth: Geek Fam, SEM9, YALL)..."
+                  placeholder="Cari nama pasukan atau tag..."
                   value={teamSearchQuery}
                   onChange={(e) => setTeamSearchQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-950 focus:outline-none focus:border-indigo-500 transition font-semibold"
@@ -3844,7 +3826,6 @@ export default function App() {
                           VIEW: {teamStatsCategory.toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-500">PUBG Mobile Competitive Team</span>
                     </div>
                   </div>
 
@@ -3858,28 +3839,28 @@ export default function App() {
                     className="px-4 py-2 bg-slate-950 hover:bg-slate-900 text-lime-400 font-black rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm border border-slate-800 active:scale-95"
                   >
                     <Share2 className="w-4 h-4 text-lime-400"/>
-                    <span>Analisis Penuh &amp; Kad Story IG</span>
+                    <span>Story IG</span>
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Points</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Points</span>
                     <span className="text-xl font-black font-mono text-lime-700">{activeTeamScopedStats.totalPoints}</span>
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Eliminations</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Elims</span>
                     <span className="text-xl font-black font-mono text-slate-900">{activeTeamScopedStats.totalKills}</span>
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Chicken Dinners</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block">WWCD</span>
                     <span className="text-xl font-black font-mono text-lime-700 flex items-center justify-center gap-1">
                       🍗 {activeTeamScopedStats.totalWWCD}
                     </span>
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">
-                      {teamStatsCategory === 'Tour' ? 'Tournaments' : teamStatsCategory === 'Scrim' ? 'Scrims' : 'Total Sessions'}
+                      Sesi
                     </span>
                     <span className="text-xl font-black font-mono text-slate-700">{activeTeamScopedStats.eventsCount}</span>
                   </div>
@@ -3888,10 +3869,10 @@ export default function App() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                      Battle Records Log ({activeTeamScopedStats.filteredResults.length} Sessions)
+                      Rekod Perlawanan ({activeTeamScopedStats.filteredResults.length})
                     </span>
                     <span className="text-[10px] text-lime-700 font-semibold flex items-center gap-1">
-                      <Eye className="w-3 h-3"/> Public Details
+                      <Eye className="w-3 h-3"/> Info
                     </span>
                   </div>
 
@@ -3959,7 +3940,7 @@ export default function App() {
                     ))
                   ) : (
                     <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      No match records found under the {teamStatsCategory} category for this team.
+                      Tiada rekod bagi kategori ini.
                     </div>
                   )}
                 </div>
@@ -3983,7 +3964,7 @@ export default function App() {
                     Live Leaderboard &amp; Rekod Kejohanan
                   </h2>
                   <p className="text-xs text-slate-500 max-w-2xl leading-relaxed mt-1">
-                    Kedudukan langsung kejohanan &amp; scrim komuniti secara real-time. Sistem mengira mata PMGC rasmi dan ranking automatik — tanpa perlukan spreadsheet Google Sheet manual yang lambat dan mudah tersilap formula.
+                    Kedudukan langsung &amp; arkib keputusan kejohanan.
                   </p>
                 </div>
 
@@ -3993,7 +3974,7 @@ export default function App() {
                     className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs shadow-amber-500/20 active:scale-95"
                   >
                     <Plus className="w-4 h-4"/>
-                    <span>+ Cipta Sesi Kejohanan</span>
+                    <span>+ Sesi Baru</span>
                   </button>
                 </div>
               </div>
@@ -4022,7 +4003,7 @@ export default function App() {
                           : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                       )}
                     >
-                      {type === 'All' ? 'Semua Jenis' : type === 'Scrim' ? 'Scrim Sahaja' : 'Kejohanan'}
+                      {type === 'All' ? 'Semua' : type === 'Scrim' ? 'Scrim' : 'Kejohanan'}
                     </button>
                   ))}
 
@@ -4167,7 +4148,7 @@ export default function App() {
                             className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-amber-400 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-400/30"
                           >
                             <Trophy className="w-3.5 h-3.5 text-amber-400"/>
-                            <span>Live Standings &amp; Poster</span>
+                            <span>Standings</span>
                           </button>
 
                           <button
@@ -4179,7 +4160,7 @@ export default function App() {
                             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-slate-700"/>
-                            <span>Edit Sesi</span>
+                            <span>Sunting</span>
                           </button>
                         </div>
 
@@ -4212,16 +4193,16 @@ export default function App() {
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-1.5">
                   <Award className="w-5 h-5 text-lime-600"/>
-                  <span>Tournament Hosts & Organizers Directory</span>
+                  <span>Direktori Penganjur</span>
                 </h2>
-                <p className="text-xs text-slate-500">Find verified organizers, check contact info, and explore hosted tournaments.</p>
+                <p className="text-xs text-slate-500">Direktori penganjur &amp; hos kejohanan berdaftar.</p>
               </div>
 
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"/>
                 <input
                   type="text"
-                  placeholder="Search host name or contact..."
+                  placeholder="Cari penganjur..."
                   value={searchHostQuery}
                   onChange={(e) => setSearchHostQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-lime-500"
@@ -4250,7 +4231,7 @@ export default function App() {
                         <div>
                           <h3 className="font-black text-base text-slate-950">{host.name}</h3>
                           <span className="text-[10px] bg-lime-100 text-lime-800 border border-lime-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                            {host.scrims.length} Events Hosted
+                            {host.scrims.length} Sesi
                           </span>
                         </div>
                       </div>
@@ -4268,7 +4249,7 @@ export default function App() {
                           className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
                         >
                           <MessageCircle className="w-3.5 h-3.5"/>
-                          <span>PM Host</span>
+                          <span>Mesej</span>
                         </a>
                       )}
                     </div>
@@ -4280,7 +4261,7 @@ export default function App() {
 
                   <div className="pt-3 border-t border-slate-100 space-y-1.5">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Hosted Events:
+                      Sesi Kejohanan:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {host.scrims.slice(0, 4).map((s) => (
@@ -4311,9 +4292,9 @@ export default function App() {
               <div>
                 <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-lime-600"/>
-                  <span>Showcase & Tournament Hub</span>
+                  <span>Showcase Komuniti</span>
                 </h2>
-                <p className="text-[11px] text-slate-500">Posters, registrations, and clutch gameplay clips.</p>
+                <p className="text-[11px] text-slate-500">Klip &amp; sorotan komuniti.</p>
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
@@ -4322,19 +4303,19 @@ export default function App() {
                     onClick={() => setShowcaseFilter('all')}
                     className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'all' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
-                    All
+                    Semua
                   </button>
                   <button
                     onClick={() => setShowcaseFilter('achievement')}
                     className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'achievement' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
-                    Tournaments
+                    Kejohanan
                   </button>
                   <button
                     onClick={() => setShowcaseFilter('clip')}
                     className={'px-2.5 py-1 rounded-lg font-bold ' + (showcaseFilter === 'clip' ? 'bg-slate-950 text-white' : 'text-slate-600')}
                   >
-                    Clips
+                    Klip
                   </button>
                 </div>
 
@@ -4344,7 +4325,7 @@ export default function App() {
                     className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
                   >
                     <Plus className="w-4 h-4"/>
-                    <span>Post Your Content</span>
+                    <span>+ Siar Klip</span>
                   </button>
                 )}
               </div>
@@ -4401,7 +4382,7 @@ export default function App() {
                           className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5"
                         >
                           <Eye className="w-3.5 h-3.5 text-lime-700"/>
-                          <span>View Details</span>
+                          <span>Info</span>
                         </button>
 
                         {post.external_url && (
@@ -4411,7 +4392,7 @@ export default function App() {
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black transition flex items-center gap-1 shadow-xs"
                           >
-                            <span>Open Link</span>
+                            <span>Pautan</span>
                             <ExternalLink className="w-3 h-3"/>
                           </a>
                         )}
@@ -5151,7 +5132,7 @@ export default function App() {
                             {activeAdminScrim?.title || 'Official Scrim Scoring Workspace'}
                           </h2>
                           <p className="text-xs text-slate-500">
-                            Isi kedudukan dan mata elims setiap pusingan. Nama team automatik diselaraskan untuk semua pusingan match.
+                            Isi placement dan elims setiap pusingan.
                           </p>
                         </div>
 
@@ -5182,16 +5163,11 @@ export default function App() {
                       {/* Match Navigation Selector Tabs with Micro-Tutorial & Match Controls */}
                       <div className="space-y-2">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <label className="block text-[11px] uppercase font-bold text-slate-700">
-                              Pilih Pusingan Match ({adminMatchCount} Matches)
-                            </label>
-                            <span className="text-[10px] text-lime-700 font-bold bg-lime-50 px-2 py-0.5 rounded-md border border-lime-200/80 hidden md:inline">
-                              💡 Tekan Match untuk tukar pusingan
-                            </span>
-                          </div>
+                          <label className="block text-[11px] uppercase font-bold text-slate-700">
+                            Pilih Pusingan Match ({adminMatchCount} Matches)
+                          </label>
 
-                          {/* Butang Tambah & Kurang Match (Diletakkan di bar atas supaya tidak bertindih bila scroll!) */}
+                          {/* Butang Tambah & Kurang Match */}
                           {!activeAdminScrim?.is_finished && (
                             <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
                               {adminMatchCount > 1 && (
@@ -5202,7 +5178,7 @@ export default function App() {
                                   title="Padam pusingan match terakhir"
                                 >
                                   <Minus className="w-3.5 h-3.5 text-rose-600"/>
-                                  <span>Kurang Match</span>
+                                  <span>- Match</span>
                                 </button>
                               )}
 
@@ -5213,13 +5189,13 @@ export default function App() {
                                 title="Tambah pusingan match baru"
                               >
                                 <Plus className="w-3.5 h-3.5 text-lime-700"/>
-                                <span>Tambah Match</span>
+                                <span>+ Match</span>
                               </button>
                             </div>
                           )}
                         </div>
 
-                        {/* Match Tabs Track: Bebas sepenuhnya daripada butang tambah/kurang, scroll lancar tanpa bertindih */}
+                        {/* Match Tabs Track */}
                         <div className="p-1.5 bg-slate-100 rounded-2xl border border-slate-200 overflow-x-auto">
                           <div className="flex items-center gap-1.5 min-w-max">
                             {Array.from({ length: adminMatchCount }, (_, mIdx) => {
@@ -5253,25 +5229,20 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Match Title & Map Selection (Dengan Butang Highlight Edit Event Settings) */}
+                      {/* Match Title & Map Selection */}
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-                        {/* Nama Sesi Kejohanan & Butang Edit Event Settings */}
+                        {/* Nama Sesi Kejohanan */}
                         <div className="lg:col-span-8 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <label className="block text-[11px] uppercase font-bold text-slate-700">
-                              Nama Sesi Kejohanan
-                            </label>
-                            <span className="text-[10px] text-lime-700 font-bold hidden sm:inline">
-                              Tukar Nama • Logo • Peraturan
-                            </span>
-                          </div>
+                          <label className="block text-[11px] uppercase font-bold text-slate-700">
+                            Nama Sesi Kejohanan
+                          </label>
 
                           <div className="flex items-center gap-2 flex-col sm:flex-row">
                             <button
                               type="button"
                               onClick={openEditScrimModal}
                               className="w-full sm:flex-1 bg-slate-50 hover:bg-lime-50/60 border border-slate-200 hover:border-lime-400 rounded-xl px-3 py-2 text-xs font-black text-slate-950 text-left transition flex items-center justify-between group cursor-pointer shadow-2xs"
-                              title="Tekan untuk buka card Edit Event Settings"
+                              title="Tekan untuk sunting info kejohanan"
                             >
                               <span className="truncate group-hover:text-lime-900">
                                 {activeAdminScrim?.title || 'PUBG Mobile Scrim'}
@@ -5283,23 +5254,18 @@ export default function App() {
                               type="button"
                               onClick={openEditScrimModal}
                               className="w-full sm:w-auto px-3.5 py-2 bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95 border border-lime-500/50 whitespace-nowrap flex-shrink-0"
-                              title="Buka card Edit Event Settings untuk ubah logo, tajuk & description"
+                              title="Sunting tajuk, logo & deskripsi"
                             >
                               <Edit3 className="w-3.5 h-3.5 text-slate-950"/>
-                              <span>Edit Event Settings</span>
+                              <span>Sunting Info</span>
                             </button>
                           </div>
-
-                          <p className="text-[10px] text-slate-500 flex items-center gap-1 pt-0.5">
-                            <span className="text-lime-700 font-bold">💡 Tip:</span>
-                            <span>Tekan untuk tukar nama kejohanan, muat naik <strong>logo rasmi</strong> &amp; kemaskini <strong>description / peraturan</strong> poster.</span>
-                          </p>
                         </div>
 
                         {/* Pilih Map */}
                         <div className="lg:col-span-4 space-y-1">
                           <label className="block text-[11px] uppercase font-bold text-slate-700">
-                            Pilih Map (Pusingan Match {selectedMatchIdx + 1})
+                            Pilih Map (Match {selectedMatchIdx + 1})
                           </label>
                           <select
                             disabled={activeAdminScrim?.is_finished}
@@ -5324,9 +5290,6 @@ export default function App() {
                           <span className="px-2.5 py-0.5 bg-lime-100 text-lime-900 border border-lime-300 rounded-md font-mono font-black text-xs">
                             {matchSlots.length} Teams
                           </span>
-                          <span className="text-[10px] text-slate-500 hidden sm:inline">
-                            (💡 Tekan tambah/kurang ikut slot yang bertanding)
-                          </span>
                         </div>
 
                         <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -5338,7 +5301,7 @@ export default function App() {
                             title="Padam slot baris team terakhir"
                           >
                             <Minus className="w-3.5 h-3.5"/>
-                            <span>Kurang Team</span>
+                            <span>- Slot</span>
                           </button>
 
                           <button
@@ -5349,15 +5312,9 @@ export default function App() {
                             title="Tambah slot baris team baru"
                           >
                             <Plus className="w-3.5 h-3.5"/>
-                            <span>Tambah Team</span>
+                            <span>+ Slot</span>
                           </button>
                         </div>
-                      </div>
-
-                      {/* Micro Tutorial for Table */}
-                      <div className="flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                        <Info className="w-3.5 h-3.5 text-lime-600 flex-shrink-0"/>
-                        <span>💡 <strong>Isi nama team sekali sahaja</strong> — nama team automatik diselaraskan untuk semua pusingan match.</span>
                       </div>
 
                       {/* Quick Input Grid Table (Identikal seperti Scorer) */}
@@ -5493,7 +5450,7 @@ export default function App() {
                           )}
                         >
                           <Save className="w-4 h-4"/>
-                          <span>{activeAdminScrim?.is_finished ? 'Markah Telah Dikunci (Selesai)' : `Simpan Markah Match ${selectedMatchIdx + 1}`}</span>
+                          <span>{activeAdminScrim?.is_finished ? 'Skor Dikunci' : `Simpan Skor (M${selectedMatchIdx + 1})`}</span>
                         </button>
                       </div>
 
@@ -5515,7 +5472,7 @@ export default function App() {
                         )}
                       >
                         <Trophy className="w-3.5 h-3.5"/>
-                        <span>🏆 Overall Standings</span>
+                        <span>🏆 Overall</span>
                       </button>
                       <button
                         type="button"
@@ -5527,7 +5484,7 @@ export default function App() {
                         )}
                       >
                         <Zap className="w-3.5 h-3.5"/>
-                        <span>Match {selectedMatchIdx + 1} Saja</span>
+                        <span>Match {selectedMatchIdx + 1}</span>
                       </button>
                     </div>
 
@@ -5666,7 +5623,7 @@ export default function App() {
                         ) : (
                           <>
                             <Download className="w-4 h-4 text-slate-950"/>
-                            <span>Download Poster (PNG)</span>
+                            <span>Export PNG</span>
                           </>
                         )}
                       </button>
@@ -5677,7 +5634,7 @@ export default function App() {
                         className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99]"
                       >
                         {copyFeedback ? <Check className="w-4 h-4 text-lime-400"/> : <Copy className="w-4 h-4 text-slate-400"/>}
-                        <span>Salin Teks Standings (Discord / WhatsApp)</span>
+                        <span>Salin Teks</span>
                       </button>
                     </div>
 
@@ -5862,14 +5819,14 @@ export default function App() {
                 className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 transition"
               >
                 <Share className="w-4 h-4"/>
-                <span>{isGeneratingStory ? 'Rendering Card...' : 'Share to IG Story'}</span>
+                <span>{isGeneratingStory ? 'Menjana...' : 'Story IG'}</span>
               </button>
 
               <button
                 onClick={() => setIsPerformanceModalOpen(false)}
                 className="px-4 py-2.5 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
               >
-                Close
+                Tutup
               </button>
             </div>
 
@@ -6735,7 +6692,7 @@ export default function App() {
                   className="px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-sm"
                 >
                   <MessageCircle className="w-3.5 h-3.5"/>
-                  <span>PM Host</span>
+                  <span>Mesej</span>
                 </a>
               )}
             </div>
@@ -6793,7 +6750,7 @@ export default function App() {
                   className="px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm"
                 >
                   <Edit3 className="w-3.5 h-3.5"/>
-                  <span>Edit di Admin</span>
+                  <span>Sunting</span>
                 </button>
 
                 <button
@@ -6802,7 +6759,7 @@ export default function App() {
                   className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-200"
                 >
                   <Copy className="w-3.5 h-3.5 text-slate-600"/>
-                  <span>Salin Teks Standings</span>
+                  <span>Salin Teks</span>
                 </button>
               </div>
 
@@ -6885,7 +6842,7 @@ export default function App() {
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 bg-slate-950 text-lime-400 font-bold text-xs rounded-xl flex items-center gap-1 hover:bg-slate-800 transition"
                   >
-                    <span>Visit</span>
+                    <span>Pautan</span>
                     <ExternalLink className="w-3 h-3"/>
                   </a>
                 </div>
@@ -6897,7 +6854,7 @@ export default function App() {
                 onClick={() => setInspectedPost(null)}
                 className="px-4 py-2 bg-slate-950 text-white font-bold rounded-xl text-xs hover:bg-slate-800"
               >
-                Close
+                Tutup
               </button>
             </div>
           </div>
