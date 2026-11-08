@@ -334,6 +334,13 @@ export default function App() {
   const [currentPlaygroundMatchIdx, setCurrentPlaygroundMatchIdx] = useState(0);
   const [posterViewMode, setPosterViewMode] = useState('overall'); // 'overall' (default) or 'match'
 
+  // Quick WhatsApp / Discord Text Import Modal State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importRawText, setImportRawText] = useState('');
+
+  // Mobile Scorer View Scroll Tracking
+  const [isScrolledToPoster, setIsScrolledToPoster] = useState(false);
+
   const [playgroundSession, setPlaygroundSession] = useState(() => {
     try {
       const saved = localStorage.getItem('scrim_active_match');
@@ -393,6 +400,23 @@ export default function App() {
       window.scrollTo(0, 0);
     }, 20);
     return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  // Kesan sama ada pengguna sedang berada di bahagian poster untuk navigasi pantas mobile
+  useEffect(() => {
+    if (activeTab !== 'scorer') return;
+    const target = document.getElementById('quick-scorer-leaderboard');
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsScrolledToPoster(entry.isIntersecting);
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
   }, [activeTab]);
 
   // Keyboard navigation untuk slide presentation panduan
@@ -643,6 +667,66 @@ export default function App() {
       showToast(`- Slot #${currentCount} dipadam. Jumlah pasukan: ${currentCount - 1}`);
       return { ...prev, matches: updatedMatches, synced: false };
     });
+  };
+
+  const handleParseAndImportTeams = () => {
+    if (!importRawText.trim()) return;
+
+    const lines = importRawText.split(/\r?\n/);
+    const extracted = [];
+
+    for (const rawLine of lines) {
+      let line = rawLine.trim();
+      if (!line) continue;
+
+      // Abaikan header umum seperti "SLOT SCRIM", "SENARAI PASUKAN", etc.
+      if (/^(slot|team|squad|scrim|pubg|senarai|daftar|match|jadual|format|waktu|time|date|tarikh|host|group)/i.test(line) && !/^\d+/.test(line)) {
+        continue;
+      }
+
+      // Buang prefix seperti "1.", "Slot 1:", "01)", "- ", "#1 "
+      line = line.replace(/^(?:slot\s*\d+[\s:.-]*|#?\d+[\s:.)-]*|[-*•]\s*)/i, '').trim();
+
+      // Buang nombor telefon atau nota tambahan di hujung jika ada
+      line = line.replace(/\s*-\s*\+?\d{8,}.*$/, '').trim();
+
+      if (line.length >= 2) {
+        extracted.push(line);
+      }
+    }
+
+    if (extracted.length === 0) {
+      showToast('⚠️ Tiada nama pasukan dikesan. Sila pastikan teks mengandungi senarai nama.');
+      return;
+    }
+
+    // Kemaskini playgroundSession dengan nama-nama yang diimport
+    setPlaygroundSession(prev => {
+      const targetCount = Math.min(24, Math.max(prev.matches[0]?.slots?.length || 16, extracted.length));
+
+      const updatedMatches = prev.matches.map((m) => {
+        const slots = Array.from({ length: targetCount }, (_, idx) => {
+          const existingSlot = m.slots?.[idx];
+          const newTeamName = extracted[idx] || existingSlot?.teamName || `Slot ${idx + 1}`;
+          return {
+            slot: idx + 1,
+            teamName: newTeamName,
+            placement: existingSlot?.placement ?? '',
+            elims: existingSlot?.elims ?? 0,
+            wwcd: existingSlot?.wwcd ?? false,
+            placePts: existingSlot?.placePts ?? 0,
+            totalPts: existingSlot?.totalPts ?? 0
+          };
+        });
+        return { ...m, slots };
+      });
+
+      return { ...prev, matches: updatedMatches, synced: false };
+    });
+
+    showToast(`✅ Berjaya import ${extracted.length} pasukan ke semua 5 perlawanan!`);
+    setIsImportModalOpen(false);
+    setImportRawText('');
   };
 
   const handleSetPlaygroundTitle = (newTitle) => {
@@ -2681,11 +2765,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-lime-400 selection:text-black pb-24 md:pb-8">
       
-      {/* Toast Alert */}
+      {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-2 border border-slate-800">
-          <CheckCircle className="w-4 h-4 text-lime-400"/>
-          <span>{toastMessage}</span>
+        <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] bg-slate-950/95 backdrop-blur-md text-lime-400 px-4 py-2.5 rounded-full shadow-2xl font-black text-xs flex items-center space-x-2 border border-lime-400/40 animate-card-entrance max-w-[90vw] text-center">
+          <CheckCircle className="w-4 h-4 text-lime-400 shrink-0"/>
+          <span className="truncate">{toastMessage}</span>
         </div>
       )}
 
@@ -2942,25 +3026,25 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Quick Action Buttons */}
-                <div className="flex flex-wrap sm:flex-nowrap md:flex-col gap-2 shrink-0">
+                {/* Action Buttons: 1 Focus Primary CTA (Electric Lime) & 1 Subtle Secondary */}
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
                   <button
                     type="button"
                     onClick={handleStartScoringSession}
-                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-900 text-lime-400 border border-slate-800 transition flex items-center justify-center gap-2 shadow-2xs group active:scale-95"
+                    className="px-5 py-3 rounded-2xl text-xs font-black bg-lime-400 hover:bg-lime-300 active:scale-95 text-slate-950 border border-lime-500/50 transition flex items-center justify-center gap-2 shadow-lg shadow-lime-400/25 uppercase tracking-wider group"
                     title="Mula kira markah perlawanan sekarang di Quick Scorer"
                   >
-                    <Zap className="w-4 h-4 text-lime-400 group-hover:scale-110 transition-transform shrink-0" />
-                    <span>Kira Sekarang (Quick Score)</span>
+                    <Zap className="w-4 h-4 fill-current group-hover:scale-110 transition-transform shrink-0" />
+                    <span>Mula Kira Markah Sekarang</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigateToTab('admin')}
-                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-lime-400 hover:bg-lime-300 text-slate-950 border border-lime-500/40 transition flex items-center gap-2 shadow-xs active:scale-95"
+                    className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-2 active:scale-95"
                     title="Buka Admin Workspace untuk kejohanan rasmi"
                   >
-                    <ShieldCheck className="w-4 h-4 text-slate-950" />
+                    <ShieldCheck className="w-4 h-4 text-slate-600" />
                     <span>Urus Kejohanan (Admin) →</span>
                   </button>
                 </div>
@@ -3077,17 +3161,17 @@ export default function App() {
                 </span>
               </div>
 
-              {/* Instant Jump to Live Leaderboard Button */}
+              {/* Instant Jump / Push Down to Poster */}
               <button
                 type="button"
                 onClick={() => {
                   document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-lime-400 text-xs font-black transition border border-slate-800 shadow-xs active:scale-95 shrink-0"
-                title="Lompat terus ke Live Leaderboard & Poster"
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 text-lime-400 text-xs font-black transition border border-slate-800 shadow-xs active:scale-95 shrink-0"
+                title="Tolak ke bawah untuk lihat pratonton poster dan leaderboard terkini"
               >
                 <Trophy className="w-3.5 h-3.5 text-lime-400" />
-                <span>Live Leaderboard &amp; Poster ↓</span>
+                <span>Pratonton Poster ↓</span>
               </button>
             </div>
 
@@ -3121,10 +3205,21 @@ export default function App() {
                           document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }}
                         className="lg:hidden px-2.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-xl text-xs font-black transition flex items-center gap-1 border border-slate-800 shadow-xs active:scale-95"
-                        title="Skrol ke Live Leaderboard"
+                        title="Tolak ke bawah untuk lihat poster"
                       >
                         <Trophy className="w-3.5 h-3.5 text-lime-400" />
                         <span>Poster ↓</span>
+                      </button>
+
+                      {/* Quick WhatsApp / Text Import Button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
+                        title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-slate-950"/>
+                        <span>Tampal WhatsApp</span>
                       </button>
 
                       <button
@@ -3278,7 +3373,7 @@ export default function App() {
                                     value={row.placement || ''}
                                     onChange={(e) => handlePlaygroundSlotChange(idx, 'placement', e.target.value)}
                                     onKeyDown={(e) => handleCellKeyDown(e, idx, 'placement')}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs text-center"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1 px-1 font-bold text-slate-900 focus:outline-none focus:border-lime-500 text-xs text-center cursor-pointer"
                                   >
                                     <option value="">--</option>
                                     {Array.from({ length: currentMatch.slots.length }, (_, i) => i + 1).map((num) => (
@@ -3295,23 +3390,27 @@ export default function App() {
                                     <button
                                       type="button"
                                       onClick={() => handlePlaygroundSlotChange(idx, 'elims', Math.max(0, row.elims - 1))}
-                                      className="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-black text-xs transition"
+                                      className="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-black text-xs transition active:scale-90"
+                                      title="Kurangkan 1 kill"
                                     >
                                       -
                                     </button>
                                     <input
                                       type="number"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
                                       min="0"
                                       data-cell={`elims-${idx}`}
                                       value={row.elims}
                                       onChange={(e) => handlePlaygroundSlotChange(idx, 'elims', e.target.value)}
                                       onKeyDown={(e) => handleCellKeyDown(e, idx, 'elims')}
-                                      className="w-10 bg-slate-50 border border-slate-200 rounded text-center py-0.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500"
+                                      className="w-11 bg-slate-50 border border-slate-200 rounded-lg text-center py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-lime-500 font-mono"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => handlePlaygroundSlotChange(idx, 'elims', row.elims + 1)}
-                                      className="w-5 h-5 rounded bg-lime-400 hover:bg-lime-300 text-slate-950 flex items-center justify-center font-black text-xs transition"
+                                      className="w-6 h-6 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 flex items-center justify-center font-black text-xs transition active:scale-90"
+                                      title="Tambah 1 kill"
                                     >
                                       +
                                     </button>
@@ -3323,10 +3422,10 @@ export default function App() {
                                   <button
                                     type="button"
                                     onClick={() => handlePlaygroundSlotChange(idx, 'wwcd', !isWWCD)}
-                                    className={'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition ' + (
+                                    className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
                                       isWWCD 
-                                        ? 'bg-lime-400 text-slate-950 shadow-xs' 
-                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                        ? 'bg-lime-400 text-slate-950 shadow-xs ring-2 ring-lime-400/50' 
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-700'
                                     )}
                                   >
                                     {isWWCD ? '👑 WWCD' : 'No'}
@@ -3360,17 +3459,17 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* Mobile Jump to Live Leaderboard Button */}
-                  <div className="lg:hidden pt-3 border-t border-slate-100">
+                  {/* Button Di Bawah Isi Markah: Tolak Ke Bawah Ke Posisi Poster */}
+                  <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
-                      className="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-slate-800 shadow-md active:scale-98"
+                      className="w-full py-3.5 px-4 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-slate-800 shadow-md active:scale-98 uppercase tracking-wider"
                     >
                       <Trophy className="w-4 h-4 text-lime-400" />
-                      <span>Lihat Live Leaderboard &amp; Poster (⚡ Siap Terkini) ↓</span>
+                      <span>Lihat Pratonton Poster Keputusan (Tolak ke Bawah) ↓</span>
                     </button>
                   </div>
 
@@ -3380,16 +3479,21 @@ export default function App() {
               {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings - Always Visible) */}
               <div id="quick-scorer-leaderboard" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
 
-                {/* Mobile Back to Scoring Form Button */}
-                <div className="lg:hidden">
+                {/* Button Di Bahagian Atas Poster: Naik Atas Ke Posisi Isi Markah */}
+                <div className="flex items-center justify-between gap-2 bg-white/95 border border-slate-200/90 rounded-2xl p-2.5 shadow-2xs">
+                  <span className="text-xs font-black text-slate-900 pl-1 flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 text-lime-600" />
+                    <span>Pratonton Poster</span>
+                  </span>
                   <button
                     type="button"
                     onClick={() => {
                       document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
-                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-800 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-2xs active:scale-95"
+                    className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-slate-300 shadow-2xs active:scale-95"
+                    title="Naik semula ke posisi borang pengisian markah"
                   >
-                    <span>↑ Kembali ke Borang Isi Markah</span>
+                    <span>↑ Naik ke Posisi Isi Markah</span>
                   </button>
                 </div>
                 
@@ -3615,6 +3719,19 @@ export default function App() {
                         <span>Simpan Sesi (5 Matches) &amp; Track Overall</span>
                       </>
                     )}
+                  </button>
+                </div>
+
+                {/* Button Di Bawah Poster: Naik Semula Ke Posisi Isi Markah */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-800 rounded-2xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-xs active:scale-95"
+                  >
+                    <span>↑ Selesai Semak? Naik ke Posisi Isi Markah</span>
                   </button>
                 </div>
 
@@ -4604,110 +4721,73 @@ export default function App() {
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="max-w-4xl mx-auto my-6 sm:my-8 bg-white/95 backdrop-blur-xl border border-emerald-300/80 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
-                <div className="absolute -top-16 -right-16 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="max-w-3xl mx-auto my-4 sm:my-6 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-5 sm:p-7 shadow-xl relative overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-56 h-56 bg-lime-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
                   
-                  {/* LEFT COLUMN: Kenapa Perlu Admin / Kelebihan */}
-                  <div className="lg:col-span-7 space-y-4 lg:border-r border-slate-200/80 lg:pr-8 pb-6 lg:pb-0 border-b lg:border-b-0">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-950 border border-emerald-300 rounded-full text-[11px] font-black uppercase tracking-wider">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Eksklusif Untuk Penganjur &amp; Host Scrim</span>
+                  {/* LEFT COLUMN: Ringkasan Nilai Admin */}
+                  <div className="md:col-span-6 space-y-4 md:border-r border-slate-100 md:pr-6">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-lime-100 text-lime-950 border border-lime-300 rounded-full text-[11px] font-black uppercase tracking-wider">
+                      <ShieldCheck className="w-3.5 h-3.5 text-lime-700" />
+                      <span>Ruang Khas Penganjur &amp; Host</span>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <h2 className="text-xl sm:text-2xl font-black text-slate-950 leading-tight">
-                        Kenapa Perlu Daftar Akaun Admin?
+                        Pusat Kawalan Kejohanan &amp; Scrim Cloud
                       </h2>
-                      <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                        Akaun Admin direka khas untuk penganjur kejohanan esports yang perlukan sistem pengurusan tersusun, selamat dan tanpa risiko kehilangan data.
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        Log masuk untuk anjurkan kejohanan rasmi dengan simpanan kekal di cloud database.
                       </p>
                     </div>
 
-                    {/* 5 Senarai Kelebihan Admin */}
-                    <div className="space-y-2.5 pt-1">
-                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Cloud className="w-4 h-4 text-emerald-700" />
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-7 h-7 rounded-xl bg-lime-400 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                          <Cloud className="w-3.5 h-3.5" />
                         </div>
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-bold text-slate-900">1. Simpan Rekod Cloud Selamanya</h4>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Semua rekod match &amp; leaderboard tersimpan selamat di cloud database. Akses dari mana-mana telefon atau laptop tanpa risiko data hilang bila refresh browser.
-                          </p>
+                        <div className="text-xs font-bold text-slate-800">
+                          Simpan Cloud &amp; Akses Multi-Device
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Trophy className="w-4 h-4 text-emerald-700" />
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-7 h-7 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                          <Trophy className="w-3.5 h-3.5" />
                         </div>
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-bold text-slate-900">2. Pusingan Tanpa Had &amp; Multi-Day Scrim</h4>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Bukan sekadar 5 pusingan match — anda boleh anjurkan kejohanan berminggu-minggu, pusingan kelayakan (Qualifiers, Semi-Finals) hingga ke Grand Finals.
-                          </p>
+                        <div className="text-xs font-bold text-slate-800">
+                          Multi-Day Scrim &amp; Grand Finals
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Users className="w-4 h-4 text-emerald-700" />
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                        <div className="w-7 h-7 rounded-xl bg-slate-950 text-lime-400 flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                          <Users className="w-3.5 h-3.5" />
                         </div>
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-bold text-slate-900">3. Jemput Co-Host &amp; Marshall</h4>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Kongsi kod penganjur kepada staf atau marshall kejohanan anda untuk bantu mengisi keputusan dan menyemak mata perlawanan secara serentak.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Database className="w-4 h-4 text-emerald-700" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-bold text-slate-900">4. Database Prestasi &amp; Sejarah Pasukan</h4>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Data perlawanan automatik disimpan ke profil pasukan. Pantau rekod kills, WWCD dan konsistensi setiap skuad sepanjang musim.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300/80 flex items-center justify-center flex-shrink-0 font-bold">
-                          <Sparkles className="w-4 h-4 text-emerald-700" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-bold text-slate-900">5. Custom Logo &amp; Branding Penaja</h4>
-                          <p className="text-[11px] text-slate-500 leading-snug">
-                            Muat naik logo penganjur, nama penaja dan penerangan sesi yang terpapar secara profesional pada poster Overall Standings.
-                          </p>
+                        <div className="text-xs font-bold text-slate-800">
+                          Jemput Co-Host &amp; Marshall Semak Skor
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* RIGHT COLUMN: Form Login / Register */}
-                  <div className="lg:col-span-5 space-y-5">
-                    <div className="space-y-1.5">
-                      <div className="w-10 h-10 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl flex items-center justify-center shadow-xs">
-                        <Lock className="w-5 h-5"/>
-                      </div>
-                      <h3 className="text-lg font-black text-slate-950">
+                  <div className="md:col-span-6 space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-base font-black text-slate-950">
                         {isRegisterMode ? 'Daftar Akaun Penganjur' : 'Log Masuk Akaun Admin'}
                       </h3>
                       <p className="text-xs text-slate-500">
                         {isRegisterMode 
-                          ? 'Cipta akaun penganjur dalam beberapa saat untuk mula anjurkan kejohanan rasmi anda.'
-                          : 'Sila masukkan emel & kata laluan akaun penganjur anda.'}
+                          ? 'Cipta akaun penganjur untuk mula anjurkan kejohanan rasmi anda.'
+                          : 'Sila masukkan emel & kata laluan akaun anda.'}
                       </p>
                     </div>
 
-                    <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+                    <form onSubmit={handleAuthSubmit} className="space-y-3 text-xs">
                       <div>
-                        <label className="block text-slate-600 uppercase font-bold mb-1">Emel Rasmi Penganjur</label>
+                        <label className="block text-slate-600 uppercase font-bold mb-1 text-[10px]">Emel Penganjur</label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                           <input
@@ -4716,13 +4796,13 @@ export default function App() {
                             placeholder="admin@esports.com"
                             value={authEmail}
                             onChange={(e) => setAuthEmail(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 font-semibold"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-900 focus:outline-none focus:border-lime-500 font-semibold"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-slate-600 uppercase font-bold mb-1">Kata Laluan</label>
+                        <label className="block text-slate-600 uppercase font-bold mb-1 text-[10px]">Kata Laluan</label>
                         <div className="relative">
                           <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                           <input
@@ -4731,7 +4811,7 @@ export default function App() {
                             placeholder="••••••••"
                             value={authPassword}
                             onChange={(e) => setAuthPassword(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 font-semibold"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-900 focus:outline-none focus:border-lime-500 font-semibold"
                           />
                         </div>
                       </div>
@@ -4739,7 +4819,7 @@ export default function App() {
                       <button
                         type="submit"
                         disabled={authLoading}
-                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition shadow-md shadow-emerald-600/20 text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-98"
+                        className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 text-lime-400 font-black rounded-xl transition shadow-md border border-slate-800 text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-98"
                       >
                         {authLoading ? (
                           <>
@@ -4751,19 +4831,26 @@ export default function App() {
                         )}
                       </button>
 
-                      <div className="text-center pt-1">
+                      <div className="text-center pt-0.5">
                         <button
                           type="button"
                           onClick={() => setIsRegisterMode(!isRegisterMode)}
                           className="text-xs text-lime-700 hover:underline font-semibold"
                         >
-                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun admin? Daftar Akaun di sini"}
+                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun admin? Daftar di sini"}
                         </button>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
-                        <ShieldCheck className="w-3.5 h-3.5 text-lime-600" />
-                        <span>Platform terbuka &amp; akses penuh untuk seluruh komuniti esports</span>
+                      <div className="pt-2 border-t border-slate-100 flex flex-col items-center justify-center gap-1.5 text-center">
+                        <span className="text-[11px] text-slate-500">Hanya mahu kira markah perlawanan pantas?</span>
+                        <button
+                          type="button"
+                          onClick={() => navigateToTab('scorer')}
+                          className="px-3 py-1.5 rounded-xl bg-lime-100 hover:bg-lime-200 text-lime-950 font-black text-xs transition flex items-center gap-1 active:scale-95"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-lime-800" />
+                          <span>Gunakan Quick Scorer (Tanpa Akaun) →</span>
+                        </button>
                       </div>
                     </form>
                   </div>
@@ -7023,6 +7110,121 @@ export default function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* QUICK IMPORT DARI WHATSAPP / DISCORD MODAL */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div 
+            className="fixed inset-0"
+            onClick={() => setIsImportModalOpen(false)}
+          />
+          <div className="relative w-full max-w-lg bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 z-10 animate-card-entrance">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-sm">
+                  <Copy className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-950">Import Pasukan (WhatsApp / Teks)</h3>
+                  <p className="text-[11px] text-slate-500">Tampal senarai pasukan dari chat WhatsApp atau Discord</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Format Disokong Automatik:</span>
+                </div>
+                <p className="text-emerald-800 leading-relaxed font-mono text-[10px]">
+                  1. Geek Fam<br/>
+                  2. SEM9 Esports<br/>
+                  3. Yoodo Alliance<br/>
+                  Slot 4: Vampire Esports...
+                </p>
+                <p className="text-[10px] text-emerald-700">Nombor, bullet, dan prefix &quot;Slot&quot; akan dibersihkan secara automatik ke semua 5 perlawanan.</p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Tampal Senarai Pasukan Di Sini:
+                </label>
+                <textarea
+                  rows={6}
+                  value={importRawText}
+                  onChange={(e) => setImportRawText(e.target.value)}
+                  placeholder={`1. Geek Fam\n2. SEM9\n3. Yoodo Alliance\n4. Vampire Esports\n5. Bigetron RA\n...`}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-500 transition resize-none placeholder:text-slate-400"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {importRawText.trim() ? `${importRawText.trim().split(/\r?\n/).filter(l => l.trim().length > 0).length} baris dikesan` : 'Menunggu input...'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsImportModalOpen(false);
+                      setImportRawText('');
+                    }}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleParseAndImportTeams}
+                    disabled={!importRawText.trim()}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black rounded-xl text-xs transition shadow-md shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Sahkan &amp; Isi Slot</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING ACTION PILL ON MOBILE: TOGGLE ANTARA BORANG & POSTER */}
+      {activeTab === 'scorer' && (
+        <div className="lg:hidden fixed bottom-20 right-3.5 z-40">
+          <button
+            type="button"
+            onClick={() => {
+              if (isScrolledToPoster) {
+                document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              } else {
+                document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+            className="py-2.5 px-4 rounded-full bg-slate-950 text-lime-400 border-2 border-lime-400 shadow-2xl font-black text-xs flex items-center gap-1.5 active:scale-95 transition-all shadow-lime-400/25"
+          >
+            {isScrolledToPoster ? (
+              <>
+                <ChevronLeft className="w-4 h-4 rotate-90 text-lime-400" />
+                <span>↑ Naik ke Isi Markah</span>
+              </>
+            ) : (
+              <>
+                <Trophy className="w-4 h-4 text-lime-400" />
+                <span>Pratonton Poster ↓</span>
+              </>
+            )}
+          </button>
         </div>
       )}
 
