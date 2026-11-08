@@ -3766,22 +3766,22 @@ export default function App() {
                 <div className="flex items-center bg-zinc-950/70 p-1 rounded-2xl border border-white/5 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                   >
                     Semua
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Scrim')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-lime-500/20 text-[#CCFF00] border border-[#CCFF00]/30 shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                   >
-                    <Flame className="w-3.5 h-3.5 text-[#CCFF00]"/>
+                    <Flame className="w-3.5 h-3.5"/>
                     <span>Scrim</span>
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Tour')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-violet-600/40 text-violet-300 border border-violet-500/30 shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                   >
-                    <Medal className="w-3.5 h-3.5 text-violet-300"/>
+                    <Medal className="w-3.5 h-3.5"/>
                     <span>Kejohanan</span>
                   </button>
                 </div>
@@ -3798,20 +3798,36 @@ export default function App() {
                 />
               </div>
 
-              <div className="flex gap-1.5 overflow-x-auto py-1">
-                {filteredTeamList.map(t => (
-                  <button
-                    key={t.name}
-                    onClick={() => setSelectedTeamProfile(t.name)}
-                    className={'px-3 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ' + (
-                      currentSelectedTeam === t.name 
-                        ? 'bg-indigo-600 text-white shadow-sm font-mono font-black' 
-                        : 'bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5 hover:border-white/20'
-                    )}
-                  >
-                    [{t.tag}] {t.name}
-                  </button>
-                ))}
+              {/* Horizontal Slider with Gradient Edge Fade & No-Scrollbar */}
+              <div className="relative group">
+                {/* Left Subtle Gradient Edge Fade */}
+                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-900/95 via-zinc-900/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
+
+                {/* Scrollable Container with Smooth Native Swipe */}
+                <div className="flex gap-2 sm:gap-2.5 overflow-x-auto scroll-smooth no-scrollbar py-1 px-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {filteredTeamList.map(t => {
+                    const isSelected = currentSelectedTeam === t.name;
+                    return (
+                      <button
+                        key={t.name}
+                        onClick={() => setSelectedTeamProfile(t.name)}
+                        className={'py-1.5 px-3.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-150 shrink-0 flex items-center gap-1.5 ' + (
+                          isSelected 
+                            ? 'bg-[#CCFF00] text-black font-bold shadow-[0_0_12px_rgba(204,255,0,0.2)]' 
+                            : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
+                        )}
+                      >
+                        <span className={'text-[10px] font-mono ' + (isSelected ? 'text-black/70 font-bold' : 'text-zinc-500')}>
+                          [{t.tag}]
+                        </span>
+                        <span>{t.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Right Subtle Gradient Edge Fade */}
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-900/95 via-zinc-900/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
               </div>
             </div>
 
@@ -4008,34 +4024,43 @@ export default function App() {
                   />
                 </div>
 
-                <div className="flex gap-1.5 overflow-x-auto py-0.5">
-                  {['All', 'Scrim', 'Tour'].map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setLeaderboardEventTypeFilter(type)}
-                      className={'px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ' + (
-                        leaderboardEventTypeFilter === type 
-                          ? 'bg-amber-500/25 text-amber-300 font-black border border-amber-500/40 shadow-xs' 
-                          : 'bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5'
-                      )}
-                    >
-                      {type === 'All' ? 'Semua' : type === 'Scrim' ? 'Scrim' : 'Kejohanan'}
-                    </button>
-                  ))}
+                {/* Horizontal Filter Slider with Edge Fades & No-Scrollbar */}
+                <div className="relative group">
+                  <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
 
-                  {['All', 'Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setTierFilter(t)}
-                      className={'px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ' + (
-                        tierFilter === t 
-                          ? 'bg-white/15 text-white font-black border border-white/25 shadow-xs' 
-                          : 'bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5'
-                      )}
-                    >
-                      {t === 'All' ? 'Semua Tier' : t.split(' ')[0] + ' ' + (t.split(' ')[1] || '')}
-                    </button>
-                  ))}
+                  <div className="flex gap-2 overflow-x-auto scroll-smooth no-scrollbar py-1 px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {['All', 'Scrim', 'Tour'].map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setLeaderboardEventTypeFilter(type)}
+                        className={'py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ' + (
+                          leaderboardEventTypeFilter === type 
+                            ? 'bg-[#CCFF00] text-black font-bold shadow-[0_0_12px_rgba(204,255,0,0.2)]' 
+                            : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-white/5 transition-colors'
+                        )}
+                      >
+                        {type === 'All' ? 'Semua' : type === 'Scrim' ? 'Scrim' : 'Kejohanan'}
+                      </button>
+                    ))}
+
+                    <div className="w-[1px] h-5 bg-white/10 self-center shrink-0 mx-0.5"></div>
+
+                    {['All', 'Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', 'Open Community'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setTierFilter(t)}
+                        className={'py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ' + (
+                          tierFilter === t 
+                            ? 'bg-zinc-100 text-black font-bold shadow-xs' 
+                            : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-white/5 transition-colors'
+                        )}
+                      >
+                        {t === 'All' ? 'Semua Tier' : t.split(' ')[0] + ' ' + (t.split(' ')[1] || '')}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-900/90 via-zinc-900/60 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
                 </div>
               </div>
             </div>
@@ -5128,7 +5153,7 @@ export default function App() {
                 )}
 
                 {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
                   
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
@@ -5152,12 +5177,25 @@ export default function App() {
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                        <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                          {/* Mobile Jump to Poster */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            className="lg:hidden px-2.5 py-1.5 bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
+                            title="Lompat ke pratonton poster standings"
+                          >
+                            <Trophy className="w-3.5 h-3.5 text-[#CCFF00]"/>
+                            <span>Poster ↓</span>
+                          </button>
+
                           <button
                             type="button"
                             onClick={handleClearAdminForm}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 disabled:opacity-40"
+                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 disabled:opacity-40 active:scale-95"
                             title="Kosongkan markah perlawanan ini"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
@@ -5167,7 +5205,7 @@ export default function App() {
                             type="button"
                             onClick={handleRandomizeTestData}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] rounded-xl text-xs font-bold transition flex items-center gap-1 border border-[#CCFF00]/30 disabled:opacity-40"
+                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 disabled:opacity-40 active:scale-95"
                             title="Isi markah demo rawak untuk ujian pantas"
                           >
                             <RefreshCw className="w-3.5 h-3.5"/>
@@ -5176,7 +5214,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Match Navigation Selector Tabs with Micro-Tutorial & Match Controls */}
+                      {/* Match Navigation Selector Tabs with Edge Fades & Modern Slider */}
                       <div className="space-y-2">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <label className="block text-[11px] uppercase font-bold text-zinc-300">
@@ -5211,71 +5249,68 @@ export default function App() {
                           )}
                         </div>
 
-                        {/* Match Tabs Track */}
-                        <div className="p-1.5 bg-zinc-950/80 rounded-2xl border border-white/5 overflow-x-auto">
-                          <div className="flex items-center gap-1.5 min-w-max">
-                            {Array.from({ length: adminMatchCount }, (_, mIdx) => {
-                              const isSelected = selectedMatchIdx === mIdx;
-                              const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
-                              const hasSaved = Boolean(activeAdminScrim?.matches?.[mIdx]?.results?.length > 0);
-                              return (
-                                <button
-                                  key={mIdx}
-                                  type="button"
-                                  onClick={() => setSelectedMatchIdx(mIdx)}
-                                  className={'py-2 px-3 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[80px] sm:flex-1 ' + (
-                                    isSelected 
-                                      ? 'bg-[#CCFF00] text-black shadow-md font-black' 
-                                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/80 bg-zinc-900/60 border border-white/5'
-                                  )}
-                                >
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[11px]">Match {mIdx + 1}</span>
-                                    {hasSaved && <span className={'w-1.5 h-1.5 rounded-full ' + (isSelected ? 'bg-black' : 'bg-[#CCFF00]')} title="Markah Disimpan"></span>}
-                                  </div>
-                                  <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
-                                    isSelected ? 'bg-black/20 text-black' : 'text-zinc-500'
-                                  )}>
-                                    {savedMap}
-                                  </span>
-                                </button>
-                              );
-                            })}
+                        {/* Match Tabs Track with Edge Fades & No-Scrollbar */}
+                        <div className="relative group">
+                          <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
+
+                          <div className="p-1.5 bg-zinc-950/80 rounded-2xl border border-white/5 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            <div className="flex items-center gap-2 min-w-max px-1">
+                              {Array.from({ length: adminMatchCount }, (_, mIdx) => {
+                                const isSelected = selectedMatchIdx === mIdx;
+                                const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
+                                const hasSaved = Boolean(activeAdminScrim?.matches?.[mIdx]?.results?.length > 0);
+                                return (
+                                  <button
+                                    key={mIdx}
+                                    type="button"
+                                    onClick={() => setSelectedMatchIdx(mIdx)}
+                                    className={'py-2 px-3.5 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[85px] sm:flex-1 shrink-0 ' + (
+                                      isSelected 
+                                        ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.2)] font-black' 
+                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/80 bg-zinc-900/60 border border-white/5'
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[11px]">Match {mIdx + 1}</span>
+                                      {hasSaved && <span className={'w-1.5 h-1.5 rounded-full ' + (isSelected ? 'bg-black' : 'bg-[#CCFF00]')} title="Markah Disimpan"></span>}
+                                    </div>
+                                    <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
+                                      isSelected ? 'bg-black/20 text-black' : 'text-zinc-500'
+                                    )}>
+                                      {savedMap}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
+
+                          <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
                         </div>
                       </div>
 
                       {/* Match Title & Map Selection */}
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-                        {/* Nama Sesi Kejohanan */}
+                        {/* Nama Sesi Kejohanan (Single clear click-to-edit action) */}
                         <div className="lg:col-span-8 space-y-1">
                           <label className="block text-[11px] uppercase font-bold text-zinc-300">
                             Nama Sesi Kejohanan
                           </label>
 
-                          <div className="flex items-center gap-2 flex-col sm:flex-row">
-                            <button
-                              type="button"
-                              onClick={openEditScrimModal}
-                              className="w-full sm:flex-1 bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-[#CCFF00]/40 rounded-xl px-3 py-2 text-xs font-black text-white text-left transition flex items-center justify-between group cursor-pointer"
-                              title="Tekan untuk sunting info kejohanan"
-                            >
-                              <span className="truncate group-hover:text-[#CCFF00]">
-                                {activeAdminScrim?.title || 'PUBG Mobile Scrim'}
-                              </span>
-                              <Edit3 className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#CCFF00] flex-shrink-0 ml-1.5 transition"/>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={openEditScrimModal}
-                              className="w-full sm:w-auto px-3.5 py-2 bg-[#CCFF00] hover:bg-[#b8e600] active:bg-[#a6d100] text-black font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.18)] transition active:scale-95 whitespace-nowrap flex-shrink-0"
-                              title="Sunting tajuk, logo & deskripsi"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-black"/>
+                          <button
+                            type="button"
+                            onClick={openEditScrimModal}
+                            className="w-full bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-[#CCFF00]/40 rounded-xl px-3.5 py-2.5 text-xs font-black text-white text-left transition flex items-center justify-between group cursor-pointer"
+                            title="Tekan untuk sunting info kejohanan"
+                          >
+                            <span className="truncate group-hover:text-[#CCFF00]">
+                              {activeAdminScrim?.title || 'PUBG Mobile Scrim'}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 group-hover:text-[#CCFF00] flex items-center gap-1 font-sans font-bold shrink-0 ml-2">
+                              <Edit3 className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#CCFF00] transition"/>
                               <span>Sunting Info</span>
-                            </button>
-                          </div>
+                            </span>
+                          </button>
                         </div>
 
                         {/* Pilih Map */}
@@ -5335,7 +5370,7 @@ export default function App() {
 
                       {/* Quick Input Grid Table (Identikal seperti Scorer) */}
                       <div className="border border-white/10 rounded-2xl overflow-hidden bg-zinc-950/80">
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-zinc-950 text-zinc-400 uppercase text-[10px] font-bold tracking-wider border-b border-white/10">
                               <tr>
@@ -5400,7 +5435,7 @@ export default function App() {
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, -1)}
-                                          className="w-5 h-5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-black text-xs transition disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           -
                                         </button>
@@ -5412,13 +5447,13 @@ export default function App() {
                                           value={row.kills}
                                           onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
                                           onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
-                                          className="w-10 bg-zinc-900/90 border border-white/10 rounded text-center py-0.5 text-xs font-bold text-white focus:outline-none focus:border-[#CCFF00] disabled:opacity-40"
+                                          className="w-11 bg-zinc-900/90 border border-white/10 rounded-lg text-center py-1 text-xs font-bold text-white focus:outline-none focus:border-[#CCFF00] disabled:opacity-40 font-mono"
                                         />
                                         <button
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, 1)}
-                                          className="w-5 h-5 rounded bg-[#CCFF00] hover:bg-[#b8e600] text-black flex items-center justify-center font-black text-xs transition disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-[#CCFF00] hover:bg-[#b8e600] text-black flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           +
                                         </button>
@@ -5431,7 +5466,7 @@ export default function App() {
                                         type="button"
                                         disabled={activeAdminScrim?.is_finished}
                                         onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
-                                        className={'px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition ' + (
+                                        className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
                                           isWWCD 
                                             ? 'bg-[#CCFF00] text-black shadow-xs font-bold' 
                                             : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
@@ -5474,7 +5509,7 @@ export default function App() {
                   </div>
 
                   {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
-                  <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5">
+                  <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
                     <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl border border-white/10 text-xs">
@@ -5552,7 +5587,7 @@ export default function App() {
                       </div>
 
                       {/* Esports Leaderboard Table */}
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         <table className="w-full text-left font-mono text-[11px]">
                           <thead>
                             <tr className="text-[9px] uppercase tracking-wider text-zinc-400 border-b border-white/10">
@@ -5651,6 +5686,18 @@ export default function App() {
                       >
                         {copyFeedback ? <Check className="w-4 h-4 text-[#CCFF00]"/> : <Copy className="w-4 h-4 text-zinc-400"/>}
                         <span>Salin Teks</span>
+                      </button>
+
+                      {/* Mobile Jump Back Up to Scoring Form */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="w-full lg:hidden py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl text-xs font-bold transition border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#CCFF00]" />
+                        <span>Kembali Ke Isi Markah ↑</span>
                       </button>
                     </div>
 
@@ -5894,30 +5941,36 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick Jump Category Pills (Mobile horizontal swipe) */}
-            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 flex-shrink-0 no-scrollbar touch-pan-x">
-              {[
-                { label: '1. Overview', idx: 0 },
-                { label: '2. Quick Scorer', idx: 1 },
-                { label: '3. Admin Portal', idx: 2 },
-                { label: '4. Database', idx: 3 },
-              ].map(item => {
-                const isActive = currentGuideSlide === item.idx;
-                return (
-                  <button
-                    key={item.idx}
-                    type="button"
-                    onClick={() => setCurrentGuideSlide(item.idx)}
-                    className={'px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1 flex-shrink-0 ' + (
-                      isActive
-                        ? 'bg-[#CCFF00] text-black shadow-sm font-black'
-                        : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 border border-white/5'
-                    )}
-                  >
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+            {/* Quick Jump Category Pills with Edge Fades & Modern Rounded Pills */}
+            <div className="relative group flex-shrink-0">
+              <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
+
+              <div className="flex items-center gap-2 overflow-x-auto scroll-smooth no-scrollbar pb-1 px-1 flex-shrink-0 touch-pan-x [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {[
+                  { label: '1. Overview', idx: 0 },
+                  { label: '2. Quick Scorer', idx: 1 },
+                  { label: '3. Admin Portal', idx: 2 },
+                  { label: '4. Database', idx: 3 },
+                ].map(item => {
+                  const isActive = currentGuideSlide === item.idx;
+                  return (
+                    <button
+                      key={item.idx}
+                      type="button"
+                      onClick={() => setCurrentGuideSlide(item.idx)}
+                      className={'py-1.5 px-3.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1 shrink-0 ' + (
+                        isActive
+                          ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.2)] font-bold'
+                          : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
+                      )}
+                    >
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="absolute right-0 top-0 bottom-0 w-5 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
             </div>
 
             {/* Slide Body (Scrollable with mobile touch momentum) */}
