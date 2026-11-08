@@ -696,7 +696,7 @@ export default function App() {
     }
 
     if (extracted.length === 0) {
-      showToast('⚠️ Tiada nama pasukan dikesan. Sila pastikan teks mengandungi senarai nama.');
+      showToast('Tiada nama pasukan dikesan. Sila pastikan teks mengandungi senarai nama.');
       return;
     }
 
@@ -724,7 +724,7 @@ export default function App() {
       return { ...prev, matches: updatedMatches, synced: false };
     });
 
-    showToast(`✅ Berjaya import ${extracted.length} pasukan ke semua 5 perlawanan!`);
+    showToast(`Berjaya import ${extracted.length} pasukan ke semua 5 perlawanan.`);
     setIsImportModalOpen(false);
     setImportRawText('');
   };
@@ -829,7 +829,7 @@ export default function App() {
       setIsQuickCreateModalOpen((prev) => !prev);
     } else {
       navigateToTab('scorer');
-      showToast('⚡ Quick Scorer: Sedia untuk isi markah & jana poster!');
+      showToast('Quick Scorer: Ready for score input & poster export.');
     }
   };
 
@@ -858,12 +858,12 @@ export default function App() {
       const url = `${window.location.origin}${window.location.pathname}#guide`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
-          showToast('🔗 Link panduan disalin! Boleh dikongsi kepada sesiapa.');
+          showToast('Link panduan disalin ke papan klip.');
         }).catch(() => {
-          showToast(`🔗 Link panduan: ${url}`);
+          showToast(`Link panduan: ${url}`);
         });
       } else {
-        showToast(`🔗 Link panduan: ${url}`);
+        showToast(`Link panduan: ${url}`);
       }
     } catch {
       showToast('Pautan: ' + window.location.href);
@@ -889,7 +889,7 @@ export default function App() {
       link.download = `${cleanTitle}-${suffix}.png`;
       link.href = dataUrl;
       link.click();
-      showToast('🎉 High-res Overall Leaderboard PNG downloaded!');
+      showToast('Overall Leaderboard PNG berjaya dimuat turun.');
     } catch (err) {
       console.error('Error generating poster:', err);
       showToast('Failed to download poster: ' + err.message);
@@ -917,7 +917,7 @@ export default function App() {
       link.download = `${cleanTitle}-${suffix}.png`;
       link.href = dataUrl;
       link.click();
-      showToast('🎉 Poster Standings Admin (PNG) berjaya dimuat turun!');
+      showToast('Poster Standings PNG berjaya dimuat turun.');
     } catch (err) {
       console.error('Error generating poster:', err);
       showToast('Gagal memuat turun poster: ' + err.message);
@@ -1005,7 +1005,7 @@ export default function App() {
         // ignore
       }
 
-      showToast('🚀 5 Match disimpan ke Dashboard & Rekod Prestasi Pasukan dikemaskini!');
+      showToast('5 Match disimpan ke Dashboard & Rekod Prestasi Pasukan dikemaskini.');
       setIsAuthModalOpen(false);
       setPendingCloudSync(false);
     } catch (err) {
@@ -1576,13 +1576,13 @@ export default function App() {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast(nextState ? '🏁 Session marked as COMPLETED (Locked)!' : '🔓 Session reopened for scoring.');
+      showToast(nextState ? 'Session marked as concluded (Locked).' : 'Session reopened for scoring.');
     }
   };
 
   const handleAddNewMatch = async () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Cannot add rounds to a concluded session!');
+      showToast('Cannot add rounds to a concluded session.');
       return;
     }
     if (!activeAdminScrim) {
@@ -1628,7 +1628,7 @@ export default function App() {
   const handleRemoveLastMatch = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
     if (activeAdminScrim.is_finished) {
-      showToast('⚠️ Cannot delete rounds from a concluded session!');
+      showToast('Cannot delete rounds from a concluded session.');
       return;
     }
 
@@ -1660,11 +1660,11 @@ export default function App() {
 
   const handleAddTeamSlot = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Scores are locked because this session has concluded!');
+      showToast('Scores are locked because this session has concluded.');
       return;
     }
     if (matchSlots.length >= 24) {
-      showToast('⚠️ Maximum limit reached (24 teams)!');
+      showToast('Maximum limit reached (24 teams).');
       return;
     }
 
@@ -1690,11 +1690,11 @@ export default function App() {
 
   const handleRemoveTeamSlot = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Scores are locked because this session has concluded!');
+      showToast('Scores are locked because this session has concluded.');
       return;
     }
     if (matchSlots.length <= 2) {
-      showToast('⚠️ Minimum 2 teams required!');
+      showToast('Minimum 2 teams required.');
       return;
     }
 
@@ -1704,7 +1704,7 @@ export default function App() {
 
   const handleClearAdminForm = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Scores are locked!');
+      showToast('Scores are locked.');
       return;
     }
     setMatchSlots(prev => prev.map(s => ({
@@ -1756,7 +1756,7 @@ export default function App() {
 
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Scores are locked because this session has concluded!');
+      showToast('Scores are locked because this session has concluded.');
       return;
     }
 
@@ -1866,7 +1866,7 @@ export default function App() {
 
   const handleAdjustKills = (index, delta) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ Scores are locked!');
+      showToast('Scores are locked.');
       return;
     }
     const current = matchSlots[index].kills;
@@ -1875,7 +1875,7 @@ export default function App() {
 
   const handleRandomizeTestData = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('⚠️ This session is locked!');
+      showToast('This session is locked.');
       return;
     }
     const count = matchSlots.length;
@@ -1895,20 +1895,20 @@ export default function App() {
         };
       });
     });
-    showToast('Simulated scores populated successfully!');
+    showToast('Simulated scores populated successfully.');
   };
 
   const handleSaveMatchScore = async () => {
     if (!currentUser) {
-      showToast('Please sign in as Admin to save scores!');
+      showToast('Please sign in as Admin to save scores.');
       return;
     }
     if (!activeAdminScrim) {
-      showToast('Please create or select a session first!');
+      showToast('Please create or select a session first.');
       return;
     }
     if (activeAdminScrim.is_finished) {
-      showToast('⛔ This session has concluded (Scores Locked).');
+      showToast('This session has concluded (Scores locked).');
       return;
     }
 
@@ -2177,7 +2177,7 @@ export default function App() {
     navigator.clipboard.writeText(output).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2500);
-      showToast('📋 Standings text copied to clipboard!');
+      showToast('Standings text copied to clipboard.');
     }).catch(() => {
       showToast('Gagal menyalin teks standings.');
     });
@@ -2328,7 +2328,7 @@ export default function App() {
       ctx.fillStyle = '#000000';
       ctx.font = '900 15px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`★ ${archetype}`, 115, 610);
+      ctx.fillText(archetype.toUpperCase(), 115, 610);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 32px sans-serif';
@@ -2338,7 +2338,7 @@ export default function App() {
       ctx.font = '500 18px sans-serif';
       ctx.fillText(`Total Eliminations: ${stats.totalKills || 0} Kills`, 100, 725);
       ctx.fillText(`Total Points: ${stats.totalPts || 0} Pts`, 100, 760);
-      ctx.fillText(`Chicken Dinners: 🍗 x${stats.totalWwcd || 0}`, 100, 795);
+      ctx.fillText(`Total WWCD: ${stats.totalWwcd || 0}`, 100, 795);
 
       ctx.fillStyle = '#0b0f17';
       ctx.fillRect(680, 585, 310, 230);
@@ -2869,7 +2869,7 @@ export default function App() {
             title="Kira markah di Quick Scorer"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>⚡ Scorer</span>
+            <span>Scorer</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -3159,7 +3159,7 @@ export default function App() {
                 
                 <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
                 <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider bg-[#CCFF00]/10 text-[#CCFF00] px-2.5 py-1 rounded-full border border-[#CCFF00]/25">
-                  ⚡ Quick Scorer
+                  Quick Scorer
                 </span>
               </div>
 
@@ -3374,7 +3374,7 @@ export default function App() {
                                     <option value="">--</option>
                                     {Array.from({ length: currentMatch.slots.length }, (_, i) => i + 1).map((num) => (
                                       <option key={num} value={num}>
-                                        #{num} {num === 1 ? '👑' : ''}
+                                        #{num}
                                       </option>
                                     ))}
                                   </select>
@@ -3424,7 +3424,7 @@ export default function App() {
                                         : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-200'
                                     )}
                                   >
-                                    {isWWCD ? '👑 WWCD' : 'No'}
+                                    {isWWCD ? 'WWCD' : 'Normal'}
                                   </button>
                                 </td>
 
@@ -3519,7 +3519,7 @@ export default function App() {
                     )}
                   >
                     <Trophy className="w-3.5 h-3.5"/>
-                    <span>🏆 Overall (5M)</span>
+                    <span>Overall (5M)</span>
                   </button>
                   <button
                     type="button"
@@ -3619,8 +3619,8 @@ export default function App() {
                             {/* Rank */}
                             <div className="col-span-2 text-center font-bold flex items-center justify-center gap-1">
                               {isChamp ? (
-                                <span className="text-lime-400 font-black flex items-center gap-0.5">
-                                  👑 #1
+                                <span className="text-lime-400 font-black">
+                                  #1
                                 </span>
                               ) : rankNumber === 2 ? (
                                 <span className="text-slate-300">#2</span>
@@ -3637,8 +3637,8 @@ export default function App() {
                                 {row.teamName || `Slot #${row.slot}`}
                               </span>
                               {hasWWCD && (
-                                <span className="text-[8px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-0.5">
-                                  🍗 {wwcdCount > 1 ? `x${wwcdCount}` : 'WWCD'}
+                                <span className="text-[8px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider flex-shrink-0">
+                                  WWCD{wwcdCount > 1 ? ` x${wwcdCount}` : ''}
                                 </span>
                               )}
                             </div>
@@ -3862,7 +3862,7 @@ export default function App() {
                   <div className="bg-zinc-950/60 border border-white/5 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 block">WWCD</span>
                     <span className="text-xl font-black font-mono text-[#CCFF00] flex items-center justify-center gap-1">
-                      🍗 {activeTeamScopedStats.totalWWCD}
+                      {activeTeamScopedStats.totalWWCD}
                     </span>
                   </div>
                   <div className="bg-zinc-950/60 border border-white/5 p-3 rounded-2xl text-center">
@@ -3947,7 +3947,7 @@ export default function App() {
                               <span className={'text-xs font-black font-mono px-2.5 py-1 rounded-xl inline-block ' + (
                                 isFirst ? 'bg-[#CCFF00] text-black shadow-xs' : 'bg-zinc-800 text-zinc-300 border border-white/10'
                               )}>
-                                {isFirst ? '👑 #1' : '#' + item.ranking}
+                                #{item.ranking}
                               </span>
                             </div>
                           </div>
@@ -4083,24 +4083,24 @@ export default function App() {
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                 : 'bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/25'
                             )}>
-                              {s.event_type === 'Tour' ? '🏆 TOURNAMENT' : '🔥 SCRIM'}
+                              {s.event_type === 'Tour' ? 'TOURNAMENT' : 'SCRIM'}
                             </span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-white/5 font-mono">
                               {s.tier || 'Tier 1'}
                             </span>
                             {isFinished ? (
                               <span className="text-[10px] bg-zinc-800 text-amber-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
-                                🏁 Selesai
+                                Concluded
                               </span>
                             ) : (
                               <span className="text-[10px] bg-amber-500/10 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/20 font-mono">
-                                ⚡ Ongoing
+                                Live
                               </span>
                             )}
                           </div>
 
                           <span className="text-[11px] text-zinc-400 font-mono">
-                            📅 {s.date || 'No Date'}
+                            {s.date || 'No Date'}
                           </span>
                         </div>
 
@@ -4110,7 +4110,7 @@ export default function App() {
                             <img src={s.logo_url} alt="Logo" className="w-12 h-12 rounded-2xl object-cover border border-white/10 flex-shrink-0 mt-0.5" />
                           ) : (
                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-black font-black flex items-center justify-center flex-shrink-0 text-lg shadow-sm border border-amber-400/30 mt-0.5">
-                              {s.event_type === 'Tour' ? '🏆' : '🔥'}
+                              {s.event_type === 'Tour' ? <Trophy className="w-5 h-5 text-black" /> : <Flame className="w-5 h-5 text-black" />}
                             </div>
                           )}
 
@@ -4132,7 +4132,7 @@ export default function App() {
                         {overallScores.length > 0 && (
                           <div className="bg-zinc-950/60 rounded-2xl p-2.5 border border-white/5 text-[11px] flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1.5 truncate">
-                              <span className="text-xs">👑</span>
+                              <Trophy className="w-3.5 h-3.5 text-[#CCFF00] shrink-0" />
                               <span className="font-black text-white truncate">{top1?.teamName || 'Slot #1'}</span>
                               <span className="text-[10px] font-mono text-[#CCFF00] font-extrabold bg-[#CCFF00]/15 border border-[#CCFF00]/25 px-1.5 py-0.2 rounded">
                                 {top1?.totalPts} pts
@@ -4433,7 +4433,7 @@ export default function App() {
               <div className="max-w-2xl space-y-3 relative z-10">
                 <div className="inline-flex items-center gap-2 bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00] px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
                   <Swords className="w-3.5 h-3.5"/>
-                  Tactical Esports Operating System
+                  Esports Tournament Engine
                 </div>
                 <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
                   SCRIM HUB <span className="text-[#CCFF00]">by ry.khor</span>
@@ -4529,15 +4529,15 @@ export default function App() {
 
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                     <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">🥇 1st Place (WWCD)</span>
+                      <span className="text-zinc-300 font-bold">1st Place (WWCD)</span>
                       <span className="font-black text-[#CCFF00]">10 PTS</span>
                     </div>
                     <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">🥈 2nd Place</span>
+                      <span className="text-zinc-300 font-bold">2nd Place</span>
                       <span className="font-black text-white">6 PTS</span>
                     </div>
                     <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">🥉 3rd Place</span>
+                      <span className="text-zinc-300 font-bold">3rd Place</span>
                       <span className="font-black text-white">5 PTS</span>
                     </div>
                     <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
@@ -4563,7 +4563,7 @@ export default function App() {
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/20 text-[11px] text-[#CCFF00] font-bold flex items-center justify-between">
-                    <span>⚔️ Elimination Point:</span>
+                    <span>Elimination Points:</span>
                     <span className="font-mono font-black">1 Kill = 1 Point</span>
                   </div>
                 </div>
@@ -4732,7 +4732,7 @@ export default function App() {
 
                     <div className="space-y-1">
                       <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                        Pusat Kawalan Kejohanan &amp; Scrim Cloud
+                        Tournament Operations Portal
                       </h2>
                       <p className="text-xs text-zinc-400 leading-relaxed">
                         Log masuk untuk anjurkan kejohanan rasmi dengan simpanan kekal di cloud database.
@@ -4864,18 +4864,18 @@ export default function App() {
                     {/* Active Session Dropdown Selector */}
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-400 to-lime-300 text-black font-black flex items-center justify-center flex-shrink-0 shadow-sm border border-lime-500/20 text-base">
-                        {activeAdminScrim?.event_type === 'Tour' ? '🏆' : '🔥'}
+                        {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-5 h-5 text-black" /> : <Flame className="w-5 h-5 text-black" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[10px] uppercase font-bold text-zinc-400">Sesi Diuruskan:</span>
                           {activeAdminScrim?.is_finished ? (
                             <span className="text-[9px] bg-zinc-950 text-[#CCFF00] border border-[#CCFF00]/30 font-mono font-bold px-1.5 py-0.2 rounded">
-                              🏁 FINAL / LOCKED
+                              OFFICIAL / LOCKED
                             </span>
                           ) : (
                             <span className="text-[9px] bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20 font-mono font-bold px-1.5 py-0.2 rounded">
-                              ⚡ ONGOING &amp; LIVE
+                              LIVE / ACTIVE
                             </span>
                           )}
                         </div>
@@ -4890,7 +4890,7 @@ export default function App() {
                           >
                             {adminHostedScrims.map((s) => (
                               <option key={s.id} value={s.id} className="bg-zinc-950 text-white">
-                                [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(🏁 Selesai)' : ''}
+                                [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(Concluded)' : ''}
                               </option>
                             ))}
                           </select>
@@ -4983,9 +4983,9 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setIsCreateScrimOpen(false)}
-                        className="absolute top-4 right-4 text-zinc-400 hover:text-white font-bold text-sm w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center transition"
+                        className="absolute top-4 right-4 text-zinc-400 hover:text-white w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center transition"
                       >
-                        ✕
+                        <X className="w-4 h-4" />
                       </button>
                     )}
 
@@ -5387,7 +5387,7 @@ export default function App() {
                                         <option value="" className="bg-zinc-950 text-white">--</option>
                                         {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
                                           <option key={num} value={num} className="bg-zinc-950 text-white">
-                                            #{num} {num === 1 ? '👑' : ''}
+                                            #{num}
                                           </option>
                                         ))}
                                       </select>
@@ -5437,7 +5437,7 @@ export default function App() {
                                             : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
                                         )}
                                       >
-                                        {isWWCD ? '👑 WWCD' : 'No'}
+                                        {isWWCD ? 'WWCD' : 'Normal'}
                                       </button>
                                     </td>
 
@@ -5488,7 +5488,7 @@ export default function App() {
                         )}
                       >
                         <Trophy className="w-3.5 h-3.5"/>
-                        <span>🏆 Overall</span>
+                        <span>Overall</span>
                       </button>
                       <button
                         type="button"
@@ -5590,15 +5590,15 @@ export default function App() {
                                         ? 'text-amber-400' 
                                         : 'text-zinc-500'
                                     }>
-                                      {pos === 0 ? '👑1' : `#${pos + 1}`}
+                                      {`#${pos + 1}`}
                                     </span>
                                   </td>
                                   <td className="py-1.5 px-2 font-sans font-bold truncate max-w-[130px]">
                                     <div className="flex items-center gap-1.5 truncate">
                                       <span className="truncate">{row.teamName}</span>
                                       {hasWWCD && (
-                                        <span className="text-[8px] bg-amber-400 text-black font-black px-1.5 py-0.2 rounded font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-0.5">
-                                          🍗 {row.wwcd > 1 ? `x${row.wwcd}` : 'WWCD'}
+                                        <span className="text-[8px] bg-amber-400 text-black font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider flex-shrink-0">
+                                          WWCD{row.wwcd > 1 ? ` x${row.wwcd}` : ''}
                                         </span>
                                       )}
                                     </div>
@@ -5663,10 +5663,10 @@ export default function App() {
           </div>
         )}
 
-        {/* EXPERIMENTAL PHASE DISCLAIMER */}
-        <div className="mt-8 pt-4 pb-2 border-t border-white/10 text-center">
-          <p className="text-[11px] font-mono text-zinc-500 tracking-tight">
-            ⚡ <span className="font-bold text-zinc-400">Notis:</span> Platform ini sedang dalam fasa eksperimental &amp; penilaian aktif untuk penambahbaikan berterusan.
+        {/* FOOTER METADATA */}
+        <div className="mt-8 pt-4 pb-2 border-t border-white/5 text-center">
+          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+            SCRIM HUB ENGINE • COMPETITIVE PRODUCTION BUILD
           </p>
         </div>
 
@@ -5695,9 +5695,9 @@ export default function App() {
 
               <button 
                 onClick={() => setIsPerformanceModalOpen(false)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white font-bold transition"
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -5897,10 +5897,10 @@ export default function App() {
             {/* Quick Jump Category Pills (Mobile horizontal swipe) */}
             <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 flex-shrink-0 no-scrollbar touch-pan-x">
               {[
-                { label: '1. Intro', idx: 0 },
-                { label: '2. Quick Scorer ⚡', idx: 1 },
-                { label: '3. Admin Workspace 🛡️', idx: 2 },
-                { label: '4. Database 📊', idx: 3 },
+                { label: '1. Overview', idx: 0 },
+                { label: '2. Quick Scorer', idx: 1 },
+                { label: '3. Admin Portal', idx: 2 },
+                { label: '4. Database', idx: 3 },
               ].map(item => {
                 const isActive = currentGuideSlide === item.idx;
                 return (
@@ -6003,7 +6003,7 @@ export default function App() {
                         <h4 className="text-xs font-bold text-white">Pilih Kedudukan &amp; Kills</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Pilih nombor kedudukan (contoh: <code>#1 👑</code>) &amp; taip jumlah kills. Sistem automatik mengira mata rasmi dan badge Chicken Dinner (🍗).
+                        Pilih nombor kedudukan (contoh: <code>#1</code>) &amp; taip jumlah kills. Sistem automatik mengira mata rasmi dan lencana WWCD.
                       </p>
                     </div>
 
@@ -6020,7 +6020,7 @@ export default function App() {
 
                   <div className="p-2.5 sm:p-3 bg-zinc-900/80 border border-[#CCFF00]/30 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-[11px] sm:text-xs text-zinc-300 leading-snug">
-                      💡 <strong>Tip Cepat:</strong> Guna butang <em>Tambah/Kurang Team</em> untuk tetapkan 2 hingga 24 slot skuad.
+                      <strong>Tip:</strong> Guna butang <em>Tambah/Kurang Team</em> untuk tetapkan 2 hingga 24 slot skuad.
                     </span>
                     <button
                       type="button"
@@ -6034,7 +6034,7 @@ export default function App() {
                       className="w-full sm:w-auto px-3.5 py-2 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.18)] shrink-0 active:scale-95"
                     >
                       <Zap className="w-3.5 h-3.5 fill-current" />
-                      <span>Buka Quick Scorer Sekarang ↓</span>
+                      <span>Buka Quick Scorer →</span>
                     </button>
                   </div>
                 </div>
@@ -6102,7 +6102,7 @@ export default function App() {
 
                   <div className="p-2.5 sm:p-3 bg-zinc-900 border border-white/10 text-white rounded-xl sm:rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-[11px] sm:text-xs text-zinc-300 leading-snug">
-                      👑 <strong>Ciri Hebat Admin:</strong> Boleh jemput <em>Co-Host</em> isi markah serentak dan muat naik logo penaja rasmi.
+                      <strong>Ciri Penganjur:</strong> Boleh jemput <em>Co-Host</em> isi markah serentak dan muat naik logo penaja rasmi.
                     </span>
                     <button
                       type="button"
@@ -6158,7 +6158,7 @@ export default function App() {
 
                   <div className="p-2.5 sm:p-3 bg-gradient-to-r from-purple-900/40 via-pink-900/30 to-amber-900/40 border border-pink-500/20 rounded-xl sm:rounded-2xl flex items-center justify-between gap-2.5">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-black uppercase text-pink-400">📸 Kongsi ke Instagram Story</span>
+                      <span className="text-[10px] font-black uppercase text-pink-400">Kongsi ke Instagram Story</span>
                       <p className="text-[11px] text-zinc-300 leading-snug">
                         Di tab Database, tekan mana-mana kad pasukan dan pilih <strong>Share to IG Story</strong> untuk jana visual kad esport siap kongsi!
                       </p>
@@ -6213,7 +6213,7 @@ export default function App() {
                   onClick={handleCloseGuide}
                   className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black bg-zinc-900 hover:bg-zinc-800 text-[#CCFF00] border border-white/10 transition flex items-center gap-1.5 shadow-sm active:scale-95 shrink-0"
                 >
-                  <span>Selesai 🚀</span>
+                  <span>Selesai</span>
                 </button>
               )}
             </div>
@@ -6354,7 +6354,12 @@ export default function App() {
                   <span className="text-[10px] text-zinc-400">Direct message to ry.khor</span>
                 </div>
               </div>
-              <button onClick={() => setIsFeedbackModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
+              <button 
+                onClick={() => setIsFeedbackModalOpen(false)} 
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleSubmitFeedback} className="space-y-3 text-xs">
@@ -6365,10 +6370,10 @@ export default function App() {
                   onChange={(e) => setFeedbackCategory(e.target.value)}
                   className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#CCFF00]"
                 >
-                  <option value="Bug Report" className="bg-zinc-950 text-white">🐛 Bug Report / Error</option>
-                  <option value="Feature Request" className="bg-zinc-950 text-white">💡 Feature Request / Suggestion</option>
-                  <option value="UI/Design Feedback" className="bg-zinc-950 text-white">🎨 UI & Design Feedback</option>
-                  <option value="Other Inquiry" className="bg-zinc-950 text-white">💬 General Inquiry</option>
+                  <option value="Bug Report" className="bg-zinc-950 text-white">Bug Report / Error</option>
+                  <option value="Feature Request" className="bg-zinc-950 text-white">Feature Request / Suggestion</option>
+                  <option value="UI/Design Feedback" className="bg-zinc-950 text-white">UI & Design Feedback</option>
+                  <option value="Other Inquiry" className="bg-zinc-950 text-white">General Inquiry</option>
                 </select>
               </div>
 
@@ -6425,7 +6430,12 @@ export default function App() {
                 <User className="w-4 h-4 text-[#CCFF00]"/>
                 <span>Public Host Profile & Avatar</span>
               </h3>
-              <button onClick={() => setIsProfileModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
+              <button 
+                onClick={() => setIsProfileModalOpen(false)} 
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
@@ -6521,11 +6531,16 @@ export default function App() {
                 <Edit3 className="w-4 h-4 text-[#CCFF00]"/>
                 <span>Edit Event Settings</span>
               </h3>
-              <button onClick={() => setIsEditScrimModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
+              <button 
+                onClick={() => setIsEditScrimModalOpen(false)} 
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="bg-zinc-900/60 border border-white/5 text-zinc-300 p-2.5 rounded-2xl flex items-center gap-2 text-xs">
-              <span className="text-base flex-shrink-0">💡</span>
+              <Info className="w-4 h-4 text-[#CCFF00] shrink-0" />
               <span className="leading-snug">
                 Di sini anda boleh tukar <strong>nama sesi kejohanan</strong>, muat naik <strong>logo rasmi</strong> untuk poster, dan kemaskini <strong>description / peraturan</strong>.
               </span>
@@ -6682,9 +6697,9 @@ export default function App() {
 
               <button 
                 onClick={() => setInspectedScrim(null)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white font-bold transition"
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -6737,7 +6752,7 @@ export default function App() {
                       <span className="font-bold text-white">{teamRow.teamName}</span>
                       {teamRow.wwcd > 0 && (
                         <span className="text-[9px] text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-1.5 py-0.2 rounded font-mono font-bold">
-                          🍗 x{teamRow.wwcd}
+                          WWCD{teamRow.wwcd > 1 ? ` x${teamRow.wwcd}` : ''}
                         </span>
                       )}
                     </div>
@@ -6805,9 +6820,9 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setInspectedPost(null)}
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white font-bold transition"
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -6886,7 +6901,12 @@ export default function App() {
                 <Sparkles className="w-4 h-4 text-[#CCFF00]"/>
                 <span>Post Your Content</span>
               </h3>
-              <button onClick={() => setIsShowcaseModalOpen(false)} className="text-zinc-400 hover:text-white text-lg font-bold">✕</button>
+              <button 
+                onClick={() => setIsShowcaseModalOpen(false)} 
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleCreateShowcasePost} className="space-y-3 text-xs">
