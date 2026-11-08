@@ -647,7 +647,7 @@ export default function App() {
         ]
       }));
 
-      showToast(`+ Slot #${newSlotNo} ditambah! Jumlah pasukan: ${newSlotNo}`);
+      showToast(`Slot #${newSlotNo} ditambah! Jumlah pasukan: ${newSlotNo}`);
       return { ...prev, matches: updatedMatches, synced: false };
     });
   };
@@ -664,7 +664,7 @@ export default function App() {
         slots: m.slots.slice(0, -1)
       }));
 
-      showToast(`- Slot #${currentCount} dipadam. Jumlah pasukan: ${currentCount - 1}`);
+      showToast(`Slot #${currentCount} dipadam. Jumlah pasukan: ${currentCount - 1}`);
       return { ...prev, matches: updatedMatches, synced: false };
     });
   };
@@ -2853,7 +2853,7 @@ export default function App() {
               ) : (
                 <Lock className="w-3.5 h-3.5 text-zinc-500" />
               )}
-              <span>Admin</span>
+              <span>Host</span>
             </button>
           </nav>
 
@@ -2875,15 +2875,20 @@ export default function App() {
           <div className="flex items-center gap-2">
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-1.5 bg-zinc-900/80 border border-white/5 px-2.5 py-1.5 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-zinc-900/80 hover:bg-zinc-800 border border-white/5 hover:border-white/20 px-2.5 py-1.5 rounded-xl transition text-left group active:scale-95"
+                  title="Urus Profil Host"
+                >
                   <User className="w-3.5 h-3.5 text-[#CCFF00]" />
-                  <span className="text-xs font-bold text-zinc-200 max-w-[130px] truncate">
+                  <span className="hidden sm:inline text-xs font-bold text-zinc-200 group-hover:text-white max-w-[130px] truncate">
                     {profileName || currentUser.email.split('@')[0]}
                   </span>
-                </div>
+                </button>
                 <button
                   onClick={handleLogout}
-                  className="px-2.5 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl transition flex items-center gap-1"
+                  className="px-2.5 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl transition flex items-center gap-1 active:scale-95"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -3813,11 +3818,11 @@ export default function App() {
                         onClick={() => setSelectedTeamProfile(t.name)}
                         className={'py-1.5 px-3.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-150 shrink-0 flex items-center gap-1.5 ' + (
                           isSelected 
-                            ? 'bg-[#CCFF00] text-black font-bold shadow-[0_0_12px_rgba(204,255,0,0.2)]' 
-                            : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
+                            ? 'bg-zinc-800 text-[#CCFF00] font-bold border border-[#CCFF00]/50 shadow-xs' 
+                            : 'bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
                         )}
                       >
-                        <span className={'text-[10px] font-mono ' + (isSelected ? 'text-black/70 font-bold' : 'text-zinc-500')}>
+                        <span className={'text-[10px] font-mono ' + (isSelected ? 'text-[#CCFF00]/80 font-bold' : 'text-zinc-500')}>
                           [{t.tag}]
                         </span>
                         <span>{t.name}</span>
@@ -4006,7 +4011,7 @@ export default function App() {
                     className="px-3.5 py-2 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(204,255,0,0.18)] active:scale-95"
                   >
                     <Plus className="w-4 h-4 text-black"/>
-                    <span>+ Sesi Baru</span>
+                    <span>Sesi Baru</span>
                   </button>
                 </div>
               </div>
@@ -4035,8 +4040,8 @@ export default function App() {
                         onClick={() => setLeaderboardEventTypeFilter(type)}
                         className={'py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ' + (
                           leaderboardEventTypeFilter === type 
-                            ? 'bg-[#CCFF00] text-black font-bold shadow-[0_0_12px_rgba(204,255,0,0.2)]' 
-                            : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-white/5 transition-colors'
+                            ? 'bg-zinc-800 text-[#CCFF00] font-bold border border-[#CCFF00]/50 shadow-xs' 
+                            : 'bg-zinc-900/70 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-white/5 transition-colors'
                         )}
                       >
                         {type === 'All' ? 'Semua' : type === 'Scrim' ? 'Scrim' : 'Kejohanan'}
@@ -4366,7 +4371,7 @@ export default function App() {
                     className="px-3 py-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(204,255,0,0.18)] transition active:scale-95"
                   >
                     <Plus className="w-4 h-4 text-black"/>
-                    <span>+ Siar Klip</span>
+                    <span>Siar Klip</span>
                   </button>
                 )}
               </div>
@@ -4798,11 +4803,11 @@ export default function App() {
                   <div className="md:col-span-6 space-y-4">
                     <div className="space-y-1">
                       <h3 className="text-base font-black text-white">
-                        {isRegisterMode ? 'Daftar Akaun Penganjur' : 'Log Masuk Akaun Admin'}
+                        {isRegisterMode ? 'Daftar Akaun Host' : 'Log Masuk Akaun Host'}
                       </h3>
                       <p className="text-xs text-zinc-400">
                         {isRegisterMode 
-                          ? 'Cipta akaun penganjur untuk mula anjurkan kejohanan rasmi anda.'
+                          ? 'Cipta akaun host untuk mula anjurkan kejohanan rasmi anda.'
                           : 'Sila masukkan emel & kata laluan akaun anda.'}
                       </p>
                     </div>
@@ -4849,7 +4854,7 @@ export default function App() {
                             <span>Sedang Memproses...</span>
                           </>
                         ) : (
-                          <span>{isRegisterMode ? 'Daftar Akaun Penganjur' : 'Log Masuk Admin'}</span>
+                          <span>{isRegisterMode ? 'Daftar Akaun Host' : 'Log Masuk Host'}</span>
                         )}
                       </button>
 
@@ -4859,7 +4864,7 @@ export default function App() {
                           onClick={() => setIsRegisterMode(!isRegisterMode)}
                           className="text-xs text-[#CCFF00] hover:underline font-semibold"
                         >
-                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun admin? Daftar di sini"}
+                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun host? Daftar di sini"}
                         </button>
                       </div>
 
@@ -4928,34 +4933,28 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setIsCreateScrimOpen(!isCreateScrimOpen)}
-                        className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm ' + (
+                        className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 ' + (
                           isCreateScrimOpen 
-                            ? 'bg-zinc-800 text-white border border-white/10' 
+                            ? 'bg-zinc-800 text-zinc-300 border border-white/10 hover:bg-zinc-700' 
                             : 'bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold shadow-[0_0_20px_rgba(204,255,0,0.18)]'
                         )}
                       >
-                        <Plus className="w-3.5 h-3.5"/>
-                        <span>{isCreateScrimOpen ? 'Tutup Borang' : '+ Sesi Baru'}</span>
+                        {isCreateScrimOpen ? (
+                          <X className="w-3.5 h-3.5 text-zinc-300"/>
+                        ) : (
+                          <Plus className="w-3.5 h-3.5 text-black"/>
+                        )}
+                        <span>{isCreateScrimOpen ? 'Tutup' : 'Sesi Baru'}</span>
                       </button>
 
                       {activeAdminScrim && (
                         <>
                           <button
                             type="button"
-                            onClick={openEditScrimModal}
-                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10"
-                            title="Sunting Tajuk, Logo & Peraturan Sesi"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-[#CCFF00]"/>
-                            <span className="hidden sm:inline">Sunting</span>
-                          </button>
-
-                          <button
-                            type="button"
                             onClick={handleToggleFinishScrim}
-                            className={'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ' + (
+                            className={'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border active:scale-95 ' + (
                               activeAdminScrim.is_finished
-                                ? 'bg-zinc-800/80 text-zinc-300 border-white/10'
+                                ? 'bg-zinc-800/80 text-zinc-300 border-white/10 hover:bg-zinc-700'
                                 : 'bg-[#CCFF00]/10 text-[#CCFF00] border-[#CCFF00]/30 hover:bg-[#CCFF00]/20'
                             )}
                             title={activeAdminScrim.is_finished ? 'Buka semula sesi ini untuk disunting' : 'Kunci markah sebagai keputusan rasmi'}
@@ -4968,7 +4967,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={handleCopyHostShareLink}
-                              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10"
+                              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 active:scale-95"
                               title="Salin Pautan Co-Host"
                             >
                               <Share2 className="w-3.5 h-3.5"/>
@@ -4979,23 +4978,13 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => handleDeleteScrim(activeAdminScrim.id)}
-                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
                             title="Padam sesi ini"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
                           </button>
                         </>
                       )}
-
-                      <button
-                        type="button"
-                        onClick={() => setIsProfileModalOpen(true)}
-                        className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10"
-                        title="Profil Penganjur"
-                      >
-                        <User className="w-3.5 h-3.5 text-[#CCFF00]"/>
-                        <span className="hidden lg:inline">{profileName?.split(' ')[0] || 'Profil'}</span>
-                      </button>
                     </div>
 
                   </div>
@@ -5144,7 +5133,7 @@ export default function App() {
                             disabled={isUploadingLogo}
                             className="bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold px-4 py-2 rounded-xl transition flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.18)]"
                           >
-                            {isUploadingLogo ? '...' : '+ Cipta'}
+                            {isUploadingLogo ? 'Memproses...' : 'Cipta Sesi'}
                           </button>
                         </div>
                       </div>
@@ -5232,18 +5221,18 @@ export default function App() {
                                   title="Padam pusingan match terakhir"
                                 >
                                   <Minus className="w-3.5 h-3.5 text-rose-400"/>
-                                  <span>- Match</span>
+                                  <span>Match</span>
                                 </button>
                               )}
 
                               <button
                                 type="button"
                                 onClick={handleAddNewMatch}
-                                className="px-2.5 py-1 bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-black transition flex items-center gap-1"
+                                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-black transition flex items-center gap-1"
                                 title="Tambah pusingan match baru"
                               >
                                 <Plus className="w-3.5 h-3.5 text-[#CCFF00]"/>
-                                <span>+ Match</span>
+                                <span>Match</span>
                               </button>
                             </div>
                           )}
@@ -5352,18 +5341,18 @@ export default function App() {
                             title="Padam slot baris team terakhir"
                           >
                             <Minus className="w-3.5 h-3.5"/>
-                            <span>- Slot</span>
+                            <span>Slot</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={handleAddTeamSlot}
                             disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
-                            className="px-2.5 py-1 bg-[#CCFF00] hover:bg-[#b8e600] text-black rounded-xl text-xs font-black transition flex items-center gap-1 disabled:opacity-40 shadow-xs"
+                            className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-black transition flex items-center gap-1 disabled:opacity-40"
                             title="Tambah slot baris team baru"
                           >
-                            <Plus className="w-3.5 h-3.5"/>
-                            <span>+ Slot</span>
+                            <Plus className="w-3.5 h-3.5 text-[#CCFF00]"/>
+                            <span>Slot</span>
                           </button>
                         </div>
                       </div>
@@ -5915,7 +5904,7 @@ export default function App() {
                     </h3>
                     <span className="text-[9px] font-mono font-bold bg-zinc-900 text-zinc-400 px-1.5 py-0.2 rounded border border-white/10">v2.7.0</span>
                   </div>
-                  <span className="text-[10px] text-zinc-400 block truncate">Panduan Penggunaan Quick Scorer &amp; Admin</span>
+                  <span className="text-[10px] text-zinc-400 block truncate">Panduan Penggunaan Quick Scorer &amp; Host</span>
                 </div>
               </div>
 
@@ -5949,7 +5938,7 @@ export default function App() {
                 {[
                   { label: '1. Overview', idx: 0 },
                   { label: '2. Quick Scorer', idx: 1 },
-                  { label: '3. Admin Portal', idx: 2 },
+                  { label: '3. Host Portal', idx: 2 },
                   { label: '4. Database', idx: 3 },
                 ].map(item => {
                   const isActive = currentGuideSlide === item.idx;
@@ -5960,8 +5949,8 @@ export default function App() {
                       onClick={() => setCurrentGuideSlide(item.idx)}
                       className={'py-1.5 px-3.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1 shrink-0 ' + (
                         isActive
-                          ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.2)] font-bold'
-                          : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
+                          ? 'bg-zinc-800 text-[#CCFF00] font-bold border border-[#CCFF00]/50 shadow-xs'
+                          : 'bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
                       )}
                     >
                       <span>{item.label}</span>
@@ -6005,7 +5994,7 @@ export default function App() {
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
                       <span className="text-[9px] font-black uppercase text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded inline-block">3. Dua Mod Selesa</span>
                       <h4 className="text-xs font-bold text-white">Pantas atau Cloud</h4>
-                      <p className="text-[11px] text-zinc-400 leading-snug">Guna Quick Scorer tanpa login, atau daftar Admin untuk anjur kejohanan bersiri.</p>
+                      <p className="text-[11px] text-zinc-400 leading-snug">Guna Quick Scorer tanpa login, atau daftar Host untuk anjur kejohanan bersiri.</p>
                     </div>
                   </div>
                 </div>
@@ -6093,18 +6082,18 @@ export default function App() {
                 </div>
               )}
 
-              {/* SLIDE 2: PANDUAN ADMIN WORKSPACE (TEKANAN UTAMA) */}
+              {/* SLIDE 2: PANDUAN HOST WORKSPACE (TEKANAN UTAMA) */}
               {currentGuideSlide === 2 && (
                 <div className="space-y-3 animate-in fade-in">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-black bg-[#CCFF00] px-2.5 py-0.5 rounded-full border border-[#CCFF00]">
-                        PANDUAN 2: ADMIN WORKSPACE
+                        PANDUAN 2: HOST WORKSPACE
                       </span>
                       <span className="text-[9px] sm:text-[10px] font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded-md border border-[#CCFF00]/20">Simpanan Cloud</span>
                     </div>
                     <h2 className="text-base sm:text-xl font-black text-white">
-                      Cara Guna Admin Workspace (Penganjur Rasmi)
+                      Cara Guna Host Workspace (Penganjur Rasmi)
                     </h2>
                     <p className="text-xs text-zinc-400 leading-relaxed font-normal">
                       Direka khas untuk penganjur kejohanan, liga bertingkat (Qualifiers/Finals) dan clan esports yang memerlukan rekod tersimpan selamat.
@@ -6115,10 +6104,10 @@ export default function App() {
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#CCFF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">1</span>
-                        <h4 className="text-xs font-bold text-white">Daftar Akaun Penganjur</h4>
+                        <h4 className="text-xs font-bold text-white">Daftar Akaun Host</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Buka tab <strong>Admin Workspace</strong> dan masukkan emel anda. Pendaftaran adalah terbuka &amp; segera untuk simpan data ke Cloud.
+                        Buka tab <strong>Host Workspace</strong> dan masukkan emel anda. Pendaftaran adalah terbuka &amp; segera untuk simpan data ke Cloud.
                       </p>
                     </div>
 
@@ -6128,7 +6117,7 @@ export default function App() {
                         <h4 className="text-xs font-bold text-white">Cipta Sesi Kejohanan</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Tekan <strong>+ Sesi Kejohanan Baru</strong>. Tetapkan nama kejohanan, format (Scrim/Tour), dan pusingan match tanpa had.
+                        Tekan <strong>Sesi Baru</strong>. Tetapkan nama kejohanan, format (Scrim/Tour), dan pusingan match tanpa had.
                       </p>
                     </div>
 
@@ -6148,7 +6137,7 @@ export default function App() {
                         <h4 className="text-xs font-bold text-white">Kunci &amp; Tamatkan Sesi</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Bila kejohanan tamat, tekan <strong>Tamatkan Sesi</strong> untuk arkibkan data kekal dan kemaskini prestasi pasukan ke Database.
+                        Bila kejohanan tamat, tekan <strong>Kunci Sesi</strong> untuk arkibkan data kekal dan kemaskini prestasi pasukan ke Database.
                       </p>
                     </div>
                   </div>
@@ -6166,7 +6155,7 @@ export default function App() {
                       className="w-full sm:w-auto px-3.5 py-2 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.18)] shrink-0 active:scale-95"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-black" />
-                      <span>Buka Admin Workspace →</span>
+                      <span>Buka Host Workspace →</span>
                     </button>
                   </div>
                 </div>
@@ -6177,13 +6166,13 @@ export default function App() {
                 <div className="space-y-3 animate-in fade-in">
                   <div className="space-y-1">
                     <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-zinc-300 bg-zinc-900 px-2.5 py-0.5 rounded-full border border-white/10">
-                      REKOD &amp; ANALITIK
+                       REKOD &amp; ANALITIK
                     </span>
                     <h2 className="text-base sm:text-xl font-black text-white">
                       Arkib History &amp; Database Prestasi
                     </h2>
                     <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                      Semua kejohanan yang disimpan di Admin secara automatik terhimpun dalam arkib rekod dan profil analitik setiap skuad.
+                      Semua kejohanan yang disimpan di Host Workspace secara automatik terhimpun dalam arkib rekod dan profil analitik setiap skuad.
                     </p>
                   </div>
 
@@ -6311,11 +6300,11 @@ export default function App() {
               </div>
             )}
 
-            {/* Kelebihan Akaun Admin / Host */}
+            {/* Kelebihan Akaun Host */}
             <div className="p-3 bg-zinc-900/60 border border-white/5 rounded-2xl space-y-1.5 text-xs text-zinc-300">
               <span className="font-bold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#CCFF00]" />
-                <span>Kelebihan Akaun Penganjur (Admin):</span>
+                <span>Kelebihan Akaun Host:</span>
               </span>
               <ul className="grid grid-cols-1 gap-1 text-[11px] text-zinc-400">
                 <li className="flex items-center gap-1.5">
@@ -7147,7 +7136,7 @@ export default function App() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-black text-white">Kejohanan Rasmi (Cloud)</span>
-                    <span className="text-[9px] font-black text-black bg-[#CCFF00] px-1.5 py-0.5 rounded">Admin</span>
+                    <span className="text-[9px] font-black text-black bg-[#CCFF00] px-1.5 py-0.5 rounded">Host</span>
                   </div>
                   <p className="text-[11px] text-zinc-300 leading-snug">
                     Cipta kejohanan penuh, multi-day, database pasukan & jemput co-host.
@@ -7245,9 +7234,9 @@ export default function App() {
         </div>
       )}
 
-      {/* FLOATING ACTION PILL ON MOBILE: TOGGLE ANTARA BORANG & POSTER */}
+      {/* FLOATING ACTION BUTTON ON MOBILE: SLEEK COMPACT CIRCULAR FAB */}
       {activeTab === 'scorer' && (
-        <div className="lg:hidden fixed bottom-20 right-3.5 z-40">
+        <div className="lg:hidden fixed bottom-20 right-4 z-40">
           <button
             type="button"
             onClick={() => {
@@ -7257,18 +7246,14 @@ export default function App() {
                 document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }
             }}
-            className="py-2.5 px-4 rounded-full bg-zinc-950 text-[#CCFF00] border-2 border-[#CCFF00] shadow-[0_0_25px_rgba(204,255,0,0.25)] font-black text-xs flex items-center gap-1.5 active:scale-95 transition-all"
+            className="w-11 h-11 rounded-full bg-zinc-950/90 backdrop-blur-md text-[#CCFF00] border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center active:scale-95 transition-all"
+            title={isScrolledToPoster ? 'Kembali ke borang isi markah' : 'Lihat pratonton poster'}
+            aria-label={isScrolledToPoster ? 'Scroll to scoring' : 'Scroll to poster'}
           >
             {isScrolledToPoster ? (
-              <>
-                <ChevronLeft className="w-4 h-4 rotate-90 text-[#CCFF00]" />
-                <span>↑ Naik ke Isi Markah</span>
-              </>
+              <ChevronLeft className="w-5 h-5 rotate-90 text-[#CCFF00]" />
             ) : (
-              <>
-                <Trophy className="w-4 h-4 text-[#CCFF00]" />
-                <span>Pratonton Poster ↓</span>
-              </>
+              <Trophy className="w-5 h-5 text-[#CCFF00]" />
             )}
           </button>
         </div>
@@ -7379,7 +7364,7 @@ export default function App() {
               )}
             </div>
             <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'admin' ? 'text-[#CCFF00] font-black' : '')}>
-              {currentUser ? 'Admin' : 'Profile'}
+              Host
             </span>
           </button>
 
