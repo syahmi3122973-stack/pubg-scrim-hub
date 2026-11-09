@@ -3289,11 +3289,19 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleStartScoringSession}
-                    className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] active:scale-[0.98] text-black font-bold text-sm tracking-wide transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    className="w-full sm:w-auto px-6 py-2.5 sm:py-3 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] active:scale-[0.98] text-black transition flex items-center justify-center gap-3.5 cursor-pointer shadow-sm group"
                     title="Mula kira markah sekarang di Quick Scorer tanpa login"
                   >
-                    <span>Mula Kira Sekarang (Free)</span>
-                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    <Zap className="w-4 h-4 fill-black text-black shrink-0" />
+                    <div className="flex flex-col items-start text-left leading-tight">
+                      <span className="text-sm sm:text-base font-black tracking-tight text-black">
+                        Quick Score
+                      </span>
+                      <span className="text-[10px] sm:text-[11px] font-bold text-black/80 tracking-normal mt-0.5">
+                        Mula Kira Sekarang
+                      </span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5] text-black group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </button>
 
                   <button
