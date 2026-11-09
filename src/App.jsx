@@ -2742,15 +2742,16 @@ export default function App() {
 
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const [selectedTeamProfile, setSelectedTeamProfile] = useState('');
-  const currentSelectedTeam = selectedTeamProfile || (teams.length > 0 ? teams[0].name : '');
 
   const teamsStats = useMemo(() => {
     const stats = {};
 
+    // Seed registered teams so canonical tags and names are retained
     teams.forEach(t => {
+      if (!t || !t.name) return;
       stats[t.name] = {
         name: t.name,
-        tag: t.tag,
+        tag: t.tag || t.name.slice(0, 4).toUpperCase(),
         scrimResults: [],
         totalKills: 0,
         totalPoints: 0,
@@ -2764,25 +2765,50 @@ export default function App() {
       const eventType = scrim.event_type || 'Scrim';
 
       (scrim.matches || []).forEach(m => {
-        (m.results || []).forEach(r => {
-          if (!scrimSummary[r.teamName]) {
-            scrimSummary[r.teamName] = {
-              teamName: r.teamName,
-              tag: r.tag,
+        if (!m || !m.results || m.results.length === 0) return;
+
+        // Ensure match has at least some valid scoring or placement data
+        const matchHasData = m.results.some(r =>
+          (r.placement !== '' && r.placement !== null && r.placement !== undefined && Number(r.placement) > 0) ||
+          Number(r.kills) > 0 ||
+          Number(r.totalPts) > 0 ||
+          Boolean(r.wwcd)
+        );
+        if (!matchHasData) return;
+
+        m.results.forEach(r => {
+          if (!r || !r.teamName || !r.teamName.trim()) return;
+          const cleanTeamName = r.teamName.trim();
+
+          // Verify this specific team actually played or has recorded points/kills/placement
+          const teamHasPlayed =
+            (r.placement !== '' && r.placement !== null && r.placement !== undefined && Number(r.placement) > 0) ||
+            Number(r.kills) > 0 ||
+            Number(r.totalPts) > 0 ||
+            Boolean(r.wwcd);
+          if (!teamHasPlayed) return;
+
+          if (!scrimSummary[cleanTeamName]) {
+            const dbTeam = teams.find(t => t.name.toLowerCase() === cleanTeamName.toLowerCase());
+            scrimSummary[cleanTeamName] = {
+              teamName: cleanTeamName,
+              tag: r.tag || dbTeam?.tag || cleanTeamName.slice(0, 4).toUpperCase(),
               totalPts: 0,
               totalKills: 0,
               wwcd: 0,
               matches: 0
             };
           }
-          scrimSummary[r.teamName].totalPts += r.totalPts;
-          scrimSummary[r.teamName].totalKills += r.kills;
-          scrimSummary[r.teamName].matches += 1;
-          scrimSummary[r.teamName].wwcd += (r.wwcd || (r.placement === 1 ? 1 : 0));
+          scrimSummary[cleanTeamName].totalPts += (Number(r.totalPts) || 0);
+          scrimSummary[cleanTeamName].totalKills += (Number(r.kills) || 0);
+          scrimSummary[cleanTeamName].matches += 1;
+          scrimSummary[cleanTeamName].wwcd += (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0));
         });
       });
 
-      const sortedTeams = Object.values(scrimSummary).sort((a, b) => b.totalPts - a.totalPts || b.wwcd - a.wwcd);
+      const sortedTeams = Object.values(scrimSummary)
+        .filter(teamRes => teamRes.matches > 0)
+        .sort((a, b) => b.totalPts - a.totalPts || b.wwcd - a.wwcd);
 
       sortedTeams.forEach((teamRes, idx) => {
         const tName = teamRes.teamName;
@@ -2822,17 +2848,53 @@ export default function App() {
       });
     });
 
-    return stats;
+    // Only return teams that actually have recorded match data!
+    const activeStats = {};
+    Object.values(stats).forEach(t => {
+      if (t.matchesCount > 0 && t.scrimResults && t.scrimResults.length > 0) {
+        activeStats[t.name] = t;
+      }
+    });
+
+    return activeStats;
   }, [scrims, teams]);
 
-  const filteredTeamList = useMemo(() => {
-    return Object.values(teamsStats).filter(t => 
-      t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) || 
-      t.tag.toLowerCase().includes(teamSearchQuery.toLowerCase())
-    );
-  }, [teamsStats, teamSearchQuery]);
+  const validTeamList = useMemo(() => {
+    return Object.values(teamsStats)
+      .filter(t => t.matchesCount > 0 && t.scrimResults && t.scrimResults.length > 0)
+      .sort((a, b) => b.totalPoints - a.totalPoints || b.totalWWCD - a.totalWWCD || b.totalKills - a.totalKills);
+  }, [teamsStats]);
 
-  const activeTeamData = teamsStats[currentSelectedTeam] || Object.values(teamsStats)[0];
+  const categoryTeamList = useMemo(() => {
+    if (teamStatsCategory === 'ALL') {
+      return validTeamList;
+    }
+    return validTeamList
+      .filter(t => (t.scrimResults || []).some(r => (r.eventType || 'Scrim') === teamStatsCategory))
+      .sort((a, b) => {
+        const aPts = (a.scrimResults || []).filter(r => (r.eventType || 'Scrim') === teamStatsCategory).reduce((acc, c) => acc + c.points, 0);
+        const bPts = (b.scrimResults || []).filter(r => (r.eventType || 'Scrim') === teamStatsCategory).reduce((acc, c) => acc + c.points, 0);
+        return bPts - aPts;
+      });
+  }, [validTeamList, teamStatsCategory]);
+
+  const filteredTeamList = useMemo(() => {
+    const query = teamSearchQuery.toLowerCase().trim();
+    return categoryTeamList.filter(t => 
+      !query || 
+      t.name.toLowerCase().includes(query) || 
+      (t.tag && t.tag.toLowerCase().includes(query))
+    );
+  }, [categoryTeamList, teamSearchQuery]);
+
+  const currentSelectedTeam = useMemo(() => {
+    if (selectedTeamProfile && categoryTeamList.some(t => t.name === selectedTeamProfile)) {
+      return selectedTeamProfile;
+    }
+    return categoryTeamList.length > 0 ? categoryTeamList[0].name : '';
+  }, [selectedTeamProfile, categoryTeamList]);
+
+  const activeTeamData = teamsStats[currentSelectedTeam] || categoryTeamList[0] || null;
 
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
@@ -4200,25 +4262,31 @@ export default function App() {
 
                 {/* Scrollable Container with Smooth Native Swipe */}
                 <div className="flex gap-2 sm:gap-2.5 overflow-x-auto scroll-smooth no-scrollbar py-1 px-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {filteredTeamList.map(t => {
-                    const isSelected = currentSelectedTeam === t.name;
-                    return (
-                      <button
-                        key={t.name}
-                        onClick={() => setSelectedTeamProfile(t.name)}
-                        className={'py-1.5 px-3.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-150 shrink-0 flex items-center gap-1.5 ' + (
-                          isSelected 
-                            ? 'bg-zinc-800 text-[#D7FF00] font-bold border border-[#D7FF00]/50 shadow-xs' 
-                            : 'bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
-                        )}
-                      >
-                        <span className={'text-[10px] font-mono ' + (isSelected ? 'text-[#D7FF00]/80 font-bold' : 'text-zinc-500')}>
-                          [{t.tag}]
-                        </span>
-                        <span>{t.name}</span>
-                      </button>
-                    );
-                  })}
+                  {filteredTeamList.length > 0 ? (
+                    filteredTeamList.map(t => {
+                      const isSelected = currentSelectedTeam === t.name;
+                      return (
+                        <button
+                          key={t.name}
+                          onClick={() => setSelectedTeamProfile(t.name)}
+                          className={'py-1.5 px-3.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-150 shrink-0 flex items-center gap-1.5 ' + (
+                            isSelected 
+                              ? 'bg-zinc-800 text-[#D7FF00] font-bold border border-[#D7FF00]/50 shadow-xs' 
+                              : 'bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
+                          )}
+                        >
+                          <span className={'text-[10px] font-mono ' + (isSelected ? 'text-[#D7FF00]/80 font-bold' : 'text-zinc-500')}>
+                            [{t.tag}]
+                          </span>
+                          <span>{t.name}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="py-1 px-3 text-xs text-zinc-500 italic">
+                      {validTeamList.length === 0 ? 'Tiada data perlawanan pasukan berdaftar.' : 'Tiada pasukan sepadan.'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Subtle Gradient Edge Fade */}
@@ -4226,7 +4294,27 @@ export default function App() {
               </div>
             </div>
 
-            {activeTeamData && activeTeamScopedStats && (
+            {validTeamList.length === 0 ? (
+              <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-white/10 flex items-center justify-center mx-auto text-zinc-400">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-white">Tiada Rekod Perlawanan Pasukan</h3>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                    Pasukan hanya akan dipaparkan dalam Hall of Fame selepas mempunyai sekurang-kurangnya satu rekod perlawanan rasmi.
+                  </p>
+                </div>
+              </div>
+            ) : filteredTeamList.length === 0 ? (
+              <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 text-center space-y-2">
+                <p className="text-xs text-zinc-400">
+                  {teamSearchQuery.trim()
+                    ? `Tiada pasukan yang sepadan dengan carian "${teamSearchQuery}".`
+                    : `Tiada pasukan dengan rekod bagi kategori ${teamStatsCategory === 'Tour' ? 'Kejohanan' : 'Scrim'}.`}
+                </p>
+              </div>
+            ) : activeTeamData && activeTeamScopedStats ? (
               <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-3">
                   <div className="flex items-center space-x-3">
@@ -4372,7 +4460,7 @@ export default function App() {
                   )}
                 </div>
               </div>
-            )}
+            ) : null}
 
           </div>
         )}
