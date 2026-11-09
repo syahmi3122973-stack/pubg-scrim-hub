@@ -404,8 +404,9 @@ export default function App() {
 
   // Kesan sama ada pengguna sedang berada di bahagian poster untuk navigasi pantas mobile
   useEffect(() => {
-    if (activeTab !== 'scorer') return;
-    const target = document.getElementById('quick-scorer-leaderboard');
+    if (activeTab !== 'scorer' && activeTab !== 'admin') return;
+    const targetId = activeTab === 'admin' ? 'admin-leaderboard-preview' : 'quick-scorer-leaderboard';
+    const target = document.getElementById(targetId);
     if (!target) return;
 
     const observer = new IntersectionObserver(
@@ -3335,18 +3336,13 @@ export default function App() {
                 </span>
               </div>
 
-              {/* Instant Jump / Push Down to Poster */}
-              <button
-                type="button"
-                onClick={() => {
-                  document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black text-xs font-black transition shadow-[0_0_15px_rgba(204,255,0,0.18)] active:scale-95 shrink-0"
-                title="Tolak ke bawah untuk lihat pratonton poster dan leaderboard terkini"
-              >
-                <Trophy className="w-3.5 h-3.5 text-black" />
-                <span>Poster ↓</span>
-              </button>
+              {/* Status indicator on right */}
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs text-zinc-400 font-mono bg-zinc-950/70 border border-white/5 px-3 py-1.5 rounded-xl">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse"></span>
+                  <span>Auto-saved (Local)</span>
+                </span>
+              </div>
             </div>
 
             {/* Split Screen Grid */}
@@ -3372,19 +3368,6 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                      {/* Mobile Shortcut to Live Leaderboard */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
-                        className="lg:hidden px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] rounded-xl text-xs font-black transition flex items-center gap-1 border border-white/10 active:scale-95"
-                        title="Tolak ke bawah untuk lihat poster"
-                      >
-                        <Trophy className="w-3.5 h-3.5 text-[#CCFF00]" />
-                        <span>Poster ↓</span>
-                      </button>
-
                       {/* Quick WhatsApp / Text Import Button */}
                       <button
                         type="button"
@@ -3620,8 +3603,8 @@ export default function App() {
                     <span>Total = Place + Elims</span>
                   </div>
 
-                  {/* Button Di Bawah Isi Markah: Tolak Ke Bawah Ke Posisi Poster */}
-                  <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row items-center gap-2">
+                  {/* Strategic Action on Mobile: Flow down to Poster */}
+                  <div className="lg:hidden pt-2 border-t border-white/5">
                     <button
                       type="button"
                       onClick={() => {
@@ -3630,7 +3613,7 @@ export default function App() {
                       className="w-full py-3 px-4 bg-[#CCFF00] hover:bg-[#b8e600] text-black rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(204,255,0,0.18)] active:scale-98 uppercase tracking-wider"
                     >
                       <Trophy className="w-4 h-4 text-black" />
-                      <span>Lihat Poster ↓</span>
+                      <span>Lihat Keputusan &amp; Poster ↓</span>
                     </button>
                   </div>
 
@@ -3639,24 +3622,6 @@ export default function App() {
 
               {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings - Always Visible) */}
               <div id="quick-scorer-leaderboard" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
-
-                {/* Button Di Bahagian Atas Poster: Naik Atas Ke Posisi Isi Markah */}
-                <div className="flex items-center justify-between gap-2 bg-zinc-900/60 border border-white/5 rounded-2xl p-2.5 shadow-sm">
-                  <span className="text-xs font-black text-white pl-1 flex items-center gap-1.5">
-                    <Trophy className="w-4 h-4 text-[#CCFF00]" />
-                    <span>Poster</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className="py-1.5 px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-white/10 active:scale-95"
-                    title="Naik semula ke posisi borang pengisian markah"
-                  >
-                    <span>↑ Isi Markah</span>
-                  </button>
-                </div>
                 
                 {/* Clean State Helper Pill */}
                 {!hasAnyPlaygroundScores && (
@@ -3883,16 +3848,17 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Button Di Bawah Poster: Naik Semula Ke Posisi Isi Markah */}
-                <div>
+                {/* Strategic Action on Mobile: Return to Scoring Form */}
+                <div className="lg:hidden">
                   <button
                     type="button"
                     onClick={() => {
                       document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
-                    className="w-full py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 rounded-2xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-white/5 active:scale-95"
+                    className="w-full py-2.5 px-4 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-white/5 active:scale-95"
                   >
-                    <span>↑ Isi Markah</span>
+                    <ChevronLeft className="w-4 h-4 rotate-90 text-[#CCFF00]" />
+                    <span>Kembali Ke Borang Markah ↑</span>
                   </button>
                 </div>
 
@@ -5205,19 +5171,6 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                          {/* Mobile Shortcut to Live Leaderboard */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }}
-                            className="lg:hidden px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] rounded-xl text-xs font-black transition flex items-center gap-1 border border-white/10 active:scale-95"
-                            title="Tolak ke bawah untuk lihat poster"
-                          >
-                            <Trophy className="w-3.5 h-3.5 text-[#CCFF00]" />
-                            <span>Poster ↓</span>
-                          </button>
-
                           {/* Quick WhatsApp / Text Import Button */}
                           <button
                             type="button"
@@ -5548,24 +5501,6 @@ export default function App() {
                   {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
                   <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
-                    {/* Button Di Bahagian Atas Poster: Naik Atas Ke Posisi Isi Markah (Mobile UX Persis Scorer) */}
-                    <div className="flex items-center justify-between gap-2 bg-zinc-900/60 border border-white/5 rounded-2xl p-2.5 shadow-sm">
-                      <span className="text-xs font-black text-white pl-1 flex items-center gap-1.5">
-                        <Trophy className="w-4 h-4 text-[#CCFF00]" />
-                        <span>Poster</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
-                        className="py-1.5 px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-white/10 active:scale-95"
-                        title="Naik semula ke posisi borang pengisian markah"
-                      >
-                        <span>↑ Isi Markah</span>
-                      </button>
-                    </div>
-
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
                     <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl border border-white/10 text-xs">
                       <button
@@ -7461,26 +7396,40 @@ export default function App() {
         </div>
       )}
 
-      {/* FLOATING ACTION BUTTON ON MOBILE: SLEEK COMPACT CIRCULAR FAB */}
-      {activeTab === 'scorer' && (
+      {/* FLOATING ACTION PILL ON MOBILE: SLEEK ERGONOMIC THUMB ZONE SHORTCUT */}
+      {(activeTab === 'scorer' || activeTab === 'admin') && (
         <div className="lg:hidden fixed bottom-20 right-4 z-40">
           <button
             type="button"
             onClick={() => {
-              if (isScrolledToPoster) {
-                document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              if (activeTab === 'admin') {
+                if (isScrolledToPoster) {
+                  document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
               } else {
-                document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (isScrolledToPoster) {
+                  document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
               }
             }}
-            className="w-11 h-11 rounded-full bg-zinc-950/90 backdrop-blur-md text-[#CCFF00] border border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex items-center justify-center active:scale-95 transition-all"
+            className="px-3.5 py-2 rounded-full bg-zinc-950/95 backdrop-blur-md text-[#CCFF00] border border-[#CCFF00]/30 shadow-[0_4px_25px_rgba(0,0,0,0.65)] flex items-center gap-1.5 active:scale-95 transition-all text-xs font-black group"
             title={isScrolledToPoster ? 'Kembali ke borang isi markah' : 'Lihat pratonton poster'}
             aria-label={isScrolledToPoster ? 'Scroll to scoring' : 'Scroll to poster'}
           >
             {isScrolledToPoster ? (
-              <ChevronLeft className="w-5 h-5 rotate-90 text-[#CCFF00]" />
+              <>
+                <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#CCFF00]" />
+                <span>Borang Markah</span>
+              </>
             ) : (
-              <Trophy className="w-5 h-5 text-[#CCFF00]" />
+              <>
+                <Trophy className="w-3.5 h-3.5 text-[#CCFF00]" />
+                <span>Poster</span>
+              </>
             )}
           </button>
         </div>
