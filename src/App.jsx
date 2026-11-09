@@ -3009,12 +3009,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#CCFF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#CCFF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
       
-      {/* Decorative Ambient Glow (Electric Lime ~8%, blur 120px) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[360px] bg-[#CCFF00]/[0.08] rounded-full blur-[120px] pointer-events-none -z-0" />
-      <div className="absolute top-96 right-0 w-[450px] h-[320px] bg-[#CCFF00]/[0.03] rounded-full blur-[140px] pointer-events-none -z-0" />
-
       {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
       {toastMessage && (
         <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] bg-zinc-950/95 backdrop-blur-md text-[#CCFF00] px-4 py-2.5 rounded-full shadow-[0_0_25px_rgba(204,255,0,0.2)] font-black text-xs flex items-center space-x-2 border border-[#CCFF00]/40 animate-card-entrance max-w-[90vw] text-center">
@@ -3266,252 +3262,136 @@ export default function App() {
         {(activeTab === 'playground' || activeTab === 'home') && (
           <div className="space-y-4 sm:space-y-5">
             
-            {/* 1. HERO ACTION DOCK (CANVA + THREADS MINIMALIST HYBRID) */}
-            <div className="bg-gradient-to-b from-zinc-900/90 via-zinc-900/60 to-zinc-950/90 backdrop-blur-xl border border-white/10 rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden space-y-3.5">
-              {/* Decorative Ambient Accents */}
-              <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative z-10 space-y-3">
-                {/* Category Pill Tag (Threads-style micro pill) */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-zinc-300 text-[11px] font-mono">
-                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
-                  <span className="text-white font-bold">RYKHOR SCRIM HUB</span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="text-zinc-400">Pangkalan Data Rasmi MY</span>
+            {/* 1. HERO SECTION (OBSIDIAN STUDIO MATTE • SINGLE FOCUSED ACTION) */}
+            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-9 shadow-xl relative overflow-hidden">
+              <div className="relative z-10 space-y-4 max-w-2xl">
+                {/* Top Micro-Badge */}
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-300 text-[11px] font-mono font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00]" />
+                  <span>SISTEM POINT PMGC • AUTO-POSTER</span>
                 </div>
 
-                {/* Big Punchy Headline */}
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-                  Kira Markah Scrim.<br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-[#CCFF00]">
-                    Bina Legasi Pasukan.
+                {/* H1 Headline */}
+                <h1 className="text-2xl sm:text-4xl lg:text-[40px] font-black tracking-tight text-white leading-[1.18]">
+                  Tinggalkan Sheet Manual.<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#CCFF00]">
+                    Kira Scrim &amp; Jana Poster Sepantas Saat.
                   </span>
                 </h1>
 
-                {/* 1-Sentence Crisp Value Statement */}
-                <p className="text-xs sm:text-sm text-zinc-400 max-w-lg leading-relaxed">
-                  Kira markah PMGC sepantas saat, jana poster HD, dan himpunkan rekod konsistensi untuk pendedahan penaja &amp; rujukan scouting pro team.
+                {/* Sub-headline */}
+                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
+                  Kira markah automatik ikut format rasmi PMGC. Sekali klik terus siap poster result HD sedia kongsi ke WhatsApp/Discord tanpa perlu crop Excel.
                 </p>
 
-                {/* ACTION BUTTONS (PRIMARY CTA DOCK) */}
-                <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {/* SINGLE FOCUSED ACTION CTA + LOW-PROFILE SECONDARY */}
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3.5">
                   <button
                     type="button"
                     onClick={handleStartScoringSession}
-                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#CCFF00] hover:bg-[#b8e600] active:scale-95 text-black font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-[0_0_25px_rgba(204,255,0,0.25)] flex items-center justify-center gap-2 group cursor-pointer"
+                    className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] active:scale-[0.98] text-black font-bold text-sm tracking-wide transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     title="Mula kira markah sekarang di Quick Scorer tanpa login"
                   >
-                    <Zap className="w-4 h-4 fill-current group-hover:scale-110 transition-transform shrink-0" />
-                    <span>Mula Kira Pantas</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
+                    <span>Mula Kira Sekarang (Free)</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigateToTab('admin')}
-                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-white/10 hover:border-white/20 font-bold text-xs transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 font-medium text-xs sm:text-sm transition flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
                     title="Buka Portal Host untuk kejohanan rasmi dengan simpanan cloud"
                   >
-                    <ShieldCheck className="w-4 h-4 text-[#CCFF00] shrink-0" />
-                    <span>Portal Host (Cloud Hub)</span>
+                    <ShieldCheck className="w-4 h-4 text-zinc-400" />
+                    <span>Portal Host &amp; Cloud Hub</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* 2. CANVA-STYLE VISUAL ACTION TILES (VISUAL FIRST • 1-TAP DISCOVERY) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3 text-[#CCFF00]" />
-                  <span>PILIHAN ALATAN PANTAS</span>
-                </span>
-                <span className="text-[10px] text-zinc-500 font-mono">1-Tap Akses</span>
+            {/* 2. GRID ALATAN PANTAS (FEATURE CARDS MINIMALIS) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {/* Kad 1: Quick Scorer */}
+              <div
+                onClick={handleStartScoringSession}
+                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] border border-white/5 hover:border-zinc-700 rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 group-hover:text-[#CCFF00] group-hover:border-[#CCFF00]/40 transition shrink-0">
+                    <Zap className="w-5 h-5 fill-current" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm sm:text-base font-bold text-white group-hover:text-[#CCFF00] transition-colors truncate">
+                      Kira Segera (Quick)
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-0.5 leading-normal truncate">
+                      1–5 Match • Format PMGC • Tanpa Perlu Login
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                {/* Tile 1: Quick Scorer */}
-                <div
-                  onClick={handleStartScoringSession}
-                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 border border-[#CCFF00]/30 hover:border-[#CCFF00] rounded-2xl cursor-pointer transition-all duration-200 shadow-[0_0_20px_rgba(204,255,0,0.06)] flex flex-col justify-between gap-3 group active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-[#CCFF00] text-black flex items-center justify-center font-black transition-transform group-hover:scale-105 shrink-0 shadow-sm">
-                      <Zap className="w-5 h-5 fill-current" />
-                    </div>
-                    <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
-                      PANTAS
-                    </span>
+              {/* Kad 2: Portal Host & Scrim */}
+              <div
+                onClick={() => navigateToTab('admin')}
+                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] border border-white/5 hover:border-zinc-700 rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 group-hover:text-white group-hover:border-zinc-600 transition shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-[#CCFF00] transition-colors flex items-center gap-1">
-                      <span>Quick Scorer</span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#CCFF00]" />
+                  <div className="min-w-0">
+                    <div className="text-sm sm:text-base font-bold text-white group-hover:text-zinc-200 transition-colors truncate">
+                      Portal Host &amp; Scrim
                     </div>
-                    <div className="text-[11px] text-zinc-400 mt-0.5">
-                      1-5 Match • Tanpa Login
+                    <div className="text-xs text-zinc-400 mt-0.5 leading-normal truncate">
+                      Live Cloud Sync • Multi-Match • Rekod Standing
                     </div>
                   </div>
                 </div>
-
-                {/* Tile 2: Host Portal */}
-                <div
-                  onClick={() => navigateToTab('admin')}
-                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 hover:border-emerald-400/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-400 group-hover:text-black flex items-center justify-center font-black transition-all shrink-0">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-                      CLOUD
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-emerald-400 transition-colors flex items-center gap-1">
-                      <span>Host Portal</span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-emerald-400" />
-                    </div>
-                    <div className="text-[11px] text-zinc-400 mt-0.5">
-                      Cloud Sync • Co-Host
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tile 3: Live Standings */}
-                <div
-                  onClick={() => navigateToTab('history')}
-                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 hover:border-amber-400/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 group-hover:bg-amber-400 group-hover:text-black flex items-center justify-center font-black transition-all shrink-0">
-                      <Trophy className="w-5 h-5" />
-                    </div>
-                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/25">
-                      ARKIB
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-amber-400 transition-colors flex items-center gap-1">
-                      <span>Live Standings</span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-amber-400" />
-                    </div>
-                    <div className="text-[11px] text-zinc-400 mt-0.5">
-                      Carta Markah &amp; Rekod
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tile 4: Hall of Fame */}
-                <div
-                  onClick={() => navigateToTab('teams')}
-                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 hover:border-indigo-400/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-400 group-hover:text-black flex items-center justify-center font-black transition-all shrink-0">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
-                      EKOSISTEM
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-indigo-400 transition-colors flex items-center gap-1">
-                      <span>Hall of Fame</span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-indigo-400" />
-                    </div>
-                    <div className="text-[11px] text-zinc-400 mt-0.5">
-                      Database Pasukan Rasmi
-                    </div>
-                  </div>
-                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
             </div>
 
-            {/* 3. THREADS-STYLE VISUAL ECOSYSTEM STRIP (MORE VISUAL, ZERO ESSAY) */}
-            <div
-              onClick={() => navigateToTab('teams')}
-              className="p-3.5 sm:p-4 bg-gradient-to-r from-zinc-900/80 via-zinc-900/60 to-indigo-950/30 border border-white/10 hover:border-indigo-500/40 rounded-2xl cursor-pointer transition-all duration-200 group active:scale-[0.99] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30">
-                  <Database className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs sm:text-sm font-black text-white group-hover:text-indigo-300 transition-colors">
-                      Pangkalan Data Kolektif Pasukan
-                    </span>
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      MALAYSIA
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 text-[11px] text-zinc-400 mt-1 flex-wrap font-sans">
-                    <span className="inline-flex items-center gap-1">
-                      <Globe className="w-3 h-3 text-emerald-400" />
-                      Semua Admin MY
-                    </span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="inline-flex items-center gap-1">
-                      <Award className="w-3 h-3 text-[#CCFF00]" />
-                      Pitch Penaja
-                    </span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="inline-flex items-center gap-1">
-                      <Crosshair className="w-3 h-3 text-indigo-400" />
-                      Scouting Pro
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="self-end sm:self-center flex items-center gap-1 text-xs font-black text-indigo-400 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all shrink-0">
-                <span>Terokai Database</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </div>
-
-            {/* 4. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
+            {/* 3. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
             {scrims.length > 0 && (
               <div
                 onClick={() => {
                   setSelectedScrimId(scrims[0].id);
                   navigateToTab('history');
                 }}
-                className="p-3 sm:p-3.5 bg-zinc-900/40 hover:bg-zinc-900/70 border border-white/5 hover:border-[#CCFF00]/30 rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group"
+                className="p-3.5 bg-[#121214] hover:bg-[#161619] border border-white/5 hover:border-zinc-700 rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-mono font-bold text-zinc-400 block">Sesi Terkini Diarkib</span>
-                    <span className="text-xs sm:text-sm font-black text-white truncate block group-hover:text-[#CCFF00] transition-colors">
+                    <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block">Sesi Terkini Diarkib</span>
+                    <span className="text-xs sm:text-sm font-bold text-white truncate block">
                       {scrims[0].title || 'PUBG Mobile Scrim'}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-[#CCFF00] shrink-0">
+                <div className="flex items-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-[#CCFF00] transition-colors shrink-0">
                   <span className="hidden sm:inline">Lihat Keputusan</span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
             )}
 
-            {/* 5. WORKFLOW VALUES: INTERACTIVE FAQ DROPDOWNS (LESS IS MORE) */}
-            <div className="space-y-3 pt-1">
+            {/* 4. WORKFLOW VALUES: INTERACTIVE FAQ DROPDOWNS (LESS IS MORE) */}
+            <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between px-1">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
-                    <span className="text-[10px] font-mono uppercase font-black text-[#CCFF00] tracking-wider">
-                      KENAPA BERALIH DARI GOOGLE SHEET?
-                    </span>
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 text-[11px] font-mono font-medium text-zinc-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00]" />
+                    <span>PERBANDINGAN GOOGLE SHEETS</span>
                   </div>
-                  <h2 className="text-xs sm:text-sm font-black text-white">
-                    Soalan Lazim &amp; Solusi Pantas
+                  <h2 className="text-sm sm:text-base font-bold text-white">
+                    Kenapa Perlu Beralih Dari Spreadsheet Manual?
                   </h2>
                 </div>
-                <span className="text-[10px] text-zinc-400 hidden sm:inline font-mono">
+                <span className="text-[10px] text-zinc-500 hidden sm:inline font-mono">
                   Tekan soalan untuk penerangan ringkas
                 </span>
               </div>
@@ -3524,31 +3404,31 @@ export default function App() {
                       key={faq.id}
                       className={'rounded-2xl border transition-all duration-200 overflow-hidden ' + (
                         isOpen
-                          ? 'bg-zinc-900/80 border-[#CCFF00]/30 shadow-[0_0_20px_rgba(204,255,0,0.06)]'
-                          : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-white/5 hover:border-white/10'
+                          ? 'bg-[#121214] border-zinc-700'
+                          : 'bg-[#121214] hover:bg-[#161619] border-white/5 hover:border-zinc-800'
                       )}
                     >
                       {/* Dropdown Button: Soalan */}
                       <button
                         type="button"
                         onClick={() => setExpandedWhyIdx(isOpen ? null : idx)}
-                        className="w-full text-left p-3.5 sm:p-4 flex items-center justify-between gap-3 group transition cursor-pointer"
+                        className="w-full text-left p-4 sm:p-4.5 flex items-center justify-between gap-3 group transition cursor-pointer"
                         aria-expanded={isOpen}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={'w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-colors ' + (
+                          <div className={'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ' + (
                             isOpen
                               ? 'bg-[#CCFF00] text-black font-black'
-                              : 'bg-zinc-800 text-zinc-400 group-hover:text-white'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 group-hover:text-white'
                           )}>
-                            <HelpCircle className="w-3.5 h-3.5" />
+                            <HelpCircle className="w-4 h-4" />
                           </div>
                           <div className="min-w-0 space-y-0.5">
-                            <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-400 block">
+                            <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-500 block">
                               {faq.badge}
                             </span>
                             <h3 className={'text-xs sm:text-sm font-bold transition-colors leading-snug ' + (
-                              isOpen ? 'text-[#CCFF00]' : 'text-zinc-200 group-hover:text-white'
+                              isOpen ? 'text-white' : 'text-zinc-200 group-hover:text-white'
                             )}>
                               {faq.question}
                             </h3>
@@ -3557,12 +3437,12 @@ export default function App() {
 
                         <div className="flex items-center gap-2 shrink-0">
                           <span className={'text-[10px] font-mono font-bold hidden sm:inline ' + (
-                            isOpen ? 'text-[#CCFF00]' : 'text-zinc-500'
+                            isOpen ? 'text-zinc-300' : 'text-zinc-500'
                           )}>
                             {isOpen ? 'Tutup' : 'Penerangan'}
                           </span>
-                          <div className={'w-6 h-6 rounded-lg bg-zinc-800 flex items-center justify-center transition-transform duration-200 ' + (
-                            isOpen ? 'rotate-180 bg-[#CCFF00]/20 text-[#CCFF00]' : 'text-zinc-400'
+                          <div className={'w-6 h-6 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center transition-transform duration-200 ' + (
+                            isOpen ? 'rotate-180 bg-zinc-800 text-white' : 'text-zinc-400'
                           )}>
                             <ChevronDown className="w-3.5 h-3.5" />
                           </div>
@@ -3571,7 +3451,7 @@ export default function App() {
 
                       {/* Dropdown Content: Penerangan */}
                       {isOpen && (
-                        <div className="px-3.5 sm:px-4 pb-4 pt-1 border-t border-white/5 space-y-2.5 animate-in fade-in duration-150">
+                        <div className="px-4 sm:px-4.5 pb-4 pt-1 border-t border-zinc-800/80 space-y-2.5 animate-in fade-in duration-150">
                           <p className="text-xs text-zinc-300 leading-relaxed font-sans">
                             {faq.answer}
                           </p>
@@ -3580,7 +3460,7 @@ export default function App() {
                             {faq.highlights.map((h, hIdx) => (
                               <span
                                 key={hIdx}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950/80 border border-white/5 text-[10px] font-mono text-zinc-300"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300"
                               >
                                 <Check className="w-3 h-3 text-[#CCFF00]" />
                                 <span>{h}</span>
