@@ -384,6 +384,64 @@ export default function App() {
   const [isScrolledToPoster, setIsScrolledToPoster] = useState(false);
   const [expandedWhyIdx, setExpandedWhyIdx] = useState(0);
 
+  // Homepage Interactive Card Slider State (4 cards + 2 clones for seamless forward loop)
+  const HOME_SLIDER_TOTAL = 4;
+  const [homeSlideTrackIdx, setHomeSlideTrackIdx] = useState(0);
+  const [isHomeSliderAnimating, setIsHomeSliderAnimating] = useState(true);
+  const [isHomeSliderPaused, setIsHomeSliderPaused] = useState(false);
+  const homeSliderTouchStartX = useRef(null);
+
+  const activeHomeSlide = homeSlideTrackIdx % HOME_SLIDER_TOTAL;
+
+  const advanceHomeSlider = useCallback(() => {
+    setIsHomeSliderAnimating(true);
+    setHomeSlideTrackIdx(prev => (prev >= HOME_SLIDER_TOTAL ? 1 : prev + 1));
+  }, []);
+
+  const prevHomeSlider = useCallback(() => {
+    setIsHomeSliderAnimating(true);
+    setHomeSlideTrackIdx(prev => (prev <= 0 ? HOME_SLIDER_TOTAL - 1 : prev - 1));
+  }, []);
+
+  const goToHomeSlide = useCallback((targetIdx) => {
+    setIsHomeSliderAnimating(true);
+    setHomeSlideTrackIdx(targetIdx);
+  }, []);
+
+  useEffect(() => {
+    if (homeSlideTrackIdx === HOME_SLIDER_TOTAL) {
+      const resetTimer = setTimeout(() => {
+        setIsHomeSliderAnimating(false);
+        setHomeSlideTrackIdx(0);
+      }, 700);
+      return () => clearTimeout(resetTimer);
+    }
+    if (!isHomeSliderAnimating && homeSlideTrackIdx === 0) {
+      let raf2;
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
+          setIsHomeSliderAnimating(true);
+        });
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        if (raf2) cancelAnimationFrame(raf2);
+      };
+    }
+  }, [homeSlideTrackIdx, isHomeSliderAnimating]);
+
+  useEffect(() => {
+    if (activeTab !== 'playground' && activeTab !== 'home') return;
+    if (isHomeSliderPaused) return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    const interval = setInterval(() => {
+      advanceHomeSlider();
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [activeTab, isHomeSliderPaused, advanceHomeSlider, homeSlideTrackIdx]);
+
   const [playgroundSession, setPlaygroundSession] = useState(() => {
     try {
       const saved = localStorage.getItem('scrim_active_match');
@@ -3323,232 +3381,418 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
 
         {/* VIEW 0: PLAYGROUND SPLIT-SCREEN WORKSPACE (ROOT ROUTE /) */}
-        {(activeTab === 'playground' || activeTab === 'home') && (
-          <div className="space-y-4 sm:space-y-5">
-            
-            {/* 1. HERO SECTION (OBSIDIAN STUDIO MATTE • SINGLE FOCUSED ACTION) */}
-            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-6 sm:p-9 shadow-xl relative overflow-hidden">
-              <div className="relative z-10 space-y-4 max-w-2xl">
-                {/* Top Micro-Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-300 text-[11px] font-mono font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
-                  <span>SISTEM POINT PMGC • AUTO-POSTER</span>
-                </div>
-
-                {/* H1 Headline */}
-                <h1 className="text-2xl sm:text-4xl lg:text-[40px] font-black tracking-tight text-white leading-[1.18]">
-                  Tinggalkan Sheet Manual.<br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#D7FF00]">
-                    Kira Scrim &amp; Jana Poster Sepantas Saat.
-                  </span>
-                </h1>
-
-                {/* Sub-headline */}
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
-                  Kira markah automatik ikut format rasmi PMGC. Sekali klik terus siap poster result HD sedia kongsi ke WhatsApp/Discord tanpa perlu crop Excel.
-                </p>
-
-                {/* SINGLE FOCUSED ACTION CTA + LOW-PROFILE SECONDARY */}
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3.5">
-                  <button
-                    type="button"
-                    onClick={handleStartScoringSession}
-                    className="w-full sm:w-auto px-6 py-2.5 sm:py-3 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] active:scale-[0.98] text-black transition flex items-center justify-center gap-3.5 cursor-pointer shadow-sm group"
-                    title="Mula kira markah sekarang di Quick Scorer tanpa login"
-                  >
-                    <Zap className="w-4 h-4 fill-black text-black shrink-0" />
-                    <div className="flex flex-col items-start text-left leading-tight">
-                      <span className="text-sm sm:text-base font-black tracking-tight text-black">
-                        Quick Score
-                      </span>
-                      <span className="text-[10px] sm:text-[11px] font-bold text-black/80 tracking-normal mt-0.5">
-                        Mula Kira Sekarang
-                      </span>
+        {(activeTab === 'playground' || activeTab === 'home') && (() => {
+          const activeTeamsCount = Math.max(Object.keys(teamsStats || {}).length, 16);
+          const homeSliderCards = [
+            {
+              id: 'cara-baru-cepat',
+              title: 'Cara Baru & Cepat',
+              icon: Zap,
+              badge: 'VS GOOGLE SHEET',
+              description: 'Sheet mudah rosak & tiada auto-tiebreaker. Di sini kiraan PMGC dan poster Standings HD siap serentak dalam saat.',
+              footerText: 'Ganti Google Sheet & Canva serentak',
+              onAction: handleStartScoringSession,
+              renderVisual: () => (
+                <div className="relative pt-2 pb-1 flex flex-col items-center justify-center">
+                  {/* Semi-circle gauge inspired by reference Card 1 */}
+                  <svg viewBox="0 0 200 105" className="w-44 sm:w-48 h-auto overflow-visible">
+                    <path
+                      d="M 20 95 A 80 80 0 0 1 180 95"
+                      fill="none"
+                      stroke="#27272A"
+                      strokeWidth="14"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M 20 95 A 80 80 0 0 1 158 40"
+                      fill="none"
+                      stroke="#D7FF00"
+                      strokeWidth="14"
+                      strokeLinecap="round"
+                      className="drop-shadow-[0_0_10px_rgba(215,255,0,0.35)]"
+                    />
+                  </svg>
+                  <div className="-mt-10 text-center">
+                    <div className="flex items-baseline justify-center gap-1.5">
+                      <span className="text-3xl sm:text-4xl font-black tracking-tight text-white font-mono">10</span>
+                      <span className="text-xs sm:text-sm text-zinc-400 font-semibold">saat</span>
                     </div>
-                    <ArrowRight className="w-4 h-4 stroke-[2.5] text-black group-hover:translate-x-0.5 transition-transform shrink-0" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => navigateToTab('admin')}
-                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 font-medium text-xs sm:text-sm transition flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
-                    title="Buka Portal Host untuk kejohanan rasmi dengan simpanan cloud"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-zinc-400" />
-                    <span>Portal Host &amp; Cloud Hub</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. GRID ALATAN PANTAS (FEATURE CARDS MINIMALIS) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {/* Kad 1: Quick Scorer */}
-              <div
-                onClick={handleStartScoringSession}
-                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99] shadow-md"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/40 transition shrink-0">
-                    <Zap className="w-5 h-5 fill-current" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm sm:text-base font-bold text-white group-hover:text-[#D7FF00] transition-colors truncate">
-                      Kira Segera (Quick)
-                    </div>
-                    <div className="text-xs text-zinc-400 mt-0.5 leading-normal truncate">
-                      1–5 Match • Format PMGC • Tanpa Perlu Login
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
-              </div>
-
-              {/* Kad 2: Portal Host & Scrim */}
-              <div
-                onClick={() => navigateToTab('admin')}
-                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99] shadow-md"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 group-hover:text-white group-hover:border-zinc-600 transition shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm sm:text-base font-bold text-white group-hover:text-zinc-200 transition-colors truncate">
-                      Portal Host &amp; Scrim
-                    </div>
-                    <div className="text-xs text-zinc-400 mt-0.5 leading-normal truncate">
-                      Live Cloud Sync • Multi-Match • Rekod Standing
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
-              </div>
-            </div>
-
-            {/* 3. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
-            {scrims.length > 0 && (
-              <div
-                onClick={() => {
-                  setSelectedScrimId(scrims[0].id);
-                  navigateToTab('history');
-                }}
-                className="p-3.5 bg-[#121214] hover:bg-[#161619] rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group shadow-md"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse shrink-0 shadow-[0_0_8px_rgba(0,240,255,0.6)]" />
-                  <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block">Sesi Terkini Diarkib</span>
-                    <span className="text-xs sm:text-sm font-bold text-white truncate block">
-                      {scrims[0].title || 'PUBG Mobile Scrim'}
+                    <span className="text-[10px] font-mono text-zinc-500 line-through block">
+                      30 minit Sheet + Canva
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-[#D7FF00] transition-colors shrink-0">
-                  <span className="hidden sm:inline">Lihat Keputusan</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </div>
-            )}
-
-            {/* 4. WORKFLOW VALUES: INTERACTIVE FAQ DROPDOWNS (LESS IS MORE) */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between px-1">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-2 text-[11px] font-mono font-medium text-zinc-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
-                    <span>PERBANDINGAN GOOGLE SHEETS</span>
-                  </div>
-                  <h2 className="text-sm sm:text-base font-bold text-white">
-                    Kenapa Perlu Beralih Dari Spreadsheet Manual?
-                  </h2>
-                </div>
-                <span className="text-[10px] text-zinc-500 hidden sm:inline font-mono">
-                  Tekan soalan untuk penerangan ringkas
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {WHY_SWITCH_FAQS.map((faq, idx) => {
-                  const isOpen = expandedWhyIdx === idx;
-                  return (
-                    <div
-                      key={faq.id}
-                      className={'rounded-2xl transition-all duration-200 overflow-hidden shadow-md ' + (
-                        isOpen
-                          ? 'bg-[#161619]'
-                          : 'bg-[#121214] hover:bg-[#161619]'
-                      )}
-                    >
-                      {/* Dropdown Button: Soalan */}
-                      <button
-                        type="button"
-                        onClick={() => setExpandedWhyIdx(isOpen ? null : idx)}
-                        className="w-full text-left p-4 sm:p-4.5 flex items-center justify-between gap-3 group transition cursor-pointer"
-                        aria-expanded={isOpen}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ' + (
-                            isOpen
-                              ? 'bg-[#D7FF00] text-black font-black'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 group-hover:text-white'
-                          )}>
-                            <HelpCircle className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0 space-y-0.5">
-                            <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-500 block">
-                              {faq.badge}
-                            </span>
-                            <h3 className={'text-xs sm:text-sm font-bold transition-colors leading-snug ' + (
-                              isOpen ? 'text-white' : 'text-zinc-200 group-hover:text-white'
-                            )}>
-                              {faq.question}
-                            </h3>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={'text-[10px] font-mono font-bold hidden sm:inline ' + (
-                            isOpen ? 'text-zinc-300' : 'text-zinc-500'
-                          )}>
-                            {isOpen ? 'Tutup' : 'Penerangan'}
-                          </span>
-                          <div className={'w-6 h-6 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center transition-transform duration-200 ' + (
-                            isOpen ? 'rotate-180 bg-zinc-800 text-white' : 'text-zinc-400'
-                          )}>
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                      </button>
-
-                      {/* Dropdown Content: Penerangan */}
-                      {isOpen && (
-                        <div className="px-4 sm:px-4.5 pb-4 pt-1 border-t border-zinc-800/80 space-y-2.5 animate-in fade-in duration-150">
-                          <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-                            {faq.answer}
-                          </p>
-
-                          <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                            {faq.highlights.map((h, hIdx) => (
-                              <span
-                                key={hIdx}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300"
-                              >
-                                <Check className="w-3 h-3 text-[#D7FF00]" />
-                                <span>{h}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+              )
+            },
+            {
+              id: 'portfolio-pasukan',
+              title: 'Portfolio Pasukan & Penaja',
+              icon: Award,
+              badge: 'HALL OF FAME',
+              description: 'Rekod match se-Malaysia disimpan kolektif — jadi portfolio rasmi untuk pitching tajaan & scouting bakat baru.',
+              footerText: 'Teroka Database Hall of Fame →',
+              onAction: () => navigateToTab('teams'),
+              renderVisual: () => (
+                <div className="relative py-2 flex items-end justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="text-3xl sm:text-4xl font-black tracking-tight text-white font-mono">
+                      {activeTeamsCount}+
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <div className="text-xs font-bold text-zinc-300 leading-snug">
+                      Skuad &amp; Rekod<br />
+                      <span className="text-[#D7FF00]">Kolektif Malaysia</span>
+                    </div>
+                  </div>
+                  {/* Ascending bar chart inspired by reference Card 2 */}
+                  <div className="flex items-end gap-1.5 h-20 pt-2">
+                    <div className="w-5 h-7 rounded-t-md bg-zinc-800/90" />
+                    <div className="w-5 h-11 rounded-t-md bg-zinc-700/80" />
+                    <div className="w-5 h-15 rounded-t-md bg-[#D7FF00]/40" />
+                    <div className="w-5 h-20 rounded-t-md bg-[#D7FF00] shadow-[0_0_12px_rgba(215,255,0,0.3)]" />
+                  </div>
+                </div>
+              )
+            },
+            {
+              id: 'quick-scorer',
+              title: 'Kira Segera (Quick Scorer)',
+              icon: Zap,
+              badge: 'TANPA LOGIN',
+              description: 'Kalkulator markah scrim pantas di browser — terus isi kedudukan & kills setiap pusingan tanpa perlu daftar akaun.',
+              pills: ['1–5 Match', 'Format Point PMPL', 'Tanpa Login'],
+              footerText: 'Buka Quick Scorer Sekarang →',
+              onAction: handleStartScoringSession,
+              renderVisual: () => (
+                <div className="py-2 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+                      1–5 Match
+                    </div>
+                    <div className="text-xs font-semibold text-zinc-400 mt-0.5">
+                      Kira Markah &amp; Auto-Poster HD
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-[0_0_18px_rgba(215,255,0,0.3)] shrink-0">
+                    <Zap className="w-6 h-6 fill-black text-black" />
+                  </div>
+                </div>
+              )
+            },
+            {
+              id: 'portal-host',
+              title: 'Portal Host & Scrim',
+              icon: ShieldCheck,
+              badge: 'CLOUD HUB',
+              description: 'Pusat kawalan penganjur rasmi dengan simpanan awan automatik, pusingan fleksibel & jemputan Co-Host.',
+              pills: ['Live Cloud Sync', 'Detailed', 'Rekod Standing'],
+              footerText: 'Buka Portal Host & Scrim →',
+              onAction: () => navigateToTab('admin'),
+              renderVisual: () => (
+                <div className="py-2 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+                      Cloud Sync
+                    </div>
+                    <div className="text-xs font-semibold text-zinc-400 mt-0.5">
+                      Multi-Match &amp; Arkib Rasmi
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                </div>
+              )
+            }
+          ];
 
-          </div>
-        )}
+          // 4 cards + first 2 cloned at the end so transition 3 -> 4 (0-clone) always shrinks left & grows from right
+          const extendedTrackCards = [
+            ...homeSliderCards,
+            homeSliderCards[0],
+            homeSliderCards[1]
+          ];
+
+          return (
+            <div className="max-w-xl lg:max-w-2xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-4">
+              
+              {/* 1. TOP MICRO-BAR (Following Reference: Brand Left + Action Link Right) */}
+              <div className="flex items-center justify-between px-1">
+                <div className="inline-flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/15 text-[#D7FF00] flex items-center justify-center">
+                    <Crosshair className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-mono font-bold tracking-wider text-zinc-300 uppercase">
+                    Scrim Hub • PMGC
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenGuide(0)}
+                  className="text-xs font-semibold text-zinc-400 hover:text-[#D7FF00] underline underline-offset-4 transition cursor-pointer"
+                >
+                  Panduan
+                </button>
+              </div>
+
+              {/* 2. HERO HEADLINE BLOCK (3-Line Bold Hierarchy + Inline Icon Pills + Right Brand Emblem) */}
+              <div className="relative px-1">
+                {/* Geometric X-Arc Emblem on the Right (Following Reference Top-Right Graphic) */}
+                <div
+                  aria-hidden="true"
+                  className="absolute right-1 top-0 w-24 h-24 sm:w-32 sm:h-32 pointer-events-none select-none opacity-90"
+                >
+                  <svg viewBox="0 0 120 120" className="w-full h-full">
+                    <path
+                      d="M 22 18 A 38 38 0 0 0 98 18"
+                      fill="none"
+                      stroke="#D7FF00"
+                      strokeOpacity="0.22"
+                      strokeWidth="16"
+                      strokeLinecap="square"
+                    />
+                    <path
+                      d="M 22 102 A 38 38 0 0 1 98 102"
+                      fill="none"
+                      stroke="#D7FF00"
+                      strokeOpacity="0.22"
+                      strokeWidth="16"
+                      strokeLinecap="square"
+                    />
+                  </svg>
+                </div>
+
+                <div className="relative z-10 space-y-3 max-w-lg">
+                  <h1 className="text-[30px] sm:text-5xl font-black tracking-tight text-white leading-[1.12]">
+                    <span className="inline-flex items-center gap-2 sm:gap-2.5">
+                      <span>Kira</span>
+                      <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00] text-black shadow-[0_0_16px_rgba(215,255,0,0.35)]">
+                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-black text-black" />
+                      </span>
+                      <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00]/20 text-[#D7FF00]">
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#D7FF00]" />
+                      </span>
+                    </span>
+                    <span className="block mt-1">Markah Scrim &amp;</span>
+                    <span className="block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#D7FF00]">
+                      Poster Sepantas Saat
+                    </span>
+                  </h1>
+
+                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-md">
+                    Susun kedudukan &amp; tiebreaker automatik supaya anda tak perlu lagi baiki formula spreadsheet atau lukis poster manual.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. INTERACTIVE 4-SECOND AUTO SLIDER (Shrink Left -> Next Card Enters From Right & Grows) */}
+              <div
+                className="relative select-none"
+                onMouseEnter={() => setIsHomeSliderPaused(true)}
+                onMouseLeave={() => setIsHomeSliderPaused(false)}
+                onTouchStart={(e) => {
+                  setIsHomeSliderPaused(true);
+                  homeSliderTouchStartX.current = e.touches[0]?.clientX ?? null;
+                }}
+                onTouchEnd={(e) => {
+                  const startX = homeSliderTouchStartX.current;
+                  const endX = e.changedTouches[0]?.clientX ?? null;
+                  if (startX !== null && endX !== null) {
+                    const diff = startX - endX;
+                    if (diff > 40) {
+                      advanceHomeSlider();
+                    } else if (diff < -40) {
+                      prevHomeSlider();
+                    }
+                  }
+                  homeSliderTouchStartX.current = null;
+                  setTimeout(() => setIsHomeSliderPaused(false), 2500);
+                }}
+              >
+                <div className="overflow-hidden py-2 px-1">
+                  <div
+                    className={
+                      'flex items-stretch [--slide-w:78%] sm:[--slide-w:66%] ' +
+                      (isHomeSliderAnimating
+                        ? 'transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]'
+                        : 'transition-none')
+                    }
+                    style={{
+                      transform: `translate3d(calc(var(--slide-w) * -${homeSlideTrackIdx}), 0, 0)`
+                    }}
+                  >
+                    {extendedTrackCards.map((card, slotIdx) => {
+                      const CardIcon = card.icon;
+                      const isActive = slotIdx === homeSlideTrackIdx;
+                      const isPast = slotIdx < homeSlideTrackIdx;
+
+                      return (
+                        <div
+                          key={`${card.id}-${slotIdx}`}
+                          className="w-[var(--slide-w)] shrink-0 pr-3 sm:pr-4"
+                        >
+                          <div
+                            onClick={() => {
+                              if (!isActive) {
+                                if (slotIdx === homeSlideTrackIdx + 1) {
+                                  advanceHomeSlider();
+                                } else {
+                                  goToHomeSlide(slotIdx % HOME_SLIDER_TOTAL);
+                                }
+                              } else if (card.onAction) {
+                                card.onAction();
+                              }
+                            }}
+                            className={
+                              'h-full rounded-3xl p-5 sm:p-6 flex flex-col justify-between cursor-pointer ' +
+                              (isHomeSliderAnimating
+                                ? 'transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] '
+                                : 'transition-none ') +
+                              (isActive
+                                ? 'bg-[#121214] scale-100 opacity-100 shadow-2xl origin-center'
+                                : isPast
+                                ? 'bg-[#121214]/70 scale-[0.86] opacity-35 shadow-md origin-right'
+                                : 'bg-[#121214]/80 scale-[0.88] opacity-60 hover:opacity-85 shadow-lg origin-left')
+                            }
+                          >
+                            {/* Top Row: Icon + Card Title */}
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-7 h-7 rounded-full bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0">
+                                    <CardIcon className="w-3.5 h-3.5" />
+                                  </div>
+                                  <h2 className="text-xs sm:text-sm font-bold text-white truncate">
+                                    {card.title}
+                                  </h2>
+                                </div>
+                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 shrink-0">
+                                  {card.badge}
+                                </span>
+                              </div>
+
+                              {/* Center Graphic / Metric */}
+                              {card.renderVisual()}
+
+                              {/* Concise Text Description */}
+                              <p className="text-xs text-zinc-400 leading-relaxed">
+                                {card.description}
+                              </p>
+
+                              {/* Feature Pills (for Cards 3 & 4) */}
+                              {card.pills && (
+                                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                  {card.pills.map((pill, pIdx) => (
+                                    <span
+                                      key={pIdx}
+                                      className="px-2.5 py-1 rounded-lg bg-zinc-900 text-[10px] font-mono font-bold text-[#D7FF00]"
+                                    >
+                                      {pill}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Bottom Highlight Pill (Following Reference Card Footer Pill) */}
+                            <div className="mt-4 pt-3 border-t border-white/5">
+                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 text-[11px] font-semibold text-zinc-200 w-full">
+                                <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black flex items-center justify-center shrink-0">
+                                  <ArrowRight className="w-3 h-3 stroke-[2.5]" />
+                                </span>
+                                <span className="truncate">{card.footerText}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Slider Progress Dots & Manual Controls */}
+                <div className="flex items-center justify-between px-2 pt-1">
+                  <div className="flex items-center gap-1.5">
+                    {homeSliderCards.map((c, idx) => {
+                      const isCurrent = activeHomeSlide === idx;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => goToHomeSlide(idx)}
+                          aria-label={`Paparkan kad ${c.title}`}
+                          className={
+                            'h-1.5 rounded-full transition-all duration-300 cursor-pointer ' +
+                            (isCurrent ? 'w-6 bg-[#D7FF00]' : 'w-2 bg-zinc-800 hover:bg-zinc-700')
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    {activeHomeSlide + 1} / {HOME_SLIDER_TOTAL} • Geser atau tekan kad
+                  </span>
+                </div>
+              </div>
+
+              {/* 4. FULL-WIDTH PILL CTA BUTTON (Following Reference "Let's get started! (>)") */}
+              <div className="space-y-3 pt-1 px-1">
+                <button
+                  type="button"
+                  onClick={handleStartScoringSession}
+                  className="w-full p-2 pl-6 rounded-full bg-[#161619] hover:bg-[#1c1c20] active:scale-[0.99] text-white transition-all flex items-center justify-between shadow-2xl cursor-pointer group"
+                  title="Mula kira markah sekarang di Quick Scorer tanpa login"
+                >
+                  <span className="text-sm sm:text-base font-bold tracking-tight text-white mx-auto pr-4">
+                    Mula Kira Sekarang!
+                  </span>
+                  <span className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#D7FF00] group-hover:bg-[#c2e600] text-black flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(215,255,0,0.3)] group-hover:translate-x-0.5 transition-all">
+                    <ChevronRight className="w-5 h-5 stroke-[2.5] text-black" />
+                  </span>
+                </button>
+
+                {/* Secondary Sign-In / Host Portal Link (Following Reference "Already have an account? Sign in") */}
+                <div className="text-center text-xs text-zinc-400">
+                  <span>Penganjur kejohanan rasmi? </span>
+                  <button
+                    type="button"
+                    onClick={() => navigateToTab('admin')}
+                    className="font-black text-white hover:text-[#D7FF00] underline decoration-[#D7FF00]/60 underline-offset-4 transition cursor-pointer"
+                  >
+                    Buka Portal Host
+                  </button>
+                </div>
+              </div>
+
+              {/* 5. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
+              {scrims.length > 0 && (
+                <div
+                  onClick={() => {
+                    setSelectedScrimId(scrims[0].id);
+                    navigateToTab('history');
+                  }}
+                  className="p-3.5 bg-[#121214] hover:bg-[#161619] rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group shadow-md mx-1"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block">Sesi Terkini Diarkib</span>
+                      <span className="text-xs sm:text-sm font-bold text-white truncate block">
+                        {scrims[0].title || 'PUBG Mobile Scrim'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-[#D7FF00] transition-colors shrink-0">
+                    <span className="hidden sm:inline">Lihat Keputusan</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              )}
+
+            </div>
+          );
+        })()}
 
         {/* DEDICATED QUICK SCORER TAB (KHAS TEMPAT KIRA QUICK SCORE) */}
         {activeTab === 'scorer' && (
