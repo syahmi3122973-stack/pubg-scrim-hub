@@ -671,6 +671,28 @@ export default function App() {
     });
   };
 
+
+
+  const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
+  const [inputMap, setInputMap] = useState('Erangel');
+
+
+  
+  // Dynamic Match Slots
+  const [matchSlots, setMatchSlots] = useState(() => {
+    return Array.from({ length: 16 }, (_, idx) => ({
+      slot: idx + 1,
+      teamId: '',
+      teamName: '',
+      tag: '',
+      placement: '',
+      kills: 0,
+      placePts: 0,
+      totalPts: 0
+    }));
+  });
+
+  
   const handleParseAndImportTeams = () => {
     if (!importRawText.trim()) return;
 
@@ -699,6 +721,31 @@ export default function App() {
 
     if (extracted.length === 0) {
       showToast('Tiada nama pasukan dikesan. Sila pastikan teks mengandungi senarai nama.');
+      return;
+    }
+
+    if (activeTab === 'admin') {
+      const targetCount = Math.min(24, Math.max(matchSlots.length || 16, extracted.length));
+      setMatchSlots(prev => {
+        return Array.from({ length: targetCount }, (_, idx) => {
+          const existingSlot = prev[idx];
+          const newTeamName = extracted[idx] || existingSlot?.teamName || `Slot ${idx + 1}`;
+          return {
+            slot: idx + 1,
+            teamId: existingSlot?.teamId || '',
+            teamName: newTeamName,
+            tag: existingSlot?.tag || '',
+            placement: existingSlot?.placement ?? '',
+            kills: existingSlot?.kills ?? 0,
+            placePts: existingSlot?.placePts ?? 0,
+            totalPts: existingSlot?.totalPts ?? 0,
+            wwcd: existingSlot?.wwcd ?? false
+          };
+        });
+      });
+      showToast(`Berjaya import ${extracted.length} pasukan ke sesi Host.`);
+      setIsImportModalOpen(false);
+      setImportRawText('');
       return;
     }
 
@@ -1239,9 +1286,107 @@ export default function App() {
     }
   }, [adminHostedScrims, adminSelectedScrimId]);
 
+  const fallbackDraftScrim = useMemo(() => {
+    if (!currentUser) return null;
+    const hostDisplayName = profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Host Admin');
+    const defaultMatches = PLAYGROUND_DEFAULT_MAPS.map((mapName, mIdx) => ({
+      matchNo: mIdx + 1,
+      map: mapName,
+      results: []
+    }));
+    return {
+      id: 'scrim_draft_' + currentUser.id,
+      title: 'Official Scrim - Session 1',
+      event_type: 'Scrim',
+      tier: 'Tier 1 (Pro)',
+      description: 'Official PUBG Mobile Scrim Session.',
+      date: new Date().toISOString().split('T')[0],
+      logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+      host_name: hostDisplayName,
+      host_contact: profileContact || '',
+      total_matches: defaultMatches.length,
+      matches: defaultMatches,
+      created_by: currentUser.id,
+      co_hosts: [],
+      claim_token: 'token_' + (currentUser.id ? currentUser.id.slice(0, 8) : 'admin'),
+      is_finished: false,
+      is_draft: true
+    };
+  }, [currentUser, profileName, profileContact]);
+
   const activeAdminScrim = useMemo(() => {
-    return adminHostedScrims.find(s => s.id === adminSelectedScrimId) || adminHostedScrims[0] || null;
-  }, [adminHostedScrims, adminSelectedScrimId]);
+    const found = adminHostedScrims.find(s => s.id === adminSelectedScrimId);
+    if (found) return found;
+    if (adminHostedScrims.length > 0) return adminHostedScrims[0];
+    return fallbackDraftScrim;
+  }, [adminHostedScrims, adminSelectedScrimId, fallbackDraftScrim]);
+
+  // Normalized reactive matches array for activeAdminScrim
+  const adminMatchesList = useMemo(() => {
+    if (!activeAdminScrim) return [];
+    if (Array.isArray(activeAdminScrim.matches) && activeAdminScrim.matches.length > 0) {
+      return activeAdminScrim.matches;
+    }
+    const count = (activeAdminScrim.total_matches && activeAdminScrim.total_matches > 0) ? activeAdminScrim.total_matches : 5;
+    return Array.from({ length: count }, (_, mIdx) => ({
+      matchNo: mIdx + 1,
+      map: PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel',
+      results: []
+    }));
+  }, [activeAdminScrim]);
+
+  const adminMatchCount = adminMatchesList.length;
+
+  useEffect(() => {
+    if (adminMatchCount > 0 && selectedMatchIdx >= adminMatchCount) {
+      setSelectedMatchIdx(adminMatchCount - 1);
+    }
+  }, [adminMatchCount, selectedMatchIdx]);
+
+  const handleQuickNewSession = useCallback(() => {
+    if (!currentUser) return;
+    const hostDisplayName = profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Host Admin');
+    const sessionNum = adminHostedScrims.length + 1;
+    const defaultMatches = PLAYGROUND_DEFAULT_MAPS.map((mapName, mIdx) => ({
+      matchNo: mIdx + 1,
+      map: mapName,
+      results: []
+    }));
+    const newSession = {
+      id: 'scrim_' + Date.now(),
+      title: `Official Scrim - Session ${sessionNum}`,
+      event_type: 'Scrim',
+      tier: 'Tier 1 (Pro)',
+      description: 'Official PUBG Mobile Scrim Session.',
+      date: new Date().toISOString().split('T')[0],
+      logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+      host_name: hostDisplayName,
+      host_contact: profileContact || '',
+      total_matches: defaultMatches.length,
+      matches: defaultMatches,
+      created_by: currentUser.id,
+      co_hosts: [],
+      claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
+      is_finished: false,
+      is_draft: true
+    };
+    setScrims(prev => [newSession, ...prev]);
+    setAdminSelectedScrimId(newSession.id);
+    setSelectedMatchIdx(0);
+    setInputMap('Erangel');
+    setMatchSlots(Array.from({ length: 16 }, (_, idx) => ({
+      slot: idx + 1,
+      teamId: '',
+      teamName: '',
+      tag: '',
+      placement: '',
+      kills: 0,
+      placePts: 0,
+      totalPts: 0,
+      wwcd: false
+    })));
+    showToast(`Sesi baru "${newSession.title}" sedia untuk diisi!`);
+  }, [currentUser, profileName, profileContact, adminHostedScrims.length]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1385,45 +1530,6 @@ export default function App() {
   const [editContact, setEditContact] = useState('');
   const [editLogoFile, setEditLogoFile] = useState(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-
-  const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
-  const [inputMap, setInputMap] = useState('Erangel');
-
-  // Normalized reactive matches array for activeAdminScrim
-  const adminMatchesList = useMemo(() => {
-    if (!activeAdminScrim) return [];
-    if (Array.isArray(activeAdminScrim.matches) && activeAdminScrim.matches.length > 0) {
-      return activeAdminScrim.matches;
-    }
-    const count = (activeAdminScrim.total_matches && activeAdminScrim.total_matches > 0) ? activeAdminScrim.total_matches : 5;
-    return Array.from({ length: count }, (_, mIdx) => ({
-      matchNo: mIdx + 1,
-      map: PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel',
-      results: []
-    }));
-  }, [activeAdminScrim]);
-
-  const adminMatchCount = adminMatchesList.length;
-
-  useEffect(() => {
-    if (adminMatchCount > 0 && selectedMatchIdx >= adminMatchCount) {
-      setSelectedMatchIdx(adminMatchCount - 1);
-    }
-  }, [adminMatchCount, selectedMatchIdx]);
-  
-  // Dynamic Match Slots
-  const [matchSlots, setMatchSlots] = useState(() => {
-    return Array.from({ length: 16 }, (_, idx) => ({
-      slot: idx + 1,
-      teamId: '',
-      teamName: '',
-      tag: '',
-      placement: '',
-      kills: 0,
-      placePts: 0,
-      totalPts: 0
-    }));
-  });
 
   useEffect(() => {
     if (activeAdminScrim && activeAdminScrim.matches && activeAdminScrim.matches[selectedMatchIdx]) {
@@ -1571,7 +1677,14 @@ export default function App() {
         showToast('Update failed: ' + error.message);
       } else {
         const merged = { ...activeAdminScrim, ...updatedData };
-        setScrims(scrims.map(s => s.id === activeAdminScrim.id ? merged : s));
+        setScrims(prev => {
+          const exists = prev.some(s => s.id === activeAdminScrim.id);
+          if (exists) {
+            return prev.map(s => s.id === activeAdminScrim.id ? merged : s);
+          } else {
+            return [merged, ...prev];
+          }
+        });
         setIsEditScrimModalOpen(false);
         showToast('Event settings saved successfully!');
       }
@@ -1656,7 +1769,14 @@ export default function App() {
       total_matches: updatedMatches.length
     };
 
-    setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+    setScrims(prev => {
+      const exists = prev.some(s => s.id === activeAdminScrim.id);
+      if (exists) {
+        return prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s);
+      } else {
+        return [updatedScrim, ...prev];
+      }
+    });
     setSelectedMatchIdx(updatedMatches.length - 1);
     setInputMap(defaultMap);
     showToast(`Match ${nextMatchNo} (${defaultMap}) ditambah!`);
@@ -1701,7 +1821,14 @@ export default function App() {
       total_matches: trimmed.length
     };
 
-    setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+    setScrims(prev => {
+      const exists = prev.some(s => s.id === activeAdminScrim.id);
+      if (exists) {
+        return prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s);
+      } else {
+        return [updatedScrim, ...prev];
+      }
+    });
     
     // Maintain current index unless it exceeds remaining matches
     if (selectedMatchIdx >= trimmed.length) {
@@ -2032,10 +2159,16 @@ export default function App() {
 
     existingMatches[selectedMatchIdx] = matchData;
 
+    const targetId = (activeAdminScrim.id && !activeAdminScrim.id.startsWith('scrim_draft_'))
+      ? activeAdminScrim.id
+      : 'scrim_' + Date.now();
+
     const updatedScrim = {
       ...activeAdminScrim,
+      id: targetId,
       matches: existingMatches,
-      total_matches: existingMatches.length
+      total_matches: existingMatches.length,
+      is_draft: false
     };
 
     const { error } = await supabase.from('scrims').upsert(updatedScrim);
@@ -2043,9 +2176,13 @@ export default function App() {
     if (error) {
       showToast('Error: ' + error.message);
     } else {
-      setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
-      setSelectedScrimId(activeAdminScrim.id);
-      showToast(`Match ${selectedMatchIdx + 1} scores saved successfully!`);
+      setScrims(prev => {
+        const filtered = prev.filter(s => s.id !== activeAdminScrim.id && s.id !== targetId);
+        return [updatedScrim, ...filtered];
+      });
+      setAdminSelectedScrimId(targetId);
+      setSelectedScrimId(targetId);
+      showToast(`Match ${selectedMatchIdx + 1} & sesi berjaya disimpan ke Cloud!`);
     }
   };
 
@@ -5197,9 +5334,17 @@ export default function App() {
                           <div className="relative flex-1 max-w-sm">
                             <select
                               value={adminSelectedScrimId}
-                              onChange={(e) => { setSelectedMatchIdx(0); setAdminSelectedScrimId(e.target.value); }}
+                              onChange={(e) => {
+                                if (e.target.value === 'quick_new') {
+                                  handleQuickNewSession();
+                                } else {
+                                  setSelectedMatchIdx(0);
+                                  setAdminSelectedScrimId(e.target.value);
+                                }
+                              }}
                               className="w-full bg-zinc-950/90 hover:bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white font-black focus:outline-none focus:border-[#CCFF00] transition truncate cursor-pointer"
                             >
+                              <option value="quick_new" className="bg-zinc-900 text-[#CCFF00] font-black">+ Mulakan Sesi Baru</option>
                               {adminHostedScrims.map((s) => (
                                 <option key={s.id} value={s.id} className="bg-zinc-950 text-white">
                                   [{s.event_type === 'Tour' ? 'Tour' : 'Scrim'}] {s.title} {s.is_finished ? '(Locked)' : ''}
@@ -5208,7 +5353,14 @@ export default function App() {
                             </select>
                           </div>
                         ) : (
-                          <span className="text-xs font-bold text-zinc-400">Tiada sesi aktif</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-white/10 truncate max-w-[220px]">
+                              {activeAdminScrim?.title || 'Official Scrim - Session 1'}
+                            </span>
+                            <span className="text-[10px] font-mono text-[#CCFF00] font-bold">
+                              (Sedia Diisi)
+                            </span>
+                          </div>
                         )}
 
                         <span className={'inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ' + (
@@ -5217,7 +5369,7 @@ export default function App() {
                             : 'bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/25'
                         )}>
                           <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-[#CCFF00] animate-pulse')} />
-                          <span>{activeAdminScrim?.is_finished ? 'LOCKED' : 'LIVE'}</span>
+                          <span>{activeAdminScrim?.is_finished ? 'LOCKED' : (activeAdminScrim?.is_draft ? 'READY' : 'CLOUD')}</span>
                         </span>
                       </div>
                     </div>
@@ -5227,9 +5379,9 @@ export default function App() {
                   <div className="flex items-center gap-1.5 self-end sm:self-auto flex-wrap">
                     <button
                       type="button"
-                      onClick={() => setIsCreateScrimOpen(true)}
+                      onClick={handleQuickNewSession}
                       className="px-3 py-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1 shadow-xs active:scale-95"
-                      title="Cipta kejohanan / sesi scrim baru"
+                      title="Mula sesi kejohanan / scrim baru serta-merta tanpa modal"
                     >
                       <Plus className="w-3.5 h-3.5 text-black stroke-[3]" />
                       <span>Sesi Baru</span>
@@ -5286,30 +5438,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Empty State when no scrims exist */}
-                {adminHostedScrims.length === 0 ? (
-                  <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 sm:p-12 text-center space-y-4">
-                    <div className="w-16 h-16 rounded-3xl bg-[#CCFF00]/10 border border-[#CCFF00]/25 text-[#CCFF00] flex items-center justify-center mx-auto">
-                      <Trophy className="w-8 h-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-black text-white">Belum Ada Sesi Kejohanan Cloud</h3>
-                      <p className="text-xs text-zinc-400 max-w-md mx-auto">
-                        Cipta sesi kejohanan atau scrim pertama anda untuk mula mengira markah secara langsung dengan simpanan cloud database.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsCreateScrimOpen(true)}
-                      className="px-5 py-3 rounded-2xl bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs transition shadow-[0_0_20px_rgba(204,255,0,0.18)] active:scale-95 inline-flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4 text-black stroke-[3]" />
-                      <span>Cipta Sesi Kejohanan Pertama</span>
-                    </button>
-                  </div>
-                ) : (
-                  /* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */
-                  <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
+                {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
+                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
                   
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
@@ -5448,7 +5578,14 @@ export default function App() {
                                 if (current[selectedMatchIdx]) {
                                   current[selectedMatchIdx] = { ...current[selectedMatchIdx], map: newMap };
                                   const updatedScrim = { ...activeAdminScrim, matches: current };
-                                  setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+                                  setScrims(prev => {
+                                    const exists = prev.some(s => s.id === activeAdminScrim.id);
+                                    if (exists) {
+                                      return prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s);
+                                    } else {
+                                      return [updatedScrim, ...prev];
+                                    }
+                                  });
                                 }
                               }
                             }}
@@ -5856,7 +5993,6 @@ export default function App() {
                   </div>
 
                 </div>
-                )}
 
               </div>
             )}
