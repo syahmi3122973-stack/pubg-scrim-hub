@@ -2808,41 +2808,50 @@ export default function App() {
 
           <nav className="hidden md:flex space-x-1 bg-zinc-900/60 p-1.5 rounded-2xl border border-white/5 text-xs font-semibold items-center">
             <button
+              type="button"
               onClick={() => navigateToTab('playground')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+              title="Home (Laman Utama)"
+              aria-label="Home"
+              className={'p-2 rounded-xl transition-all active:scale-95 ' + (
                 activeTab === 'playground' || activeTab === 'home'
-                  ? 'bg-zinc-800 text-white font-black shadow-xs' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
+                  ? 'bg-zinc-800 text-white font-black shadow-xs ring-1 ring-white/10' 
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               )}
             >
               <Home className="w-4 h-4"/>
-              <span>Home</span>
             </button>
             <button
+              type="button"
               onClick={() => navigateToTab('history')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+              title="Rekod Kejohanan & Live Leaderboard"
+              aria-label="Rekod Kejohanan"
+              className={'p-2 rounded-xl transition-all active:scale-95 ' + (
                 activeTab === 'history' || activeTab === 'leaderboard'
                   ? 'bg-amber-500/20 text-amber-300 font-black border border-amber-500/30' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               )}
             >
               <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Rekod</span>
             </button>
             <button
+              type="button"
               onClick={() => navigateToTab('teams')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+              title="Hall of Fame & Direktori Pasukan"
+              aria-label="Hall of Fame"
+              className={'p-2 rounded-xl transition-all active:scale-95 ' + (
                 activeTab === 'teams'
                   ? 'bg-indigo-500/20 text-indigo-300 font-black border border-indigo-500/30' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               )}
             >
               <Users className="w-4 h-4 text-indigo-400" />
-              <span>Hall of Fame</span>
             </button>
             <button
+              type="button"
               onClick={() => navigateToTab('admin')}
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all ' + (
+              title="Host Workspace & Portal Penganjur"
+              aria-label="Host Portal"
+              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 ' + (
                 activeTab === 'admin'
                   ? 'bg-[#CCFF00]/20 text-[#CCFF00] font-black border border-[#CCFF00]/30' 
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
@@ -3013,22 +3022,25 @@ export default function App() {
             
             {/* THREADS-STYLE HERO BANNER: PENERANGAN MUDAH & INTUITIF */}
             <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5 relative overflow-hidden">
-              <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -top-24 -right-24 w-80 h-80 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 relative z-10">
                 {/* Headline & Value Proposition */}
                 <div className="space-y-2 max-w-2xl">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-[#CCFF00]/10 border border-[#CCFF00]/25 rounded-full text-[#CCFF00] text-xs font-black tracking-wide">
-                    <Sparkles className="w-3.5 h-3.5 text-[#CCFF00]" />
-                    <span>Kalkulator Scrim</span>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#CCFF00]/10 border border-[#CCFF00]/25 rounded-full text-[#CCFF00] text-xs font-black tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse"></span>
+                    <span>ESPORTS TOURNAMENT OS</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-300 font-medium">TIADA LAGI GOOGLE SHEET</span>
                   </div>
                   
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
-                    Kira markah scrim sepantas kilat &amp; jana poster rasmi automatik.
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
+                    Tinggalkan Excel. Urus Kejohanan &amp; Scrim Dalam Saat.
                   </h1>
 
                   <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-normal">
-                    Kalkulator skor PMGC &amp; penjana poster Overall Standings automatik.
+                    Kalkulator mata PMGC automatik, import pendaftaran WhatsApp tanpa taip satu per satu, dan penjana poster Overall Standings HD sedia kongsi ke WhatsApp &amp; Discord.
                   </p>
                 </div>
 
@@ -3041,107 +3053,186 @@ export default function App() {
                     title="Mula kira markah perlawanan sekarang di Quick Scorer"
                   >
                     <Zap className="w-4 h-4 fill-current group-hover:scale-110 transition-transform shrink-0" />
-                    <span>Mula Kira</span>
+                    <span>Mula Kira Pantas</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigateToTab('admin')}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 border border-white/10 transition flex items-center justify-center gap-1.5 active:scale-95"
-                    title="Buka Admin Workspace untuk kejohanan rasmi"
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 border border-white/10 hover:border-white/20 transition flex items-center justify-center gap-1.5 active:scale-95"
+                    title="Buka Host Workspace untuk kejohanan rasmi"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Admin Hub</span>
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#CCFF00]" />
+                    <span>Portal Host (Cloud)</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* HOME EXPLORATION TILES (QUICK NAVIGATION PILLARS) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                
-                {/* Pillar 1: Quick Scorer */}
-                <div 
-                  onClick={handleStartScoringSession}
-                  className="group p-4 bg-zinc-900/60 hover:bg-zinc-900/90 border border-white/5 hover:border-[#CCFF00]/30 rounded-3xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between space-y-3 active:scale-[0.99]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-2xl bg-zinc-800 text-[#CCFF00] group-hover:bg-[#CCFF00] group-hover:text-black flex items-center justify-center font-black transition-colors shadow-xs">
-                      <Zap className="w-5 h-5 fill-current" />
-                    </div>
-                    <span className="text-[10px] font-mono font-bold uppercase text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded-full border border-[#CCFF00]/25">
-                      1-5 Match
-                    </span>
+            {/* GLASSMORPHIC NAVIGATION PILLS: SCORER, HOST, REKOD, HALL OF FAME */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Pill 1: Scorer */}
+              <div
+                onClick={handleStartScoringSession}
+                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-[#CCFF00]/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-zinc-800 text-[#CCFF00] group-hover:bg-[#CCFF00] group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                    <Zap className="w-4 h-4 fill-current" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white group-hover:text-[#CCFF00] transition-colors">
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-white group-hover:text-[#CCFF00] transition-colors truncate">
                       Quick Scorer
-                    </h3>
-                    <p className="text-[11px] text-zinc-400 leading-snug mt-1 transition-colors">
-                      Kira markah PMGC &amp; jana poster Overall Standings.
-                    </p>
-                  </div>
-                  <div className="flex items-center text-xs font-black text-[#CCFF00] gap-1 pt-1">
-                    <span>Mula Kira</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-
-                {/* Pillar 2: Rekod */}
-                <div 
-                  onClick={() => navigateToTab('history')}
-                  className="group p-4 bg-zinc-900/60 hover:bg-zinc-900/90 border border-white/5 hover:border-amber-400/30 rounded-3xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between space-y-3 active:scale-[0.99]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 group-hover:bg-amber-400 group-hover:text-black flex items-center justify-center font-black transition-colors shadow-xs">
-                      <Trophy className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] font-mono font-bold uppercase text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
-                      Podium
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white group-hover:text-amber-400 transition-colors">
-                      Rekod Kejohanan
-                    </h3>
-                    <p className="text-[11px] text-zinc-400 leading-snug mt-1 transition-colors">
-                      Kedudukan rasmi &amp; arkib perlawanan terkini.
-                    </p>
-                  </div>
-                  <div className="flex items-center text-xs font-black text-amber-400 gap-1 pt-1">
-                    <span>Lihat Rekod</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-
-                {/* Pillar 3: Hall of Fame */}
-                <div 
-                  onClick={() => navigateToTab('teams')}
-                  className="group p-4 bg-zinc-900/60 hover:bg-zinc-900/90 border border-white/5 hover:border-indigo-400/30 rounded-3xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between space-y-3 active:scale-[0.99]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-400 group-hover:text-black flex items-center justify-center font-black transition-colors shadow-xs">
-                      <Users className="w-5 h-5" />
+                    <div className="text-[10px] text-zinc-400 truncate">
+                      Kira Pantas • Tanpa Login
                     </div>
-                    <span className="text-[10px] font-mono font-bold uppercase text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                      Hall of Fame
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white group-hover:text-indigo-400 transition-colors">
-                      Hall of Fame
-                    </h3>
-                    <p className="text-[11px] text-zinc-400 leading-snug mt-1 transition-colors">
-                      Profil pasukan &amp; kad Instagram Story.
-                    </p>
-                  </div>
-                  <div className="flex items-center text-xs font-black text-indigo-400 gap-1 pt-1">
-                    <span>Lihat Pasukan</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
-
+                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-[#CCFF00] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </div>
+
+              {/* Pill 2: Host Portal */}
+              <div
+                onClick={() => navigateToTab('admin')}
+                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-lime-400/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-lime-500/10 text-lime-400 group-hover:bg-lime-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-white group-hover:text-lime-400 transition-colors truncate">
+                      Host Portal
+                    </div>
+                    <div className="text-[10px] text-zinc-400 truncate">
+                      Simpan Cloud • Co-Host
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-lime-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </div>
+
+              {/* Pill 3: Rekod */}
+              <div
+                onClick={() => navigateToTab('history')}
+                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-amber-400/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 group-hover:bg-amber-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-white group-hover:text-amber-400 transition-colors truncate">
+                      Rekod Kejohanan
+                    </div>
+                    <div className="text-[10px] text-zinc-400 truncate">
+                      Keputusan &amp; Standings
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </div>
+
+              {/* Pill 4: Hall of Fame */}
+              <div
+                onClick={() => navigateToTab('teams')}
+                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-indigo-400/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors truncate">
+                      Hall of Fame
+                    </div>
+                    <div className="text-[10px] text-zinc-400 truncate">
+                      Direktori &amp; Story Pasukan
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </div>
+            </div>
+
+            {/* WHY DITCH SHEETS: 3 MODERN VALUE PILLARS */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-mono uppercase font-bold text-[#CCFF00] tracking-wider">
+                    WORKFLOW PENGANJUR ESPORTS
+                  </span>
+                  <h2 className="text-sm sm:text-base font-black text-white">
+                    Kenapa Beralih Dari Google Sheet?
+                  </h2>
+                </div>
+                <span className="text-[10px] text-zinc-400 hidden sm:inline">
+                  Jimat sehingga 20 minit setiap perlawanan
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Feature 1 */}
+                <div className="p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-2 hover:border-white/10 transition-colors">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-black">
+                    <Copy className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-white">Import WhatsApp 1-Klik</h3>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Salin senarai nama skuad terus dari WhatsApp atau Discord. Tekan import, dan 16 slot tersusun automatik tanpa taip manual satu per satu.
+                  </p>
+                </div>
+
+                {/* Feature 2 */}
+                <div className="p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-2 hover:border-white/10 transition-colors">
+                  <div className="w-8 h-8 rounded-xl bg-[#CCFF00]/10 text-[#CCFF00] flex items-center justify-center font-black">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-white">Formula PMGC Kebal Ralat</h3>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Hanya masukkan nombor kedudukan (#1..#16) dan kills. Mata rasmi PMGC dan badge WWCD terkira automatik tanpa risiko formula spreadsheet rosak.
+                  </p>
+                </div>
+
+                {/* Feature 3 */}
+                <div className="p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-2 hover:border-white/10 transition-colors">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-black">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-white">Poster HD Siap Serta-Merta</h3>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Lupakan Canva dan Photoshop. Grafik Overall Standings beresolusi tinggi siap dieksport secara langsung ke WhatsApp Status &amp; Instagram Story.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
+            {scrims.length > 0 && (
+              <div className="p-3.5 bg-zinc-900/30 border border-white/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-ping shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-mono font-bold text-zinc-400 block">Sesi Terkini Diarkibkan</span>
+                    <span className="text-xs font-black text-white truncate block">
+                      {scrims[0].title || 'PUBG Mobile Scrim'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedScrimId(scrims[0].id);
+                    navigateToTab('history');
+                  }}
+                  className="self-start sm:self-auto px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95 shrink-0"
+                >
+                  <span>Lihat Keputusan</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
           </div>
         )}
@@ -7260,45 +7351,47 @@ export default function App() {
       )}
 
       {/* MODERN 5-TAB MOBILE DOCK (Threads / Discord Style) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/85 backdrop-blur-2xl border-t border-white/10 z-50 px-2 py-1.5 shadow-[0_-8px_25px_rgba(0,0,0,0.5)]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/85 backdrop-blur-2xl border-t border-white/10 z-50 px-2 py-2 shadow-[0_-8px_25px_rgba(0,0,0,0.5)]">
         <div className="flex items-center justify-around max-w-md mx-auto">
           
-          {/* Tab 1: Home */}
+          {/* Tab 1: Home (Pure Icon + Indicator) */}
           <button
             type="button"
             onClick={() => navigateToTab('playground')}
-            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+            title="Home"
+            aria-label="Home"
+            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
               activeTab === 'playground' || activeTab === 'home'
-                ? 'text-white font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-medium'
+                ? 'text-white'
+                : 'text-zinc-500 hover:text-zinc-300'
             )}
           >
             <div className="relative">
               <Home className={'w-5 h-5 ' + (activeTab === 'playground' || activeTab === 'home' ? 'text-[#CCFF00] stroke-[2.5]' : 'text-zinc-500')} />
               {(activeTab === 'playground' || activeTab === 'home') && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
               )}
             </div>
-            <span className="text-[10px] mt-1 tracking-tight">Home</span>
           </button>
 
-          {/* Tab 2: Rekod */}
+          {/* Tab 2: Rekod (Pure Icon + Indicator) */}
           <button
             type="button"
             onClick={() => navigateToTab('history')}
-            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+            title="Rekod Kejohanan"
+            aria-label="Rekod Kejohanan"
+            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
-                ? 'text-white font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-medium'
+                ? 'text-white'
+                : 'text-zinc-500 hover:text-zinc-300'
             )}
           >
             <div className="relative">
               <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-400 stroke-[2.5]' : 'text-zinc-500')} />
               {(activeTab === 'history' || activeTab === 'leaderboard') && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
               )}
             </div>
-            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-400 font-black' : '')}>Rekod</span>
           </button>
 
           {/* Tab 3: Prominent Center Action [ + ] Button */}
@@ -7316,38 +7409,38 @@ export default function App() {
             >
               <Plus className="w-6 h-6 stroke-[3] group-hover:rotate-90 transition-transform duration-200" />
             </button>
-            <span className={'text-[9px] font-black tracking-wider uppercase mt-0.5 ' + (activeTab === 'scorer' ? 'text-[#CCFF00]' : 'text-zinc-400')}>
-              {activeTab === 'scorer' ? 'Scorer' : 'Kira'}
-            </span>
           </div>
 
-          {/* Tab 4: Hall of Fame */}
+          {/* Tab 4: Hall of Fame (Pure Icon + Indicator) */}
           <button
             type="button"
             onClick={() => navigateToTab('teams')}
-            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+            title="Hall of Fame Pasukan"
+            aria-label="Hall of Fame"
+            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
               activeTab === 'teams'
-                ? 'text-white font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-medium'
+                ? 'text-white'
+                : 'text-zinc-500 hover:text-zinc-300'
             )}
           >
             <div className="relative">
               <Users className={'w-5 h-5 ' + (activeTab === 'teams' ? 'text-[#CCFF00] stroke-[2.5]' : 'text-zinc-500')} />
               {activeTab === 'teams' && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
               )}
             </div>
-            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'teams' ? 'text-white font-black' : '')}>Hall of Fame</span>
           </button>
 
-          {/* Tab 5: Profile / Admin */}
+          {/* Tab 5: Host (Pure Icon + Indicator) */}
           <button
             type="button"
             onClick={() => navigateToTab('admin')}
-            className={'flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 min-w-[56px] ' + (
+            title="Host Portal"
+            aria-label="Host"
+            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
               activeTab === 'admin'
-                ? 'text-white font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-medium'
+                ? 'text-white'
+                : 'text-zinc-500 hover:text-zinc-300'
             )}
           >
             <div className="relative">
@@ -7360,12 +7453,9 @@ export default function App() {
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#CCFF00] border-2 border-zinc-950"></span>
               )}
               {activeTab === 'admin' && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
               )}
             </div>
-            <span className={'text-[10px] mt-1 tracking-tight ' + (activeTab === 'admin' ? 'text-[#CCFF00] font-black' : '')}>
-              Host
-            </span>
           </button>
 
         </div>
