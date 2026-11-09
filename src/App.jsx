@@ -317,6 +317,13 @@ const WHY_SWITCH_FAQS = [
     question: 'Bolehkah poster Overall Standings dijana terus dari telefon bimbit?',
     answer: 'Ya. Bila markah selesai diisi, tekan satu butang "Export PNG". Poster Overall Standings resolusi HD sedia dimuat turun terus ke galeri telefon bimbit anda untuk dikongsi ke WhatsApp Status & Instagram Story tanpa watermark.',
     highlights: ['1-Klik Export PNG', 'Resolusi HD tajam', 'Sesuai untuk WhatsApp & IG']
+  },
+  {
+    id: 'collective-database-ecosystem',
+    badge: 'Portfolio Pasukan & Penaja',
+    question: 'Bagaimana rekod kejohanan membantu pasukan dapatkan tajaan & scouting?',
+    answer: 'Setiap perlawanan yang dianjurkan oleh mana-mana admin di seluruh Malaysia disimpan secara kolektif. Pasukan boleh menggunakan rekod konsistensi ini sebagai portfolio rasmi untuk pitching tajaan, manakala pasukan profesional luar boleh merujuk database ini untuk scouting bakat baharu.',
+    highlights: ['Portfolio rasmi tajaan', 'Rujukan scouting pro team', 'Data kolektif seluruh Malaysia']
   }
 ];
 
@@ -3276,11 +3283,11 @@ export default function App() {
 
               <div className="relative z-10 space-y-3 sm:space-y-4">
                 {/* Category Pill Tag */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#CCFF00]/10 border border-[#CCFF00]/25 rounded-full text-[#CCFF00] text-[11px] font-mono font-black tracking-wide">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#CCFF00]/10 border border-[#CCFF00]/25 rounded-full text-[#CCFF00] text-[11px] font-mono font-black tracking-wide flex-wrap">
                   <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
                   <span>ESPORTS TOURNAMENT OS</span>
                   <span className="text-zinc-600">•</span>
-                  <span className="text-zinc-300 font-medium">TIADA LAGI GOOGLE SHEET</span>
+                  <span className="text-zinc-300 font-medium">DATABASE KOLEKTIF MALAYSIA</span>
                 </div>
 
                 {/* Big Punchy Headline */}
@@ -3293,7 +3300,7 @@ export default function App() {
 
                 {/* 1-Sentence Crisp Value Statement */}
                 <p className="text-xs sm:text-sm text-zinc-400 max-w-xl leading-relaxed">
-                  Formula PMGC automatik, import pendaftaran WhatsApp sepantas kilat, dan poster Overall Standings HD sedia dikongsi ke media sosial.
+                  Kira markah PMGC sepantas kilat, jana poster HD, dan himpunkan rekod konsistensi pasukan anda ke dalam pangkalan data kolektif Malaysia untuk pendedahan penaja &amp; rujukan scouting pro team.
                 </p>
 
                 {/* ACTION BUTTONS (FOCUSED CTA ON MOBILE & DESKTOP) */}
@@ -3419,14 +3426,85 @@ export default function App() {
                       Hall of Fame
                     </div>
                     <div className="text-[11px] text-zinc-400 mt-0.5">
-                      Statistik &amp; IG Story
+                      Database &amp; Portfolio Pasukan
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 3. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
+            {/* 3. NATIONAL COLLECTIVE DATABASE ECOSYSTEM BANNER */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-zinc-900/80 via-zinc-900/60 to-indigo-950/30 border border-white/10 rounded-3xl relative overflow-hidden space-y-3.5 shadow-sm">
+              <div className="absolute -top-16 -right-16 w-52 h-52 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-10">
+                <div className="space-y-1 max-w-2xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[10px] font-mono font-bold uppercase tracking-wider">
+                      <Database className="w-3 h-3" />
+                      <span>DATABASE KOLEKTIF MALAYSIA</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-400">
+                      Ekosistem Bakat &amp; Tajaan
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm sm:text-base font-black text-white leading-snug">
+                    Bukan Sekadar Kira Markah. Ini Portfolio Digital Pasukan Anda.
+                  </h3>
+
+                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                    Rekod dari semua penganjur disatukan secara kolektif — membolehkan pasukan membuktikan konsistensi untuk <span className="text-zinc-200 font-semibold">pitching tajaan</span>, dan memudahkan <span className="text-zinc-200 font-semibold">pasukan pro luar scouting bakat</span>.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('teams')}
+                  className="self-start md:self-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black text-xs transition flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer"
+                  title="Lihat pangkalan data ranking dan statistik pasukan seluruh Malaysia"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-[#CCFF00]" />
+                  <span>Lihat Database Pasukan</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 3 Value Pillars */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-white/5">
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-950/60 border border-white/5">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Globe className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Kolektif Seluruh Malaysia</span>
+                    <span className="text-[10px] text-zinc-400 block truncate">Disatukan daripada semua penganjur</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-950/60 border border-white/5">
+                  <div className="w-6 h-6 rounded-lg bg-[#CCFF00]/10 text-[#CCFF00] flex items-center justify-center shrink-0">
+                    <Award className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Pitching Penaja &amp; Geran</span>
+                    <span className="text-[10px] text-zinc-400 block truncate">Portfolio bukti prestasi &amp; konsistensi</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-950/60 border border-white/5">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
+                    <Crosshair className="w-3 h-3" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Scouting Pasukan Ternama</span>
+                    <span className="text-[10px] text-zinc-400 block truncate">Rujukan pro org cungkil bakat baru</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
             {scrims.length > 0 && (
               <div className="p-3.5 sm:p-4 bg-zinc-900/40 border border-white/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div className="flex items-center gap-3 min-w-0">
@@ -3452,7 +3530,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 4. WORKFLOW VALUES: INTERACTIVE FAQ DROPDOWNS (LESS IS MORE) */}
+            {/* 5. WORKFLOW VALUES: INTERACTIVE FAQ DROPDOWNS (LESS IS MORE) */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between px-1">
                 <div className="space-y-0.5">
