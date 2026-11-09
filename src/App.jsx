@@ -7737,12 +7737,12 @@ export default function App() {
             </span>
           </button>
 
-          {/* Tab 2: Standings */}
+          {/* Tab 2: Standings / Rekod */}
           <button
             type="button"
             onClick={() => navigateToTab('history')}
             title="Live Standings & Rekod"
-            aria-label="Standings"
+            aria-label="Rekod"
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
                 ? 'text-[#CCFF00]'
@@ -7751,7 +7751,7 @@ export default function App() {
           >
             <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(204,255,0,0.4)]' : 'stroke-[1.8]')} />
             <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'font-black' : 'font-medium')}>
-              Rank
+              Rekod
             </span>
           </button>
 
