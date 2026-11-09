@@ -7942,37 +7942,50 @@ export default function App() {
             })()}
           </div>
 
-          {/* CENTER ANCHOR: ELEVATED HERO PLUS BUTTON (MATHEMATICALLY CENTERED & ANIMATED) */}
-          <div className="shrink-0 relative flex items-center justify-center px-1">
+          {/* CENTER ANCHOR: ELEVATED HERO PLUS BUTTON (ANCHORED HERO CIRCLE) */}
+          <div className="shrink-0 relative flex items-center justify-center px-1.5">
             {(() => {
               const isActive = activeTab === 'scorer';
               return (
-                <button
-                  type="button"
-                  onClick={() => navigateToTab('scorer')}
-                  title="Kira Markah Cepat (Quick Scorer)"
-                  aria-label="Quick Scorer"
-                  className={'relative flex items-center justify-center gap-1.5 rounded-full select-none -translate-y-2.5 transition-all duration-300 ease-out active:scale-90 border-2 border-zinc-950 ' + (
-                    isActive
-                      ? 'h-11 px-4 bg-[#CCFF00] text-black ring-4 ring-[#CCFF00]/30 shadow-[0_0_28px_rgba(204,255,0,0.65)]'
-                      : 'w-11 h-11 bg-[#CCFF00] text-black shadow-[0_0_20px_rgba(204,255,0,0.4)] hover:scale-105'
-                  )}
-                >
-                  {/* Ambient breathing glow ring when inactive */}
-                  {!isActive && (
-                    <span className="absolute inset-0 rounded-full bg-[#CCFF00] opacity-35 animate-ping pointer-events-none -z-10 [animation-duration:3s]" />
-                  )}
-
-                  <Plus className={'w-5 h-5 text-black stroke-[3] transition-transform duration-300 ' + (
-                    isActive ? 'rotate-90' : 'rotate-0'
-                  )} />
-
-                  <span className={'text-xs font-black tracking-wide text-black whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
-                    isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
-                  )}>
+                <div className="relative flex flex-col items-center">
+                  {/* Floating Micro-Badge above Hero Circle */}
+                  <span
+                    className={'absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#CCFF00] text-zinc-950 text-[9px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(204,255,0,0.5)] whitespace-nowrap pointer-events-none transition-all duration-300 ease-out ' + (
+                      isActive
+                        ? 'opacity-100 -translate-y-0.5 scale-100'
+                        : 'opacity-0 translate-y-1 scale-90'
+                    )}
+                  >
                     Scorer
                   </span>
-                </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigateToTab('scorer')}
+                    title="Kira Markah Cepat (Quick Scorer)"
+                    aria-label="Quick Scorer"
+                    className={'relative w-12 h-12 rounded-full flex items-center justify-center select-none -translate-y-3 transition-all duration-300 ease-out active:scale-95 border-[2.5px] border-zinc-950 ' + (
+                      isActive
+                        ? 'bg-[#CCFF00] text-black shadow-[0_0_28px_rgba(204,255,0,0.65)] ring-4 ring-[#CCFF00]/30 scale-105'
+                        : 'bg-[#CCFF00] text-black shadow-[0_0_18px_rgba(204,255,0,0.35)] hover:scale-105'
+                    )}
+                  >
+                    {/* Organic ambient breathing neon halo */}
+                    <span
+                      className={'absolute -inset-1 rounded-full bg-[#CCFF00] pointer-events-none -z-10 transition-opacity duration-500 ' + (
+                        isActive
+                          ? 'opacity-40 blur-md animate-pulse [animation-duration:1.8s]'
+                          : 'opacity-20 blur-sm animate-pulse [animation-duration:3s]'
+                      )}
+                    />
+
+                    <Plus
+                      className={'w-6 h-6 text-black stroke-[3] transition-transform duration-300 ease-out ' + (
+                        isActive ? 'rotate-45 scale-110' : 'rotate-0 scale-100'
+                      )}
+                    />
+                  </button>
+                </div>
               );
             })()}
           </div>
