@@ -1386,6 +1386,28 @@ export default function App() {
 
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [inputMap, setInputMap] = useState('Erangel');
+
+  // Normalized reactive matches array for activeAdminScrim
+  const adminMatchesList = useMemo(() => {
+    if (!activeAdminScrim) return [];
+    if (Array.isArray(activeAdminScrim.matches) && activeAdminScrim.matches.length > 0) {
+      return activeAdminScrim.matches;
+    }
+    const count = (activeAdminScrim.total_matches && activeAdminScrim.total_matches > 0) ? activeAdminScrim.total_matches : 5;
+    return Array.from({ length: count }, (_, mIdx) => ({
+      matchNo: mIdx + 1,
+      map: PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel',
+      results: []
+    }));
+  }, [activeAdminScrim]);
+
+  const adminMatchCount = adminMatchesList.length;
+
+  useEffect(() => {
+    if (adminMatchCount > 0 && selectedMatchIdx >= adminMatchCount) {
+      setSelectedMatchIdx(adminMatchCount - 1);
+    }
+  }, [adminMatchCount, selectedMatchIdx]);
   
   // Dynamic Match Slots
   const [matchSlots, setMatchSlots] = useState(() => {
@@ -1581,32 +1603,50 @@ export default function App() {
   };
 
   const handleAddNewMatch = async () => {
-    if (activeAdminScrim?.is_finished) {
+    if (!activeAdminScrim) {
+      showToast('Sila cipta atau pilih sesi terlebih dahulu!');
+      return;
+    }
+    if (activeAdminScrim.is_finished) {
       showToast('Cannot add rounds to a concluded session.');
       return;
     }
-    if (!activeAdminScrim) {
-      showToast('Please create or select a session first!');
-      return;
-    }
 
-    const currentMatches = activeAdminScrim.matches ? [...activeAdminScrim.matches] : [];
-    
-    // If no match exists yet in session, ensure match 1 exists
-    if (currentMatches.length === 0) {
-      currentMatches.push({
-        matchNo: 1,
-        map: 'Erangel',
-        results: []
-      });
-    }
-
+    const currentMatches = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
     const nextMatchNo = currentMatches.length + 1;
+    const defaultMap = PLAYGROUND_DEFAULT_MAPS[(nextMatchNo - 1) % 5] || 'Erangel';
+
+    // Roster carry-over: pre-populate team names and tags from existing matches or slots
+    const carrySlots = (currentMatches[0]?.results?.length > 0)
+      ? currentMatches[0].results.map((r, i) => ({
+          slot: i + 1,
+          teamId: r.teamId || `tm_${i + 1}`,
+          teamName: r.teamName || `Slot ${i + 1}`,
+          tag: r.tag || '',
+          placement: '',
+          kills: 0,
+          placePts: 0,
+          totalPts: 0,
+          wwcd: 0
+        }))
+      : matchSlots.map((s, i) => ({
+          slot: i + 1,
+          teamId: s.teamId || `tm_${i + 1}`,
+          teamName: s.teamName || `Slot ${i + 1}`,
+          tag: s.tag || '',
+          placement: '',
+          kills: 0,
+          placePts: 0,
+          totalPts: 0,
+          wwcd: 0
+        }));
+
     const newMatch = {
       matchNo: nextMatchNo,
-      map: 'Erangel',
-      results: []
+      map: defaultMap,
+      results: carrySlots
     };
+
     const updatedMatches = [...currentMatches, newMatch];
     const updatedScrim = {
       ...activeAdminScrim,
@@ -1616,7 +1656,8 @@ export default function App() {
 
     setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
     setSelectedMatchIdx(updatedMatches.length - 1);
-    showToast(`Match ${nextMatchNo} added!`);
+    setInputMap(defaultMap);
+    showToast(`Match ${nextMatchNo} (${defaultMap}) ditambah!`);
 
     try {
       await supabase.from('scrims').upsert(updatedScrim);
@@ -1632,27 +1673,43 @@ export default function App() {
       return;
     }
 
-    const currentMatches = activeAdminScrim.matches || [];
+    const currentMatches = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
     if (currentMatches.length <= 1) {
       showToast('Minimum 1 match round required.');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete Match ${currentMatches.length}?`)) return;
+    const lastMatchIndex = currentMatches.length - 1;
+    const lastMatch = currentMatches[lastMatchIndex];
+    const hasRecordedScores = Boolean(lastMatch?.results?.some(
+      r => Number(r.totalPts) > 0 || Number(r.kills) > 0 || (r.placement !== '' && r.placement !== null && r.placement !== undefined)
+    ));
+
+    // Confirm only if this match already has saved scores
+    if (hasRecordedScores) {
+      if (!window.confirm(`Match ${lastMatchIndex + 1} mengandungi markah yang telah disimpan. Adakah anda pasti mahu memadamkannya?`)) {
+        return;
+      }
+    }
 
     const trimmed = currentMatches.slice(0, -1);
-    const updated = {
+    const updatedScrim = {
       ...activeAdminScrim,
       matches: trimmed,
       total_matches: trimmed.length
     };
 
-    setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updated : s));
-    setSelectedMatchIdx(Math.max(0, trimmed.length - 1));
-    showToast('Last round removed successfully.');
+    setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+    
+    // Maintain current index unless it exceeds remaining matches
+    if (selectedMatchIdx >= trimmed.length) {
+      setSelectedMatchIdx(trimmed.length - 1);
+    }
+
+    showToast(`Match ${lastMatchIndex + 1} berjaya dipadam.`);
 
     try {
-      await supabase.from('scrims').upsert(updated);
+      await supabase.from('scrims').upsert(updatedScrim);
     } catch (err) {
       console.error('Error removing round:', err);
     }
@@ -1955,10 +2012,19 @@ export default function App() {
       }
     }
 
-    const existingMatches = activeAdminScrim.matches ? [...activeAdminScrim.matches] : [];
+    const existingMatches = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
+    while (existingMatches.length <= selectedMatchIdx) {
+      const idx = existingMatches.length;
+      existingMatches.push({
+        matchNo: idx + 1,
+        map: PLAYGROUND_DEFAULT_MAPS[idx % 5] || 'Erangel',
+        results: []
+      });
+    }
+
     const matchData = {
       matchNo: selectedMatchIdx + 1,
-      map: inputMap || 'Erangel',
+      map: inputMap || existingMatches[selectedMatchIdx]?.map || 'Erangel',
       results: compiledResults
     };
 
@@ -2000,6 +2066,12 @@ export default function App() {
       const generatedToken = 'token_' + Math.random().toString(36).substring(2, 10);
       const hostDisplayName = newHostName.trim() || profileName || currentUser.email.split('@')[0];
 
+      const defaultMatches = PLAYGROUND_DEFAULT_MAPS.map((mapName, mIdx) => ({
+        matchNo: mIdx + 1,
+        map: mapName,
+        results: []
+      }));
+
       const newSession = {
         id: 'scrim_' + Date.now(),
         title: newScrimTitle.trim(),
@@ -2010,8 +2082,8 @@ export default function App() {
         logo_url: uploadedLogoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
         host_name: hostDisplayName,
         host_contact: newHostContact.trim() || profileContact || '',
-        total_matches: 0,
-        matches: [],
+        total_matches: defaultMatches.length,
+        matches: defaultMatches,
         created_by: currentUser.id,
         co_hosts: [],
         claim_token: generatedToken,
@@ -2061,7 +2133,9 @@ export default function App() {
       const summaryMap = {};
 
       targetScrim.matches.forEach((m) => {
+        if (!m) return;
         (m.results || []).forEach(r => {
+          if (!r || !r.teamId) return;
           if (!summaryMap[r.teamId]) {
             summaryMap[r.teamId] = {
               teamId: r.teamId,
@@ -2074,11 +2148,14 @@ export default function App() {
               totalPts: 0
             };
           }
-          summaryMap[r.teamId].matchesPlayed += 1;
-          summaryMap[r.teamId].wwcd += (r.wwcd || (r.placement === 1 ? 1 : 0));
-          summaryMap[r.teamId].placePts += r.placePts;
-          summaryMap[r.teamId].killPts += r.kills;
-          summaryMap[r.teamId].totalPts += r.totalPts;
+          const hasScore = (r.placement !== '' && r.placement !== null && r.placement !== undefined) || Number(r.kills) > 0 || Number(r.totalPts) > 0;
+          if (hasScore) {
+            summaryMap[r.teamId].matchesPlayed += 1;
+            summaryMap[r.teamId].wwcd += (r.wwcd || (Number(r.placement) === 1 ? 1 : 0));
+            summaryMap[r.teamId].placePts += (Number(r.placePts) || 0);
+            summaryMap[r.teamId].killPts += (Number(r.kills) || 0);
+            summaryMap[r.teamId].totalPts += (Number(r.totalPts) || 0);
+          }
         });
       });
 
@@ -2760,8 +2837,6 @@ export default function App() {
       showToast('Post deleted successfully!');
     }
   };
-
-  const adminMatchCount = Math.max(5, (activeAdminScrim?.matches?.length || 0), selectedMatchIdx + 1);
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#CCFF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
@@ -5184,10 +5259,11 @@ export default function App() {
                         <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
 
                         <div className="p-1 bg-zinc-950/70 rounded-2xl border border-white/5 flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                          {Array.from({ length: adminMatchCount }, (_, mIdx) => {
+                          {adminMatchesList.map((m, mIdx) => {
                             const isSelected = selectedMatchIdx === mIdx;
-                            const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
-                            const hasSaved = Boolean(activeAdminScrim?.matches?.[mIdx]?.results?.length > 0);
+                            const savedMap = m.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
+                            const displayedMap = isSelected ? (inputMap || savedMap) : savedMap;
+                            const hasSaved = Boolean(m.results && m.results.length > 0 && m.results.some(r => Number(r.totalPts) > 0 || Number(r.kills) > 0 || (r.placement !== '' && r.placement !== null && r.placement !== undefined)));
                             return (
                               <button
                                 key={mIdx}
@@ -5206,7 +5282,7 @@ export default function App() {
                                 <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
                                   isSelected ? 'bg-[#CCFF00]/20 text-[#CCFF00]' : 'text-zinc-500'
                                 )}>
-                                  {savedMap}
+                                  {displayedMap}
                                 </span>
                               </button>
                             );
@@ -5249,7 +5325,18 @@ export default function App() {
                           <select
                             disabled={activeAdminScrim?.is_finished}
                             value={inputMap}
-                            onChange={(e) => setInputMap(e.target.value)}
+                            onChange={(e) => {
+                              const newMap = e.target.value;
+                              setInputMap(newMap);
+                              if (activeAdminScrim) {
+                                const current = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
+                                if (current[selectedMatchIdx]) {
+                                  current[selectedMatchIdx] = { ...current[selectedMatchIdx], map: newMap };
+                                  const updatedScrim = { ...activeAdminScrim, matches: current };
+                                  setScrims(prev => prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s));
+                                }
+                              }
+                            }}
                             className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-[#CCFF00] transition cursor-pointer"
                           >
                             <option value="Erangel" className="bg-zinc-950 text-white">Erangel</option>
