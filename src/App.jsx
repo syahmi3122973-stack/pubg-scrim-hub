@@ -18,6 +18,7 @@ import {
   Filter, 
   LogOut, 
   User, 
+  ArrowRight, 
   Lock, 
   Mail, 
   Flame, 
@@ -3095,191 +3096,239 @@ export default function App() {
 
         {/* VIEW 0: PLAYGROUND SPLIT-SCREEN WORKSPACE (ROOT ROUTE /) */}
         {(activeTab === 'playground' || activeTab === 'home') && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             
-            {/* THREADS-STYLE HERO BANNER: PENERANGAN MUDAH & INTUITIF */}
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5 relative overflow-hidden">
+            {/* 1. HERO ACTION CARD (CONSUMER SAAS • FOCUSED ON PRIMARY CTA) */}
+            <div className="bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-white/10 rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden space-y-4 sm:space-y-6">
+              {/* Decorative Ambient Accents */}
               <div className="absolute -top-24 -right-24 w-80 h-80 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 relative z-10">
-                {/* Headline & Value Proposition */}
-                <div className="space-y-2 max-w-2xl">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#CCFF00]/10 border border-[#CCFF00]/25 rounded-full text-[#CCFF00] text-xs font-black tracking-wide">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse"></span>
-                    <span>ESPORTS TOURNAMENT OS</span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="text-zinc-300 font-medium">TIADA LAGI GOOGLE SHEET</span>
-                  </div>
-                  
-                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-                    Tinggalkan Excel. Urus Kejohanan &amp; Scrim Dalam Saat.
-                  </h1>
-
-                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-normal">
-                    Kalkulator mata PMGC automatik, import pendaftaran WhatsApp tanpa taip satu per satu, dan penjana poster Overall Standings HD sedia kongsi ke WhatsApp &amp; Discord.
-                  </p>
+              <div className="relative z-10 space-y-3 sm:space-y-4">
+                {/* Category Pill Tag */}
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#CCFF00]/10 border border-[#CCFF00]/25 rounded-full text-[#CCFF00] text-[11px] font-mono font-black tracking-wide">
+                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
+                  <span>ESPORTS TOURNAMENT OS</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-zinc-300 font-medium">TIADA LAGI GOOGLE SHEET</span>
                 </div>
 
-                {/* Action Buttons: 1 Focus Primary CTA (Electric Lime) & 1 Subtle Secondary */}
-                <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
+                {/* Big Punchy Headline */}
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-[1.15]">
+                  Tinggalkan Excel.<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#CCFF00]">
+                    Kira Markah &amp; Jana Poster
+                  </span> Dalam Saat.
+                </h1>
+
+                {/* 1-Sentence Crisp Value Statement */}
+                <p className="text-xs sm:text-sm text-zinc-400 max-w-xl leading-relaxed">
+                  Formula PMGC automatik, import pendaftaran WhatsApp sepantas kilat, dan poster Overall Standings HD sedia dikongsi ke media sosial.
+                </p>
+
+                {/* ACTION BUTTONS (FOCUSED CTA ON MOBILE & DESKTOP) */}
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                   <button
                     type="button"
                     onClick={handleStartScoringSession}
-                    className="px-5 py-2.5 rounded-xl text-xs font-black bg-[#CCFF00] hover:bg-[#b8e600] active:scale-95 text-black border border-[#CCFF00]/60 transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(204,255,0,0.18)] uppercase tracking-wider group"
-                    title="Mula kira markah perlawanan sekarang di Quick Scorer"
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#CCFF00] hover:bg-[#b8e600] active:scale-95 text-black font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-[0_0_25px_rgba(204,255,0,0.25)] flex items-center justify-center gap-2 group"
+                    title="Mula kira markah sekarang di Quick Scorer tanpa login"
                   >
                     <Zap className="w-4 h-4 fill-current group-hover:scale-110 transition-transform shrink-0" />
-                    <span>Mula Kira Pantas</span>
+                    <span>Mula Kira Pantas (Quick Scorer)</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigateToTab('admin')}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 border border-white/10 hover:border-white/20 transition flex items-center justify-center gap-1.5 active:scale-95"
-                    title="Buka Host Workspace untuk kejohanan rasmi"
+                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-white/10 hover:border-white/20 font-bold text-xs transition flex items-center justify-center gap-2 active:scale-95"
+                    title="Buka Portal Host untuk kejohanan rasmi dengan simpanan cloud"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#CCFF00]" />
-                    <span>Portal Host (Cloud)</span>
+                    <ShieldCheck className="w-4 h-4 text-[#CCFF00] shrink-0" />
+                    <span>Portal Host (Cloud Hub)</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* GLASSMORPHIC NAVIGATION PILLS: SCORER, HOST, REKOD, HALL OF FAME */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Pill 1: Scorer */}
-              <div
-                onClick={handleStartScoringSession}
-                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-[#CCFF00]/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-zinc-800 text-[#CCFF00] group-hover:bg-[#CCFF00] group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
-                    <Zap className="w-4 h-4 fill-current" />
+            {/* 2. QUICK PORTAL TILES: 2x2 ON MOBILE, 4-COL ON DESKTOP */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                  PILIHAN MOD &amp; ALATAN
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">1-Tap Akses</span>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                {/* Tile 1: Quick Scorer */}
+                <div
+                  onClick={handleStartScoringSession}
+                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-[#CCFF00]/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-800 text-[#CCFF00] group-hover:bg-[#CCFF00] group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                      <Zap className="w-5 h-5 fill-current" />
+                    </div>
+                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20">
+                      Pantas
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-black text-white group-hover:text-[#CCFF00] transition-colors truncate">
+                  <div>
+                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-[#CCFF00] transition-colors">
                       Quick Scorer
                     </div>
-                    <div className="text-[10px] text-zinc-400 truncate">
-                      Kira Pantas • Tanpa Login
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      1-5 Match • Tanpa Login
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-[#CCFF00] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-              </div>
 
-              {/* Pill 2: Host Portal */}
-              <div
-                onClick={() => navigateToTab('admin')}
-                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-lime-400/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-lime-500/10 text-lime-400 group-hover:bg-lime-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
-                    <ShieldCheck className="w-4 h-4" />
+                {/* Tile 2: Host Portal */}
+                <div
+                  onClick={() => navigateToTab('admin')}
+                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-emerald-400/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      Cloud
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-black text-white group-hover:text-lime-400 transition-colors truncate">
+                  <div>
+                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-emerald-400 transition-colors">
                       Host Portal
                     </div>
-                    <div className="text-[10px] text-zinc-400 truncate">
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
                       Simpan Cloud • Co-Host
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-lime-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-              </div>
 
-              {/* Pill 3: Rekod */}
-              <div
-                onClick={() => navigateToTab('history')}
-                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-amber-400/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 group-hover:bg-amber-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
-                    <Trophy className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-black text-white group-hover:text-amber-400 transition-colors truncate">
-                      Rekod Kejohanan
+                {/* Tile 3: Live Standings */}
+                <div
+                  onClick={() => navigateToTab('history')}
+                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-amber-400/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 group-hover:bg-amber-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                      <Flame className="w-5 h-5" />
                     </div>
-                    <div className="text-[10px] text-zinc-400 truncate">
-                      Keputusan &amp; Standings
+                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      Arkib
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-amber-400 transition-colors">
+                      Live Standings
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Rekod &amp; Keputusan
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-              </div>
 
-              {/* Pill 4: Hall of Fame */}
-              <div
-                onClick={() => navigateToTab('teams')}
-                className="p-3 sm:px-4 sm:py-3.5 bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-indigo-400/40 rounded-2xl sm:rounded-full cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-between group active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
-                    <Users className="w-4 h-4" />
+                {/* Tile 4: Hall of Fame */}
+                <div
+                  onClick={() => navigateToTab('teams')}
+                  className="p-3.5 sm:p-4 bg-zinc-900/60 hover:bg-zinc-800/80 backdrop-blur-xl border border-white/10 hover:border-indigo-400/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between gap-3 group active:scale-[0.98]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-400 group-hover:text-black flex items-center justify-center font-black transition-colors shrink-0 shadow-xs">
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      Ranking
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors truncate">
+                  <div>
+                    <div className="text-xs sm:text-sm font-black text-white group-hover:text-indigo-400 transition-colors">
                       Hall of Fame
                     </div>
-                    <div className="text-[10px] text-zinc-400 truncate">
-                      Direktori &amp; Story Pasukan
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Statistik &amp; IG Story
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </div>
             </div>
 
-            {/* WHY DITCH SHEETS: 3 MODERN VALUE PILLARS */}
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
+            {/* 3. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
+            {scrims.length > 0 && (
+              <div className="p-3.5 sm:p-4 bg-zinc-900/40 border border-white/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#CCFF00] animate-pulse shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-mono font-bold text-zinc-400 block">Sesi Terkini Diarkibkan</span>
+                    <span className="text-xs sm:text-sm font-black text-white truncate block">
+                      {scrims[0].title || 'PUBG Mobile Scrim'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedScrimId(scrims[0].id);
+                    navigateToTab('history');
+                  }}
+                  className="self-start sm:self-auto px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95 shrink-0"
+                >
+                  <span>Lihat Keputusan</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* 4. WORKFLOW VALUES: 3 COMPACT PILLARS */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between px-1">
                 <div className="space-y-0.5">
                   <span className="text-[10px] font-mono uppercase font-bold text-[#CCFF00] tracking-wider">
                     WORKFLOW PENGANJUR ESPORTS
                   </span>
-                  <h2 className="text-sm sm:text-base font-black text-white">
+                  <h2 className="text-xs sm:text-sm font-black text-white">
                     Kenapa Beralih Dari Google Sheet?
                   </h2>
                 </div>
                 <span className="text-[10px] text-zinc-400 hidden sm:inline">
-                  Jimat sehingga 20 minit setiap perlawanan
+                  Jimat masa pengiraan setiap perlawanan
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
                 {/* Feature 1 */}
-                <div className="p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-2 hover:border-white/10 transition-colors">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-black">
-                    <Copy className="w-4 h-4" />
+                <div className="p-3.5 sm:p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-1.5 hover:border-white/10 transition-colors">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-black">
+                    <Copy className="w-3.5 h-3.5" />
                   </div>
                   <h3 className="text-xs font-bold text-white">Import WhatsApp 1-Klik</h3>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Salin senarai nama skuad terus dari WhatsApp atau Discord. Tekan import, dan 16 slot tersusun automatik tanpa taip manual satu per satu.
+                    Salin senarai dari WhatsApp atau Discord, 16 slot tersusun automatik tanpa taip satu per satu.
                   </p>
                 </div>
 
                 {/* Feature 2 */}
-                <div className="p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-2 hover:border-white/10 transition-colors">
-                  <div className="w-8 h-8 rounded-xl bg-[#CCFF00]/10 text-[#CCFF00] flex items-center justify-center font-black">
-                    <Zap className="w-4 h-4" />
+                <div className="p-3.5 sm:p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-1.5 hover:border-white/10 transition-colors">
+                  <div className="w-7 h-7 rounded-lg bg-[#CCFF00]/10 text-[#CCFF00] flex items-center justify-center font-black">
+                    <Zap className="w-3.5 h-3.5" />
                   </div>
                   <h3 className="text-xs font-bold text-white">Formula PMGC Kebal Ralat</h3>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Hanya masukkan nombor kedudukan (#1..#16) dan kills. Mata rasmi PMGC dan badge WWCD terkira automatik tanpa risiko formula spreadsheet rosak.
+                    Hanya masukkan placement (#1..#16) dan kills. Mata rasmi &amp; WWCD dikira automatik tanpa formula rosak.
                   </p>
                 </div>
 
                 {/* Feature 3 */}
-                <div className="p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-2 hover:border-white/10 transition-colors">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-black">
-                    <Sparkles className="w-4 h-4" />
+                <div className="p-3.5 sm:p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-1.5 hover:border-white/10 transition-colors">
+                  <div className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-black">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-xs font-bold text-white">Poster HD Siap Serta-Merta</h3>
+                  <h3 className="text-xs font-bold text-white">Poster HD Serta-Merta</h3>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Lupakan Canva dan Photoshop. Grafik Overall Standings beresolusi tinggi siap dieksport secara langsung ke WhatsApp Status &amp; Instagram Story.
+                    Overall Standings resolusi tinggi siap dieksport terus ke WhatsApp Status &amp; Instagram Story.
                   </p>
                 </div>
               </div>
@@ -3351,8 +3400,8 @@ export default function App() {
                   </h1>
 
                   {/* Memorable Helper Text */}
-                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
-                    Kalkulator mata perlawanan pantas untuk 1 hingga 5 match. Isi kedudukan dan kills, sistem mengira markah secara automatik dan menjana poster Overall Standings HD sedia dikongsi ke WhatsApp &amp; Discord.
+                  <p className="text-xs sm:text-sm text-zinc-400 font-normal">
+                    Kiraan mata automatik PMGC 1-5 match &amp; penjana poster Overall Standings HD.
                   </p>
                 </div>
 
@@ -3932,8 +3981,8 @@ export default function App() {
                   </h1>
 
                   {/* Memorable Helper Text */}
-                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
-                    Pangkalan data kedudukan ranking dan rekod prestasi skuad PUBG Mobile. Pantau kadar kemenangan WWCD, jumlah kills terkumpul, sejarah pusingan, dan jana kad prestasi 9:16 untuk Instagram Story dalam satu klik.
+                  <p className="text-xs sm:text-sm text-zinc-400 font-normal">
+                    Ranking prestasi pasukan, rekod WWCD &amp; jana kad Instagram Story 9:16.
                   </p>
                 </div>
 
@@ -4190,8 +4239,8 @@ export default function App() {
                   </h1>
 
                   {/* Memorable Helper Text */}
-                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
-                    Pusat arkib keputusan perlawanan dan carta markah keseluruhan bagi setiap sesi scrim dan kejohanan PUBG Mobile. Pantau juara semasa, semak statistik setiap perlawanan, atau cetak semula poster Overall Standings HD.
+                  <p className="text-xs sm:text-sm text-zinc-400 font-normal">
+                    Arkib keputusan rasmi, carta kedudukan langsung &amp; cetakan poster HD.
                   </p>
                 </div>
 
@@ -5111,8 +5160,8 @@ export default function App() {
                       </h1>
 
                       {/* Memorable Helper Text */}
-                      <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
-                        Pusat kawalan penganjur kejohanan bersiri rasmi. Simpan rekod terus ke cloud database, jemput Co-Host mengisi serentak, kunci keputusan perlawanan, dan arkibkan sejarah kejohanan secara automatik.
+                      <p className="text-xs sm:text-sm text-zinc-400 font-normal">
+                        Pusat kawalan kejohanan rasmi, simpanan cloud database &amp; jemputan Co-Host.
                       </p>
                     </div>
 
