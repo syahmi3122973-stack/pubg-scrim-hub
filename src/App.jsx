@@ -52,6 +52,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Home
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -288,6 +289,37 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   return data.publicUrl;
 };
 
+const WHY_SWITCH_FAQS = [
+  {
+    id: 'sheet-vs-scrimhub',
+    badge: 'Formula Kebal Ralat',
+    question: 'Kenapa penganjur tak patut lagi guna Google Sheet atau Excel?',
+    answer: 'Formula Google Sheet mudah rosak atau terpadam bila ramai orang edit. Di samping itu, spreadsheet tidak menyusun tiebreaker automatik dan perlukan Canva asing untuk lukis poster. Di sini, kiraan PMGC dan rekaan poster Standings HD siap serentak dalam beberapa saat.',
+    highlights: ['Formula PMGC kebal ralat', 'Auto-jana poster HD', 'Mesra skrin telefon bimbit']
+  },
+  {
+    id: 'import-whatsapp-discord',
+    badge: 'Pendaftaran 1-Klik',
+    question: 'Bagaimana cara susun 16 slot pasukan dalam masa 2 saat?',
+    answer: 'Gunakan fungsi "Import WA". Hanya salin mesej pendaftaran pasukan daripada WhatsApp atau Discord, tekan butang Import, dan sistem akan mengesan serta mengisi 16 slot pasukan secara tersusun tanpa perlu taip satu per satu.',
+    highlights: ['Salin & tampal teks mesej', 'Tapis nombor dan simbol automatik', 'Jimat 90% masa persediaan match']
+  },
+  {
+    id: 'pmgc-scoring-standard',
+    badge: 'Format Rasmi PMGC',
+    question: 'Adakah kiraan mata dan kedudukan mengikut peraturan rasmi PMGC?',
+    answer: 'Ya, 100% mematuhi sistem mata rasmi PMGC (WWCD = 10 mata, Tempat Ke-2 = 6 mata, setiap Kill = 1 mata). Sistem turut mengira pemecah seri (Tiebreaker) automatik mengikut keutamaan: Jumlah Mata > Mata Penempatan > Jumlah Kills > Kemenangan WWCD.',
+    highlights: ['Standard PMGC 10-Point System', 'Auto-tiebreaker rasmi', 'Keputusan adil & telus']
+  },
+  {
+    id: 'mobile-hd-posters',
+    badge: 'Eksport Segera',
+    question: 'Bolehkah poster Overall Standings dijana terus dari telefon bimbit?',
+    answer: 'Ya. Bila markah selesai diisi, tekan satu butang "Export PNG". Poster Overall Standings resolusi HD sedia dimuat turun terus ke galeri telefon bimbit anda untuk dikongsi ke WhatsApp Status & Instagram Story tanpa watermark.',
+    highlights: ['1-Klik Export PNG', 'Resolusi HD tajam', 'Sesuai untuk WhatsApp & IG']
+  }
+];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     try {
@@ -341,6 +373,7 @@ export default function App() {
 
   // Mobile Scorer View Scroll Tracking
   const [isScrolledToPoster, setIsScrolledToPoster] = useState(false);
+  const [expandedWhyIdx, setExpandedWhyIdx] = useState(0);
 
   const [playgroundSession, setPlaygroundSession] = useState(() => {
     try {
@@ -3419,55 +3452,101 @@ export default function App() {
               </div>
             )}
 
-            {/* 4. WORKFLOW VALUES: 3 COMPACT PILLARS */}
-            <div className="space-y-2.5 pt-1">
+            {/* 4. WORKFLOW VALUES: INTERACTIVE FAQ DROPDOWNS (LESS IS MORE) */}
+            <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between px-1">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] font-mono uppercase font-bold text-[#CCFF00] tracking-wider">
-                    WORKFLOW PENGANJUR ESPORTS
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
+                    <span className="text-[10px] font-mono uppercase font-black text-[#CCFF00] tracking-wider">
+                      KENAPA BERALIH DARI GOOGLE SHEET?
+                    </span>
+                  </div>
                   <h2 className="text-xs sm:text-sm font-black text-white">
-                    Kenapa Beralih Dari Google Sheet?
+                    Soalan Lazim &amp; Solusi Pantas
                   </h2>
                 </div>
-                <span className="text-[10px] text-zinc-400 hidden sm:inline">
-                  Jimat masa pengiraan setiap perlawanan
+                <span className="text-[10px] text-zinc-400 hidden sm:inline font-mono">
+                  Tekan soalan untuk penerangan ringkas
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
-                {/* Feature 1 */}
-                <div className="p-3.5 sm:p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-1.5 hover:border-white/10 transition-colors">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-black">
-                    <Copy className="w-3.5 h-3.5" />
-                  </div>
-                  <h3 className="text-xs font-bold text-white">Import WhatsApp 1-Klik</h3>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Salin senarai dari WhatsApp atau Discord, 16 slot tersusun automatik tanpa taip satu per satu.
-                  </p>
-                </div>
+              <div className="space-y-2">
+                {WHY_SWITCH_FAQS.map((faq, idx) => {
+                  const isOpen = expandedWhyIdx === idx;
+                  return (
+                    <div
+                      key={faq.id}
+                      className={'rounded-2xl border transition-all duration-200 overflow-hidden ' + (
+                        isOpen
+                          ? 'bg-zinc-900/80 border-[#CCFF00]/30 shadow-[0_0_20px_rgba(204,255,0,0.06)]'
+                          : 'bg-zinc-900/40 hover:bg-zinc-900/60 border-white/5 hover:border-white/10'
+                      )}
+                    >
+                      {/* Dropdown Button: Soalan */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedWhyIdx(isOpen ? null : idx)}
+                        className="w-full text-left p-3.5 sm:p-4 flex items-center justify-between gap-3 group transition cursor-pointer"
+                        aria-expanded={isOpen}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={'w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-colors ' + (
+                            isOpen
+                              ? 'bg-[#CCFF00] text-black font-black'
+                              : 'bg-zinc-800 text-zinc-400 group-hover:text-white'
+                          )}>
+                            <HelpCircle className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0 space-y-0.5">
+                            <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-400 block">
+                              {faq.badge}
+                            </span>
+                            <h3 className={'text-xs sm:text-sm font-bold transition-colors leading-snug ' + (
+                              isOpen ? 'text-[#CCFF00]' : 'text-zinc-200 group-hover:text-white'
+                            )}>
+                              {faq.question}
+                            </h3>
+                          </div>
+                        </div>
 
-                {/* Feature 2 */}
-                <div className="p-3.5 sm:p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-1.5 hover:border-white/10 transition-colors">
-                  <div className="w-7 h-7 rounded-lg bg-[#CCFF00]/10 text-[#CCFF00] flex items-center justify-center font-black">
-                    <Zap className="w-3.5 h-3.5" />
-                  </div>
-                  <h3 className="text-xs font-bold text-white">Formula PMGC Kebal Ralat</h3>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Hanya masukkan placement (#1..#16) dan kills. Mata rasmi &amp; WWCD dikira automatik tanpa formula rosak.
-                  </p>
-                </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={'text-[10px] font-mono font-bold hidden sm:inline ' + (
+                            isOpen ? 'text-[#CCFF00]' : 'text-zinc-500'
+                          )}>
+                            {isOpen ? 'Tutup' : 'Penerangan'}
+                          </span>
+                          <div className={'w-6 h-6 rounded-lg bg-zinc-800 flex items-center justify-center transition-transform duration-200 ' + (
+                            isOpen ? 'rotate-180 bg-[#CCFF00]/20 text-[#CCFF00]' : 'text-zinc-400'
+                          )}>
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                      </button>
 
-                {/* Feature 3 */}
-                <div className="p-3.5 sm:p-4 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl space-y-1.5 hover:border-white/10 transition-colors">
-                  <div className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-black">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </div>
-                  <h3 className="text-xs font-bold text-white">Poster HD Serta-Merta</h3>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Overall Standings resolusi tinggi siap dieksport terus ke WhatsApp Status &amp; Instagram Story.
-                  </p>
-                </div>
+                      {/* Dropdown Content: Penerangan */}
+                      {isOpen && (
+                        <div className="px-3.5 sm:px-4 pb-4 pt-1 border-t border-white/5 space-y-2.5 animate-in fade-in duration-150">
+                          <p className="text-xs text-zinc-300 leading-relaxed font-sans">
+                            {faq.answer}
+                          </p>
+
+                          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                            {faq.highlights.map((h, hIdx) => (
+                              <span
+                                key={hIdx}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950/80 border border-white/5 text-[10px] font-mono text-zinc-300"
+                              >
+                                <Check className="w-3 h-3 text-[#CCFF00]" />
+                                <span>{h}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
