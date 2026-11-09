@@ -383,6 +383,8 @@ export default function App() {
   // Mobile Scorer View Scroll Tracking
   const [isScrolledToPoster, setIsScrolledToPoster] = useState(false);
   const [expandedWhyIdx, setExpandedWhyIdx] = useState(0);
+  const [isHallOfFameSearchOpen, setIsHallOfFameSearchOpen] = useState(false);
+  const [isHallOfFameFullView, setIsHallOfFameFullView] = useState(false);
 
   // Homepage Interactive Card Slider State (4 cards + 2 clones for seamless forward loop)
   const HOME_SLIDER_TOTAL = 4;
@@ -4400,314 +4402,583 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 1: TEAM STATS */}
-        {activeTab === 'teams' && (
-          <div className="space-y-4">
-            
-            {/* STRATEGIC PAGE HEADER: HALL OF FAME */}
-            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-                <div className="space-y-2.5 flex-1 min-w-0">
-                  {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
-                  <div className="flex items-center justify-between gap-3">
+        {/* VIEW 1: TEAM STATS (HALL OF FAME - REFERENCE DIAL & SUMMARY LAYOUT) */}
+        {activeTab === 'teams' && (() => {
+          const totalTeamsCount = validTeamList.length;
+          const totalScrimsCount = scrims.filter(s => (s.event_type || 'Scrim') !== 'Tour').length;
+          const totalToursCount = scrims.filter(s => s.event_type === 'Tour').length;
+
+          const rankedTeamsWithStats = filteredTeamList.map((t) => {
+            const allRes = t.scrimResults || [];
+            const scopedRes = teamStatsCategory === 'ALL'
+              ? allRes
+              : allRes.filter(r => (r.eventType || 'Scrim') === teamStatsCategory);
+            const scopedPoints = scopedRes.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
+            const scopedKills = scopedRes.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
+            const scopedWWCD = scopedRes.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
+            return {
+              ...t,
+              scopedPoints,
+              scopedKills,
+              scopedWWCD,
+              scopedEvents: scopedRes.length
+            };
+          }).sort((a, b) => (
+            b.scopedPoints - a.scopedPoints ||
+            b.scopedWWCD - a.scopedWWCD ||
+            b.scopedKills - a.scopedKills
+          ));
+
+          const showAllTeams = isHallOfFameFullView || Boolean(teamSearchQuery.trim());
+          const displayedRankedTeams = showAllTeams
+            ? rankedTeamsWithStats
+            : rankedTeamsWithStats.slice(0, 3);
+
+          // Generate radial tick marks for the minimalist semi-circle dial (-74 deg to +74 deg)
+          const dialTicks = [];
+          for (let deg = -74; deg <= 74; deg += 2) {
+            const rad = ((deg - 90) * Math.PI) / 180;
+            const cx = 200;
+            const cy = 190;
+            const isMajor = deg % 10 === 0;
+            const rInner = isMajor ? 148 : 151;
+            const rOuter = isMajor ? 163 : 160;
+            const x1 = cx + rInner * Math.cos(rad);
+            const y1 = cy + rInner * Math.sin(rad);
+            const x2 = cx + rOuter * Math.cos(rad);
+            const y2 = cy + rOuter * Math.sin(rad);
+            const distFromCenter = Math.abs(deg) / 74;
+            const opacity = Math.max(0.12, (1 - distFromCenter * 0.75) * (isMajor ? 0.65 : 0.38));
+            dialTicks.push({ deg, x1, y1, x2, y2, opacity, isCenter: deg === 0 });
+          }
+
+          return (
+            <div className="max-w-xl lg:max-w-2xl mx-auto space-y-5 pt-1 pb-4">
+              
+              {/* 1. TOP NAVIGATION BAR (Following Reference: "< My Personality" + Search Right) */}
+              <div className="flex items-center justify-between px-1">
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('playground')}
+                  className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group"
+                  title="Kembali ke Laman Utama"
+                >
+                  <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
+                  <span className="text-base sm:text-lg font-bold tracking-tight">
+                    Hall of Fame
+                  </span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsHallOfFameSearchOpen(prev => !prev)}
+                    className={
+                      'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
+                      (isHallOfFameSearchOpen || teamSearchQuery
+                        ? 'bg-[#D7FF00] text-black shadow-sm'
+                        : 'bg-zinc-900/80 text-zinc-300 hover:text-white')
+                    }
+                    title="Cari pasukan"
+                    aria-label="Cari pasukan"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleHeaderInfo('teams')}
+                    className={
+                      'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
+                      (activeHeaderInfo === 'teams'
+                        ? 'bg-[#D7FF00] text-black shadow-sm'
+                        : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
+                    }
+                    title="Info Hall of Fame"
+                    aria-label="Info Hall of Fame"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Expandable Info Card (if toggled) */}
+              {activeHeaderInfo === 'teams' && (
+                <div className="p-3.5 bg-[#121214] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
+                  <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
+                  <p className="leading-relaxed flex-1">
+                    Pangkalan data statistik ranking pasukan, analitik konsistensi seluruh kejohanan Malaysia, metrik win-rate dan penjana kad Story 9:16.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveHeaderInfo(null)}
+                    className="text-zinc-500 hover:text-white p-0.5 rounded transition shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* 2. HORIZONTAL FILTER PILLS BAR (Following Reference: "Mood | Style & Looks | Habbits...") */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {[
+                  { key: 'ALL', label: 'Semua Data' },
+                  { key: 'Scrim', label: 'Scrim' },
+                  { key: 'Tour', label: 'Tournament' }
+                ].map((cat) => {
+                  const isActive = teamStatsCategory === cat.key;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setTeamStatsCategory(cat.key)}
+                      className={
+                        'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
+                        (isActive
+                          ? 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/50 shadow-[0_0_12px_rgba(215,255,0,0.15)]'
+                          : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border border-white/10')
+                      }
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+
+                {rankedTeamsWithStats.slice(0, 6).map((t) => {
+                  const isSelected = currentSelectedTeam === t.name;
+                  return (
+                    <button
+                      key={t.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTeamProfile(t.name);
+                        document.getElementById('hof-team-detail-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }}
+                      className={
+                        'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
+                        (isSelected
+                          ? 'bg-zinc-800 text-white border border-white/25'
+                          : 'bg-zinc-900/40 text-zinc-500 hover:text-zinc-300 border border-white/5')
+                      }
+                    >
+                      {t.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Bar (Toggled by top-right Search icon) */}
+              {(isHallOfFameSearchOpen || teamSearchQuery) && (
+                <div className="relative px-1 animate-in fade-in duration-150">
+                  <Search className="w-4 h-4 text-zinc-500 absolute left-4 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama pasukan atau tag..."
+                    value={teamSearchQuery}
+                    onChange={(e) => setTeamSearchQuery(e.target.value)}
+                    className="w-full bg-[#121214] border border-white/10 rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00] transition font-semibold placeholder:text-zinc-500"
+                  />
+                  {teamSearchQuery && (
                     <button
                       type="button"
-                      onClick={() => navigateToTab('playground')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
-                      title="Kembali ke Laman Utama"
+                      onClick={() => setTeamSearchQuery('')}
+                      className="absolute right-4 top-2.5 text-zinc-500 hover:text-white p-0.5"
                     >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                      <span>Laman Utama</span>
+                      <X className="w-4 h-4" />
                     </button>
+                  )}
+                </div>
+              )}
 
-                    <button
-                      type="button"
-                      onClick={() => toggleHeaderInfo('teams')}
-                      className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer shrink-0 ' + (
-                        activeHeaderInfo === 'teams'
-                          ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
-                      )}
-                      title="Info direktori pasukan"
-                      aria-label="Info direktori pasukan"
-                    >
-                      <Info className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    </button>
-                  </div>
+              {/* 3. MINIMALIST SEMI-CIRCULAR DIAL + HALL OF FAME CENTERPIECE (No Floating Icons Around It) */}
+              <div className="relative pt-2 pb-3 flex flex-col items-center text-center select-none overflow-hidden">
+                <svg
+                  viewBox="0 0 400 130"
+                  className="w-full max-w-[380px] sm:max-w-[430px] h-auto overflow-visible pointer-events-none"
+                  aria-hidden="true"
+                >
+                  {/* Top & Bottom Center Indicator Pointers (Exact Reference Dial Marker) */}
+                  <line
+                    x1="200"
+                    y1="10"
+                    x2="200"
+                    y2="22"
+                    stroke="#D7FF00"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1="200"
+                    y1="46"
+                    x2="200"
+                    y2="58"
+                    stroke="#FFFFFF"
+                    strokeOpacity="0.85"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
 
-                  {/* Big Highlight Title */}
-                  <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
-                    Hall of Fame Pasukan
+                  {/* Semi-Circular Radial Tick Marks */}
+                  {dialTicks.map((t) => (
+                    <line
+                      key={t.deg}
+                      x1={t.x1}
+                      y1={t.y1}
+                      x2={t.x2}
+                      y2={t.y2}
+                      stroke={t.isCenter ? '#D7FF00' : '#E4E4E7'}
+                      strokeOpacity={t.isCenter ? 0.95 : t.opacity}
+                      strokeWidth={t.isCenter ? '2' : '1.25'}
+                      strokeLinecap="round"
+                    />
+                  ))}
+                </svg>
+
+                {/* Center Text Inside the Dial Arc */}
+                <div className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-md">
+                  <h1 className="text-3xl sm:text-5xl font-light tracking-[0.14em] uppercase text-white">
+                    HALL OF FAME
                   </h1>
 
-                  {/* Memorable Helper Text */}
-                  <p className="text-xs sm:text-sm text-zinc-400 font-normal">
+                  {/* Stats Line: Jumlah Team - Jumlah Scrim - Jumlah Tournament */}
+                  <div className="flex items-center justify-center gap-4 sm:gap-5 text-xs sm:text-sm font-mono text-zinc-300">
+                    <span>
+                      <strong className="text-white font-bold">{totalTeamsCount}</strong> Team
+                    </span>
+                    <span>
+                      <strong className="text-white font-bold">{totalScrimsCount}</strong> Scrim
+                    </span>
+                    <span>
+                      <strong className="text-white font-bold">{totalToursCount}</strong> Tournament
+                    </span>
+                  </div>
+
+                  {/* Description Paragraph */}
+                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xs sm:max-w-sm mx-auto pt-0.5">
                     Ranking prestasi pasukan, rekod WWCD &amp; jana kad Instagram Story 9:16.
                   </p>
+                </div>
+              </div>
 
-                  {/* Expandable Info Card */}
-                  {activeHeaderInfo === 'teams' && (
-                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
-                      <Trophy className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5 sm:mt-0" />
-                      <p className="leading-relaxed flex-1">
-                        Pangkalan data statistik ranking pasukan, analitik konsistensi seluruh kejohanan Malaysia, metrik win-rate dan penjana kad Story 9:16.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setActiveHeaderInfo(null)}
-                        className="text-zinc-500 hover:text-white p-0.5 rounded transition shrink-0"
-                        title="Tutup info"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+              {/* 4. TOP PERFORM TEAM CARD (Following Reference "Mood Summary" + Top-Right View Full Button) */}
+              <div className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                      Top Perform Team
+                    </h2>
+                    <span className="text-[11px] text-zinc-500">
+                      {showAllTeams
+                        ? `Senarai penuh (${rankedTeamsWithStats.length} pasukan aktif)`
+                        : 'Kedudukan 3 pasukan terbaik keseluruhan'}
+                    </span>
+                  </div>
+
+                  {/* Top-Right View Full Button (↗) */}
+                  {rankedTeamsWithStats.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsHallOfFameFullView(prev => !prev)}
+                      className={
+                        'h-9 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition cursor-pointer shrink-0 ' +
+                        (isHallOfFameFullView
+                          ? 'bg-[#D7FF00] text-black shadow-sm'
+                          : 'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200')
+                      }
+                      title={isHallOfFameFullView ? 'Tutup senarai penuh' : 'Lihat senarai penuh semua pasukan'}
+                    >
+                      <span>{isHallOfFameFullView ? 'Ringkas' : 'View Full'}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
 
-                <div className="flex items-center bg-zinc-950/80 p-1 rounded-2xl self-start sm:self-auto shrink-0">
-                  <button
-                    onClick={() => setTeamStatsCategory('ALL')}
-                    className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
-                  >
-                    Semua
-                  </button>
-                  <button
-                    onClick={() => setTeamStatsCategory('Scrim')}
-                    className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
-                  >
-                    <Flame className="w-3.5 h-3.5"/>
-                    <span>Scrim</span>
-                  </button>
-                  <button
-                    onClick={() => setTeamStatsCategory('Tour')}
-                    className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
-                  >
-                    <Medal className="w-3.5 h-3.5"/>
-                    <span>Kejohanan</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="relative">
-                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3"/>
-                <input
-                  type="text"
-                  placeholder="Cari nama pasukan atau tag..."
-                  value={teamSearchQuery}
-                  onChange={(e) => setTeamSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00] focus:ring-1 focus:ring-[#D7FF00]/40 transition font-semibold placeholder:text-zinc-600"
-                />
-              </div>
-
-              {/* Horizontal Slider with Gradient Edge Fade & No-Scrollbar */}
-              <div className="relative group">
-                {/* Left Subtle Gradient Edge Fade */}
-                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-900/95 via-zinc-900/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
-
-                {/* Scrollable Container with Smooth Native Swipe */}
-                <div className="flex gap-2 sm:gap-2.5 overflow-x-auto scroll-smooth no-scrollbar py-1 px-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {filteredTeamList.length > 0 ? (
-                    filteredTeamList.map(t => {
-                      const isSelected = currentSelectedTeam === t.name;
-                      return (
-                        <button
-                          key={t.name}
-                          onClick={() => setSelectedTeamProfile(t.name)}
-                          className={'py-1.5 px-3.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-150 shrink-0 flex items-center gap-1.5 ' + (
-                            isSelected 
-                              ? 'bg-zinc-800 text-[#D7FF00] font-bold border border-[#D7FF00]/50 shadow-xs' 
-                              : 'bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-white/5 transition-colors'
-                          )}
-                        >
-                          <span className={'text-[10px] font-mono ' + (isSelected ? 'text-[#D7FF00]/80 font-bold' : 'text-zinc-500')}>
-                            [{t.tag}]
-                          </span>
-                          <span>{t.name}</span>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="py-1 px-3 text-xs text-zinc-500 italic">
-                      {validTeamList.length === 0 ? 'Tiada data perlawanan pasukan berdaftar.' : 'Tiada pasukan sepadan.'}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Subtle Gradient Edge Fade */}
-                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-900/95 via-zinc-900/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
-              </div>
-            </div>
-
-            {validTeamList.length === 0 ? (
-              <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-8 text-center space-y-3 shadow-xl">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-white/10 flex items-center justify-center mx-auto text-zinc-400">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm text-white">Tiada Rekod Perlawanan Pasukan</h3>
-                  <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                    Pasukan hanya akan dipaparkan dalam Hall of Fame selepas mempunyai sekurang-kurangnya satu rekod perlawanan rasmi.
-                  </p>
-                </div>
-              </div>
-            ) : filteredTeamList.length === 0 ? (
-              <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-8 text-center space-y-2 shadow-xl">
-                <p className="text-xs text-zinc-400">
-                  {teamSearchQuery.trim()
-                    ? `Tiada pasukan yang sepadan dengan carian "${teamSearchQuery}".`
-                    : `Tiada pasukan dengan rekod bagi kategori ${teamStatsCategory === 'Tour' ? 'Kejohanan' : 'Scrim'}.`}
-                </p>
-              </div>
-            ) : activeTeamData && activeTeamScopedStats ? (
-              <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-300 flex items-center justify-center text-black font-black text-lg shadow-sm border border-[#D7FF00]/30">
-                      {activeTeamData.tag}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="font-black text-base text-white">{activeTeamData.name}</h3>
-                        <span className={'text-[10px] px-2 py-0.5 rounded-md font-mono font-bold ' + (
-                          teamStatsCategory === 'Tour' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                          teamStatsCategory === 'Scrim' ? 'bg-[#D7FF00]/20 text-[#D7FF00] border border-[#D7FF00]/30' :
-                          'bg-zinc-800 text-zinc-300'
-                        )}>
-                          VIEW: {teamStatsCategory.toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
+                {validTeamList.length === 0 ? (
+                  <div className="py-8 text-center space-y-2">
+                    <Users className="w-7 h-7 text-zinc-500 mx-auto" />
+                    <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+                      Tiada pasukan dengan rekod perlawanan lagi. Rekod akan muncul secara automatik sebaik sahaja markah disimpan.
+                    </p>
                   </div>
+                ) : displayedRankedTeams.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-zinc-400">
+                    Tiada pasukan sepadan dengan tapisan semasa.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {displayedRankedTeams.map((team, idx) => {
+                      const rankNum = idx + 1;
+                      const isSelected = currentSelectedTeam === team.name;
+                      const badgeBg =
+                        rankNum === 1
+                          ? 'bg-gradient-to-br from-[#D7FF00] via-lime-300 to-emerald-400 text-black shadow-[0_0_18px_rgba(215,255,0,0.25)]'
+                          : rankNum === 2
+                          ? 'bg-gradient-to-br from-zinc-200 via-zinc-300 to-zinc-500 text-black'
+                          : rankNum === 3
+                          ? 'bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 text-black'
+                          : 'bg-zinc-800/90 text-zinc-200';
 
-                  <button
-                    onClick={() => {
-                      setPerformanceTeam(activeTeamData);
-                      setSelectedPerformanceHost('ALL');
-                      setPerformanceModalCategory(teamStatsCategory);
-                      setIsPerformanceModalOpen(true);
-                    }}
-                    className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(215, 255, 0,0.18)] active:scale-95"
-                  >
-                    <Share2 className="w-4 h-4 text-black"/>
-                    <span>Analisis Penuh</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Points</span>
-                    <span className="text-xl font-black font-mono text-[#D7FF00]">{activeTeamScopedStats.totalPoints}</span>
-                  </div>
-                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Elims</span>
-                    <span className="text-xl font-black font-mono text-white">{activeTeamScopedStats.totalKills}</span>
-                  </div>
-                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">WWCD</span>
-                    <span className="text-xl font-black font-mono text-[#D7FF00] flex items-center justify-center gap-1">
-                      {activeTeamScopedStats.totalWWCD}
-                    </span>
-                  </div>
-                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">
-                      Sesi
-                    </span>
-                    <span className="text-xl font-black font-mono text-zinc-300">{activeTeamScopedStats.eventsCount}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Rekod Perlawanan ({activeTeamScopedStats.filteredResults.length})
-                    </span>
-                    <span className="text-[10px] text-[#D7FF00] font-semibold flex items-center gap-1">
-                      <Eye className="w-3 h-3"/> Info
-                    </span>
-                  </div>
-
-                  {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
-                    activeTeamScopedStats.filteredResults.map((item, idx) => {
-                      const isFirst = item.ranking === 1;
                       return (
                         <div
-                          key={idx}
-                          onClick={() => setInspectedScrim(item.scrimData)}
-                          className={'p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition ' + (
-                            isFirst 
-                              ? 'bg-zinc-900/80 border border-[#D7FF00]/30 shadow-[0_0_15px_rgba(215, 255, 0,0.06)]' 
-                              : 'bg-zinc-950/60 hover:bg-zinc-900/60'
-                          )}
+                          key={team.name}
+                          onClick={() => {
+                            setSelectedTeamProfile(team.name);
+                            document.getElementById('hof-team-detail-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }}
+                          className={
+                            'p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all ' +
+                            (isSelected
+                              ? 'bg-zinc-800/80 shadow-md'
+                              : 'hover:bg-zinc-900/70')
+                          }
                         >
-                          {/* Info Sesi & Host */}
-                          <div className="flex items-center space-x-3 min-w-0 flex-1">
-                            {item.scrimData?.logo_url && (
-                              <img 
-                                src={item.scrimData.logo_url} 
-                                alt="" 
-                                className="w-10 h-10 rounded-xl object-cover border border-white/10 flex-shrink-0" 
-                              />
-                            )}
+                          {/* Left: #Rank + Square Rounded Thumbnail Badge + Team Info */}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span
+                              className={
+                                'w-6 text-xs sm:text-sm font-mono font-bold shrink-0 ' +
+                                (rankNum === 1
+                                  ? 'text-[#D7FF00]'
+                                  : rankNum === 2
+                                  ? 'text-zinc-300'
+                                  : rankNum === 3
+                                  ? 'text-amber-400'
+                                  : 'text-zinc-500')
+                              }
+                            >
+                              #{rankNum}
+                            </span>
+
+                            <div
+                              className={
+                                'w-12 h-12 sm:w-13 sm:h-13 rounded-2xl flex flex-col items-center justify-center shrink-0 font-black ' +
+                                badgeBg
+                              }
+                            >
+                              <span className="text-xs sm:text-sm tracking-tight leading-none">
+                                {team.tag || team.name.slice(0, 3).toUpperCase()}
+                              </span>
+                              <span className="text-[8px] font-mono uppercase opacity-75 mt-0.5">
+                                {team.scopedWWCD > 0 ? `${team.scopedWWCD} WWCD` : 'SQUAD'}
+                              </span>
+                            </div>
+
                             <div className="min-w-0 flex-1">
-                              <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
-                                <span className="truncate max-w-[150px] sm:max-w-none">{item.scrimName}</span>
-                                <span className={'text-[9px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ' + (
-                                  (item.eventType || 'Scrim') === 'Tour' 
-                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                                    : 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/25'
-                                )}>
-                                  {(item.eventType || 'Scrim').toUpperCase()}
-                                </span>
-                                {item.isFinished && (
-                                  <span className="text-[9px] bg-zinc-800 text-zinc-300 px-1 rounded font-mono flex-shrink-0">
-                                    Final
-                                  </span>
-                                )}
-                                <ExternalLink className="w-3 h-3 text-zinc-500 flex-shrink-0"/>
+                              <div className="text-sm sm:text-base font-bold text-white truncate">
+                                {team.name}
                               </div>
-                              
-                              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1 flex-wrap">
-                                <span className="text-[#D7FF00] font-bold">{item.scrimTier}</span>
-                                <span>•</span>
-                                <span className="truncate max-w-[120px] sm:max-w-none">Host: {item.hostName}</span>
-                                <span>•</span>
-                                <span className="font-mono">{item.date}</span>
+                              <div className="text-xs text-zinc-400 truncate mt-0.5">
+                                {team.scopedPoints} PTS • {team.scopedKills} Elims • {team.scopedWWCD} WWCD
                               </div>
                             </div>
                           </div>
 
-                          {/* Statistik & Kedudukan */}
-                          <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5 flex-shrink-0">
-                            <div className="text-left sm:text-right">
-                              <span className="text-[9px] text-zinc-500 uppercase font-bold block">Kills</span>
-                              <span className="text-xs font-mono font-bold text-zinc-200">{item.kills} K</span>
-                            </div>
-                            <div className="text-left sm:text-right">
-                              <span className="text-[9px] text-zinc-500 uppercase font-bold block">Points</span>
-                              <span className="text-xs font-mono font-black text-[#D7FF00]">{item.points} PTS</span>
-                            </div>
-                            <div className="text-right pl-1">
-                              <span className={'text-xs font-black font-mono px-2.5 py-1 rounded-xl inline-block ' + (
-                                isFirst ? 'bg-[#D7FF00] text-black shadow-xs' : 'bg-zinc-800 text-zinc-300 border border-white/10'
-                              )}>
-                                #{item.ranking}
+                          {/* Right: Overlapping Mini Badges + Quick IG Story Button (Following Reference Right Badges) */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="hidden xs:flex items-center -space-x-1.5">
+                              <span
+                                className="w-6 h-6 rounded-full bg-zinc-900 text-[#D7FF00] text-[9px] font-mono font-bold flex items-center justify-center ring-2 ring-[#121214]"
+                                title={`${team.scopedEvents} Sesi Disertai`}
+                              >
+                                {team.scopedEvents}S
                               </span>
+                              {team.scopedWWCD > 0 && (
+                                <span
+                                  className="w-6 h-6 rounded-full bg-[#D7FF00] text-black text-[9px] font-mono font-black flex items-center justify-center ring-2 ring-[#121214]"
+                                  title={`${team.scopedWWCD} Chicken Dinner`}
+                                >
+                                  🏆
+                                </span>
+                              )}
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPerformanceTeam(team);
+                                setSelectedPerformanceHost('ALL');
+                                setPerformanceModalCategory(teamStatsCategory);
+                                setIsPerformanceModalOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-[10px] font-mono font-bold transition flex items-center gap-1 cursor-pointer"
+                              title="Buka Kad Analitik & IG Story 9:16"
+                            >
+                              <Share2 className="w-3 h-3" />
+                              <span className="hidden sm:inline">Story 9:16</span>
+                            </button>
                           </div>
                         </div>
                       );
-                    })
-                  ) : (
-                    <div className="p-6 text-center text-zinc-500 text-xs bg-zinc-950/60 rounded-2xl">
-                      Tiada rekod bagi kategori ini.
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : null}
+                    })}
+                  </div>
+                )}
 
-          </div>
-        )}
+                {/* Bottom Toggle if there are more than 3 teams */}
+                {!teamSearchQuery.trim() && rankedTeamsWithStats.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsHallOfFameFullView(prev => !prev)}
+                    className="w-full py-2.5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] transition cursor-pointer"
+                  >
+                    {isHallOfFameFullView
+                      ? 'Tunjukkan Top 3 Sahaja ↑'
+                      : `Lihat Semua ${rankedTeamsWithStats.length} Pasukan ↓`}
+                  </button>
+                )}
+              </div>
+
+              {/* 5. SELECTED TEAM DETAILED STATS & MATCH LOGS */}
+              {activeTeamData && activeTeamScopedStats && (
+                <div
+                  id="hof-team-detail-panel"
+                  className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 scroll-mt-20"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-300 flex items-center justify-center text-black font-black text-base shadow-sm">
+                        {activeTeamData.tag}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="font-black text-sm sm:text-base text-white">{activeTeamData.name}</h3>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 font-mono font-bold">
+                            Rekod {teamStatsCategory === 'ALL' ? 'Keseluruhan' : teamStatsCategory}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-zinc-400">
+                          Klik sesi di bawah untuk lihat papan markah penuh atau jana IG Story 9:16
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPerformanceTeam(activeTeamData);
+                        setSelectedPerformanceHost('ALL');
+                        setPerformanceModalCategory(teamStatsCategory);
+                        setIsPerformanceModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(215,255,0,0.18)] active:scale-95 cursor-pointer"
+                    >
+                      <Share2 className="w-4 h-4 text-black" />
+                      <span>Jana IG Story 9:16</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">Points</span>
+                      <span className="text-xl font-black font-mono text-[#D7FF00]">{activeTeamScopedStats.totalPoints}</span>
+                    </div>
+                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">Elims</span>
+                      <span className="text-xl font-black font-mono text-white">{activeTeamScopedStats.totalKills}</span>
+                    </div>
+                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">WWCD</span>
+                      <span className="text-xl font-black font-mono text-[#D7FF00]">
+                        {activeTeamScopedStats.totalWWCD}
+                      </span>
+                    </div>
+                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">Sesi</span>
+                      <span className="text-xl font-black font-mono text-zinc-300">{activeTeamScopedStats.eventsCount}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                        Sejarah Perlawanan ({activeTeamScopedStats.filteredResults.length})
+                      </span>
+                      <span className="text-[10px] text-[#D7FF00] font-semibold flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Semak Standings
+                      </span>
+                    </div>
+
+                    {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
+                      activeTeamScopedStats.filteredResults.map((item, idx) => {
+                        const isFirst = item.ranking === 1;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => setInspectedScrim(item.scrimData)}
+                            className={
+                              'p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition ' +
+                              (isFirst
+                                ? 'bg-zinc-900/90 shadow-[0_0_15px_rgba(215,255,0,0.06)]'
+                                : 'bg-zinc-950/60 hover:bg-zinc-900/60')
+                            }
+                          >
+                            <div className="flex items-center space-x-3 min-w-0 flex-1">
+                              {item.scrimData?.logo_url && (
+                                <img
+                                  src={item.scrimData.logo_url}
+                                  alt=""
+                                  className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+                                />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
+                                  <span className="truncate max-w-[160px] sm:max-w-none">{item.scrimName}</span>
+                                  <span
+                                    className={
+                                      'text-[9px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ' +
+                                      ((item.eventType || 'Scrim') === 'Tour'
+                                        ? 'bg-amber-500/20 text-amber-300'
+                                        : 'bg-[#D7FF00]/15 text-[#D7FF00]')
+                                    }
+                                  >
+                                    {(item.eventType || 'Scrim').toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1 flex-wrap">
+                                  <span className="text-[#D7FF00] font-bold">{item.scrimTier}</span>
+                                  <span>•</span>
+                                  <span className="truncate max-w-[120px] sm:max-w-none">Host: {item.hostName}</span>
+                                  <span>•</span>
+                                  <span className="font-mono">{item.date}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5 flex-shrink-0">
+                              <div className="text-left sm:text-right">
+                                <span className="text-[9px] text-zinc-500 uppercase font-bold block">Kills</span>
+                                <span className="text-xs font-mono font-bold text-zinc-200">{item.kills} K</span>
+                              </div>
+                              <div className="text-left sm:text-right">
+                                <span className="text-[9px] text-zinc-500 uppercase font-bold block">Points</span>
+                                <span className="text-xs font-mono font-black text-[#D7FF00]">{item.points} PTS</span>
+                              </div>
+                              <div className="text-right pl-1">
+                                <span
+                                  className={
+                                    'text-xs font-black font-mono px-2.5 py-1 rounded-xl inline-block ' +
+                                    (isFirst ? 'bg-[#D7FF00] text-black shadow-xs' : 'bg-zinc-800 text-zinc-300')
+                                  }
+                                >
+                                  #{item.ranking}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-6 text-center text-zinc-500 text-xs bg-zinc-950/60 rounded-2xl">
+                        Tiada rekod bagi kategori ini.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          );
+        })()}
 
         {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
