@@ -345,6 +345,8 @@ export default function App() {
 
   // Top Right Hamburger 3-Line Menu State
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [activeHeaderInfo, setActiveHeaderInfo] = useState(null);
+  const toggleHeaderInfo = (key) => setActiveHeaderInfo(prev => prev === key ? null : key);
 
   // Guide Presentation Modal State (Auto-buka jika URL ada #guide atau #panduan)
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(() => {
@@ -3491,36 +3493,51 @@ export default function App() {
           <div className="space-y-4 animate-card-entrance">
             
             {/* STRATEGIC PAGE HEADER: QUICK SCORER */}
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-3">
-              <div className="absolute -top-16 -right-16 w-56 h-56 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
-              
+            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-                <div className="space-y-2">
-                  {/* Category Eyebrow Badge & Home Link */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="space-y-2.5">
+                  {/* Navigation Back Link */}
+                  <div>
                     <button
                       type="button"
                       onClick={() => navigateToTab('playground')}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
                       title="Kembali ke Laman Utama"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
                       <span>Laman Utama</span>
                     </button>
-
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D7FF00]/10 border border-[#D7FF00]/25 text-[#D7FF00] text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
-                      <Zap className="w-3 h-3 fill-current" />
-                      <span>KIRAAN PANTAS • TANPA LOGIN • PMGC 10-PTS</span>
-                    </span>
                   </div>
 
-                  {/* Big Head Text */}
-                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
-                    <span>Quick Scorer</span>
-                    <span className="text-xs sm:text-sm font-mono font-bold px-2.5 py-0.5 rounded-lg bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30">
-                      HD Poster
-                    </span>
-                  </h1>
+                  {/* Big Highlight Title & Info Action */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+                      Quick Scorer
+                    </h1>
+                    <button
+                      type="button"
+                      onClick={() => toggleHeaderInfo('scorer')}
+                      className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer ' + (
+                        activeHeaderInfo === 'scorer'
+                          ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                      )}
+                      title="Info sistem Quick Scorer"
+                      aria-label="Info Quick Scorer"
+                    >
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+
+                  {/* Expandable Info Card */}
+                  {activeHeaderInfo === 'scorer' && (
+                    <div className="p-3 sm:p-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                      <Zap className="w-4 h-4 text-[#D7FF00] fill-current shrink-0 mt-0.5 sm:mt-0" />
+                      <p className="leading-relaxed">
+                        Kiraan mata automatik 1–5 match mengikut format rasmi PMGC 10-points tanpa login. Poster HD sedia dimuat turun terus.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Memorable Helper Text */}
                   <p className="text-xs sm:text-sm text-zinc-400 font-normal">
@@ -4075,33 +4092,51 @@ export default function App() {
           <div className="space-y-4">
             
             {/* STRATEGIC PAGE HEADER: HALL OF FAME */}
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative overflow-hidden">
-              <div className="absolute -top-16 -right-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-                <div className="space-y-2">
-                  {/* Category Eyebrow Badge & Home Link */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="space-y-2.5">
+                  {/* Navigation Back Link */}
+                  <div>
                     <button
                       type="button"
                       onClick={() => navigateToTab('playground')}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
                       title="Kembali ke Laman Utama"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
                       <span>Laman Utama</span>
                     </button>
-
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
-                      <Trophy className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>RANKING PASUKAN • ANALITIK PRESTASI • MVP CARDS</span>
-                    </span>
                   </div>
 
-                  {/* Big Head Text */}
-                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
-                    <span>Hall of Fame &amp; Direktori Pasukan</span>
-                  </h1>
+                  {/* Big Highlight Title & Info Action */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+                      Hall of Fame Pasukan
+                    </h1>
+                    <button
+                      type="button"
+                      onClick={() => toggleHeaderInfo('teams')}
+                      className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer ' + (
+                        activeHeaderInfo === 'teams'
+                          ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                      )}
+                      title="Info direktori pasukan"
+                      aria-label="Info direktori pasukan"
+                    >
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+
+                  {/* Expandable Info Card */}
+                  {activeHeaderInfo === 'teams' && (
+                    <div className="p-3 sm:p-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                      <Trophy className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5 sm:mt-0" />
+                      <p className="leading-relaxed">
+                        Pangkalan data statistik ranking pasukan, analitik konsistensi seluruh kejohanan Malaysia, metrik win-rate dan penjana kad Story 9:16.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Memorable Helper Text */}
                   <p className="text-xs sm:text-sm text-zinc-400 font-normal">
@@ -4333,33 +4368,51 @@ export default function App() {
           <div className="space-y-4">
             
             {/* STRATEGIC PAGE HEADER: LIVE LEADERBOARD & REKOD */}
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative overflow-hidden">
-              <div className="absolute -top-16 -right-16 w-56 h-56 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
-
+            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-                <div className="space-y-2">
-                  {/* Category Eyebrow Badge & Home Link */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="space-y-2.5">
+                  {/* Navigation Back Link */}
+                  <div>
                     <button
                       type="button"
                       onClick={() => navigateToTab('playground')}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
                       title="Kembali ke Laman Utama"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
                       <span>Laman Utama</span>
                     </button>
-
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/25 text-amber-400 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
-                      <Flame className="w-3 h-3 text-amber-400" />
-                      <span>ARKIB KEPUTUSAN • LIVE LEADERBOARD • STANDINGS RASMI</span>
-                    </span>
                   </div>
 
-                  {/* Big Head Text */}
-                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
-                    <span>Live Leaderboard &amp; Rekod Kejohanan</span>
-                  </h1>
+                  {/* Big Highlight Title & Info Action */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+                      Rekod &amp; Arkib Scrim
+                    </h1>
+                    <button
+                      type="button"
+                      onClick={() => toggleHeaderInfo('history')}
+                      className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer ' + (
+                        activeHeaderInfo === 'history'
+                          ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                      )}
+                      title="Info arkib kejohanan"
+                      aria-label="Info arkib kejohanan"
+                    >
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+
+                  {/* Expandable Info Card */}
+                  {activeHeaderInfo === 'history' && (
+                    <div className="p-3 sm:p-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                      <Flame className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+                      <p className="leading-relaxed">
+                        Arkib keputusan rasmi, carta kedudukan terkumpul semua pusingan, dan paparan langsung leaderboard kejohanan sedia dimuat turun.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Memorable Helper Text */}
                   <p className="text-xs sm:text-sm text-zinc-400 font-normal">
@@ -5251,36 +5304,51 @@ export default function App() {
               <div className="space-y-4 sm:space-y-6">
                 
                 {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
-                <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-3">
-                  <div className="absolute -top-16 -right-16 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-                  
+                <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-                    <div className="space-y-2">
-                      {/* Category Eyebrow Badge & Home Link */}
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="space-y-2.5">
+                      {/* Navigation Back Link */}
+                      <div>
                         <button
                           type="button"
                           onClick={() => navigateToTab('playground')}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
                           title="Kembali ke Laman Utama"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
                           <span>Laman Utama</span>
                         </button>
-
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          <span>PORTAL HOST RASMI • CLOUD DATABASE • MULTI-ROUND</span>
-                        </span>
                       </div>
 
-                      {/* Big Head Text */}
-                      <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
-                        <span>Official Scrim Scoring</span>
-                        <span className="text-xs sm:text-sm font-mono font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                          Cloud Hub
-                        </span>
-                      </h1>
+                      {/* Big Highlight Title & Info Action */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+                          Host Workspace
+                        </h1>
+                        <button
+                          type="button"
+                          onClick={() => toggleHeaderInfo('admin')}
+                          className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer ' + (
+                            activeHeaderInfo === 'admin'
+                              ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                          )}
+                          title="Info portal penganjur"
+                          aria-label="Info portal penganjur"
+                        >
+                          <Info className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                      </div>
+
+                      {/* Expandable Info Card */}
+                      {activeHeaderInfo === 'admin' && (
+                        <div className="p-3 sm:p-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                          <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
+                          <p className="leading-relaxed">
+                            Pusat penganjur kejohanan rasmi dengan simpanan cloud automatik, sokongan jemputan Co-Host, dan pengurusan berbilang pusingan.
+                          </p>
+                        </div>
+                      )}
 
                       {/* Memorable Helper Text */}
                       <p className="text-xs sm:text-sm text-zinc-400 font-normal">
