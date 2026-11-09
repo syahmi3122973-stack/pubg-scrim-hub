@@ -7882,7 +7882,7 @@ export default function App() {
         </div>
       )}
 
-      {/* FLOATING GLASSMORPHIC PILL MOBILE NAVBAR (EXPANDING ACTIVE LABEL) */}
+      {/* FLOATING GLASSMORPHIC PILL MOBILE NAVBAR (EXPANDING ACTIVE LABEL • HIGHLIGHTED CENTER SCORER) */}
       <nav
         aria-label="Mobile Navigation"
         className="md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.25rem)] max-w-sm pointer-events-auto"
@@ -7914,32 +7914,7 @@ export default function App() {
             );
           })()}
 
-          {/* Tab 2: Quick Scorer */}
-          {(() => {
-            const isActive = activeTab === 'scorer';
-            return (
-              <button
-                type="button"
-                onClick={() => navigateToTab('scorer')}
-                title="Quick Scorer"
-                aria-label="Quick Scorer"
-                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 ' + (
-                  isActive
-                    ? 'bg-[#CCFF00] text-black font-black px-3.5 py-2 shadow-[0_0_16px_rgba(204,255,0,0.35)] shrink-0'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5 p-2'
-                )}
-              >
-                <Zap className={'w-5 h-5 ' + (isActive ? 'text-black fill-current stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
-                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
-                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
-                )}>
-                  Scorer
-                </span>
-              </button>
-            );
-          })()}
-
-          {/* Tab 3: Standings */}
+          {/* Tab 2: Standings */}
           {(() => {
             const isActive = activeTab === 'history' || activeTab === 'leaderboard';
             return (
@@ -7959,6 +7934,33 @@ export default function App() {
                   isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
                 )}>
                   Standings
+                </span>
+              </button>
+            );
+          })()}
+
+          {/* Tab 3: CENTER HIGHLIGHTED SCORER [+] */}
+          {(() => {
+            const isActive = activeTab === 'scorer';
+            return (
+              <button
+                type="button"
+                onClick={() => navigateToTab('scorer')}
+                title="Kira Markah Cepat (Quick Scorer)"
+                aria-label="Quick Scorer"
+                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 ' + (
+                  isActive
+                    ? 'bg-[#CCFF00] text-black font-black px-4 py-2 shadow-[0_0_22px_rgba(204,255,0,0.5)] ring-2 ring-[#CCFF00]/40 shrink-0'
+                    : 'bg-[#CCFF00]/15 hover:bg-[#CCFF00]/25 text-[#CCFF00] border border-[#CCFF00]/40 shadow-[0_0_12px_rgba(204,255,0,0.2)] p-2'
+                )}
+              >
+                <Plus className={'w-5 h-5 transition-transform duration-200 ' + (
+                  isActive ? 'text-black stroke-[3] rotate-90' : 'text-[#CCFF00] stroke-[3]'
+                )} />
+                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
+                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
+                )}>
+                  Scorer
                 </span>
               </button>
             );
