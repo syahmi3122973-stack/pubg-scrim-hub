@@ -2032,6 +2032,7 @@ export default function App() {
         setNewScrimDesc('');
         setNewHostContact('');
         setLogoFile(null);
+        setIsCreateScrimOpen(false);
         showToast(`${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} session created successfully!`);
       }
     } catch (err) {
@@ -4978,257 +4979,129 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
-                {/* Organizer Control Ribbon (Unified & Compact) */}
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* 1. ADVANCE SESSION CONTROL BAR (Sleek & Compact) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-sm">
+                  {/* Left: Active Session Dropdown Selector */}
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#CCFF00] text-black font-black flex items-center justify-center shrink-0 shadow-xs">
+                      {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4 text-black" /> : <Flame className="w-4 h-4 text-black" />}
+                    </div>
                     
-                    {/* Active Session Dropdown Selector */}
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-400 to-lime-300 text-black font-black flex items-center justify-center flex-shrink-0 shadow-sm border border-lime-500/20 text-base">
-                        {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-5 h-5 text-black" /> : <Flame className="w-5 h-5 text-black" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] uppercase font-bold text-zinc-400">Sesi Diuruskan:</span>
-                          {activeAdminScrim?.is_finished ? (
-                            <span className="text-[9px] bg-zinc-950 text-[#CCFF00] border border-[#CCFF00]/30 font-mono font-bold px-1.5 py-0.2 rounded">
-                              OFFICIAL / LOCKED
-                            </span>
-                          ) : (
-                            <span className="text-[9px] bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20 font-mono font-bold px-1.5 py-0.2 rounded">
-                              LIVE / ACTIVE
-                            </span>
-                          )}
-                        </div>
-                        
-                        {adminHostedScrims.length === 0 ? (
-                          <div className="text-xs font-bold text-zinc-400">Tiada sesi aktif. Sila cipta sesi baru.</div>
-                        ) : (
-                          <select
-                            value={adminSelectedScrimId}
-                            onChange={(e) => { setSelectedMatchIdx(0); setAdminSelectedScrimId(e.target.value); }}
-                            className="w-full bg-zinc-950 hover:bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-1 text-xs text-white font-black focus:outline-none focus:border-[#CCFF00] transition truncate cursor-pointer mt-0.5"
-                          >
-                            {adminHostedScrims.map((s) => (
-                              <option key={s.id} value={s.id} className="bg-zinc-950 text-white">
-                                [{s.event_type === 'Tour' ? 'Tournament' : 'Scrim'}] [{s.tier?.slice(0, 6) || 'Tier'}] {s.title} {s.is_finished ? '(Concluded)' : ''}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Toolbar Action Buttons */}
-                    <div className="flex items-center gap-1.5 flex-wrap self-start md:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => setIsCreateScrimOpen(!isCreateScrimOpen)}
-                        className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 ' + (
-                          isCreateScrimOpen 
-                            ? 'bg-zinc-800 text-zinc-300 border border-white/10 hover:bg-zinc-700' 
-                            : 'bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold shadow-[0_0_20px_rgba(204,255,0,0.18)]'
-                        )}
-                      >
-                        {isCreateScrimOpen ? (
-                          <X className="w-3.5 h-3.5 text-zinc-300"/>
-                        ) : (
-                          <Plus className="w-3.5 h-3.5 text-black"/>
-                        )}
-                        <span>{isCreateScrimOpen ? 'Tutup' : 'Sesi Baru'}</span>
-                      </button>
-
-                      {activeAdminScrim && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={handleToggleFinishScrim}
-                            className={'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border active:scale-95 ' + (
-                              activeAdminScrim.is_finished
-                                ? 'bg-zinc-800/80 text-zinc-300 border-white/10 hover:bg-zinc-700'
-                                : 'bg-[#CCFF00]/10 text-[#CCFF00] border-[#CCFF00]/30 hover:bg-[#CCFF00]/20'
-                            )}
-                            title={activeAdminScrim.is_finished ? 'Buka semula sesi ini untuk disunting' : 'Kunci markah sebagai keputusan rasmi'}
-                          >
-                            {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5"/> : <LockKeyhole className="w-3.5 h-3.5 text-[#CCFF00]"/>}
-                            <span className="hidden sm:inline">{activeAdminScrim.is_finished ? 'Buka Kunci' : 'Kunci Sesi'}</span>
-                          </button>
-
-                          {isAuthorizedAdmin(activeAdminScrim) && (
-                            <button
-                              type="button"
-                              onClick={handleCopyHostShareLink}
-                              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 active:scale-95"
-                              title="Salin Pautan Co-Host"
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        {adminHostedScrims.length > 0 ? (
+                          <div className="relative flex-1 max-w-sm">
+                            <select
+                              value={adminSelectedScrimId}
+                              onChange={(e) => { setSelectedMatchIdx(0); setAdminSelectedScrimId(e.target.value); }}
+                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white font-black focus:outline-none focus:border-[#CCFF00] transition truncate cursor-pointer"
                             >
-                              <Share2 className="w-3.5 h-3.5"/>
-                              <span className="hidden md:inline">Co-Host</span>
-                            </button>
-                          )}
+                              {adminHostedScrims.map((s) => (
+                                <option key={s.id} value={s.id} className="bg-zinc-950 text-white">
+                                  [{s.event_type === 'Tour' ? 'Tour' : 'Scrim'}] {s.title} {s.is_finished ? '(Locked)' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-bold text-zinc-400">Tiada sesi aktif</span>
+                        )}
 
+                        <span className={'inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ' + (
+                          activeAdminScrim?.is_finished 
+                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
+                            : 'bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/25'
+                        )}>
+                          <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-[#CCFF00] animate-pulse')} />
+                          <span>{activeAdminScrim?.is_finished ? 'LOCKED' : 'LIVE'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Advance Management Actions */}
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateScrimOpen(true)}
+                      className="px-3 py-1.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1 shadow-xs active:scale-95"
+                      title="Cipta kejohanan / sesi scrim baru"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-black stroke-[3]" />
+                      <span>Sesi Baru</span>
+                    </button>
+
+                    {activeAdminScrim && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={openEditScrimModal}
+                          className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
+                          title="Sunting maklumat sesi (nama, tier, logo)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#CCFF00]" />
+                          <span className="hidden md:inline">Sunting</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleToggleFinishScrim}
+                          className={'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border active:scale-95 ' + (
+                            activeAdminScrim.is_finished
+                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-white/10'
+                          )}
+                          title={activeAdminScrim.is_finished ? 'Buka kunci sesi untuk menyunting' : 'Kunci keputusan rasmi'}
+                        >
+                          {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5" /> : <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />}
+                          <span className="hidden sm:inline">{activeAdminScrim.is_finished ? 'Buka Kunci' : 'Kunci'}</span>
+                        </button>
+
+                        {isAuthorizedAdmin(activeAdminScrim) && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteScrim(activeAdminScrim.id)}
-                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
-                            title="Padam sesi ini"
+                            onClick={handleCopyHostShareLink}
+                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 active:scale-95"
+                            title="Salin Pautan Co-Host"
                           >
-                            <Trash2 className="w-3.5 h-3.5"/>
+                            <Share2 className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="hidden md:inline">Co-Host</span>
                           </button>
-                        </>
-                      )}
-                    </div>
+                        )}
 
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteScrim(activeAdminScrim.id)}
+                          className="p-1.5 sm:px-2 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
+                          title="Padam sesi ini"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Collapsible Create New Scrim / Tournament Form */}
-                {(isCreateScrimOpen || adminHostedScrims.length === 0) && (
-                  <div className="bg-zinc-900/80 backdrop-blur-xl border border-[#CCFF00]/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3 relative">
-                    {adminHostedScrims.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setIsCreateScrimOpen(false)}
-                        className="absolute top-4 right-4 text-zinc-400 hover:text-white w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center transition"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-                      <div className="flex items-center space-x-2">
-                        <Plus className="w-4 h-4 text-[#CCFF00]"/>
-                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                          Cipta Sesi Kejohanan / Scrim Baru
-                        </h3>
-                      </div>
-
-                      <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-white/10 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setNewEventType('Scrim')}
-                          className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
-                            newEventType === 'Scrim' 
-                              ? 'bg-[#CCFF00] text-black shadow-sm' 
-                              : 'text-zinc-400 hover:text-white'
-                          )}
-                        >
-                          <Flame className="w-3.5 h-3.5 text-black"/>
-                          <span>Scrim</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setNewEventType('Tour')}
-                          className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition ' + (
-                            newEventType === 'Tour' 
-                              ? 'bg-amber-500 text-white shadow-sm' 
-                              : 'text-zinc-400 hover:text-white'
-                          )}
-                        >
-                          <Trophy className="w-3.5 h-3.5 text-amber-200"/>
-                          <span>Tournament</span>
-                        </button>
-                      </div>
+                {/* Empty State when no scrims exist */}
+                {adminHostedScrims.length === 0 && (
+                  <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 sm:p-12 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-3xl bg-[#CCFF00]/10 border border-[#CCFF00]/25 text-[#CCFF00] flex items-center justify-center mx-auto">
+                      <Trophy className="w-8 h-8" />
                     </div>
-
-                    <form onSubmit={handleCreateNewScrim} className="space-y-3 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">
-                            {newEventType === 'Tour' ? 'Nama Tournament' : 'Nama Sesi Scrim'}
-                          </label>
-                          <input
-                            type="text"
-                            placeholder={newEventType === 'Tour' ? 'cth: PMSL SEA Qualifier Season 2' : 'cth: Pro Night Scrim Fast 5 Maps'}
-                            value={newScrimTitle}
-                            onChange={(e) => setNewScrimTitle(e.target.value)}
-                            required
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00] font-semibold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Kategori / Tier</label>
-                          <select
-                            value={newScrimTier}
-                            onChange={(e) => setNewScrimTier(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
-                          >
-                            {TIER_OPTIONS.map(t => (
-                              <option key={t} value={t} className="bg-zinc-950 text-white">{t}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Nama Penganjur / Host</label>
-                          <input
-                            type="text"
-                            placeholder="cth: RYKHOR Esports Organizer"
-                            value={newHostName}
-                            onChange={(e) => setNewHostName(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Contact (WhatsApp / Discord)</label>
-                          <input
-                            type="text"
-                            placeholder="cth: +60123456789 atau @discord"
-                            value={newHostContact}
-                            onChange={(e) => setNewHostContact(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Logo Sesi</label>
-                          <label className="flex items-center justify-center gap-1.5 w-full bg-zinc-950/80 hover:bg-zinc-900 border border-dashed border-white/15 rounded-xl px-3 py-2 text-zinc-300 cursor-pointer transition">
-                            <Upload className="w-3.5 h-3.5 text-[#CCFF00]"/>
-                            <span className="truncate">{logoFile ? logoFile.name : 'Pilih Logo'}</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => setLogoFile(e.target.files[0] || null)}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
-                        <div className="sm:col-span-2">
-                          <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Penerangan &amp; Peraturan (Dipapar pada Poster)</label>
-                          <input
-                            type="text"
-                            placeholder="cth: 16 Pasukan Dijemput, sistem mata rasmi PMGC"
-                            value={newScrimDesc}
-                            onChange={(e) => setNewScrimDesc(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00]"
-                          />
-                        </div>
-
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Tarikh</label>
-                            <input
-                              type="date"
-                              value={newScrimDate}
-                              onChange={(e) => setNewScrimDate(e.target.value)}
-                              className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-2 py-1.5 text-zinc-200 focus:outline-none text-[11px]"
-                            />
-                          </div>
-                          <button
-                            type="submit"
-                            disabled={isUploadingLogo}
-                            className="bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold px-4 py-2 rounded-xl transition flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.18)]"
-                          >
-                            {isUploadingLogo ? 'Memproses...' : 'Cipta Sesi'}
-                          </button>
-                        </div>
-                      </div>
-                    </form>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-black text-white">Belum Ada Sesi Kejohanan Cloud</h3>
+                      <p className="text-xs text-zinc-400 max-w-md mx-auto">
+                        Cipta sesi kejohanan atau scrim pertama anda untuk mula mengira markah secara langsung dengan simpanan cloud database.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateScrimOpen(true)}
+                      className="px-5 py-3 rounded-2xl bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs transition shadow-[0_0_20px_rgba(204,255,0,0.18)] active:scale-95 inline-flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4 text-black stroke-[3]" />
+                      <span>Cipta Sesi Kejohanan Pertama</span>
+                    </button>
                   </div>
                 )}
 
@@ -5240,169 +5113,144 @@ export default function App() {
                     
                     <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
                       
-                      {/* Match Details Header */}
+                      {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <Zap className="w-4 h-4 text-[#CCFF00] fill-current"/>
-                            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2 py-0.5 rounded-full">
-                              ADMIN WORKSPACE • MATCH {selectedMatchIdx + 1} OF {adminMatchCount} • {matchSlots.length} TEAMS
-                            </span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-zinc-800 text-[#CCFF00] flex items-center justify-center font-black shadow-xs shrink-0">
+                            <Zap className="w-5 h-5 fill-current"/>
                           </div>
-                          <h2 className="text-base sm:text-lg font-black text-white">
-                            {activeAdminScrim?.title || 'Official Scrim Scoring Workspace'}
-                          </h2>
-                          <p className="text-xs text-zinc-400">
-                            Isi placement dan elims setiap pusingan.
-                          </p>
+                          <div>
+                            <h2 className="text-sm sm:text-base font-black text-white">
+                              {activeAdminScrim?.title || 'Official Scrim Scoring'}
+                            </h2>
+                            <p className="text-[11px] text-zinc-400">
+                              Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan
+                            </p>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                          {/* Mobile Jump to Poster */}
+                          {/* Mobile Shortcut to Live Leaderboard */}
                           <button
                             type="button"
                             onClick={() => {
                               document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }}
-                            className="lg:hidden px-2.5 py-1.5 bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
-                            title="Lompat ke pratonton poster standings"
+                            className="lg:hidden px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] rounded-xl text-xs font-black transition flex items-center gap-1 border border-white/10 active:scale-95"
+                            title="Tolak ke bawah untuk lihat poster"
                           >
-                            <Trophy className="w-3.5 h-3.5 text-[#CCFF00]"/>
+                            <Trophy className="w-3.5 h-3.5 text-[#CCFF00]" />
                             <span>Poster ↓</span>
+                          </button>
+
+                          {/* Quick WhatsApp / Text Import Button */}
+                          <button
+                            type="button"
+                            onClick={() => setIsImportModalOpen(true)}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
+                            title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-black"/>
+                            <span>Import WA</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleRandomizeTestData}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-[#CCFF00] hover:bg-[#b8e600] disabled:opacity-40 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
+                            title="Isi markah demo rawak untuk ujian pantas"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-black"/>
+                            <span>Demo</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={handleClearAdminForm}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 disabled:opacity-40 active:scale-95"
+                            className="px-2 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/5 disabled:opacity-40"
                             title="Kosongkan markah perlawanan ini"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
-                            <span>Clear</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleRandomizeTestData}
-                            disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 disabled:opacity-40 active:scale-95"
-                            title="Isi markah demo rawak untuk ujian pantas"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5"/>
-                            <span>Isi Demo</span>
+                            <span className="hidden sm:inline">Clear</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Match Navigation Selector Tabs with Edge Fades & Modern Slider */}
-                      <div className="space-y-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <label className="block text-[11px] uppercase font-bold text-zinc-300">
-                            Pilih Pusingan Match ({adminMatchCount} Matches)
-                          </label>
+                      {/* Match Navigation Selector Bar with Edge Fades & Dynamic + / - Match (Exact Quick Scorer Style) */}
+                      <div className="relative group">
+                        <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
 
-                          {/* Butang Tambah & Kurang Match */}
+                        <div className="p-1 bg-zinc-950/70 rounded-2xl border border-white/5 flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                          {Array.from({ length: adminMatchCount }, (_, mIdx) => {
+                            const isSelected = selectedMatchIdx === mIdx;
+                            const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
+                            const hasSaved = Boolean(activeAdminScrim?.matches?.[mIdx]?.results?.length > 0);
+                            return (
+                              <button
+                                key={mIdx}
+                                type="button"
+                                onClick={() => setSelectedMatchIdx(mIdx)}
+                                className={'py-1.5 px-3 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[76px] sm:flex-1 shrink-0 ' + (
+                                  isSelected 
+                                    ? 'bg-zinc-800 text-[#CCFF00] shadow-sm border border-white/10' 
+                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                                )}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[11px]">Match {mIdx + 1}</span>
+                                  {hasSaved && <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00]" title="Markah Disimpan"></span>}
+                                </div>
+                                <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
+                                  isSelected ? 'bg-[#CCFF00]/20 text-[#CCFF00]' : 'text-zinc-500'
+                                )}>
+                                  {savedMap}
+                                </span>
+                              </button>
+                            );
+                          })}
+
+                          {/* Dynamic + Match & - Match buttons (Advance feature!) */}
                           {!activeAdminScrim?.is_finished && (
-                            <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+                            <div className="flex items-center gap-1 pl-1 shrink-0">
                               {adminMatchCount > 1 && (
                                 <button
                                   type="button"
                                   onClick={handleRemoveLastMatch}
-                                  className="px-2.5 py-1 bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                                  className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/10 flex items-center justify-center transition active:scale-90"
                                   title="Padam pusingan match terakhir"
                                 >
-                                  <Minus className="w-3.5 h-3.5 text-rose-400"/>
-                                  <span>Match</span>
+                                  <Minus className="w-3.5 h-3.5" />
                                 </button>
                               )}
-
                               <button
                                 type="button"
                                 onClick={handleAddNewMatch}
-                                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-black transition flex items-center gap-1"
+                                className="h-8 px-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-[#CCFF00]/30 font-black text-xs transition flex items-center gap-1 active:scale-95"
                                 title="Tambah pusingan match baru"
                               >
-                                <Plus className="w-3.5 h-3.5 text-[#CCFF00]"/>
+                                <Plus className="w-3.5 h-3.5 text-[#CCFF00]" />
                                 <span>Match</span>
                               </button>
                             </div>
                           )}
                         </div>
 
-                        {/* Match Tabs Track with Edge Fades & No-Scrollbar */}
-                        <div className="relative group">
-                          <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
-
-                          <div className="p-1.5 bg-zinc-950/80 rounded-2xl border border-white/5 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            <div className="flex items-center gap-2 min-w-max px-1">
-                              {Array.from({ length: adminMatchCount }, (_, mIdx) => {
-                                const isSelected = selectedMatchIdx === mIdx;
-                                const savedMap = activeAdminScrim?.matches?.[mIdx]?.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
-                                const hasSaved = Boolean(activeAdminScrim?.matches?.[mIdx]?.results?.length > 0);
-                                return (
-                                  <button
-                                    key={mIdx}
-                                    type="button"
-                                    onClick={() => setSelectedMatchIdx(mIdx)}
-                                    className={'py-2 px-3.5 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[85px] sm:flex-1 shrink-0 ' + (
-                                      isSelected 
-                                        ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.2)] font-black' 
-                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800/80 bg-zinc-900/60 border border-white/5'
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[11px]">Match {mIdx + 1}</span>
-                                      {hasSaved && <span className={'w-1.5 h-1.5 rounded-full ' + (isSelected ? 'bg-black' : 'bg-[#CCFF00]')} title="Markah Disimpan"></span>}
-                                    </div>
-                                    <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
-                                      isSelected ? 'bg-black/20 text-black' : 'text-zinc-500'
-                                    )}>
-                                      {savedMap}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
-                        </div>
+                        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
                       </div>
 
-                      {/* Match Title & Map Selection */}
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-                        {/* Nama Sesi Kejohanan (Single clear click-to-edit action) */}
-                        <div className="lg:col-span-8 space-y-1">
-                          <label className="block text-[11px] uppercase font-bold text-zinc-300">
-                            Nama Sesi Kejohanan
-                          </label>
-
-                          <button
-                            type="button"
-                            onClick={openEditScrimModal}
-                            className="w-full bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-[#CCFF00]/40 rounded-xl px-3.5 py-2.5 text-xs font-black text-white text-left transition flex items-center justify-between group cursor-pointer"
-                            title="Tekan untuk sunting info kejohanan"
-                          >
-                            <span className="truncate group-hover:text-[#CCFF00]">
-                              {activeAdminScrim?.title || 'PUBG Mobile Scrim'}
-                            </span>
-                            <span className="text-[10px] text-zinc-400 group-hover:text-[#CCFF00] flex items-center gap-1 font-sans font-bold shrink-0 ml-2">
-                              <Edit3 className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#CCFF00] transition"/>
-                              <span>Sunting Info</span>
-                            </span>
-                          </button>
-                        </div>
-
-                        {/* Pilih Map */}
-                        <div className="lg:col-span-4 space-y-1">
-                          <label className="block text-[11px] uppercase font-bold text-zinc-300">
-                            Pilih Map (Match {selectedMatchIdx + 1})
-                          </label>
+                      {/* Clean Single Row: Map Selector + Session Title + Inline Team Slot Stepper (Exact Quick Scorer Style) */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        {/* Map Selector for this match */}
+                        <div className="flex items-center gap-2 bg-zinc-950/70 border border-white/10 px-3 py-1.5 rounded-xl shrink-0">
+                          <span className="text-[11px] font-bold text-zinc-400">Map (M{selectedMatchIdx + 1}):</span>
                           <select
                             disabled={activeAdminScrim?.is_finished}
                             value={inputMap}
                             onChange={(e) => setInputMap(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-[#CCFF00] transition cursor-pointer"
+                            className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-[#CCFF00] transition cursor-pointer"
                           >
                             <option value="Erangel" className="bg-zinc-950 text-white">Erangel</option>
                             <option value="Miramar" className="bg-zinc-950 text-white">Miramar</option>
@@ -5411,40 +5259,45 @@ export default function App() {
                             <option value="Vikendi" className="bg-zinc-950 text-white">Vikendi</option>
                           </select>
                         </div>
-                      </div>
 
-                      {/* Dynamic Team Rows Controls (+ Tambah / - Kurang Team) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-zinc-950/60 border border-white/5 rounded-2xl gap-2">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-[#CCFF00] flex-shrink-0"/>
-                          <span className="text-xs font-bold text-zinc-300">Jumlah Pasukan:</span>
-                          <span className="px-2.5 py-0.5 bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20 rounded-md font-mono font-black text-xs">
-                            {matchSlots.length} Teams
-                          </span>
-                        </div>
+                        {/* Middle: Session Title & Sunting Info link */}
+                        <button
+                          type="button"
+                          onClick={openEditScrimModal}
+                          className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white truncate px-2 py-1 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer group"
+                          title="Tekan untuk sunting info kejohanan"
+                        >
+                          <span className="text-[#CCFF00] font-mono font-bold">[{activeAdminScrim?.tier || 'Tier 1'}]</span>
+                          <span className="truncate group-hover:text-[#CCFF00] transition font-bold">{activeAdminScrim?.title || 'PUBG Mobile Scrim'}</span>
+                          <Edit3 className="w-3 h-3 text-zinc-500 group-hover:text-[#CCFF00] shrink-0" />
+                        </button>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
-                          <button
-                            type="button"
-                            onClick={handleRemoveTeamSlot}
-                            disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
-                            className="px-2.5 py-1 bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-40"
-                            title="Padam slot baris team terakhir"
-                          >
-                            <Minus className="w-3.5 h-3.5"/>
-                            <span>Slot</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleAddTeamSlot}
-                            disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
-                            className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-[#CCFF00] border border-[#CCFF00]/30 rounded-xl text-xs font-black transition flex items-center gap-1 disabled:opacity-40"
-                            title="Tambah slot baris team baru"
-                          >
-                            <Plus className="w-3.5 h-3.5 text-[#CCFF00]"/>
-                            <span>Slot</span>
-                          </button>
+                        {/* Inline Team Slot Stepper (Exact same design as Quick Scorer!) */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/70 border border-white/10 px-3 py-1.5 rounded-xl shrink-0">
+                          <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={handleRemoveTeamSlot}
+                              disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
+                              className="w-6 h-6 rounded-lg bg-zinc-800 border border-white/10 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition shadow-2xs"
+                              title="Padam slot baris team terakhir"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="font-mono font-black text-xs text-white px-1">
+                              {matchSlots.length} Teams
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleAddTeamSlot}
+                              disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
+                              className="w-6 h-6 rounded-lg bg-[#CCFF00] hover:bg-[#b8e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
+                              title="Tambah slot baris team baru"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -5568,20 +5421,37 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Save Button */}
-                      <div className="pt-2">
+                      {/* PMGC Standard Scoring Micro Note */}
+                      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono px-1">
+                        <span>PMGC: WWCD=10pts • Elim=1pt</span>
+                        <span>Total = Place + Elims</span>
+                      </div>
+
+                      {/* Save to Cloud Button & Mobile Jump */}
+                      <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row items-center gap-2">
                         <button
                           type="button"
                           onClick={handleSaveMatchScore}
                           disabled={activeAdminScrim?.is_finished}
-                          className={'w-full py-3 font-black rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition ' + (
+                          className={'flex-1 w-full py-3 px-4 font-black rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition shadow-[0_0_20px_rgba(204,255,0,0.18)] active:scale-98 ' + (
                             activeAdminScrim?.is_finished 
                               ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                              : 'bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold shadow-[0_0_20px_rgba(204,255,0,0.18)] active:scale-[0.99]'
+                              : 'bg-[#CCFF00] hover:bg-[#b8e600] text-black'
                           )}
                         >
                           <Save className="w-4 h-4"/>
-                          <span>{activeAdminScrim?.is_finished ? 'Skor Dikunci' : `Simpan Skor (M${selectedMatchIdx + 1})`}</span>
+                          <span>{activeAdminScrim?.is_finished ? 'Keputusan Dikunci' : `Simpan Skor Match ${selectedMatchIdx + 1} ke Cloud`}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className="lg:hidden w-full py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-white/10 active:scale-98 uppercase tracking-wider"
+                        >
+                          <Trophy className="w-4 h-4 text-[#CCFF00]" />
+                          <span>Lihat Poster ↓</span>
                         </button>
                       </div>
 
@@ -5591,6 +5461,24 @@ export default function App() {
                   {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
                   <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
+                    {/* Button Di Bahagian Atas Poster: Naik Atas Ke Posisi Isi Markah (Mobile UX Persis Scorer) */}
+                    <div className="flex items-center justify-between gap-2 bg-zinc-900/60 border border-white/5 rounded-2xl p-2.5 shadow-sm">
+                      <span className="text-xs font-black text-white pl-1 flex items-center gap-1.5">
+                        <Trophy className="w-4 h-4 text-[#CCFF00]" />
+                        <span>Poster</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="py-1.5 px-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-white/10 active:scale-95"
+                        title="Naik semula ke posisi borang pengisian markah"
+                      >
+                        <span>↑ Isi Markah</span>
+                      </button>
+                    </div>
+
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
                     <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl border border-white/10 text-xs">
                       <button
@@ -6648,6 +6536,167 @@ export default function App() {
                   className="px-5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black shadow-xs"
                 >
                   {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CIPTA SESI KEJOHANAN / SCRIM BARU (CLOUD) */}
+      {isCreateScrimOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="fixed inset-0" onClick={() => setIsCreateScrimOpen(false)} />
+          <div className="relative w-full max-w-lg bg-zinc-950 border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 z-10 animate-card-entrance max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#CCFF00] text-black flex items-center justify-center font-black">
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-white">Cipta Sesi Kejohanan / Scrim Baru</h3>
+                  <p className="text-[11px] text-zinc-400">Data disimpan terus ke Cloud Database (Supabase)</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateScrimOpen(false)}
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center bg-zinc-900 p-1 rounded-2xl border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setNewEventType('Scrim')}
+                className={'flex-1 py-2 rounded-xl font-black transition flex items-center justify-center gap-1.5 ' + (
+                  newEventType === 'Scrim'
+                    ? 'bg-[#CCFF00] text-black shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                )}
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Scrim (Practice)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewEventType('Tour')}
+                className={'flex-1 py-2 rounded-xl font-black transition flex items-center justify-center gap-1.5 ' + (
+                  newEventType === 'Tour'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                )}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                <span>Tournament (Official)</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewScrim} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">
+                  {newEventType === 'Tour' ? 'Nama Tournament' : 'Nama Sesi Scrim'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={newEventType === 'Tour' ? 'cth: PMSL SEA Qualifier Season 2' : 'cth: Pro Night Scrim Fast 5 Maps'}
+                  value={newScrimTitle}
+                  onChange={(e) => setNewScrimTitle(e.target.value)}
+                  required
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00] font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Kategori / Tier</label>
+                  <select
+                    value={newScrimTier}
+                    onChange={(e) => setNewScrimTier(e.target.value)}
+                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    {TIER_OPTIONS.map(t => (
+                      <option key={t} value={t} className="bg-zinc-950 text-white">{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Tarikh</label>
+                  <input
+                    type="date"
+                    value={newScrimDate}
+                    onChange={(e) => setNewScrimDate(e.target.value)}
+                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Nama Penganjur / Host</label>
+                  <input
+                    type="text"
+                    placeholder="cth: RYKHOR Esports"
+                    value={newHostName}
+                    onChange={(e) => setNewHostName(e.target.value)}
+                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Contact (WhatsApp / Discord)</label>
+                  <input
+                    type="text"
+                    placeholder="cth: +60123456789"
+                    value={newHostContact}
+                    onChange={(e) => setNewHostContact(e.target.value)}
+                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Penerangan / Peraturan (Pada Poster)</label>
+                <input
+                  type="text"
+                  placeholder="cth: 16 Pasukan Jemputan, sistem mata rasmi PMGC"
+                  value={newScrimDesc}
+                  onChange={(e) => setNewScrimDesc(e.target.value)}
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#CCFF00]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Logo Kejohanan (Opsional)</label>
+                <label className="flex items-center justify-center gap-1.5 w-full bg-zinc-900 hover:bg-zinc-850 border border-dashed border-white/15 rounded-xl px-3 py-2.5 text-zinc-300 cursor-pointer transition">
+                  <Upload className="w-3.5 h-3.5 text-[#CCFF00]" />
+                  <span className="truncate">{logoFile ? logoFile.name : 'Pilih Fail Logo Dari Peranti'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setLogoFile(e.target.files[0] || null)}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateScrimOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-900 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploadingLogo}
+                  className="px-5 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition shadow-[0_0_15px_rgba(204,255,0,0.2)] active:scale-95 disabled:opacity-50"
+                >
+                  {isUploadingLogo ? 'Memproses...' : 'Cipta Sesi Kejohanan'}
                 </button>
               </div>
             </form>
