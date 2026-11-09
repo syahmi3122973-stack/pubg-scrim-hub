@@ -5173,7 +5173,7 @@ export default function App() {
                       </div>
                       <button
                         type="button"
-                        onClick={handleSignOut}
+                        onClick={handleLogout}
                         className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 text-xs font-bold transition active:scale-95"
                         title="Log Keluar Akaun Host"
                       >
@@ -5287,7 +5287,7 @@ export default function App() {
                 </div>
 
                 {/* Empty State when no scrims exist */}
-                {adminHostedScrims.length === 0 && (
+                {adminHostedScrims.length === 0 ? (
                   <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 sm:p-12 text-center space-y-4">
                     <div className="w-16 h-16 rounded-3xl bg-[#CCFF00]/10 border border-[#CCFF00]/25 text-[#CCFF00] flex items-center justify-center mx-auto">
                       <Trophy className="w-8 h-8" />
@@ -5307,10 +5307,9 @@ export default function App() {
                       <span>Cipta Sesi Kejohanan Pertama</span>
                     </button>
                   </div>
-                )}
-
-                {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
-                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
+                ) : (
+                  /* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */
+                  <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
                   
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
@@ -5857,6 +5856,7 @@ export default function App() {
                   </div>
 
                 </div>
+                )}
 
               </div>
             )}
@@ -7560,7 +7560,7 @@ export default function App() {
       )}
 
       {/* FLOATING ACTION PILL ON MOBILE: SLEEK ERGONOMIC THUMB ZONE SHORTCUT */}
-      {(activeTab === 'scorer' || activeTab === 'admin') && (
+      {(activeTab === 'scorer' || (activeTab === 'admin' && adminHostedScrims.length > 0)) && (
         <div className="lg:hidden fixed bottom-20 right-4 z-40">
           <button
             type="button"
