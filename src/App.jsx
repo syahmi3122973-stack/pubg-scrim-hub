@@ -3327,7 +3327,7 @@ export default function App() {
           <div className="space-y-4 sm:space-y-5">
             
             {/* 1. HERO SECTION (OBSIDIAN STUDIO MATTE • SINGLE FOCUSED ACTION) */}
-            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-9 shadow-xl relative overflow-hidden">
+            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-6 sm:p-9 shadow-xl relative overflow-hidden">
               <div className="relative z-10 space-y-4 max-w-2xl">
                 {/* Top Micro-Badge */}
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-300 text-[11px] font-mono font-medium">
@@ -3386,7 +3386,7 @@ export default function App() {
               {/* Kad 1: Quick Scorer */}
               <div
                 onClick={handleStartScoringSession}
-                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] border border-white/5 hover:border-zinc-700 rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99]"
+                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99] shadow-md"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/40 transition shrink-0">
@@ -3407,7 +3407,7 @@ export default function App() {
               {/* Kad 2: Portal Host & Scrim */}
               <div
                 onClick={() => navigateToTab('admin')}
-                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] border border-white/5 hover:border-zinc-700 rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99]"
+                className="p-4 sm:p-5 bg-[#121214] hover:bg-[#161619] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 group active:scale-[0.99] shadow-md"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 group-hover:text-white group-hover:border-zinc-600 transition shrink-0">
@@ -3433,7 +3433,7 @@ export default function App() {
                   setSelectedScrimId(scrims[0].id);
                   navigateToTab('history');
                 }}
-                className="p-3.5 bg-[#121214] hover:bg-[#161619] border border-white/5 hover:border-zinc-700 rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group"
+                className="p-3.5 bg-[#121214] hover:bg-[#161619] rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group shadow-md"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse shrink-0 shadow-[0_0_8px_rgba(0,240,255,0.6)]" />
@@ -3474,10 +3474,10 @@ export default function App() {
                   return (
                     <div
                       key={faq.id}
-                      className={'rounded-2xl border transition-all duration-200 overflow-hidden ' + (
+                      className={'rounded-2xl transition-all duration-200 overflow-hidden shadow-md ' + (
                         isOpen
-                          ? 'bg-[#121214] border-zinc-700'
-                          : 'bg-[#121214] hover:bg-[#161619] border-white/5 hover:border-zinc-800'
+                          ? 'bg-[#161619]'
+                          : 'bg-[#121214] hover:bg-[#161619]'
                       )}
                     >
                       {/* Dropdown Button: Soalan */}
@@ -3555,7 +3555,7 @@ export default function App() {
           <div className="space-y-4 animate-card-entrance">
             
             {/* STRATEGIC PAGE HEADER: QUICK SCORER */}
-            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
+            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                 <div className="space-y-2.5 flex-1 min-w-0">
                   {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -3597,7 +3597,7 @@ export default function App() {
 
                   {/* Expandable Info Card */}
                   {activeHeaderInfo === 'scorer' && (
-                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                       <Zap className="w-4 h-4 text-[#D7FF00] fill-current shrink-0 mt-0.5 sm:mt-0" />
                       <p className="leading-relaxed flex-1">
                         Kiraan mata automatik 1–5 match mengikut format rasmi PMGC 10-points tanpa login. Poster HD sedia dimuat turun terus.
@@ -3630,7 +3630,7 @@ export default function App() {
               {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
               <div className="lg:col-span-7 space-y-4">
                 
-                <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5">
+                <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5">
                   
                   {/* Clean Workspace Header with Actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
@@ -3691,7 +3691,7 @@ export default function App() {
                   </div>
 
                   {/* 5-Match Segmented Bar */}
-                  <div className="grid grid-cols-5 gap-1 bg-zinc-950/70 p-1 rounded-2xl border border-white/5">
+                  <div className="grid grid-cols-5 gap-1 bg-zinc-950/70 p-1 rounded-2xl">
                     {playgroundSession.matches.map((m, mIdx) => {
                       const isSelected = currentPlaygroundMatchIdx === mIdx;
                       return (
@@ -3728,7 +3728,7 @@ export default function App() {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/60 border border-white/5 px-2.5 py-1 rounded-xl shrink-0">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/60 px-2.5 py-1 rounded-xl shrink-0">
                       <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
                       <div className="flex items-center gap-1.5">
                         <button
@@ -3924,7 +3924,7 @@ export default function App() {
                 )}
 
                 {/* Poster Display Toggle: Overall Standings (Default) vs Single Match */}
-                <div className="flex items-center justify-between bg-zinc-950/80 p-1 rounded-2xl border border-white/5 text-xs">
+                <div className="flex items-center justify-between bg-zinc-950/80 p-1 rounded-2xl text-xs">
                   <button
                     type="button"
                     onClick={() => setPosterViewMode('overall')}
@@ -3954,7 +3954,7 @@ export default function App() {
                 {/* Visual Esports Leaderboard Card (Dark Aesthetic #0D0D0D) */}
                 <div 
                   ref={posterRef}
-                  className="bg-[#0D0D0D] text-white rounded-3xl p-5 border border-slate-800 shadow-2xl relative font-sans select-none overflow-hidden"
+                  className="bg-[#0D0D0D] text-white rounded-3xl p-5 shadow-2xl relative font-sans select-none overflow-hidden"
                   style={{ backgroundColor: '#0D0D0D' }}
                 >
                   {/* Angled background accents */}
@@ -4161,7 +4161,7 @@ export default function App() {
           <div className="space-y-4">
             
             {/* STRATEGIC PAGE HEADER: HALL OF FAME */}
-            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
+            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                 <div className="space-y-2.5 flex-1 min-w-0">
                   {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -4203,7 +4203,7 @@ export default function App() {
 
                   {/* Expandable Info Card */}
                   {activeHeaderInfo === 'teams' && (
-                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                       <Trophy className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5 sm:mt-0" />
                       <p className="leading-relaxed flex-1">
                         Pangkalan data statistik ranking pasukan, analitik konsistensi seluruh kejohanan Malaysia, metrik win-rate dan penjana kad Story 9:16.
@@ -4220,7 +4220,7 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="flex items-center bg-zinc-950/80 p-1 rounded-2xl border border-white/10 self-start sm:self-auto shrink-0">
+                <div className="flex items-center bg-zinc-950/80 p-1 rounded-2xl self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
                     className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
@@ -4295,7 +4295,7 @@ export default function App() {
             </div>
 
             {validTeamList.length === 0 ? (
-              <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 text-center space-y-3">
+              <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-8 text-center space-y-3 shadow-xl">
                 <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-white/10 flex items-center justify-center mx-auto text-zinc-400">
                   <Users className="w-6 h-6" />
                 </div>
@@ -4307,7 +4307,7 @@ export default function App() {
                 </div>
               </div>
             ) : filteredTeamList.length === 0 ? (
-              <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-8 text-center space-y-2">
+              <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-8 text-center space-y-2 shadow-xl">
                 <p className="text-xs text-zinc-400">
                   {teamSearchQuery.trim()
                     ? `Tiada pasukan yang sepadan dengan carian "${teamSearchQuery}".`
@@ -4315,7 +4315,7 @@ export default function App() {
                 </p>
               </div>
             ) : activeTeamData && activeTeamScopedStats ? (
-              <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+              <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-3">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-300 flex items-center justify-center text-black font-black text-lg shadow-sm border border-[#D7FF00]/30">
@@ -4350,21 +4350,21 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="bg-zinc-950/60 border border-white/5 p-3 rounded-2xl text-center">
+                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 block">Points</span>
                     <span className="text-xl font-black font-mono text-[#D7FF00]">{activeTeamScopedStats.totalPoints}</span>
                   </div>
-                  <div className="bg-zinc-950/60 border border-white/5 p-3 rounded-2xl text-center">
+                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 block">Elims</span>
                     <span className="text-xl font-black font-mono text-white">{activeTeamScopedStats.totalKills}</span>
                   </div>
-                  <div className="bg-zinc-950/60 border border-white/5 p-3 rounded-2xl text-center">
+                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 block">WWCD</span>
                     <span className="text-xl font-black font-mono text-[#D7FF00] flex items-center justify-center gap-1">
                       {activeTeamScopedStats.totalWWCD}
                     </span>
                   </div>
-                  <div className="bg-zinc-950/60 border border-white/5 p-3 rounded-2xl text-center">
+                  <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 block">
                       Sesi
                     </span>
@@ -4392,7 +4392,7 @@ export default function App() {
                           className={'p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition ' + (
                             isFirst 
                               ? 'bg-zinc-900/80 border border-[#D7FF00]/30 shadow-[0_0_15px_rgba(215, 255, 0,0.06)]' 
-                              : 'bg-zinc-950/60 hover:bg-zinc-900/60 border border-white/5 hover:border-white/10'
+                              : 'bg-zinc-950/60 hover:bg-zinc-900/60'
                           )}
                         >
                           {/* Info Sesi & Host */}
@@ -4454,7 +4454,7 @@ export default function App() {
                       );
                     })
                   ) : (
-                    <div className="p-6 text-center text-zinc-500 text-xs bg-zinc-950/60 rounded-2xl border border-dashed border-white/10">
+                    <div className="p-6 text-center text-zinc-500 text-xs bg-zinc-950/60 rounded-2xl">
                       Tiada rekod bagi kategori ini.
                     </div>
                   )}
@@ -4470,7 +4470,7 @@ export default function App() {
           <div className="space-y-4">
             
             {/* STRATEGIC PAGE HEADER: LIVE LEADERBOARD & REKOD */}
-            <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
+            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                 <div className="space-y-2.5 flex-1 min-w-0">
                   {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -4512,7 +4512,7 @@ export default function App() {
 
                   {/* Expandable Info Card */}
                   {activeHeaderInfo === 'history' && (
-                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                       <Flame className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
                       <p className="leading-relaxed flex-1">
                         Arkib keputusan rasmi, carta kedudukan terkumpul semua pusingan, dan paparan langsung leaderboard kejohanan sedia dimuat turun.
@@ -4597,7 +4597,7 @@ export default function App() {
 
             {/* List of Sessions */}
             {filteredScrims.length === 0 ? (
-              <div className="p-12 text-center bg-zinc-900/60 border border-white/5 rounded-3xl shadow-2xl space-y-3">
+              <div className="p-12 text-center bg-zinc-900/60 rounded-3xl shadow-2xl space-y-3">
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500"/>
                 <h3 className="font-black text-white text-base">Tiada Rekod Sesi Dijumpai</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto">
@@ -4627,7 +4627,7 @@ export default function App() {
                   return (
                     <div 
                       key={s.id}
-                      className="bg-zinc-900/60 hover:bg-zinc-900/90 backdrop-blur-md border border-white/5 hover:border-amber-400/30 rounded-3xl p-4 sm:p-5 shadow-2xl transition space-y-3 flex flex-col justify-between"
+                      className="bg-zinc-900/60 hover:bg-zinc-900/90 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl transition space-y-3 flex flex-col justify-between"
                     >
                       <div className="space-y-2.5">
                         {/* Badges Row */}
@@ -4685,7 +4685,7 @@ export default function App() {
 
                         {/* Top 3 Podium summary */}
                         {overallScores.length > 0 && (
-                          <div className="bg-zinc-950/60 rounded-2xl p-2.5 border border-white/5 text-[11px] flex items-center justify-between gap-1">
+                          <div className="bg-zinc-950/60 rounded-2xl p-2.5 text-[11px] flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1.5 truncate">
                               <Trophy className="w-3.5 h-3.5 text-[#D7FF00] shrink-0" />
                               <span className="font-black text-white truncate">{top1?.teamName || 'Slot #1'}</span>
@@ -4760,7 +4760,7 @@ export default function App() {
         {activeTab === 'hosts' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
+            <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
               <div>
                 <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
                   <Award className="w-5 h-5 text-[#D7FF00]"/>
@@ -4783,7 +4783,7 @@ export default function App() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {organizersList.map((host, idx) => (
-                <div key={idx} className="bg-zinc-900/60 hover:bg-zinc-900/90 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-3xl p-5 shadow-2xl space-y-3 flex flex-col justify-between transition">
+                <div key={idx} className="bg-zinc-900/60 hover:bg-zinc-900/90 backdrop-blur-md rounded-3xl p-5 shadow-2xl space-y-3 flex flex-col justify-between transition">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
@@ -4825,7 +4825,7 @@ export default function App() {
                       )}
                     </div>
 
-                    <p className="text-xs text-zinc-300 leading-relaxed italic bg-zinc-950/60 p-2.5 rounded-xl border border-white/5">
+                    <p className="text-xs text-zinc-300 leading-relaxed italic bg-zinc-950/60 p-2.5 rounded-xl">
                       "{host.bio}"
                     </p>
                   </div>
@@ -4859,7 +4859,7 @@ export default function App() {
         {activeTab === 'showcase' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-black text-white flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-[#D7FF00]"/>
@@ -4907,7 +4907,7 @@ export default function App() {
                 const isMyPost = currentUser && (post.created_by === currentUser.id || post.author === currentUser.email?.split('@')[0]);
 
                 return (
-                  <div key={post.id} className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between">
+                  <div key={post.id} className="bg-zinc-900/60 backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between">
                     <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
                       {post.media_type === 'video' ? (
                         <video src={post.media_url} controls className="w-full h-full object-cover" />
@@ -4982,7 +4982,7 @@ export default function App() {
           <div className="space-y-6">
             
             {/* Hero Card */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden border border-white/5">
+            <div className="bg-zinc-900/60 backdrop-blur-xl text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none"></div>
               
               <div className="max-w-2xl space-y-3 relative z-10">
@@ -5012,7 +5012,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* GUIDE 1: HOW ADMIN STARTS A SCRIM OR TOURNAMENT */}
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 space-y-3">
+                <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 space-y-3 shadow-xl">
                   <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
                     <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
                       <Lock className="w-4 h-4"/>
@@ -5067,7 +5067,7 @@ export default function App() {
                 </div>
 
                 {/* GUIDE 2: COMPETITIVE POINT SYSTEM */}
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 space-y-3">
+                <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 space-y-3 shadow-xl">
                   <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
                     <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
                       <Crosshair className="w-4 h-4"/>
@@ -5083,35 +5083,35 @@ export default function App() {
                   </p>
 
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">1st Place (WWCD)</span>
                       <span className="font-black text-[#D7FF00]">10 PTS</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">2nd Place</span>
                       <span className="font-black text-white">6 PTS</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">3rd Place</span>
                       <span className="font-black text-white">5 PTS</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">#4 Place</span>
                       <span className="font-black text-white">4 PTS</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">#5 Place</span>
                       <span className="font-black text-white">3 PTS</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">#6 Place</span>
                       <span className="font-black text-white">2 PTS</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">#7 - #8 Place</span>
                       <span className="font-black text-white">1 PT</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-white/5 flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
                       <span className="text-zinc-300 font-bold">#9 - #24 Place</span>
                       <span className="font-black text-zinc-500">0 PTS</span>
                     </div>
@@ -5124,7 +5124,7 @@ export default function App() {
                 </div>
 
                 {/* GUIDE 3: LIVE LEADERBOARD & INSTANT POSTER GENERATOR */}
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 space-y-3">
+                <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 space-y-3 shadow-xl">
                   <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
                     <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
                       <Trophy className="w-4 h-4"/>
@@ -5140,7 +5140,7 @@ export default function App() {
                       The <strong>Leaderboard</strong> dynamically aggregates team standings in real-time with automated tie-breaking (Total Points &gt; WWCD Count &gt; Placement Points &gt; Elimination Points).
                     </p>
 
-                    <div className="p-3 bg-zinc-950/60 rounded-2xl border border-white/5 space-y-1.5">
+                    <div className="p-3 bg-zinc-950/60 rounded-2xl space-y-1.5">
                       <span className="text-white font-black block flex items-center gap-1.5">
                         <Download className="w-3.5 h-3.5 text-[#D7FF00]"/>
                         Instant Matchday Poster (Up to 24 Teams)
@@ -5155,7 +5155,7 @@ export default function App() {
                       </ul>
                     </div>
 
-                    <div className="p-2.5 bg-zinc-950/60 rounded-xl border border-white/5 text-[11px] flex items-center justify-between">
+                    <div className="p-2.5 bg-zinc-950/60 rounded-xl text-[11px] flex items-center justify-between">
                       <span className="font-bold text-zinc-200">Copy Text Feature:</span>
                       <span className="text-zinc-400">1-click formatted text for WhatsApp &amp; Discord</span>
                     </div>
@@ -5163,7 +5163,7 @@ export default function App() {
                 </div>
 
                 {/* GUIDE 4: TEAM STATS & CONTENT SHOWCASE */}
-                <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 space-y-3">
+                <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 space-y-3 shadow-xl">
                   <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
                     <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
                       <Sparkles className="w-4 h-4"/>
@@ -5175,7 +5175,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-2 text-xs text-zinc-300 leading-relaxed">
-                    <div className="p-3 bg-zinc-950/60 rounded-2xl border border-white/5 space-y-1">
+                    <div className="p-3 bg-zinc-950/60 rounded-2xl space-y-1">
                       <strong className="text-white block flex items-center gap-1.5">
                         <BarChart2 className="w-3.5 h-3.5 text-[#D7FF00]"/>
                         Scoped Career Statistics
@@ -5185,7 +5185,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-zinc-950/60 rounded-2xl border border-white/5 space-y-1">
+                    <div className="p-3 bg-zinc-950/60 rounded-2xl space-y-1">
                       <strong className="text-white block flex items-center gap-1.5">
                         <Share className="w-3.5 h-3.5 text-[#D7FF00]"/>
                         9:16 Instagram Story Generator
@@ -5195,7 +5195,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-zinc-950/60 rounded-2xl border border-white/5 space-y-1">
+                    <div className="p-3 bg-zinc-950/60 rounded-2xl space-y-1">
                       <strong className="text-white block flex items-center gap-1.5">
                         <Video className="w-3.5 h-3.5 text-[#D7FF00]"/>
                         Showcase Content &amp; Social Links
@@ -5211,7 +5211,7 @@ export default function App() {
             </div>
 
             {/* Platform Credits & Technical Info */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 space-y-4">
+            <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-2">
                 <div>
                   <h3 className="font-black text-sm text-white">Platform Credits & Technical Info</h3>
@@ -5223,7 +5223,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-4 bg-zinc-950/60 rounded-2xl border border-white/5 space-y-3">
+                <div className="p-4 bg-zinc-950/60 rounded-2xl space-y-3">
                   <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Created & Engineered By</span>
                     <span className="font-black text-white text-sm block">ry.khor (RYAN.)</span>
@@ -5257,7 +5257,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-zinc-950/60 rounded-2xl border border-white/5 space-y-2">
+                <div className="p-4 bg-zinc-950/60 rounded-2xl space-y-2">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Technology Stack</span>
                   <span className="font-black text-white text-sm block">React • Tailwind CSS • Supabase</span>
                   <p className="text-zinc-400 text-[11px]">Real-time database sync, secure organizer credentials, and responsive HTML5 Canvas rendering engine.</p>
@@ -5273,7 +5273,7 @@ export default function App() {
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="max-w-3xl mx-auto my-4 sm:my-6 bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 sm:p-7 shadow-xl relative overflow-hidden">
+              <div className="max-w-3xl mx-auto my-4 sm:my-6 bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden">
                 <div className="absolute -top-16 -right-16 w-56 h-56 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
@@ -5295,7 +5295,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-2 pt-1">
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60 border border-white/5">
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60">
                         <div className="w-7 h-7 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-bold shrink-0">
                           <Cloud className="w-3.5 h-3.5" />
                         </div>
@@ -5304,7 +5304,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60 border border-white/5">
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60">
                         <div className="w-7 h-7 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-bold shrink-0">
                           <Trophy className="w-3.5 h-3.5" />
                         </div>
@@ -5313,7 +5313,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60 border border-white/5">
+                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60">
                         <div className="w-7 h-7 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-bold shrink-0">
                           <Users className="w-3.5 h-3.5" />
                         </div>
@@ -5413,7 +5413,7 @@ export default function App() {
               <div className="space-y-4 sm:space-y-6">
                 
                 {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
-                <div className="bg-[#121214] border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
+                <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                     <div className="space-y-2.5 flex-1 min-w-0">
                       {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -5455,7 +5455,7 @@ export default function App() {
 
                       {/* Expandable Info Card */}
                       {activeHeaderInfo === 'admin' && (
-                        <div className="p-3 sm:p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl">
+                        <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
                             Pusat penganjur kejohanan rasmi dengan simpanan cloud automatik, sokongan jemputan Co-Host, dan pengurusan berbilang pusingan.
@@ -5491,7 +5491,7 @@ export default function App() {
                 </div>
 
                 {/* 1. ADVANCE SESSION CONTROL BAR (Sleek & Compact) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md rounded-3xl shadow-xl">
                   {/* Left: Active Session Dropdown Selector */}
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-[#D7FF00] text-black font-black flex items-center justify-center shrink-0 shadow-xs">
@@ -5614,7 +5614,7 @@ export default function App() {
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                    <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
@@ -5673,7 +5673,7 @@ export default function App() {
                       <div className="relative group">
                         <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
 
-                        <div className="p-1 bg-zinc-950/70 rounded-2xl border border-white/5 flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="p-1 bg-zinc-950/70 rounded-2xl flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           {adminMatchesList.map((m, mIdx) => {
                             const isSelected = selectedMatchIdx === mIdx;
                             const savedMap = m.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
@@ -5735,7 +5735,7 @@ export default function App() {
                       {/* Clean Single Row: Map Selector + Session Title + Inline Team Slot Stepper (Exact Quick Scorer Style) */}
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                         {/* Map Selector for this match */}
-                        <div className="flex items-center gap-2 bg-zinc-950/70 border border-white/10 px-3 py-1.5 rounded-xl shrink-0">
+                        <div className="flex items-center gap-2 bg-zinc-950/70 px-3 py-1.5 rounded-xl shrink-0">
                           <span className="text-[11px] font-bold text-zinc-400">Map (M{selectedMatchIdx + 1}):</span>
                           <select
                             disabled={activeAdminScrim?.is_finished}
@@ -5782,7 +5782,7 @@ export default function App() {
                         </button>
 
                         {/* Inline Team Slot Stepper (Exact same design as Quick Scorer!) */}
-                        <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/70 border border-white/10 px-3 py-1.5 rounded-xl shrink-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/70 px-3 py-1.5 rounded-xl shrink-0">
                           <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
                           <div className="flex items-center gap-1.5">
                             <button
@@ -5811,7 +5811,7 @@ export default function App() {
                       </div>
 
                       {/* Quick Input Grid Table (Identikal seperti Scorer) */}
-                      <div className="border border-white/10 rounded-2xl overflow-hidden bg-zinc-950/80">
+                      <div className="rounded-2xl overflow-hidden bg-zinc-950/80 shadow-md">
                         <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-zinc-950 text-zinc-400 uppercase text-[10px] font-bold tracking-wider border-b border-white/10">
@@ -5971,7 +5971,7 @@ export default function App() {
                   <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
-                    <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl border border-white/10 text-xs">
+                    <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl text-xs shadow-md">
                       <button
                         type="button"
                         onClick={() => setAdminPosterViewMode('overall')}
@@ -6001,7 +6001,7 @@ export default function App() {
                     {/* Esports Visual Poster Card */}
                     <div
                       ref={adminPosterRef}
-                      className="bg-[#0D0D0D] text-white rounded-3xl p-4 sm:p-5 border border-white/10 shadow-2xl relative font-sans select-none overflow-hidden"
+                      className="bg-[#0D0D0D] text-white rounded-3xl p-4 sm:p-5 shadow-2xl relative font-sans select-none overflow-hidden"
                       style={{ backgroundColor: '#0D0D0D' }}
                     >
                       <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -6207,7 +6207,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-zinc-900/60 p-3 rounded-2xl border border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="bg-zinc-900/60 p-3 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <span className="text-xs font-bold text-zinc-300 flex items-center gap-1 mb-1">
                   <Medal className="w-3.5 h-3.5 text-[#D7FF00]"/>
@@ -6245,25 +6245,25 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-              <div className="p-3 bg-zinc-900/60 rounded-2xl border border-white/5">
+              <div className="p-3 bg-zinc-900/60 rounded-2xl">
                 <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Points / Event</span>
                 <span className="text-base font-black font-mono text-[#D7FF00]">
                   {filteredTeamPerformance.avgPts}
                 </span>
               </div>
-              <div className="p-3 bg-zinc-900/60 rounded-2xl border border-white/5">
+              <div className="p-3 bg-zinc-900/60 rounded-2xl">
                 <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Kills / Event</span>
                 <span className="text-base font-black font-mono text-white">
                   {filteredTeamPerformance.avgKills}
                 </span>
               </div>
-              <div className="p-3 bg-zinc-900/60 rounded-2xl border border-white/5">
+              <div className="p-3 bg-zinc-900/60 rounded-2xl">
                 <span className="text-[9px] uppercase font-bold text-zinc-500 block">Win Rate (WWCD)</span>
                 <span className="text-base font-black font-mono text-[#D7FF00]">
                   {filteredTeamPerformance.winRate}
                 </span>
               </div>
-              <div className="p-3 bg-zinc-900/60 rounded-2xl border border-white/5">
+              <div className="p-3 bg-zinc-900/60 rounded-2xl">
                 <span className="text-[9px] uppercase font-bold text-zinc-500 block">Filtered Sessions</span>
                 <span className="text-base font-black font-mono text-zinc-300">
                   {filteredTeamPerformance.results.length} Sessions
@@ -6271,7 +6271,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="p-4 bg-zinc-900/60 rounded-2xl border border-white/5 space-y-3">
+            <div className="p-4 bg-zinc-900/60 rounded-2xl space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-white flex items-center gap-1.5">
                   <BarChart2 className="w-4 h-4 text-[#D7FF00]"/>
@@ -6451,17 +6451,17 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 pt-1">
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">1. Format Rasmi</span>
                       <h4 className="text-xs font-bold text-white">Standard Mata PMGC</h4>
                       <p className="text-[11px] text-zinc-400 leading-snug">#1 (10pts), #2 (6pts), #3 (5pts) hingga ke #8 (1pt) + 1 mata untuk setiap elim.</p>
                     </div>
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">2. Poster Automatik</span>
                       <h4 className="text-xs font-bold text-white">Live Overall Standings</h4>
                       <p className="text-[11px] text-zinc-400 leading-snug">Visual leaderboard resolusi tinggi siap dijana terus untuk WhatsApp, Discord &amp; Story.</p>
                     </div>
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">3. Dua Mod Selesa</span>
                       <h4 className="text-xs font-bold text-white">Pantas atau Cloud</h4>
                       <p className="text-[11px] text-zinc-400 leading-snug">Guna Quick Scorer tanpa login, atau daftar Host untuk anjur kejohanan bersiri.</p>
@@ -6489,7 +6489,7 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                         <h4 className="text-xs font-bold text-white">Pilih Pusingan Match</h4>
@@ -6499,7 +6499,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">2</span>
                         <h4 className="text-xs font-bold text-white">Taip Nama Pasukan</h4>
@@ -6509,7 +6509,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">3</span>
                         <h4 className="text-xs font-bold text-white">Pilih Kedudukan &amp; Kills</h4>
@@ -6519,7 +6519,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">4</span>
                         <h4 className="text-xs font-bold text-white">Download Poster Standings</h4>
@@ -6571,7 +6571,7 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                         <h4 className="text-xs font-bold text-white">Daftar Akaun Host</h4>
@@ -6581,7 +6581,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">2</span>
                         <h4 className="text-xs font-bold text-white">Cipta Sesi Kejohanan</h4>
@@ -6591,7 +6591,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">3</span>
                         <h4 className="text-xs font-bold text-white">Isi Keputusan &amp; Live Ranking</h4>
@@ -6601,7 +6601,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">4</span>
                         <h4 className="text-xs font-bold text-white">Kunci &amp; Tamatkan Sesi</h4>
@@ -6647,7 +6647,7 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                    <div className="p-2.5 sm:p-3.5 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3.5 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-[#D7FF00]"/>
                         <span>Tab History (Arkib Kejohanan)</span>
@@ -6657,7 +6657,7 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 sm:p-3.5 bg-zinc-900/60 border border-white/5 rounded-xl sm:rounded-2xl space-y-1">
+                    <div className="p-2.5 sm:p-3.5 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Database className="w-4 h-4 text-[#D7FF00]"/>
                         <span>Tab Database (Prestasi Pasukan)</span>
@@ -6771,7 +6771,7 @@ export default function App() {
             )}
 
             {/* Kelebihan Akaun Host */}
-            <div className="p-3 bg-zinc-900/60 border border-white/5 rounded-2xl space-y-1.5 text-xs text-zinc-300">
+            <div className="p-3 bg-zinc-900/60 rounded-2xl space-y-1.5 text-xs text-zinc-300">
               <span className="font-bold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#D7FF00]" />
                 <span>Kelebihan Akaun Host:</span>
@@ -7376,7 +7376,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-zinc-900/60 border border-white/5 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-zinc-900/60 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div>
                 <span className="text-[10px] text-zinc-500 uppercase font-bold block">Host / Organizer</span>
                 <span className="font-bold text-white">{inspectedScrim.host_name || 'Official Host'}</span>
@@ -7416,7 +7416,7 @@ export default function App() {
                 {calculateLeaderboard(inspectedScrim, 'overall').map((teamRow) => (
                   <div
                     key={teamRow.teamId}
-                    className="p-2.5 bg-zinc-900/60 border border-white/5 rounded-xl flex items-center justify-between text-xs"
+                    className="p-2.5 bg-zinc-900/60 rounded-xl flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center space-x-2.5">
                       <span className={'w-6 text-center font-black ' + (teamRow.rank === 1 ? 'text-[#D7FF00]' : 'text-zinc-500')}>
@@ -7523,7 +7523,7 @@ export default function App() {
                 <h2 className="text-base sm:text-lg font-black text-white">{inspectedPost.title}</h2>
               </div>
 
-              <div className="bg-zinc-900/60 p-3.5 rounded-2xl border border-white/5">
+              <div className="bg-zinc-900/60 p-3.5 rounded-2xl">
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Content Details & Caption</span>
                 <p className="text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed">{inspectedPost.caption}</p>
               </div>
@@ -7736,7 +7736,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigateToTab('scorer')}
-                className="w-full p-3.5 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-zinc-900/60 transition flex items-center gap-3 text-left group active:scale-[0.99]"
+                className="w-full p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 transition flex items-center gap-3 text-left group active:scale-[0.99]"
               >
                 <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
                   <Zap className="w-5 h-5 fill-current" />
