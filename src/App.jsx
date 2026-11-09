@@ -913,15 +913,6 @@ export default function App() {
     navigateToTab('scorer');
   };
 
-  const handlePlusActionClick = () => {
-    if (currentUser) {
-      setIsQuickCreateModalOpen((prev) => !prev);
-    } else {
-      navigateToTab('scorer');
-      showToast('Quick Scorer: Ready for score input & poster export.');
-    }
-  };
-
   const handleOpenGuide = (slideIdx = 0) => {
     setCurrentGuideSlide(slideIdx);
     setIsGuideModalOpen(true);
@@ -7891,116 +7882,149 @@ export default function App() {
         </div>
       )}
 
-      {/* MODERN 5-TAB MOBILE DOCK (Threads / Discord Style) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/85 backdrop-blur-2xl border-t border-white/10 z-50 px-2 py-2 shadow-[0_-8px_25px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center justify-around max-w-md mx-auto">
+      {/* FLOATING GLASSMORPHIC PILL MOBILE NAVBAR (EXPANDING ACTIVE LABEL) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.25rem)] max-w-sm pointer-events-auto"
+      >
+        <div className="bg-zinc-950/85 backdrop-blur-2xl border border-white/15 rounded-full p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.65),0_0_1px_1px_rgba(255,255,255,0.08)] flex items-center justify-around gap-1">
           
-          {/* Tab 1: Home (Pure Icon + Indicator) */}
-          <button
-            type="button"
-            onClick={() => navigateToTab('playground')}
-            title="Home"
-            aria-label="Home"
-            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
-              activeTab === 'playground' || activeTab === 'home'
-                ? 'text-white'
-                : 'text-zinc-500 hover:text-zinc-300'
-            )}
-          >
-            <div className="relative">
-              <Home className={'w-5 h-5 ' + (activeTab === 'playground' || activeTab === 'home' ? 'text-[#CCFF00] stroke-[2.5]' : 'text-zinc-500')} />
-              {(activeTab === 'playground' || activeTab === 'home') && (
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
-              )}
-            </div>
-          </button>
+          {/* Tab 1: Home */}
+          {(() => {
+            const isActive = activeTab === 'playground' || activeTab === 'home';
+            return (
+              <button
+                type="button"
+                onClick={() => navigateToTab('playground')}
+                title="Laman Utama"
+                aria-label="Home"
+                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 ' + (
+                  isActive
+                    ? 'bg-[#CCFF00] text-black font-black px-3.5 py-2 shadow-[0_0_16px_rgba(204,255,0,0.35)] shrink-0'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 p-2'
+                )}
+              >
+                <Home className={'w-5 h-5 ' + (isActive ? 'text-black stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
+                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
+                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
+                )}>
+                  Home
+                </span>
+              </button>
+            );
+          })()}
 
-          {/* Tab 2: Rekod (Pure Icon + Indicator) */}
-          <button
-            type="button"
-            onClick={() => navigateToTab('history')}
-            title="Rekod Kejohanan"
-            aria-label="Rekod Kejohanan"
-            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
-              activeTab === 'history' || activeTab === 'leaderboard'
-                ? 'text-white'
-                : 'text-zinc-500 hover:text-zinc-300'
-            )}
-          >
-            <div className="relative">
-              <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'text-amber-400 stroke-[2.5]' : 'text-zinc-500')} />
-              {(activeTab === 'history' || activeTab === 'leaderboard') && (
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
-              )}
-            </div>
-          </button>
+          {/* Tab 2: Quick Scorer */}
+          {(() => {
+            const isActive = activeTab === 'scorer';
+            return (
+              <button
+                type="button"
+                onClick={() => navigateToTab('scorer')}
+                title="Quick Scorer"
+                aria-label="Quick Scorer"
+                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 ' + (
+                  isActive
+                    ? 'bg-[#CCFF00] text-black font-black px-3.5 py-2 shadow-[0_0_16px_rgba(204,255,0,0.35)] shrink-0'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 p-2'
+                )}
+              >
+                <Zap className={'w-5 h-5 ' + (isActive ? 'text-black fill-current stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
+                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
+                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
+                )}>
+                  Scorer
+                </span>
+              </button>
+            );
+          })()}
 
-          {/* Tab 3: Prominent Center Action [ + ] Button */}
-          <div className="relative -top-2 flex flex-col items-center">
-            <button
-              type="button"
-              onClick={handlePlusActionClick}
-              className={'w-12 h-12 rounded-2xl active:scale-95 border-2 transition-all duration-200 flex items-center justify-center group ' + (
-                activeTab === 'scorer'
-                  ? 'bg-[#CCFF00] text-black border-[#CCFF00] ring-4 ring-[#CCFF00]/30 scale-105 shadow-[0_0_25px_rgba(204,255,0,0.35)]'
-                  : 'bg-zinc-900 hover:bg-zinc-800 text-[#CCFF00] border-[#CCFF00]/80 shadow-[0_0_15px_rgba(204,255,0,0.15)]'
-              )}
-              title="Kira markah cepat atau cipta kejohanan"
-              aria-label="Create or Quick Score"
-            >
-              <Plus className="w-6 h-6 stroke-[3] group-hover:rotate-90 transition-transform duration-200" />
-            </button>
-          </div>
+          {/* Tab 3: Standings */}
+          {(() => {
+            const isActive = activeTab === 'history' || activeTab === 'leaderboard';
+            return (
+              <button
+                type="button"
+                onClick={() => navigateToTab('history')}
+                title="Live Standings & Rekod"
+                aria-label="Standings"
+                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 ' + (
+                  isActive
+                    ? 'bg-[#CCFF00] text-black font-black px-3.5 py-2 shadow-[0_0_16px_rgba(204,255,0,0.35)] shrink-0'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 p-2'
+                )}
+              >
+                <Trophy className={'w-5 h-5 ' + (isActive ? 'text-black stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
+                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
+                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
+                )}>
+                  Standings
+                </span>
+              </button>
+            );
+          })()}
 
-          {/* Tab 4: Hall of Fame (Pure Icon + Indicator) */}
-          <button
-            type="button"
-            onClick={() => navigateToTab('teams')}
-            title="Hall of Fame Pasukan"
-            aria-label="Hall of Fame"
-            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
-              activeTab === 'teams'
-                ? 'text-white'
-                : 'text-zinc-500 hover:text-zinc-300'
-            )}
-          >
-            <div className="relative">
-              <Users className={'w-5 h-5 ' + (activeTab === 'teams' ? 'text-[#CCFF00] stroke-[2.5]' : 'text-zinc-500')} />
-              {activeTab === 'teams' && (
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
-              )}
-            </div>
-          </button>
+          {/* Tab 4: Teams / Database */}
+          {(() => {
+            const isActive = activeTab === 'teams' || activeTab === 'database';
+            return (
+              <button
+                type="button"
+                onClick={() => navigateToTab('teams')}
+                title="Hall of Fame & Database Pasukan"
+                aria-label="Teams"
+                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 ' + (
+                  isActive
+                    ? 'bg-[#CCFF00] text-black font-black px-3.5 py-2 shadow-[0_0_16px_rgba(204,255,0,0.35)] shrink-0'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 p-2'
+                )}
+              >
+                <Users className={'w-5 h-5 ' + (isActive ? 'text-black stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
+                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
+                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
+                )}>
+                  Teams
+                </span>
+              </button>
+            );
+          })()}
 
-          {/* Tab 5: Host (Pure Icon + Indicator) */}
-          <button
-            type="button"
-            onClick={() => navigateToTab('admin')}
-            title="Host Portal"
-            aria-label="Host"
-            className={'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 min-w-[48px] active:scale-95 ' + (
-              activeTab === 'admin'
-                ? 'text-white'
-                : 'text-zinc-500 hover:text-zinc-300'
-            )}
-          >
-            <div className="relative">
-              {currentUser ? (
-                <ShieldCheck className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-[#CCFF00] stroke-[2.5]' : 'text-zinc-500')} />
-              ) : (
-                <User className={'w-5 h-5 ' + (activeTab === 'admin' ? 'text-[#CCFF00] stroke-[2.5]' : 'text-zinc-500')} />
-              )}
-              {currentUser && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#CCFF00] border-2 border-zinc-950"></span>
-              )}
-              {activeTab === 'admin' && (
-                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#CCFF00] shadow-[0_0_8px_#CCFF00]"></span>
-              )}
-            </div>
-          </button>
+          {/* Tab 5: Host */}
+          {(() => {
+            const isActive = activeTab === 'admin';
+            return (
+              <button
+                type="button"
+                onClick={() => navigateToTab('admin')}
+                title="Portal Host"
+                aria-label="Host"
+                className={'flex items-center justify-center gap-1.5 rounded-full transition-all duration-300 ease-out select-none active:scale-95 relative ' + (
+                  isActive
+                    ? 'bg-[#CCFF00] text-black font-black px-3.5 py-2 shadow-[0_0_16px_rgba(204,255,0,0.35)] shrink-0'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5 p-2'
+                )}
+              >
+                <div className="relative">
+                  {currentUser ? (
+                    <ShieldCheck className={'w-5 h-5 ' + (isActive ? 'text-black stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
+                  ) : (
+                    <User className={'w-5 h-5 ' + (isActive ? 'text-black stroke-[2.5]' : 'text-zinc-400 stroke-[2]')} />
+                  )}
+                  {currentUser && !isActive && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#CCFF00] border-2 border-zinc-950"></span>
+                  )}
+                </div>
+                <span className={'text-xs font-black tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ' + (
+                  isActive ? 'max-w-[70px] opacity-100' : 'max-w-0 opacity-0'
+                )}>
+                  Host
+                </span>
+              </button>
+            );
+          })()}
 
         </div>
-      </div>
+      </nav>
 
     </div>
   );
