@@ -3318,30 +3318,51 @@ export default function App() {
         {activeTab === 'scorer' && (
           <div className="space-y-4 animate-card-entrance">
             
-            {/* Top Navigation & Status Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-sm">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigateToTab('playground')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-black transition active:scale-95"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Home</span>
-                </button>
-                
-                <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
-                <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider bg-[#CCFF00]/10 text-[#CCFF00] px-2.5 py-1 rounded-full border border-[#CCFF00]/25">
-                  Quick Scorer
-                </span>
-              </div>
+            {/* STRATEGIC PAGE HEADER: QUICK SCORER */}
+            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-3">
+              <div className="absolute -top-16 -right-16 w-56 h-56 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
+                <div className="space-y-2">
+                  {/* Category Eyebrow Badge & Home Link */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('playground')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                      title="Kembali ke Laman Utama"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Laman Utama</span>
+                    </button>
 
-              {/* Status indicator on right */}
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs text-zinc-400 font-mono bg-zinc-950/70 border border-white/5 px-3 py-1.5 rounded-xl">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse"></span>
-                  <span>Auto-saved (Local)</span>
-                </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#CCFF00]/10 border border-[#CCFF00]/25 text-[#CCFF00] text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
+                      <Zap className="w-3 h-3 fill-current" />
+                      <span>KIRAAN PANTAS • TANPA LOGIN • PMGC 10-PTS</span>
+                    </span>
+                  </div>
+
+                  {/* Big Head Text */}
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
+                    <span>Quick Scorer</span>
+                    <span className="text-xs sm:text-sm font-mono font-bold px-2.5 py-0.5 rounded-lg bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
+                      HD Poster
+                    </span>
+                  </h1>
+
+                  {/* Memorable Helper Text */}
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
+                    Kalkulator mata perlawanan pantas untuk 1 hingga 5 match. Isi kedudukan dan kills, sistem mengira markah secara automatik dan menjana poster Overall Standings HD sedia dikongsi ke WhatsApp &amp; Discord.
+                  </p>
+                </div>
+
+                {/* Status Indicator */}
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-white/10 text-xs font-mono text-zinc-300">
+                    <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
+                    <span>Auto-saved (Local)</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -3360,9 +3381,9 @@ export default function App() {
                         <Zap className="w-5 h-5 fill-current"/>
                       </div>
                       <div>
-                        <h2 className="text-sm sm:text-base font-black text-white">Quick Scorer</h2>
+                        <h2 className="text-sm sm:text-base font-black text-white">Borang Pengisian Markah</h2>
                         <p className="text-[11px] text-zinc-400">
-                          Kira mata &amp; poster HD
+                          Pusingan Match {currentPlaygroundMatchIdx + 1} of 5 • {playgroundSession.matches[0]?.slots?.length || 16} Pasukan
                         </p>
                       </div>
                     </div>
@@ -3881,43 +3902,58 @@ export default function App() {
         {activeTab === 'teams' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3 relative overflow-hidden">
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            {/* STRATEGIC PAGE HEADER: HALL OF FAME */}
+            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative overflow-hidden">
+              <div className="absolute -top-16 -right-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                    <span className="text-[10px] uppercase font-mono font-black tracking-wider text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Direktori Pasukan</span>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
+                <div className="space-y-2">
+                  {/* Category Eyebrow Badge & Home Link */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('playground')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                      title="Kembali ke Laman Utama"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Laman Utama</span>
+                    </button>
+
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
+                      <Trophy className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>RANKING PASUKAN • ANALITIK PRESTASI • MVP CARDS</span>
                     </span>
                   </div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">
-                    Hall of Fame &amp; Direktori Pasukan
-                  </h2>
-                  <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-                    Statistik pasukan, kadar WWCD &amp; kad Instagram Story.
+
+                  {/* Big Head Text */}
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
+                    <span>Hall of Fame &amp; Direktori Pasukan</span>
+                  </h1>
+
+                  {/* Memorable Helper Text */}
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
+                    Pangkalan data kedudukan ranking dan rekod prestasi skuad PUBG Mobile. Pantau kadar kemenangan WWCD, jumlah kills terkumpul, sejarah pusingan, dan jana kad prestasi 9:16 untuk Instagram Story dalam satu klik.
                   </p>
                 </div>
 
-                <div className="flex items-center bg-zinc-950/70 p-1 rounded-2xl border border-white/5 self-start sm:self-auto shrink-0">
+                <div className="flex items-center bg-zinc-950/80 p-1 rounded-2xl border border-white/10 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => setTeamStatsCategory('ALL')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition ' + (teamStatsCategory === 'ALL' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                   >
                     Semua
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Scrim')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Scrim' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                   >
                     <Flame className="w-3.5 h-3.5"/>
                     <span>Scrim</span>
                   </button>
                   <button
                     onClick={() => setTeamStatsCategory('Tour')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    className={'px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ' + (teamStatsCategory === 'Tour' ? 'bg-[#CCFF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                   >
                     <Medal className="w-3.5 h-3.5"/>
                     <span>Kejohanan</span>
@@ -4124,27 +4160,49 @@ export default function App() {
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
           <div className="space-y-4">
             
-            {/* Header Card */}
-            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3.5 relative overflow-hidden">
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
+            {/* STRATEGIC PAGE HEADER: LIVE LEADERBOARD & REKOD */}
+            <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative overflow-hidden">
+              <div className="absolute -top-16 -right-16 w-56 h-56 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">
-                    Live Leaderboard &amp; Rekod Kejohanan
-                  </h2>
-                  <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed mt-1">
-                    Kedudukan langsung &amp; arkib keputusan kejohanan.
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
+                <div className="space-y-2">
+                  {/* Category Eyebrow Badge & Home Link */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('playground')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                      title="Kembali ke Laman Utama"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Laman Utama</span>
+                    </button>
+
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/25 text-amber-400 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
+                      <Flame className="w-3 h-3 text-amber-400" />
+                      <span>ARKIB KEPUTUSAN • LIVE LEADERBOARD • STANDINGS RASMI</span>
+                    </span>
+                  </div>
+
+                  {/* Big Head Text */}
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
+                    <span>Live Leaderboard &amp; Rekod Kejohanan</span>
+                  </h1>
+
+                  {/* Memorable Helper Text */}
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
+                    Pusat arkib keputusan perlawanan dan carta markah keseluruhan bagi setiap sesi scrim dan kejohanan PUBG Mobile. Pantau juara semasa, semak statistik setiap perlawanan, atau cetak semula poster Overall Standings HD.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   <button
                     onClick={() => navigateToTab('admin')}
-                    className="px-3.5 py-2 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(204,255,0,0.18)] active:scale-95"
+                    className="px-4 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.18)] active:scale-95"
+                    title="Cipta atau urus sesi kejohanan baru di Portal Host"
                   >
-                    <Plus className="w-4 h-4 text-black"/>
-                    <span>Sesi Baru</span>
+                    <Plus className="w-4 h-4 text-black stroke-[3]"/>
+                    <span>Cipta Sesi Baru</span>
                   </button>
                 </div>
               </div>
@@ -5020,6 +5078,62 @@ export default function App() {
             ) : (
               <div className="space-y-4 sm:space-y-6">
                 
+                {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
+                <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden space-y-3">
+                  <div className="absolute -top-16 -right-16 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
+                    <div className="space-y-2">
+                      {/* Category Eyebrow Badge & Home Link */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => navigateToTab('playground')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition active:scale-95 border border-white/5"
+                          title="Kembali ke Laman Utama"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <span>Laman Utama</span>
+                        </button>
+
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>PORTAL HOST RASMI • CLOUD DATABASE • MULTI-ROUND</span>
+                        </span>
+                      </div>
+
+                      {/* Big Head Text */}
+                      <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5 flex-wrap">
+                        <span>Official Scrim Scoring</span>
+                        <span className="text-xs sm:text-sm font-mono font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          Cloud Hub
+                        </span>
+                      </h1>
+
+                      {/* Memorable Helper Text */}
+                      <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed font-normal">
+                        Pusat kawalan penganjur kejohanan bersiri rasmi. Simpan rekod terus ke cloud database, jemput Co-Host mengisi serentak, kunci keputusan perlawanan, dan arkibkan sejarah kejohanan secara automatik.
+                      </p>
+                    </div>
+
+                    {/* Right User Badge / Logout Action */}
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                      <div className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-white/10 text-xs font-mono text-zinc-300 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="font-bold text-white truncate max-w-[140px]">{profileName || currentUser.email.split('@')[0]}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 text-xs font-bold transition active:scale-95"
+                        title="Log Keluar Akaun Host"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* 1. ADVANCE SESSION CONTROL BAR (Sleek & Compact) */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-3xl shadow-sm">
                   {/* Left: Active Session Dropdown Selector */}
@@ -5162,10 +5276,10 @@ export default function App() {
                           </div>
                           <div>
                             <h2 className="text-sm sm:text-base font-black text-white">
-                              {activeAdminScrim?.title || 'Official Scrim Scoring'}
+                              Borang Kemasukan Markah
                             </h2>
                             <p className="text-[11px] text-zinc-400">
-                              Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan
+                              Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
                             </p>
                           </div>
                         </div>
