@@ -188,12 +188,11 @@ Deno.serve(async (req: Request) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const candidateModels = [
+      "gemini-3.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-flash-latest",
       "gemini-2.5-flash",
       "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash-lite",
-      "gemini-flash-latest"
     ];
 
     const prompt = `
@@ -259,7 +258,7 @@ Analyze this tournament standings poster image and extract all structured data a
 
     // Direct REST API Fallback with explicit x-goog-api-key header
     if (!result) {
-      for (const mName of ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]) {
+      for (const mName of ["gemini-3.5-flash", "gemini-3-flash-preview", "gemini-flash-latest"]) {
         try {
           const restRes = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent`,
