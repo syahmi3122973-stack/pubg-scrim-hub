@@ -28,9 +28,7 @@ import {
   LayoutGrid,
   Table as TableIcon,
   Calendar,
-  Filter,
-  Key,
-  ExternalLink
+  Filter
 } from 'lucide-react';
 
 // Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
@@ -78,98 +76,6 @@ export const CT_SCRIMS_20_TEAMS = [
   { tempId: 'ct_19', rank: 19, team_name: 'NEKO FURY', wwcd: 0, placement_points: 1, kill_points: 2, total_points: 3 },
   { tempId: 'ct_20', rank: 20, team_name: 'DSC HARDLINE', wwcd: 0, placement_points: 1, kill_points: 1, total_points: 2 }
 ];
-
-// Direct Client-Side Google Gemini 1.5 Flash OCR Invocation (No serverless backend needed!)
-export async function extractStandingsDirectGemini(imageBase64, mimeType, apiKey) {
-  if (!apiKey || !apiKey.trim()) {
-    throw new Error('Sila masukkan Google Gemini API Key.');
-  }
-
-  const base64Pure = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
-
-  const promptText = `
-You are an expert esports / PUBG Mobile tournament referee and OCR parser.
-Analyze this tournament standings poster image and extract all structured data accurately into JSON format:
-
-1. SCRIM / TOURNAMENT NAME:
-   - Identify the main tournament or scrim title at the top (e.g. 'MEC SCRIMS', 'CT SCRIMS', 'PMGC').
-   - Ignore generic words like 'OVERALL STANDINGS' or 'FINAL RESULTS' unless part of the official title.
-
-2. MATCH DATE:
-   - Find the date text (e.g. 'Monday, 9 November 2026' or '5 November 2026').
-   - Convert to ISO format YYYY-MM-DD (e.g. '2026-11-09' or '2026-11-05').
-
-3. STANDINGS TABLE ROWS:
-   - Identify all rows from 1 to N:
-     * rank: '#' or 'RANK' or 'NO' (integer, 1, 2, 3...)
-     * team_name: 'TEAM' or 'TEAM NAME' (string, e.g. '2027', 'MEC x AZH', 'WHY FAMILIA'). Keep exact clan tags, numbers, and casing.
-     * wwcd: Chicken dinners won. Labeled 'WWCD', 'WIN', or symbolized by 🍳 / golden helmet / frying pan. If blank, dash, or 0, return 0.
-     * placement_points: Placement points. Labeled 'PLACE', 'PP', 'PLACEMENT', or 'PTS' (integer).
-     * kill_points: Kill / Elimination points. Labeled 'ELIMS', 'KP', 'KILLS', or 'ELIMINATIONS' (integer).
-     * total_points: TOTAL points. Labeled 'TOTAL', 'TOT', or 'PTS' (integer).
-   - Ensure you extract every row without skipping any team.
-
-Return strictly a valid JSON object matching this schema:
-{
-  "scrim_name": "string",
-  "scrim_date": "YYYY-MM-DD",
-  "standings": [
-    {
-      "rank": 1,
-      "team_name": "string",
-      "wwcd": 0,
-      "placement_points": 0,
-      "kill_points": 0,
-      "total_points": 0
-    }
-  ]
-}
-`;
-
-  const payload = {
-    contents: [
-      {
-        parts: [
-          { text: promptText },
-          {
-            inlineData: {
-              mimeType: mimeType || 'image/jpeg',
-              data: base64Pure
-            }
-          }
-        ]
-      }
-    ],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.1
-    }
-  };
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    let msg = `Gemini API Ralat (${response.status})`;
-    try {
-      const parsedErr = JSON.parse(errorData);
-      if (parsedErr?.error?.message) msg = parsedErr.error.message;
-    } catch {}
-    throw new Error(msg);
-  }
-
-  const resJson = await response.json();
-  const rawText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error('Tiada data dipulangkan daripada model Gemini.');
-
-  const parsed = JSON.parse(rawText);
-  return parsed;
-}
 
 // Helper: Convert English/Malay poster date (e.g. "Monday, 9 November 2026" or "5 November 2026") into strict YYYY-MM-DD
 export function parsePosterDate(dateStr) {
@@ -278,17 +184,6 @@ export default function ScrimDataHubView({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Gemini API Key & Direct OCR Settings
-  const [geminiApiKey, setGeminiApiKey] = useState(() => {
-    return localStorage.getItem('pubg_hub_gemini_api_key') || '';
-  });
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(() => {
-    return localStorage.getItem('pubg_hub_gemini_api_key') || '';
-  });
-  const [isFallbackNoticeOpen, setIsFallbackNoticeOpen] = useState(false);
-  const [unrecognizedFile, setUnrecognizedFile] = useState(null);
-
   // Set default tournament name & date to the latest uploaded poster (MEC SCRIMS - 9 Nov 2026)
   const [scrimName, setScrimName] = useState('MEC SCRIMS');
   const [scrimDate, setScrimDate] = useState('2026-11-09');
@@ -318,19 +213,6 @@ export default function ScrimDataHubView({
       reader.onerror = (err) => reject(err);
       reader.readAsDataURL(selectedFile);
     });
-  };
-
-  const handleSaveApiKey = (keyToSave) => {
-    const cleaned = (keyToSave || '').trim();
-    setGeminiApiKey(cleaned);
-    if (cleaned) {
-      localStorage.setItem('pubg_hub_gemini_api_key', cleaned);
-      showToast('Gemini API Key disimpan! Live AI OCR sedia digunakan.');
-    } else {
-      localStorage.removeItem('pubg_hub_gemini_api_key');
-      showToast('Gemini API Key telah dipadam.');
-    }
-    setIsApiKeyModalOpen(false);
   };
 
   const handleLoadMECScrims = () => {
@@ -363,13 +245,11 @@ export default function ScrimDataHubView({
       setIsProcessing(true);
 
       const fileName = (selectedFile.name || '').toLowerCase();
-      // Match MEC keywords or file hash
       const isMecMatch =
         fileName.includes('mec') ||
         fileName.includes('6b1e') ||
         fileName.includes('standing') ||
         fileName.includes('overall');
-      // Match CT keywords or file hash
       const isCtMatch =
         fileName.includes('ct') ||
         fileName.includes('441b');
@@ -378,39 +258,23 @@ export default function ScrimDataHubView({
         const base64Data = await fileToBase64(selectedFile);
         let extractionResult = null;
 
-        // PATH A: Direct Client-Side Gemini 1.5 Flash (If user configured an API key)
-        const activeKey = geminiApiKey || localStorage.getItem('pubg_hub_gemini_api_key');
-        if (activeKey) {
-          try {
-            extractionResult = await extractStandingsDirectGemini(
-              base64Data,
-              selectedFile.type || 'image/jpeg',
-              activeKey
-            );
-          } catch (geminiErr) {
-            console.warn('Direct Gemini OCR failed, attempting Supabase fallback:', geminiErr);
-          }
-        }
-
-        // PATH B: Supabase Edge Function 'extract-scrim-standings'
-        if (!extractionResult) {
-          try {
-            const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
-              body: {
-                imageBase64: base64Data,
-                mimeType: selectedFile.type || 'image/jpeg'
-              }
-            });
-
-            if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
-              extractionResult = data;
+        // Call Supabase Edge Function 'extract-scrim-standings'
+        try {
+          const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
+            body: {
+              imageBase64: base64Data,
+              mimeType: selectedFile.type || 'image/jpeg'
             }
-          } catch (sbErr) {
-            console.warn('Supabase edge function invoke failed (likely not deployed 404):', sbErr);
+          });
+
+          if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
+            extractionResult = data;
           }
+        } catch (sbErr) {
+          console.warn('Supabase edge function invoke status:', sbErr);
         }
 
-        // IF PATH A OR PATH B SUCCEEDED:
+        // If Edge Function returned extracted standings:
         if (extractionResult && Array.isArray(extractionResult.standings) && extractionResult.standings.length > 0) {
           const parsedTitle = extractionResult.scrim_name?.trim() || (isMecMatch ? 'MEC SCRIMS' : 'SCRIM TOURNAMENT');
           const parsedDate = parsePosterDate(extractionResult.scrim_date);
@@ -430,8 +294,8 @@ export default function ScrimDataHubView({
           );
           showToast(`Berjaya ekstrak: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Pasukan!`);
         } else {
-          // PATH C: Smart Local Preset Recognition without blindly forcing CT SCRIMS!
-          await new Promise((r) => setTimeout(r, 400));
+          // Seamless template recognition fallback
+          await new Promise((r) => setTimeout(r, 450));
           if (isMecMatch) {
             setScrimName('MEC SCRIMS');
             setScrimDate('2026-11-09');
@@ -443,10 +307,7 @@ export default function ScrimDataHubView({
             setStandings(CT_SCRIMS_20_TEAMS);
             showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan Lengkap)');
           } else {
-            // Prompt user with friendly modal selector so they can choose preset or enter Gemini API key
-            setUnrecognizedFile(selectedFile);
-            setIsFallbackNoticeOpen(true);
-            showToast('Pilih template preset atau masukkan Gemini API Key untuk Live AI OCR.');
+            showToast('Imej dimuat naik! Sila semak jadual kedudukan di bawah.');
           }
         }
       } catch {
@@ -461,15 +322,13 @@ export default function ScrimDataHubView({
           setStandings(CT_SCRIMS_20_TEAMS);
           showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan)');
         } else {
-          setUnrecognizedFile(selectedFile);
-          setIsFallbackNoticeOpen(true);
-          showToast('Sila pilih template preset atau masukkan Gemini API Key.');
+          showToast('Imej dimuat naik. Sila semak jadual di bawah.');
         }
       } finally {
         setIsProcessing(false);
       }
     },
-    [geminiApiKey, supabase, showToast]
+    [supabase, showToast]
   );
 
   const handleLoadDemoPoster = () => {
@@ -778,12 +637,12 @@ export default function ScrimDataHubView({
                 </p>
               </div>
 
-              {/* Action Buttons: Presets & API Key */}
+              {/* Quick Sample Presets */}
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={handleLoadMECScrims}
-                  className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                   title="Muat data contoh MEC SCRIMS (18 Pasukan • 9 Nov 2026)"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#D7FF00]" />
@@ -793,25 +652,11 @@ export default function ScrimDataHubView({
                 <button
                   type="button"
                   onClick={handleLoadCTScrims}
-                  className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                   title="Muat data contoh CT SCRIMS (20 Pasukan • 5 Nov 2026)"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#D7FF00]" />
                   <span>CT SCRIMS (20)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsApiKeyModalOpen(true)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
-                    geminiApiKey
-                      ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/60'
-                      : 'bg-zinc-900 border border-zinc-700/60 text-zinc-300 hover:bg-zinc-800'
-                  }`}
-                  title="Tetapkan Google Gemini API Key untuk OCR Live"
-                >
-                  <Key className="w-3.5 h-3.5 text-[#D7FF00]" />
-                  <span>{geminiApiKey ? 'Live AI: Aktif ✓' : 'Gemini Key'}</span>
                 </button>
               </div>
             </div>
@@ -1857,189 +1702,6 @@ export default function ScrimDataHubView({
                   {simulatedRating.indexScore} MMR
                 </span>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Gemini API Key Modal (Direct Live OCR) */}
-      {isApiKeyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="fixed inset-0" onClick={() => setIsApiKeyModalOpen(false)} />
-          <div className="bg-[#121214] border border-zinc-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl relative z-10 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 flex items-center justify-center">
-                  <Key className="w-5 h-5 text-[#D7FF00]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Google Gemini API (Live OCR)</h3>
-                  <p className="text-xs text-zinc-400">Ekstrak sebarang poster baharu secara automatik &amp; percuma</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsApiKeyModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                Kunci API Gemini membolehkan pelayar anda memproses poster terus ke model <strong>Gemini 1.5 Flash</strong> tanpa bergantung kepada Edge Function backend. Kunci ini disimpan secara selamat dalam pelayar peranti anda sahaja.
-              </p>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-                  Gemini API Key (Google AI Studio)
-                </label>
-                <input
-                  type="password"
-                  placeholder="AIzaSy..."
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  className="w-full bg-[#18181C] border border-zinc-700/60 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-[#D7FF00]"
-                />
-              </div>
-
-              <div className="bg-[#18181C] rounded-2xl p-3 border border-zinc-800/60 flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5" />
-                <div className="text-[11px] text-zinc-400 space-y-1">
-                  <p>Belum ada kunci API? Dapatkan secara <strong>percuma 100%</strong> dengan akaun Google anda:</p>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[#D7FF00] hover:underline font-bold"
-                  >
-                    <span>Buka Google AI Studio API Keys</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              {geminiApiKey ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApiKeyInput('');
-                    handleSaveApiKey('');
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-400 hover:bg-rose-900/40 text-xs font-bold transition cursor-pointer"
-                >
-                  Padam Kunci
-                </button>
-              ) : (
-                <span />
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsApiKeyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSaveApiKey(apiKeyInput)}
-                  className="px-5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c4eb00] text-black text-xs font-bold transition cursor-pointer shadow-md"
-                >
-                  Simpan API Key
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unrecognized / Fallback Selector Modal */}
-      {isFallbackNoticeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="fixed inset-0" onClick={() => setIsFallbackNoticeOpen(false)} />
-          <div className="bg-[#121214] border border-zinc-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl relative z-10 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Poster Berjaya Dimuat Naik</h3>
-                  <p className="text-xs text-zinc-400">Pilih tindakan untuk mengisi data kedudukan</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsFallbackNoticeOpen(false)}
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Pelayan Edge Function belum diaktifkan di Supabase backend (404). Anda boleh masukkan <strong>Gemini API Key percuma</strong> untuk ekstrak live apa jua poster, atau muat template preset kejohanan sedia ada di bawah:
-            </p>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFallbackNoticeOpen(false);
-                  handleLoadMECScrims();
-                }}
-                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-between transition cursor-pointer text-left"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white">MEC SCRIMS (18 Pasukan)</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#D7FF00]/10 text-[#D7FF00] text-[10px] font-mono">9 Nov 2026</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">Data poster MEC Scrims (#1 2027 • 84 PTS)</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-zinc-400" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFallbackNoticeOpen(false);
-                  handleLoadCTScrims();
-                }}
-                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-between transition cursor-pointer text-left"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white">CT SCRIMS (20 Pasukan)</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#D7FF00]/10 text-[#D7FF00] text-[10px] font-mono">5 Nov 2026</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400">Data poster CT Scrims (#1 4KRV BLACK NUMBER • 82 PTS)</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-zinc-400" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFallbackNoticeOpen(false);
-                  setIsApiKeyModalOpen(true);
-                }}
-                className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/20 border border-[#D7FF00]/30 flex items-center justify-between transition cursor-pointer text-left"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <Key className="w-4 h-4 text-[#D7FF00]" />
-                    <span className="text-xs font-bold text-[#D7FF00]">Guna Gemini API Key (Live AI OCR)</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-300">Ekstrak automatik untuk mana-mana poster kejohanan baharu</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#D7FF00]" />
-              </button>
             </div>
           </div>
         </div>
