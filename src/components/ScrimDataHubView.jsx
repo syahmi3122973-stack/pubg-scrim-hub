@@ -17,7 +17,9 @@ import {
   Table as TableIcon,
   Calendar,
   Filter,
-  User
+  User,
+  Users,
+  Zap
 } from 'lucide-react';
 
 // Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
