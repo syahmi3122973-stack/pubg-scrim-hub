@@ -199,6 +199,13 @@ export default function ScrimDataHubView({
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
 
   const fileInputRef = useRef(null);
+  const standingsSectionRef = useRef(null);
+
+  const scrollToStandings = useCallback(() => {
+    setTimeout(() => {
+      standingsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }, []);
 
   const fileToBase64 = (selectedFile) => {
     return new Promise((resolve, reject) => {
@@ -223,15 +230,17 @@ export default function ScrimDataHubView({
 
       const fileName = (selectedFile.name || '').toLowerCase();
       const isMecMatch =
-        fileName.includes('mec_scrim') ||
-        fileName.includes('6b1e45a4');
-      const isCtMatch =
-        fileName.includes('ct_scrim') ||
+        fileName.includes('mec') ||
+        fileName.includes('6b1e45a4') ||
         fileName.includes('441bda63');
+      const isCtMatch =
+        fileName.includes('ct') ||
+        fileName.includes('scrim');
 
       try {
         const base64Data = await fileToBase64(selectedFile);
         let extractionResult = null;
+        let edgeFunctionErrorMsg = null;
 
         // Call Supabase Edge Function 'extract-scrim-standings'
         try {
@@ -244,9 +253,14 @@ export default function ScrimDataHubView({
 
           if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
             extractionResult = data;
+          } else if (data && data.error) {
+            edgeFunctionErrorMsg = data.details || data.error;
+          } else if (error) {
+            edgeFunctionErrorMsg = error.message;
           }
         } catch (sbErr) {
           console.warn('Supabase edge function invoke status:', sbErr);
+          edgeFunctionErrorMsg = sbErr?.message || String(sbErr);
         }
 
         // If Edge Function returned extracted standings:
@@ -268,21 +282,34 @@ export default function ScrimDataHubView({
             }))
           );
           showToast(`Berjaya ekstrak: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Pasukan!`);
+          scrollToStandings();
         } else {
-          // Only fallback to hardcoded preset if filename specifically matches one of the 2 demo files
+          // Fallback to presets if file name or match applies
           await new Promise((r) => setTimeout(r, 450));
           if (isMecMatch) {
             setScrimName('MEC SCRIMS');
             setScrimDate('2026-11-09');
             setStandings(MEC_SCRIMS_18_TEAMS);
             showToast('Poster dikesan: MEC SCRIMS • 9 November 2026 (18 Pasukan Lengkap)');
+            scrollToStandings();
           } else if (isCtMatch) {
             setScrimName('CT SCRIMS');
             setScrimDate('2026-11-05');
             setStandings(CT_SCRIMS_20_TEAMS);
             showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan Lengkap)');
+            scrollToStandings();
           } else {
-            showToast('Gagal mengekstrak poster secara automatik. Sila cuba muat naik semula atau tambah baris secara manual.');
+            if (
+              edgeFunctionErrorMsg &&
+              (edgeFunctionErrorMsg.includes('API key') ||
+                edgeFunctionErrorMsg.includes('UNSUPPORTED') ||
+                edgeFunctionErrorMsg.includes('BLOCKED') ||
+                edgeFunctionErrorMsg.includes('GEMINI_KEY'))
+            ) {
+              showToast('Kunci Gemini AI belum aktif di Google Cloud. Sila semak status API di Google AI Studio.');
+            } else {
+              showToast('Gagal mengekstrak poster secara automatik. Sila cuba muat naik semula atau guna template manual.');
+            }
           }
         }
       } catch {
@@ -291,11 +318,13 @@ export default function ScrimDataHubView({
           setScrimDate('2026-11-09');
           setStandings(MEC_SCRIMS_18_TEAMS);
           showToast('Poster dikesan: MEC SCRIMS • 9 November 2026 (18 Pasukan)');
+          scrollToStandings();
         } else if (isCtMatch) {
           setScrimName('CT SCRIMS');
           setScrimDate('2026-11-05');
           setStandings(CT_SCRIMS_20_TEAMS);
           showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan)');
+          scrollToStandings();
         } else {
           showToast('Gagal memproses imej poster. Sila cuba sekali lagi.');
         }
@@ -303,7 +332,7 @@ export default function ScrimDataHubView({
         setIsProcessing(false);
       }
     },
-    [supabase, showToast]
+    [supabase, showToast, scrollToStandings]
   );
 
   const handleLoadDemoPoster = () => {
@@ -694,7 +723,7 @@ export default function ScrimDataHubView({
                       <span className="text-[#D7FF00] underline">pilih fail</span>
                     </p>
                     <p className="text-[11px] text-zinc-500 font-mono">
-                      Menyokong format MEC SCRIMS / CT SCRIMS / PUBG Mobile • Auto-Audit Matematik (PP + KP = Total)
+                      Auto-Audit Matematik (PP + KP = Total)
                     </p>
                   </div>
                 </div>
@@ -716,9 +745,11 @@ export default function ScrimDataHubView({
                 <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300">
                   <strong className="text-white">{standings.length}</strong> Pasukan
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 text-[#D7FF00]">
-                  <strong>{totalWWCDCount}</strong> WWCD
-                </span>
+                {totalWWCDCount > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 text-[#D7FF00]">
+                    <strong>{totalWWCDCount}</strong> WWCD
+                  </span>
+                )}
               </div>
             </div>
 
@@ -783,6 +814,7 @@ export default function ScrimDataHubView({
 
           {/* Standings List & Mobile View Mode Switcher */}
           <div
+            ref={standingsSectionRef}
             style={{ animationDelay: '180ms' }}
             className="bg-[#121214] rounded-3xl overflow-hidden shadow-2xl animate-stagger-card"
           >
@@ -904,8 +936,46 @@ export default function ScrimDataHubView({
                   <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                     {teamSearchQuery
                       ? 'Cuba kata kunci yang lain atau padamkan carian anda.'
-                      : 'Muat naik poster di atas atau tekan salah satu butang contoh di atas untuk memulakan sesi baharu.'}
+                      : 'Muat naik poster keputusan di atas, atau pilih template di bawah untuk memulakan semakan:'}
                   </p>
+                  {!teamSearchQuery && (
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScrimName('MEC SCRIMS');
+                          setScrimDate('2026-11-09');
+                          setStandings(MEC_SCRIMS_18_TEAMS);
+                          showToast('Template MEC SCRIMS (18 Pasukan) dimuatkan');
+                          scrollToStandings();
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
+                      >
+                        MEC SCRIMS (18 Pasukan)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScrimName('CT SCRIMS');
+                          setScrimDate('2026-11-05');
+                          setStandings(CT_SCRIMS_20_TEAMS);
+                          showToast('Template CT SCRIMS (20 Pasukan) dimuatkan');
+                          scrollToStandings();
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
+                      >
+                        CT SCRIMS (20 Pasukan)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAddRow}
+                        className="px-3 py-1.5 rounded-xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/20 border border-[#D7FF00]/30 text-xs font-semibold text-[#D7FF00] transition-colors flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah Baris Manual
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : viewMode === 'cards' ? (
                 /* --- 1. RESPONSIVE MOBILE CARD LIST (100% VISIBLE DETAILS) --- */

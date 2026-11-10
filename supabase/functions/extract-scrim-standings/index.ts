@@ -188,12 +188,12 @@ Deno.serve(async (req: Request) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const candidateModels = [
-      "gemini-2.5-flash-lite",
       "gemini-2.5-flash",
-      "gemini-flash-lite-latest",
-      "gemini-3-flash-preview",
-      "gemini-flash-latest",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
       "gemini-2.5-pro",
+      "gemini-2.5-flash-lite",
+      "gemini-flash-latest"
     ];
 
     const prompt = `
@@ -257,6 +257,57 @@ Analyze this tournament standings poster image and extract all structured data a
       }
     }
 
+    // Direct REST API Fallback with explicit x-goog-api-key header
+    if (!result) {
+      for (const mName of ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]) {
+        try {
+          const restRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": apiKey.trim(),
+              },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: prompt },
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: sanitizedBase64,
+                        },
+                      },
+                    ],
+                  },
+                ],
+                generationConfig: {
+                  responseMimeType: "application/json",
+                  responseSchema: extractionSchema,
+                  temperature: 0.1,
+                },
+              }),
+            }
+          );
+          if (restRes.ok) {
+            const data = await restRes.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              result = { response: { text: () => text } };
+              break;
+            }
+          } else {
+            const errJson = await restRes.json().catch(() => ({}));
+            lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
+          }
+        } catch (fetchErr) {
+          lastError = fetchErr;
+        }
+      }
+    }
+
     if (!result) {
       const errorMessage = lastError?.message || String(lastError);
 
@@ -268,6 +319,22 @@ Analyze this tournament standings poster image and extract all structured data a
         return new Response(
           JSON.stringify({ error: "Gemini API rate limit exceeded. Please retry shortly." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (
+        errorMessage.includes("401") ||
+        errorMessage.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") ||
+        errorMessage.includes("API_KEY_SERVICE_BLOCKED") ||
+        errorMessage.includes("API key not valid")
+      ) {
+        return new Response(
+          JSON.stringify({
+            error: "GEMINI_KEY_RESTRICTED",
+            details:
+              "Kunci Google AI Studio anda belum aktifkan servis Generative Language API di Google Cloud. Sila klik 'Create API key in new project' di Google AI Studio atau tekan Enable di Google Cloud Console.",
+          }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
