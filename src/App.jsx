@@ -7994,19 +7994,30 @@ export default function App() {
 
       {/* MODAL 4: EDIT EVENT SETTINGS */}
       {isEditScrimModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-lg w-full max-h-[92dvh] sm:max-h-[90vh] flex flex-col shadow-2xl my-auto overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden">
+          <div className="bg-zinc-950 border border-white/10 rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[88dvh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5 pb-3 shrink-0">
               <h3 className="font-black text-sm text-white flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-[#D7FF00]"/>
                 <span>Edit Event Settings</span>
               </h3>
-              <button 
-                onClick={() => setIsEditScrimModalOpen(false)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleUpdateScrimSettings}
+                  disabled={isSavingEdit}
+                  className="sm:hidden px-3.5 py-1.5 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-50 text-black font-black text-xs active:scale-95 transition shadow-sm"
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setIsEditScrimModalOpen(false)} 
+                  className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleUpdateScrimSettings} className="flex flex-col flex-1 min-h-0 text-xs">
@@ -8111,19 +8122,19 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Pinned Sticky Footer - Always visible on mobile */}
-              <div className="flex items-center justify-end space-x-2 p-3 sm:p-4 border-t border-white/10 bg-zinc-950 shrink-0">
+              {/* Pinned Bottom Footer with Safe Area Padding & Full Touch Targets */}
+              <div className="flex items-center gap-2.5 p-3.5 sm:p-4 pb-6 sm:pb-4 border-t border-white/10 bg-zinc-950 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditScrimModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold active:scale-95 transition"
+                  className="w-1/3 sm:w-auto px-4 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold active:scale-95 transition text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingEdit}
-                  className="px-5 py-2.5 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-sm active:scale-95 transition"
+                  className="w-2/3 sm:flex-1 px-5 py-3 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-50 text-black font-black text-xs sm:text-sm shadow-md active:scale-95 transition text-center"
                 >
                   {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -8687,7 +8698,7 @@ export default function App() {
 
       {/* FLOATING ACTION PILL ON MOBILE: SLEEK ERGONOMIC THUMB ZONE SHORTCUT */}
       {(activeTab === 'scorer' || (activeTab === 'admin' && adminHostedScrims.length > 0)) && (
-        <div className="lg:hidden fixed bottom-20 right-4 z-40">
+        <div className={'lg:hidden fixed bottom-20 right-4 z-40 ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}>
           <button
             type="button"
             onClick={() => {
@@ -8727,7 +8738,7 @@ export default function App() {
       {/* MINIMALIST FLOATING PILL MOBILE NAVBAR (FIXED SLOTS, ZERO JITTER, SLEEK & THIN) */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto"
+        className={'md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
       >
         <div className="bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-full px-2 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),0_0_1px_1px_rgba(255,255,255,0.06)] flex items-center justify-between">
           
