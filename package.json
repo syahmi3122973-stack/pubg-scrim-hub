@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy:edge": "supabase functions deploy extract-scrim-standings --project-ref wfktlfhxqebvbwrjgmox --no-verify-jwt"
+    "deploy:edge": "npx supabase functions deploy extract-scrim-standings --remote=wfktlfhxqebvbwrjgmox --no-verify-jwt --yes"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
