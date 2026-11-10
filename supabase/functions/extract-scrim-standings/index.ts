@@ -96,29 +96,29 @@ const extractionSchema = {
   properties: {
     scrim_name: {
       type: SchemaType.STRING,
-      description: "Primary tournament or scrim title header (e.g. 'CT SCRIMS', 'RYKHOR SCRIMS').",
+      description: "Primary tournament or scrim title header (e.g. 'MEC SCRIMS', 'CT SCRIMS', 'RYKHOR SCRIMS').",
     },
     scrim_date: {
       type: SchemaType.STRING,
-      description: "Date of match converted to YYYY-MM-DD (e.g. 'Thursday, 5 November 2026' -> '2026-11-05').",
+      description: "Date of match converted to YYYY-MM-DD (e.g. 'Monday, 9 November 2026' -> '2026-11-09', 'Thursday, 5 November 2026' -> '2026-11-05').",
     },
     standings: {
       type: SchemaType.ARRAY,
       items: {
         type: SchemaType.OBJECT,
         properties: {
-          rank: { type: SchemaType.INTEGER, description: "Rank number (# column)" },
+          rank: { type: SchemaType.INTEGER, description: "Rank number (#, RANK, or NO column)" },
           team_name: {
             type: SchemaType.STRING,
-            description: "Full team name from T E A M column (e.g. '4KRV BLACK NUMBER', 'VOLTRA VAMP').",
+            description: "Full team name from TEAM / TEAM NAME / T E A M column (e.g. '2027', 'MEC x AZH', '4KRV BLACK NUMBER').",
           },
           wwcd: {
             type: SchemaType.INTEGER,
-            description: "Number of WWCD chicken dinners won. Output 0 if the cell is blank, empty or dash.",
+            description: "Number of WWCD chicken dinners won (labeled 'WWCD', 'WIN', or symbolized by 🍳 / golden helmet / frying pan). Output 0 if the cell is blank, empty or dash.",
           },
-          placement_points: { type: SchemaType.INTEGER, description: "PP column (placement points)" },
-          kill_points: { type: SchemaType.INTEGER, description: "KP column (kill points)" },
-          total_points: { type: SchemaType.INTEGER, description: "TOTAL column (total points)" },
+          placement_points: { type: SchemaType.INTEGER, description: "Placement points (labeled 'PLACE', 'PP', 'PLACEMENT', or 'PTS')" },
+          kill_points: { type: SchemaType.INTEGER, description: "Kill / Elimination points (labeled 'ELIMS', 'KP', 'KILLS', or 'ELIMINATIONS')" },
+          total_points: { type: SchemaType.INTEGER, description: "TOTAL points (labeled 'TOTAL', 'TOT', or 'PTS')" },
         },
         required: [
           "rank",
@@ -192,26 +192,28 @@ You are an expert esports / PUBG Mobile tournament referee and OCR parser.
 Analyze this tournament standings poster image and extract all structured data accurately:
 
 1. SCRIM / TOURNAMENT NAME:
-   - Identify the main tournament or scrim title at the top (e.g., 'CT SCRIMS', 'RYKHOR SCRIMS').
-   - Do NOT abbreviate. Ignore generic subtext like 'STANDINGS' or logos unless it's part of the title.
+   - Identify the main tournament or scrim title at the top (e.g., 'MEC SCRIMS', 'CT SCRIMS', 'RYKHOR SCRIMS').
+   - Do NOT abbreviate. Ignore generic subtext like 'OVERALL STANDINGS', 'FINAL RESULTS', or sponsor logos unless it's part of the title.
 
 2. MATCH DATE:
-   - Find the date text, typically above or beside the title (e.g., 'Thursday, 5 November 2026' or '5 November 2026').
+   - Find the date text, typically above or below the title (e.g., 'Monday, 9 November 2026' or 'Thursday, 5 November 2026').
    - Convert it into strict ISO format YYYY-MM-DD. For example:
+     * 'Monday, 9 November 2026' -> '2026-11-09'
      * 'Thursday, 5 November 2026' -> '2026-11-05'
      * '5 Nov 2026' -> '2026-11-05'
-     * '05/11/2026' -> '2026-11-05'
+     * '09/11/2026' -> '2026-11-09'
 
 3. STANDINGS TABLE ROWS:
-   - Identify columns:
-     * '#' or 'RANK' -> rank (1, 2, 3...)
-     * 'T E A M' or 'TEAM' -> team_name (e.g., '4KRV BLACK NUMBER', 'SM REBORN7', 'VOLTRA VAMP').
+   - Identify and map the columns:
+     * Rank column: '#' or 'RANK' or 'NO' -> rank (1, 2, 3...)
+     * Team column: 'T E A M', 'TEAM', 'TEAM NAME' -> team_name (e.g., '2027', 'MEC x AZH', '4KRV BLACK NUMBER', 'VOLTRA VAMP').
        Keep exact spelling, spaces, numbers, and casing. Do not cut off names even if text is colored red, gold, or white.
-     * 'WWCD' -> number of wins. VERY IMPORTANT: If the cell is empty, blank, has a dash or no number, output 0. Do NOT shift columns!
-     * 'PP' -> placement points (integer)
-     * 'KP' -> kill points (integer)
-     * 'TOTAL' or 'TOT' -> total points (integer)
-   - Extract ALL rows in order without skipping (e.g., if there are 20 rows from #1 to #20, return all 20 items).
+     * WWCD column: Labeled 'WWCD', 'WIN', or symbolized by an icon like a frying pan, chicken, or golden helmet 🍳.
+       VERY IMPORTANT: If the cell is empty, blank, has a dash or no number, output 0. Do NOT shift columns!
+     * Placement Points column: Labeled 'PLACE', 'PP', 'PLACEMENT', or 'PTS' -> placement_points (integer).
+     * Kill Points column: Labeled 'ELIMS', 'KP', 'KILLS', or 'ELIMINATIONS' -> kill_points (integer).
+     * Total Points column: Labeled 'TOTAL', 'TOT', or 'PTS' -> total_points (integer).
+   - Extract ALL rows in order without skipping (e.g., if there are 18 rows from #1 to #18, or 20 rows from #1 to #20, return every single item).
 `;
 
     let result;

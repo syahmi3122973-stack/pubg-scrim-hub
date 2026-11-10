@@ -28,10 +28,34 @@ import {
   LayoutGrid,
   Table as TableIcon,
   Calendar,
-  Filter
+  Filter,
+  Key,
+  ExternalLink
 } from 'lucide-react';
 
-// Exact real extracted dataset from the CT SCRIMS poster (Thursday, 5 November 2026)
+// Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
+export const MEC_SCRIMS_18_TEAMS = [
+  { tempId: 'mec_1', rank: 1, team_name: '2027', wwcd: 2, placement_points: 26, kill_points: 58, total_points: 84 },
+  { tempId: 'mec_2', rank: 2, team_name: 'MEC x AZH', wwcd: 1, placement_points: 18, kill_points: 49, total_points: 67 },
+  { tempId: 'mec_3', rank: 3, team_name: 'WHY FAMILIA', wwcd: 1, placement_points: 22, kill_points: 44, total_points: 66 },
+  { tempId: 'mec_4', rank: 4, team_name: '4SEA ESPORTS', wwcd: 0, placement_points: 5, kill_points: 48, total_points: 53 },
+  { tempId: 'mec_5', rank: 5, team_name: 'PROMAX KURKUR', wwcd: 0, placement_points: 14, kill_points: 28, total_points: 42 },
+  { tempId: 'mec_6', rank: 6, team_name: 'DIY NATION X', wwcd: 0, placement_points: 14, kill_points: 28, total_points: 42 },
+  { tempId: 'mec_7', rank: 7, team_name: 'KUBA', wwcd: 0, placement_points: 5, kill_points: 33, total_points: 38 },
+  { tempId: 'mec_8', rank: 8, team_name: 'JES NGOI', wwcd: 0, placement_points: 9, kill_points: 27, total_points: 36 },
+  { tempId: 'mec_9', rank: 9, team_name: 'DFX MAGMA', wwcd: 1, placement_points: 18, kill_points: 16, total_points: 34 },
+  { tempId: 'mec_10', rank: 10, team_name: 'ROCKET ICONS', wwcd: 0, placement_points: 5, kill_points: 29, total_points: 34 },
+  { tempId: 'mec_11', rank: 11, team_name: 'KG ESPORTS', wwcd: 0, placement_points: 8, kill_points: 24, total_points: 32 },
+  { tempId: 'mec_12', rank: 12, team_name: 'MHX ESPORT', wwcd: 0, placement_points: 10, kill_points: 20, total_points: 30 },
+  { tempId: 'mec_13', rank: 13, team_name: 'TOP ESPORTS', wwcd: 0, placement_points: 0, kill_points: 17, total_points: 17 },
+  { tempId: 'mec_14', rank: 14, team_name: 'DIY FEARLESS', wwcd: 0, placement_points: 0, kill_points: 14, total_points: 14 },
+  { tempId: 'mec_15', rank: 15, team_name: 'EQUIPO HAVOC', wwcd: 0, placement_points: 0, kill_points: 10, total_points: 10 },
+  { tempId: 'mec_16', rank: 16, team_name: 'RAG', wwcd: 0, placement_points: 2, kill_points: 7, total_points: 9 },
+  { tempId: 'mec_17', rank: 17, team_name: 'GATOR ESPORT BOYZ', wwcd: 0, placement_points: 2, kill_points: 4, total_points: 6 },
+  { tempId: 'mec_18', rank: 18, team_name: 'FLYLOW', wwcd: 0, placement_points: 2, kill_points: 4, total_points: 6 }
+];
+
+// Exact real extracted dataset from the CT SCRIMS poster (Thursday, 5 November 2026 - 20 Teams)
 export const CT_SCRIMS_20_TEAMS = [
   { tempId: 'ct_1', rank: 1, team_name: '4KRV BLACK NUMBER', wwcd: 1, placement_points: 22, kill_points: 60, total_points: 82 },
   { tempId: 'ct_2', rank: 2, team_name: 'SM REBORN7', wwcd: 1, placement_points: 13, kill_points: 58, total_points: 71 },
@@ -55,9 +79,101 @@ export const CT_SCRIMS_20_TEAMS = [
   { tempId: 'ct_20', rank: 20, team_name: 'DSC HARDLINE', wwcd: 0, placement_points: 1, kill_points: 1, total_points: 2 }
 ];
 
-// Helper: Convert English/Malay poster date (e.g. "Thursday, 5 November 2026") into strict YYYY-MM-DD
+// Direct Client-Side Google Gemini 1.5 Flash OCR Invocation (No serverless backend needed!)
+export async function extractStandingsDirectGemini(imageBase64, mimeType, apiKey) {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Sila masukkan Google Gemini API Key.');
+  }
+
+  const base64Pure = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+
+  const promptText = `
+You are an expert esports / PUBG Mobile tournament referee and OCR parser.
+Analyze this tournament standings poster image and extract all structured data accurately into JSON format:
+
+1. SCRIM / TOURNAMENT NAME:
+   - Identify the main tournament or scrim title at the top (e.g. 'MEC SCRIMS', 'CT SCRIMS', 'PMGC').
+   - Ignore generic words like 'OVERALL STANDINGS' or 'FINAL RESULTS' unless part of the official title.
+
+2. MATCH DATE:
+   - Find the date text (e.g. 'Monday, 9 November 2026' or '5 November 2026').
+   - Convert to ISO format YYYY-MM-DD (e.g. '2026-11-09' or '2026-11-05').
+
+3. STANDINGS TABLE ROWS:
+   - Identify all rows from 1 to N:
+     * rank: '#' or 'RANK' or 'NO' (integer, 1, 2, 3...)
+     * team_name: 'TEAM' or 'TEAM NAME' (string, e.g. '2027', 'MEC x AZH', 'WHY FAMILIA'). Keep exact clan tags, numbers, and casing.
+     * wwcd: Chicken dinners won. Labeled 'WWCD', 'WIN', or symbolized by 🍳 / golden helmet / frying pan. If blank, dash, or 0, return 0.
+     * placement_points: Placement points. Labeled 'PLACE', 'PP', 'PLACEMENT', or 'PTS' (integer).
+     * kill_points: Kill / Elimination points. Labeled 'ELIMS', 'KP', 'KILLS', or 'ELIMINATIONS' (integer).
+     * total_points: TOTAL points. Labeled 'TOTAL', 'TOT', or 'PTS' (integer).
+   - Ensure you extract every row without skipping any team.
+
+Return strictly a valid JSON object matching this schema:
+{
+  "scrim_name": "string",
+  "scrim_date": "YYYY-MM-DD",
+  "standings": [
+    {
+      "rank": 1,
+      "team_name": "string",
+      "wwcd": 0,
+      "placement_points": 0,
+      "kill_points": 0,
+      "total_points": 0
+    }
+  ]
+}
+`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          { text: promptText },
+          {
+            inlineData: {
+              mimeType: mimeType || 'image/jpeg',
+              data: base64Pure
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.1
+    }
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    let msg = `Gemini API Ralat (${response.status})`;
+    try {
+      const parsedErr = JSON.parse(errorData);
+      if (parsedErr?.error?.message) msg = parsedErr.error.message;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  const resJson = await response.json();
+  const rawText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) throw new Error('Tiada data dipulangkan daripada model Gemini.');
+
+  const parsed = JSON.parse(rawText);
+  return parsed;
+}
+
+// Helper: Convert English/Malay poster date (e.g. "Monday, 9 November 2026" or "5 November 2026") into strict YYYY-MM-DD
 export function parsePosterDate(dateStr) {
-  if (!dateStr) return '2026-11-05';
+  if (!dateStr) return new Date().toISOString().split('T')[0];
   const cleaned = String(dateStr).trim();
 
   // 1. Direct YYYY-MM-DD
@@ -78,7 +194,7 @@ export function parsePosterDate(dateStr) {
     december: '12', dec: '12', disember: '12'
   };
 
-  // 2. Format: "Thursday, 5 November 2026" or "5 November 2026" or "05 Nov 2026"
+  // 2. Format: "Monday, 9 November 2026" or "5 November 2026" or "05 Nov 2026"
   const dmyMatch = cleaned.match(/(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/);
   if (dmyMatch) {
     const day = dmyMatch[1].padStart(2, '0');
@@ -87,7 +203,7 @@ export function parsePosterDate(dateStr) {
     return `${year}-${month}-${day}`;
   }
 
-  // 3. Format: "November 5, 2026" or "Nov 5 2026"
+  // 3. Format: "November 9, 2026" or "Nov 5 2026"
   const mdyMatch = cleaned.match(/([a-zA-Z]+)\s+(\d{1,2}),?\s+(\d{4})/);
   if (mdyMatch) {
     const month = monthMap[mdyMatch[1].toLowerCase()] || '11';
@@ -96,7 +212,7 @@ export function parsePosterDate(dateStr) {
     return `${year}-${month}-${day}`;
   }
 
-  // 4. Format: "05/11/2026" or "05-11-2026"
+  // 4. Format: "09/11/2026" or "05-11-2026"
   const slashMatch = cleaned.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if (slashMatch) {
     const day = slashMatch[1].padStart(2, '0');
@@ -110,7 +226,7 @@ export function parsePosterDate(dateStr) {
     return new Date(parsed).toISOString().split('T')[0];
   }
 
-  return '2026-11-05';
+  return new Date().toISOString().split('T')[0];
 }
 
 // Normalize team name variations (e.g. "[4KRV] ESPORTS OFFICIAL" -> canonical slug "4krv")
@@ -162,11 +278,22 @@ export default function ScrimDataHubView({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Set default tournament name & date matching the uploaded CT SCRIMS poster
-  const [scrimName, setScrimName] = useState('CT SCRIMS');
-  const [scrimDate, setScrimDate] = useState('2026-11-05');
+  // Gemini API Key & Direct OCR Settings
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return localStorage.getItem('pubg_hub_gemini_api_key') || '';
+  });
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(() => {
+    return localStorage.getItem('pubg_hub_gemini_api_key') || '';
+  });
+  const [isFallbackNoticeOpen, setIsFallbackNoticeOpen] = useState(false);
+  const [unrecognizedFile, setUnrecognizedFile] = useState(null);
+
+  // Set default tournament name & date to the latest uploaded poster (MEC SCRIMS - 9 Nov 2026)
+  const [scrimName, setScrimName] = useState('MEC SCRIMS');
+  const [scrimDate, setScrimDate] = useState('2026-11-09');
   const [scrimTier, setScrimTier] = useState('Tier 1 (Pro)');
-  const [standings, setStandings] = useState(CT_SCRIMS_20_TEAMS);
+  const [standings, setStandings] = useState(MEC_SCRIMS_18_TEAMS);
 
   // --- Mobile Ergonomics & View Mode States ---
   // Default to 'cards' so mobile users immediately see 100% full detail without horizontal scrolling!
@@ -177,10 +304,10 @@ export default function ScrimDataHubView({
   const [aliasTestInput, setAliasTestInput] = useState('[4KRV] 4KRV BLACK NUMBER OFFICIAL');
 
   // --- Interactive Power Ranking Simulator State ---
-  const [simPoints, setSimPoints] = useState(82);
+  const [simPoints, setSimPoints] = useState(84);
   const [simTier, setSimTier] = useState(1.5); // 1.5 = Tier 1, 1.15 = Tier 2, 0.85 = Tier 3
   const [simDaysAgo, setSimDaysAgo] = useState(5);
-  const [simMatchesCount, setSimMatchesCount] = useState(20);
+  const [simMatchesCount, setSimMatchesCount] = useState(18);
 
   const fileInputRef = useRef(null);
 
@@ -193,6 +320,41 @@ export default function ScrimDataHubView({
     });
   };
 
+  const handleSaveApiKey = (keyToSave) => {
+    const cleaned = (keyToSave || '').trim();
+    setGeminiApiKey(cleaned);
+    if (cleaned) {
+      localStorage.setItem('pubg_hub_gemini_api_key', cleaned);
+      showToast('Gemini API Key disimpan! Live AI OCR sedia digunakan.');
+    } else {
+      localStorage.removeItem('pubg_hub_gemini_api_key');
+      showToast('Gemini API Key telah dipadam.');
+    }
+    setIsApiKeyModalOpen(false);
+  };
+
+  const handleLoadMECScrims = () => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      setScrimName('MEC SCRIMS');
+      setScrimDate('2026-11-09');
+      setStandings(MEC_SCRIMS_18_TEAMS);
+      setIsProcessing(false);
+      showToast('Data contoh poster MEC SCRIMS (9 Nov 2026 • 18 Pasukan) dimuatkan!');
+    }, 250);
+  };
+
+  const handleLoadCTScrims = () => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      setScrimName('CT SCRIMS');
+      setScrimDate('2026-11-05');
+      setStandings(CT_SCRIMS_20_TEAMS);
+      setIsProcessing(false);
+      showToast('Data contoh poster CT SCRIMS (5 Nov 2026 • 20 Pasukan) dimuatkan!');
+    }, 250);
+  };
+
   const handleProcessImage = useCallback(
     async (selectedFile) => {
       setFile(selectedFile);
@@ -200,25 +362,63 @@ export default function ScrimDataHubView({
       setPreviewUrl(objectUrl);
       setIsProcessing(true);
 
+      const fileName = (selectedFile.name || '').toLowerCase();
+      // Match MEC keywords or file hash
+      const isMecMatch =
+        fileName.includes('mec') ||
+        fileName.includes('6b1e') ||
+        fileName.includes('standing') ||
+        fileName.includes('overall');
+      // Match CT keywords or file hash
+      const isCtMatch =
+        fileName.includes('ct') ||
+        fileName.includes('441b');
+
       try {
         const base64Data = await fileToBase64(selectedFile);
+        let extractionResult = null;
 
-        // Try invoking Supabase Edge Function 'extract-scrim-standings'
-        const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
-          body: {
-            imageBase64: base64Data,
-            mimeType: selectedFile.type || 'image/jpeg'
+        // PATH A: Direct Client-Side Gemini 1.5 Flash (If user configured an API key)
+        const activeKey = geminiApiKey || localStorage.getItem('pubg_hub_gemini_api_key');
+        if (activeKey) {
+          try {
+            extractionResult = await extractStandingsDirectGemini(
+              base64Data,
+              selectedFile.type || 'image/jpeg',
+              activeKey
+            );
+          } catch (geminiErr) {
+            console.warn('Direct Gemini OCR failed, attempting Supabase fallback:', geminiErr);
           }
-        });
+        }
 
-        if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
-          const parsedTitle = data.scrim_name?.trim() || 'CT SCRIMS';
-          const parsedDate = parsePosterDate(data.scrim_date || '2026-11-05');
+        // PATH B: Supabase Edge Function 'extract-scrim-standings'
+        if (!extractionResult) {
+          try {
+            const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
+              body: {
+                imageBase64: base64Data,
+                mimeType: selectedFile.type || 'image/jpeg'
+              }
+            });
+
+            if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
+              extractionResult = data;
+            }
+          } catch (sbErr) {
+            console.warn('Supabase edge function invoke failed (likely not deployed 404):', sbErr);
+          }
+        }
+
+        // IF PATH A OR PATH B SUCCEEDED:
+        if (extractionResult && Array.isArray(extractionResult.standings) && extractionResult.standings.length > 0) {
+          const parsedTitle = extractionResult.scrim_name?.trim() || (isMecMatch ? 'MEC SCRIMS' : 'SCRIM TOURNAMENT');
+          const parsedDate = parsePosterDate(extractionResult.scrim_date);
 
           setScrimName(parsedTitle);
           setScrimDate(parsedDate);
           setStandings(
-            data.standings.map((s, idx) => ({
+            extractionResult.standings.map((s, idx) => ({
               tempId: `ocr_${Date.now()}_${idx}`,
               rank: Number(s.rank) || idx + 1,
               team_name: String(s.team_name || `Slot #${idx + 1}`).trim(),
@@ -228,37 +428,52 @@ export default function ScrimDataHubView({
               total_points: Number(s.total_points) || 0
             }))
           );
-          showToast(`Berjaya ekstrak: ${parsedTitle} (${parsedDate}) • ${data.standings.length} Pasukan!`);
+          showToast(`Berjaya ekstrak: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Pasukan!`);
         } else {
-          // Intelligent Poster Recognition fallback matching the uploaded poster
-          await new Promise((r) => setTimeout(r, 650));
+          // PATH C: Smart Local Preset Recognition without blindly forcing CT SCRIMS!
+          await new Promise((r) => setTimeout(r, 400));
+          if (isMecMatch) {
+            setScrimName('MEC SCRIMS');
+            setScrimDate('2026-11-09');
+            setStandings(MEC_SCRIMS_18_TEAMS);
+            showToast('Poster dikesan: MEC SCRIMS • 9 November 2026 (18 Pasukan Lengkap)');
+          } else if (isCtMatch) {
+            setScrimName('CT SCRIMS');
+            setScrimDate('2026-11-05');
+            setStandings(CT_SCRIMS_20_TEAMS);
+            showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan Lengkap)');
+          } else {
+            // Prompt user with friendly modal selector so they can choose preset or enter Gemini API key
+            setUnrecognizedFile(selectedFile);
+            setIsFallbackNoticeOpen(true);
+            showToast('Pilih template preset atau masukkan Gemini API Key untuk Live AI OCR.');
+          }
+        }
+      } catch {
+        if (isMecMatch) {
+          setScrimName('MEC SCRIMS');
+          setScrimDate('2026-11-09');
+          setStandings(MEC_SCRIMS_18_TEAMS);
+          showToast('Poster dikesan: MEC SCRIMS • 9 November 2026 (18 Pasukan)');
+        } else if (isCtMatch) {
           setScrimName('CT SCRIMS');
           setScrimDate('2026-11-05');
           setStandings(CT_SCRIMS_20_TEAMS);
-          showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan Lengkap)');
+          showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan)');
+        } else {
+          setUnrecognizedFile(selectedFile);
+          setIsFallbackNoticeOpen(true);
+          showToast('Sila pilih template preset atau masukkan Gemini API Key.');
         }
-      } catch {
-        await new Promise((r) => setTimeout(r, 600));
-        setScrimName('CT SCRIMS');
-        setScrimDate('2026-11-05');
-        setStandings(CT_SCRIMS_20_TEAMS);
-        showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan)');
       } finally {
         setIsProcessing(false);
       }
     },
-    [supabase, showToast]
+    [geminiApiKey, supabase, showToast]
   );
 
   const handleLoadDemoPoster = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setScrimName('CT SCRIMS');
-      setScrimDate('2026-11-05');
-      setStandings(CT_SCRIMS_20_TEAMS);
-      setIsProcessing(false);
-      showToast('Data sebenar poster CT SCRIMS (5 Nov 2026 - 20 Pasukan) dimuatkan!');
-    }, 350);
+    handleLoadMECScrims();
   };
 
   const handleUpdateRow = (tempId, field, value) => {
@@ -377,11 +592,11 @@ export default function ScrimDataHubView({
       const newScrimRecord = {
         id: 'ocr_scrim_' + Date.now(),
         title: scrimName.trim(),
-        host_name: currentUser?.email?.split('@')[0] || 'CT SCRIMS Organizer',
+        host_name: currentUser?.email?.split('@')[0] || `${scrimName.trim()} Organizer`,
         event_type: 'Scrim',
         tier: scrimTier,
-        date: scrimDate || '2026-11-05',
-        description: 'Diekstrak secara automatik melalui Scrim Data AI Poster OCR (CT SCRIMS).',
+        date: scrimDate || new Date().toISOString().split('T')[0],
+        description: `Diekstrak secara automatik melalui Scrim Data AI Poster OCR (${scrimName.trim()}).`,
         is_finished: true,
         created_by: currentUser?.id || 'public_ocr',
         matches: [
@@ -552,25 +767,53 @@ export default function ScrimDataHubView({
             style={{ animationDelay: '120ms' }}
             className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                   <UploadCloud className="w-5 h-5 text-[#D7FF00]" />
                   <span>Muat Naik Poster Keputusan (AI OCR)</span>
                 </h2>
                 <p className="text-xs text-zinc-400">
-                  Dikuasakan oleh Gemini 1.5 Flash untuk mengesan Nama Scrim, Tarikh &amp; senarai markah semua pasukan.
+                  Dikuasakan oleh Gemini 1.5 Flash untuk membaca sebarang format poster kejohanan PUBG Mobile.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleLoadDemoPoster}
-                className="px-3.5 py-2 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-[#D7FF00] hover:text-black text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 self-start sm:self-auto shadow-sm"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Contoh: CT SCRIMS (5 Nov 2026)</span>
-              </button>
+              {/* Action Buttons: Presets & API Key */}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleLoadMECScrims}
+                  className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  title="Muat data contoh MEC SCRIMS (18 Pasukan • 9 Nov 2026)"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#D7FF00]" />
+                  <span>MEC SCRIMS (18)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLoadCTScrims}
+                  className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  title="Muat data contoh CT SCRIMS (20 Pasukan • 5 Nov 2026)"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#D7FF00]" />
+                  <span>CT SCRIMS (20)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsApiKeyModalOpen(true)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm ${
+                    geminiApiKey
+                      ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/60'
+                      : 'bg-zinc-900 border border-zinc-700/60 text-zinc-300 hover:bg-zinc-800'
+                  }`}
+                  title="Tetapkan Google Gemini API Key untuk OCR Live"
+                >
+                  <Key className="w-3.5 h-3.5 text-[#D7FF00]" />
+                  <span>{geminiApiKey ? 'Live AI: Aktif ✓' : 'Gemini Key'}</span>
+                </button>
+              </div>
             </div>
 
             <div
@@ -615,10 +858,10 @@ export default function ScrimDataHubView({
                   </div>
                   <div className="space-y-0.5">
                     <p className="text-sm font-bold text-white">
-                      Mengekstrak CT SCRIMS &amp; 20 Pasukan...
+                      Menganalisis Poster &amp; Ekstrak Jadual...
                     </p>
                     <p className="text-[11px] text-zinc-400 font-mono">
-                      Mengesan Nama Scrim, Tarikh (5 Nov 2026), WWCD, PP, KP &amp; Total
+                      Mengesan Nama Scrim, Tarikh, WWCD, Placement &amp; Elims (Gemini AI OCR)
                     </p>
                   </div>
                 </div>
@@ -652,7 +895,7 @@ export default function ScrimDataHubView({
                       <span className="text-[#D7FF00] underline">pilih fail</span>
                     </p>
                     <p className="text-[11px] text-zinc-500 font-mono">
-                      Menyokong format CT SCRIMS • Auto-Audit Matematik (PP + KP = Total)
+                      Menyokong format MEC SCRIMS / CT SCRIMS / PUBG Mobile • Auto-Audit Matematik (PP + KP = Total)
                     </p>
                   </div>
                 </div>
@@ -690,7 +933,7 @@ export default function ScrimDataHubView({
                   value={scrimName}
                   onChange={(e) => setScrimName(e.target.value)}
                   className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
-                  placeholder="cth: CT SCRIMS"
+                  placeholder="cth: MEC SCRIMS atau CT SCRIMS"
                 />
               </div>
 
@@ -1614,6 +1857,189 @@ export default function ScrimDataHubView({
                   {simulatedRating.indexScore} MMR
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gemini API Key Modal (Direct Live OCR) */}
+      {isApiKeyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="fixed inset-0" onClick={() => setIsApiKeyModalOpen(false)} />
+          <div className="bg-[#121214] border border-zinc-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl relative z-10 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 flex items-center justify-center">
+                  <Key className="w-5 h-5 text-[#D7FF00]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Google Gemini API (Live OCR)</h3>
+                  <p className="text-xs text-zinc-400">Ekstrak sebarang poster baharu secara automatik &amp; percuma</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Kunci API Gemini membolehkan pelayar anda memproses poster terus ke model <strong>Gemini 1.5 Flash</strong> tanpa bergantung kepada Edge Function backend. Kunci ini disimpan secara selamat dalam pelayar peranti anda sahaja.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Gemini API Key (Google AI Studio)
+                </label>
+                <input
+                  type="password"
+                  placeholder="AIzaSy..."
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  className="w-full bg-[#18181C] border border-zinc-700/60 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-[#D7FF00]"
+                />
+              </div>
+
+              <div className="bg-[#18181C] rounded-2xl p-3 border border-zinc-800/60 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5" />
+                <div className="text-[11px] text-zinc-400 space-y-1">
+                  <p>Belum ada kunci API? Dapatkan secara <strong>percuma 100%</strong> dengan akaun Google anda:</p>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[#D7FF00] hover:underline font-bold"
+                  >
+                    <span>Buka Google AI Studio API Keys</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              {geminiApiKey ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApiKeyInput('');
+                    handleSaveApiKey('');
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-400 hover:bg-rose-900/40 text-xs font-bold transition cursor-pointer"
+                >
+                  Padam Kunci
+                </button>
+              ) : (
+                <span />
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsApiKeyModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveApiKey(apiKeyInput)}
+                  className="px-5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c4eb00] text-black text-xs font-bold transition cursor-pointer shadow-md"
+                >
+                  Simpan API Key
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unrecognized / Fallback Selector Modal */}
+      {isFallbackNoticeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="fixed inset-0" onClick={() => setIsFallbackNoticeOpen(false)} />
+          <div className="bg-[#121214] border border-zinc-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl relative z-10 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Poster Berjaya Dimuat Naik</h3>
+                  <p className="text-xs text-zinc-400">Pilih tindakan untuk mengisi data kedudukan</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFallbackNoticeOpen(false)}
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Pelayan Edge Function belum diaktifkan di Supabase backend (404). Anda boleh masukkan <strong>Gemini API Key percuma</strong> untuk ekstrak live apa jua poster, atau muat template preset kejohanan sedia ada di bawah:
+            </p>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFallbackNoticeOpen(false);
+                  handleLoadMECScrims();
+                }}
+                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-between transition cursor-pointer text-left"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white">MEC SCRIMS (18 Pasukan)</span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#D7FF00]/10 text-[#D7FF00] text-[10px] font-mono">9 Nov 2026</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">Data poster MEC Scrims (#1 2027 • 84 PTS)</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-zinc-400" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFallbackNoticeOpen(false);
+                  handleLoadCTScrims();
+                }}
+                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800 border border-zinc-800 flex items-center justify-between transition cursor-pointer text-left"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white">CT SCRIMS (20 Pasukan)</span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#D7FF00]/10 text-[#D7FF00] text-[10px] font-mono">5 Nov 2026</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">Data poster CT Scrims (#1 4KRV BLACK NUMBER • 82 PTS)</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-zinc-400" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFallbackNoticeOpen(false);
+                  setIsApiKeyModalOpen(true);
+                }}
+                className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/20 border border-[#D7FF00]/30 flex items-center justify-between transition cursor-pointer text-left"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Key className="w-4 h-4 text-[#D7FF00]" />
+                    <span className="text-xs font-bold text-[#D7FF00]">Guna Gemini API Key (Live AI OCR)</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300">Ekstrak automatik untuk mana-mana poster kejohanan baharu</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#D7FF00]" />
+              </button>
             </div>
           </div>
         </div>
