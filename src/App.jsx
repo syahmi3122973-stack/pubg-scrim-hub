@@ -56,6 +56,7 @@ import {
   Home
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import ScrimDataHubView from './components/ScrimDataHubView';
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
   <svg 
@@ -331,7 +332,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'admin'].includes(hash)) {
+      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'admin', 'scrim-data'].includes(hash)) {
         if (hash === 'standings' || hash === 'leaderboard') return 'history';
         if (hash === 'database') return 'teams';
         if (hash === 'home') return 'playground';
@@ -388,8 +389,8 @@ export default function App() {
   const [isHistorySearchOpen, setIsHistorySearchOpen] = useState(false);
   const [historyStatusFilter, setHistoryStatusFilter] = useState('ALL');
 
-  // Homepage Interactive Card Slider State (4 cards + 2 clones for seamless forward loop)
-  const HOME_SLIDER_TOTAL = 4;
+  // Homepage Interactive Card Slider State (5 cards + 2 clones for seamless forward loop)
+  const HOME_SLIDER_TOTAL = 5;
   const [homeSlideTrackIdx, setHomeSlideTrackIdx] = useState(0);
   const [isHomeSliderAnimating, setIsHomeSliderAnimating] = useState(true);
   const [isHomeSliderPaused, setIsHomeSliderPaused] = useState(false);
@@ -3243,19 +3244,19 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Desktop Central Quick Scorer / Action CTA */}
+          {/* Desktop Central [+] Action Menu Trigger */}
           <button
             type="button"
-            onClick={handleStartScoringSession}
-            className={'hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition active:scale-95 ' + (
-              activeTab === 'scorer'
+            onClick={() => setIsQuickCreateModalOpen(true)}
+            className={'hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition active:scale-95 cursor-pointer ' + (
+              activeTab === 'scorer' || activeTab === 'scrim-data'
                 ? 'bg-[#D7FF00] text-black shadow-[0_0_20px_rgba(215, 255, 0,0.18)]'
                 : 'bg-zinc-900/80 hover:bg-zinc-800 text-[#D7FF00] border border-white/10'
             )}
-            title="Kira markah di Quick Scorer"
+            title="Pilih Quick Score, Admin Scorer atau Scrim Data"
           >
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Scorer</span>
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span>Scorer / Data</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -3405,9 +3406,12 @@ export default function App() {
               description: 'Sheet mudah rosak & tiada auto-tiebreaker. Di sini kiraan PMGC dan poster Standings HD siap serentak dalam saat.',
               footerText: 'Ganti Google Sheet & Canva serentak',
               onAction: handleStartScoringSession,
-              renderVisual: () => (
-                <div className="relative pt-2 pb-1 flex flex-col items-center justify-center">
-                  {/* Semi-circle gauge inspired by reference Card 1 */}
+              renderVisual: (isActive) => (
+                <div
+                  key={isActive ? 'gauge-active' : 'gauge-idle'}
+                  className="relative pt-2 pb-1 flex flex-col items-center justify-center"
+                >
+                  {/* Animated Semi-circle gauge inspired by reference Card 1 */}
                   <svg viewBox="0 0 200 105" className="w-44 sm:w-48 h-auto overflow-visible">
                     <path
                       d="M 20 95 A 80 80 0 0 1 180 95"
@@ -3422,13 +3426,29 @@ export default function App() {
                       stroke="#D7FF00"
                       strokeWidth="14"
                       strokeLinecap="round"
-                      className="drop-shadow-[0_0_10px_rgba(215,255,0,0.35)]"
+                      className={
+                        'drop-shadow-[0_0_12px_rgba(215,255,0,0.4)] ' +
+                        (isActive ? 'animate-gauge-sweep' : '')
+                      }
+                    />
+                    {/* Glowing tip indicator dot */}
+                    <circle
+                      cx="158"
+                      cy="40"
+                      r="4.5"
+                      fill="#FFFFFF"
+                      className={isActive ? 'animate-pulse' : ''}
                     />
                   </svg>
-                  <div className="-mt-10 text-center">
+                  <div
+                    className={
+                      '-mt-10 text-center ' + (isActive ? 'animate-visual-pop' : '')
+                    }
+                    style={{ animationDelay: '180ms' }}
+                  >
                     <div className="flex items-baseline justify-center gap-1.5">
                       <span className="text-3xl sm:text-4xl font-black tracking-tight text-white font-mono">10</span>
-                      <span className="text-xs sm:text-sm text-zinc-400 font-semibold">saat</span>
+                      <span className="text-xs sm:text-sm text-[#D7FF00] font-bold">saat</span>
                     </div>
                     <span className="text-[10px] font-mono text-zinc-500 line-through block">
                       30 minit Sheet + Canva
@@ -3445,9 +3465,12 @@ export default function App() {
               description: 'Rekod match se-Malaysia disimpan kolektif — jadi portfolio rasmi untuk pitching tajaan & scouting bakat baru.',
               footerText: 'Teroka Database Hall of Fame →',
               onAction: () => navigateToTab('teams'),
-              renderVisual: () => (
-                <div className="relative py-2 flex items-end justify-between gap-3">
-                  <div className="space-y-1">
+              renderVisual: (isActive) => (
+                <div
+                  key={isActive ? 'bars-active' : 'bars-idle'}
+                  className="relative py-2 flex items-end justify-between gap-3"
+                >
+                  <div className={'space-y-1 ' + (isActive ? 'animate-visual-pop' : '')}>
                     <div className="text-3xl sm:text-4xl font-black tracking-tight text-white font-mono">
                       {activeTeamsCount}+
                     </div>
@@ -3456,12 +3479,43 @@ export default function App() {
                       <span className="text-[#D7FF00]">Kolektif Malaysia</span>
                     </div>
                   </div>
-                  {/* Ascending bar chart inspired by reference Card 2 */}
-                  <div className="flex items-end gap-1.5 h-20 pt-2">
-                    <div className="w-5 h-7 rounded-t-md bg-zinc-800/90" />
-                    <div className="w-5 h-11 rounded-t-md bg-zinc-700/80" />
-                    <div className="w-5 h-15 rounded-t-md bg-[#D7FF00]/40" />
-                    <div className="w-5 h-20 rounded-t-md bg-[#D7FF00] shadow-[0_0_12px_rgba(215,255,0,0.3)]" />
+                  {/* Animated Ascending bar chart inspired by reference Card 2 */}
+                  <div className="flex items-end gap-1.5 h-20 pt-2 relative">
+                    <div
+                      style={{ animationDelay: '40ms' }}
+                      className={
+                        'w-5 h-7 rounded-t-md bg-zinc-800/90 ' +
+                        (isActive ? 'animate-bar-grow' : '')
+                      }
+                    />
+                    <div
+                      style={{ animationDelay: '120ms' }}
+                      className={
+                        'w-5 h-11 rounded-t-md bg-zinc-700/80 ' +
+                        (isActive ? 'animate-bar-grow' : '')
+                      }
+                    />
+                    <div
+                      style={{ animationDelay: '200ms' }}
+                      className={
+                        'w-5 h-15 rounded-t-md bg-[#D7FF00]/45 ' +
+                        (isActive ? 'animate-bar-grow' : '')
+                      }
+                    />
+                    <div className="relative flex flex-col items-center">
+                      {isActive && (
+                        <span className="text-[9px] font-mono font-black text-[#D7FF00] mb-1 animate-hero-float">
+                          TOP
+                        </span>
+                      )}
+                      <div
+                        style={{ animationDelay: '280ms' }}
+                        className={
+                          'w-5 h-20 rounded-t-md bg-[#D7FF00] shadow-[0_0_14px_rgba(215,255,0,0.35)] ' +
+                          (isActive ? 'animate-bar-grow' : '')
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               )
@@ -3475,18 +3529,42 @@ export default function App() {
               pills: ['1–5 Match', 'Format Point PMPL', 'Tanpa Login'],
               footerText: 'Buka Quick Scorer Sekarang →',
               onAction: handleStartScoringSession,
-              renderVisual: () => (
-                <div className="py-2 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+              renderVisual: (isActive) => (
+                <div
+                  key={isActive ? 'scorer-active' : 'scorer-idle'}
+                  className="py-2 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-1.5 min-w-0">
+                    <div className={'text-2xl sm:text-3xl font-black tracking-tight text-white font-mono ' + (isActive ? 'animate-visual-pop' : '')}>
                       1–5 Match
                     </div>
-                    <div className="text-xs font-semibold text-zinc-400 mt-0.5">
-                      Kira Markah &amp; Auto-Poster HD
+                    {/* Animated Sequential Match Round Indicators */}
+                    <div className="flex items-center gap-1">
+                      {['M1', 'M2', 'M3', 'M4', 'M5'].map((m, mIdx) => (
+                        <span
+                          key={m}
+                          style={{ animationDelay: `${mIdx * 380}ms` }}
+                          className={
+                            'px-1.5 py-0.5 rounded text-[9px] font-mono font-black transition-all ' +
+                            (isActive
+                              ? 'animate-round-step'
+                              : mIdx === 0
+                              ? 'bg-[#D7FF00] text-black'
+                              : 'bg-zinc-900 text-zinc-500')
+                          }
+                        >
+                          {m}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-[0_0_18px_rgba(215,255,0,0.3)] shrink-0">
-                    <Zap className="w-6 h-6 fill-black text-black" />
+                  <div className="relative shrink-0">
+                    {isActive && (
+                      <span className="absolute inset-0 rounded-2xl bg-[#D7FF00]/30 animate-ping pointer-events-none" />
+                    )}
+                    <div className={'relative w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-[0_0_18px_rgba(215,255,0,0.35)] ' + (isActive ? 'animate-hero-float' : '')}>
+                      <Zap className="w-6 h-6 fill-black text-black" />
+                    </div>
                   </div>
                 </div>
               )
@@ -3500,18 +3578,62 @@ export default function App() {
               pills: ['Live Cloud Sync', 'Detailed', 'Rekod Standing'],
               footerText: 'Buka Portal Host & Scrim →',
               onAction: () => navigateToTab('admin'),
-              renderVisual: () => (
-                <div className="py-2 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+              renderVisual: (isActive) => (
+                <div
+                  key={isActive ? 'cloud-active' : 'cloud-idle'}
+                  className="py-2 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-1.5 min-w-0">
+                    <div className={'text-2xl sm:text-3xl font-black tracking-tight text-white font-mono ' + (isActive ? 'animate-visual-pop' : '')}>
                       Cloud Sync
                     </div>
-                    <div className="text-xs font-semibold text-zinc-400 mt-0.5">
-                      Multi-Match &amp; Arkib Rasmi
+                    {/* Animated Live Cloud Sync Status Bar */}
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 text-[10px] font-mono text-zinc-300">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D7FF00] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D7FF00]" />
+                      </span>
+                      <span>Auto-Save &amp; Live Standings</span>
                     </div>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-6 h-6" />
+                  <div className="relative shrink-0">
+                    <div className={'w-12 h-12 rounded-2xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center shadow-[0_0_16px_rgba(215,255,0,0.15)] ' + (isActive ? 'animate-hero-float' : '')}>
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                  </div>
+                </div>
+              )
+            },
+            {
+              id: 'scrim-data-ocr',
+              title: 'Scrim Data & AI OCR',
+              icon: Sparkles,
+              badge: 'AI SCANNER',
+              description: 'Muat naik poster keputusan untuk ekstrak markah automatik (AI OCR), semakan matematik & pelan Power Ranking.',
+              pills: ['AI Poster OCR', 'Auto-Audit Math', 'Power Ranking'],
+              footerText: 'Buka Scrim Data & AI OCR →',
+              onAction: () => navigateToTab('scrim-data'),
+              renderVisual: (isActive) => (
+                <div
+                  key={isActive ? 'ocr-active' : 'ocr-idle'}
+                  className="py-2 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-1.5 min-w-0">
+                    <div className={'text-2xl sm:text-3xl font-black tracking-tight text-white font-mono ' + (isActive ? 'animate-visual-pop' : '')}>
+                      AI Poster OCR
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 text-[10px] font-mono text-[#D7FF00]">
+                      <CheckCircle className="w-3 h-3 text-[#D7FF00]" />
+                      <span>PP + KP = Total Verified</span>
+                    </div>
+                  </div>
+                  <div className="relative shrink-0">
+                    {isActive && (
+                      <span className="absolute inset-0 rounded-2xl bg-[#D7FF00]/25 animate-ping pointer-events-none" />
+                    )}
+                    <div className={'relative w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-[0_0_18px_rgba(215,255,0,0.35)] ' + (isActive ? 'animate-hero-float' : '')}>
+                      <Database className="w-6 h-6 text-black" />
+                    </div>
                   </div>
                 </div>
               )
@@ -3529,7 +3651,7 @@ export default function App() {
             <div className="max-w-xl lg:max-w-2xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-4">
               
               {/* 1. TOP MICRO-BAR (Following Reference: Brand Left + Action Link Right) */}
-              <div className="flex items-center justify-between px-1">
+              <div className="flex items-center justify-between px-1 animate-stagger-card">
                 <div className="inline-flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/15 text-[#D7FF00] flex items-center justify-center">
                     <Crosshair className="w-3.5 h-3.5" />
@@ -3549,11 +3671,14 @@ export default function App() {
               </div>
 
               {/* 2. HERO HEADLINE BLOCK (3-Line Bold Hierarchy + Inline Icon Pills + Right Brand Emblem) */}
-              <div className="relative px-1">
+              <div
+                className="relative px-1 animate-stagger-card"
+                style={{ animationDelay: '70ms' }}
+              >
                 {/* Geometric X-Arc Emblem on the Right (Following Reference Top-Right Graphic) */}
                 <div
                   aria-hidden="true"
-                  className="absolute right-1 top-0 w-24 h-24 sm:w-32 sm:h-32 pointer-events-none select-none opacity-90"
+                  className="absolute right-1 top-0 w-24 h-24 sm:w-32 sm:h-32 pointer-events-none select-none opacity-90 animate-hero-float"
                 >
                   <svg viewBox="0 0 120 120" className="w-full h-full">
                     <path
@@ -3579,10 +3704,13 @@ export default function App() {
                   <h1 className="text-[30px] sm:text-5xl font-black tracking-tight text-white leading-[1.12]">
                     <span className="inline-flex items-center gap-2 sm:gap-2.5">
                       <span>Kira</span>
-                      <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00] text-black shadow-[0_0_16px_rgba(215,255,0,0.35)]">
+                      <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00] text-black shadow-[0_0_16px_rgba(215,255,0,0.35)] animate-hero-float">
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-black text-black" />
                       </span>
-                      <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00]/20 text-[#D7FF00]">
+                      <span
+                        className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00]/20 text-[#D7FF00] animate-hero-float"
+                        style={{ animationDelay: '400ms' }}
+                      >
                         <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#D7FF00]" />
                       </span>
                     </span>
@@ -3600,7 +3728,8 @@ export default function App() {
 
               {/* 3. INTERACTIVE 4-SECOND AUTO SLIDER (Shrink Left -> Next Card Enters From Right & Grows) */}
               <div
-                className="relative select-none"
+                className="relative select-none animate-stagger-card"
+                style={{ animationDelay: '150ms' }}
                 onMouseEnter={() => setIsHomeSliderPaused(true)}
                 onMouseLeave={() => setIsHomeSliderPaused(false)}
                 onTouchStart={(e) => {
@@ -3657,7 +3786,7 @@ export default function App() {
                               }
                             }}
                             className={
-                              'h-full rounded-3xl p-5 sm:p-6 flex flex-col justify-between cursor-pointer ' +
+                              'h-full rounded-3xl p-5 sm:p-6 flex flex-col justify-between cursor-pointer group/card ' +
                               (isHomeSliderAnimating
                                 ? 'transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] '
                                 : 'transition-none ') +
@@ -3684,8 +3813,8 @@ export default function App() {
                                 </span>
                               </div>
 
-                              {/* Center Graphic / Metric */}
-                              {card.renderVisual()}
+                              {/* Center Graphic / Metric with Active State Animation */}
+                              {card.renderVisual(isActive)}
 
                               {/* Concise Text Description */}
                               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -3698,7 +3827,11 @@ export default function App() {
                                   {card.pills.map((pill, pIdx) => (
                                     <span
                                       key={pIdx}
-                                      className="px-2.5 py-1 rounded-lg bg-zinc-900 text-[10px] font-mono font-bold text-[#D7FF00]"
+                                      style={{ animationDelay: `${120 + pIdx * 80}ms` }}
+                                      className={
+                                        'px-2.5 py-1 rounded-lg bg-zinc-900 text-[10px] font-mono font-bold text-[#D7FF00] ' +
+                                        (isActive ? 'animate-visual-pop' : '')
+                                      }
                                     >
                                       {pill}
                                     </span>
@@ -3710,7 +3843,7 @@ export default function App() {
                             {/* Bottom Highlight Pill (Following Reference Card Footer Pill) */}
                             <div className="mt-4 pt-3 border-t border-white/5">
                               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 text-[11px] font-semibold text-zinc-200 w-full">
-                                <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black flex items-center justify-center shrink-0">
+                                <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover/card:translate-x-0.5 transition-transform">
                                   <ArrowRight className="w-3 h-3 stroke-[2.5]" />
                                 </span>
                                 <span className="truncate">{card.footerText}</span>
@@ -3750,7 +3883,10 @@ export default function App() {
               </div>
 
               {/* 4. FULL-WIDTH PILL CTA BUTTON (Following Reference "Let's get started! (>)") */}
-              <div className="space-y-3 pt-1 px-1">
+              <div
+                className="space-y-3 pt-1 px-1 animate-stagger-card"
+                style={{ animationDelay: '240ms' }}
+              >
                 <button
                   type="button"
                   onClick={handleStartScoringSession}
@@ -5879,6 +6015,18 @@ export default function App() {
             </div>
 
           </div>
+        )}
+
+        {/* VIEW 5B: SCRIM DATA HUB (AI POSTER OCR & ECOSYSTEM BLUEPRINT) */}
+        {activeTab === 'scrim-data' && (
+          <ScrimDataHubView
+            navigateToTab={navigateToTab}
+            supabase={supabase}
+            currentUser={currentUser}
+            scrims={scrims}
+            setScrims={setScrims}
+            showToast={showToast}
+          />
         )}
 
         {/* VIEW 6: ADMIN PORTAL */}
@@ -8317,73 +8465,93 @@ export default function App() {
         </div>
       )}
 
-      {/* QUICK CREATE ACTION SHEET MODAL (FOR LOGGED IN ORGANIZERS) */}
+      {/* QUICK CREATE ACTION SHEET MODAL (+ NAVBAR 3-SELECTION MENU) */}
       {isQuickCreateModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div 
             className="fixed inset-0"
             onClick={() => setIsQuickCreateModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm bg-zinc-950/95 rounded-3xl p-5 shadow-2xl border border-white/10 space-y-4 z-10 animate-card-entrance">
+          <div className="relative w-full max-w-sm bg-[#121214] rounded-3xl p-5 shadow-2xl space-y-4 z-10 animate-card-entrance">
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black shadow-sm">
                   <Plus className="w-5 h-5 stroke-[3]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-white">Mulakan Sesi Scrim</h3>
-                  <p className="text-[11px] text-zinc-400">Pilih jenis tindakan yang ingin dimulakan</p>
+                  <h3 className="text-sm font-black text-white">Pilih Tindakan (+)</h3>
+                  <p className="text-[11px] text-zinc-400">Pilih salah satu daripada 3 fungsi utama</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsQuickCreateModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+                className="w-7 h-7 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-2.5">
-              {/* Option 1: Quick Scorer */}
+              {/* Selection 1: Quick Score */}
               <button
                 type="button"
                 onClick={() => navigateToTab('scorer')}
-                className="w-full p-3.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 transition flex items-center gap-3 text-left group active:scale-[0.99]"
+                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800/90 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
                   <Zap className="w-5 h-5 fill-current" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">Quick Scorer (Pantas)</span>
-                    <span className="text-[9px] font-bold text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-white/5">1-5 Match</span>
+                    <span className="text-xs font-black text-white">1. Quick Score</span>
+                    <span className="text-[9px] font-bold text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded">1–5 Match</span>
                   </div>
-                  <p className="text-[11px] text-zinc-400 leading-snug">
-                    Kira markah serta-merta tanpa perlu simpan ke database rasmi.
+                  <p className="text-[11px] text-zinc-400 leading-snug mt-0.5">
+                    Kira markah pantas &amp; jana poster HD tanpa perlu login.
                   </p>
                 </div>
               </button>
 
-              {/* Option 2: Admin Cloud Tournament */}
+              {/* Selection 2: Admin Scorer */}
               <button
                 type="button"
                 onClick={() => {
                   navigateToTab('admin');
                   setIsCreateScrimOpen(true);
                 }}
-                className="w-full p-3.5 rounded-2xl border-2 border-[#D7FF00]/40 bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15 transition flex items-center gap-3 text-left group active:scale-[0.99]"
+                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800/90 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
                   <Trophy className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">Kejohanan Rasmi (Cloud)</span>
-                    <span className="text-[9px] font-black text-black bg-[#D7FF00] px-1.5 py-0.5 rounded">Host</span>
+                    <span className="text-xs font-black text-white">2. Admin Scorer</span>
+                    <span className="text-[9px] font-black text-black bg-[#D7FF00] px-1.5 py-0.5 rounded">Cloud Host</span>
                   </div>
-                  <p className="text-[11px] text-zinc-300 leading-snug">
-                    Cipta kejohanan penuh, multi-day, database pasukan & jemput co-host.
+                  <p className="text-[11px] text-zinc-400 leading-snug mt-0.5">
+                    Kejohanan rasmi Cloud, pusingan penuh, database &amp; co-host.
+                  </p>
+                </div>
+              </button>
+
+              {/* Selection 3: Scrim Data */}
+              <button
+                type="button"
+                onClick={() => navigateToTab('scrim-data')}
+                className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                  <Database className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-white">3. Scrim Data</span>
+                    <span className="text-[9px] font-black text-[#D7FF00] bg-[#D7FF00]/15 px-1.5 py-0.5 rounded">AI OCR &amp; Plan</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300 leading-snug mt-0.5">
+                    AI Poster OCR Scanner, audit matematik &amp; pelan ekosistem Scrim Hub.
                   </p>
                 </div>
               </button>
@@ -8560,15 +8728,15 @@ export default function App() {
             </span>
           </button>
 
-          {/* CENTER HERO: Quick Scorer [+] */}
+          {/* CENTER HERO: [+] 3-Selection Action Menu (1 Quick Score, 2 Admin Scorer, 3 Scrim Data) */}
           <div className="shrink-0 px-1">
             <button
               type="button"
-              onClick={() => navigateToTab('scorer')}
-              title="Kira Markah Cepat (Quick Scorer)"
-              aria-label="Quick Scorer"
-              className={'relative w-11 h-11 rounded-full flex items-center justify-center select-none -translate-y-2 transition-all duration-200 ease-out active:scale-90 border-2 border-zinc-950 ' + (
-                activeTab === 'scorer'
+              onClick={() => setIsQuickCreateModalOpen(prev => !prev)}
+              title="Pilih: 1. Quick Score, 2. Admin Scorer, 3. Scrim Data"
+              aria-label="Open Action Menu"
+              className={'relative w-11 h-11 rounded-full flex items-center justify-center select-none -translate-y-2 transition-all duration-200 ease-out active:scale-90 border-2 border-zinc-950 cursor-pointer ' + (
+                isQuickCreateModalOpen || activeTab === 'scorer' || activeTab === 'scrim-data'
                   ? 'bg-[#D7FF00] text-black ring-2 ring-[#D7FF00] ring-offset-2 ring-offset-zinc-950 shadow-[0_0_22px_rgba(215, 255, 0,0.6)] scale-105'
                   : 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215, 255, 0,0.3)] hover:scale-105'
               )}
@@ -8576,14 +8744,14 @@ export default function App() {
               {/* Soft ambient breathing halo */}
               <span
                 className={'absolute -inset-1 rounded-full bg-[#D7FF00] pointer-events-none -z-10 transition-opacity duration-300 ' + (
-                  activeTab === 'scorer'
+                  isQuickCreateModalOpen || activeTab === 'scorer' || activeTab === 'scrim-data'
                     ? 'opacity-35 blur-sm animate-pulse'
                     : 'opacity-15 blur-[2px] animate-pulse [animation-duration:3s]'
                 )}
               />
 
               <Plus className={'w-5 h-5 text-black stroke-[3] transition-transform duration-200 ' + (
-                activeTab === 'scorer' ? 'rotate-90' : 'rotate-0'
+                isQuickCreateModalOpen ? 'rotate-45' : 'rotate-0'
               )} />
             </button>
           </div>

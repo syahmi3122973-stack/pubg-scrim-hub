@@ -75,6 +75,85 @@ body {
   will-change: transform, opacity;
 }
 
+@keyframes gaugeStrokeSweep {
+  0% {
+    stroke-dashoffset: 220;
+    opacity: 0.3;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.animate-gauge-sweep {
+  stroke-dasharray: 220;
+  animation: gaugeStrokeSweep 1.05s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes barGrowUp {
+  0% {
+    transform: scaleY(0.12);
+    opacity: 0.25;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-bar-grow {
+  transform-origin: bottom;
+  animation: barGrowUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes heroFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-hero-float {
+  animation: heroFloat 3.2s ease-in-out infinite;
+}
+
+@keyframes visualPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-visual-pop {
+  animation: visualPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes roundStepPulse {
+  0%, 100% {
+    background-color: rgba(39, 39, 42, 0.9);
+    color: #A1A1AA;
+    transform: translateY(0);
+  }
+  45%, 65% {
+    background-color: #D7FF00;
+    color: #09090B;
+    transform: translateY(-2px);
+    box-shadow: 0 0 12px rgba(215, 255, 0, 0.35);
+  }
+}
+
+.animate-round-step {
+  animation: roundStepPulse 2.8s ease-in-out infinite;
+}
+
 /* Hide scrollbar utility across all modern browsers */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
