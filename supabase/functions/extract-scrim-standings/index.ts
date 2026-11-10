@@ -33,34 +33,92 @@ interface ValidatedStandingItem extends RawStandingItem {
   ocr_reported_total?: number;
 }
 
+// Helper: Flexible date parser supporting textual dates (e.g. "Thursday, 5 November 2026" -> "2026-11-05")
+function parseFlexibleDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString().split("T")[0];
+  const cleaned = String(dateStr).trim();
+
+  // 1. Direct YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned;
+
+  const monthMap: Record<string, string> = {
+    january: "01", jan: "01", januari: "01",
+    february: "02", feb: "02", februari: "02",
+    march: "03", mar: "03", mac: "03",
+    april: "04", apr: "04",
+    may: "05", mei: "05",
+    june: "06", jun: "06",
+    july: "07", jul: "07", julai: "07",
+    august: "08", aug: "08", ogos: "08",
+    september: "09", sep: "09", sept: "09",
+    october: "10", oct: "10", oktober: "10",
+    november: "11", nov: "11",
+    december: "12", dec: "12", disember: "12",
+  };
+
+  // 2. Format: "Thursday, 5 November 2026" or "5 November 2026" or "05 Nov 2026"
+  const dmyMatch = cleaned.match(/(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, "0");
+    const month = monthMap[dmyMatch[2].toLowerCase()] || "11";
+    const year = dmyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // 3. Format: "November 5, 2026" or "Nov 5 2026"
+  const mdyMatch = cleaned.match(/([a-zA-Z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (mdyMatch) {
+    const month = monthMap[mdyMatch[1].toLowerCase()] || "11";
+    const day = mdyMatch[2].padStart(2, "0");
+    const year = mdyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // 4. Format: "05/11/2026" or "05-11-2026"
+  const slashMatch = cleaned.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (slashMatch) {
+    const day = slashMatch[1].padStart(2, "0");
+    const month = slashMatch[2].padStart(2, "0");
+    const year = slashMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsedTs = Date.parse(cleaned);
+  if (!isNaN(parsedTs)) {
+    return new Date(parsedTs).toISOString().split("T")[0];
+  }
+
+  return new Date().toISOString().split("T")[0];
+}
+
 const extractionSchema = {
   type: SchemaType.OBJECT,
   properties: {
     scrim_name: {
       type: SchemaType.STRING,
-      description: "Tournament or scrim title (e.g. 'CT SCRIMS', 'PMGC WEEKLY').",
+      description: "Primary tournament or scrim title header (e.g. 'CT SCRIMS', 'RYKHOR SCRIMS').",
     },
     scrim_date: {
       type: SchemaType.STRING,
-      description: "Date of match in YYYY-MM-DD format. If year is missing, use current year.",
+      description: "Date of match converted to YYYY-MM-DD (e.g. 'Thursday, 5 November 2026' -> '2026-11-05').",
     },
     standings: {
       type: SchemaType.ARRAY,
       items: {
         type: SchemaType.OBJECT,
         properties: {
-          rank: { type: SchemaType.INTEGER },
+          rank: { type: SchemaType.INTEGER, description: "Rank number (# column)" },
           team_name: {
             type: SchemaType.STRING,
-            description: "Full team name including clan prefixes or tags (e.g., '[BTR] Bigetron').",
+            description: "Full team name from T E A M column (e.g. '4KRV BLACK NUMBER', 'VOLTRA VAMP').",
           },
           wwcd: {
             type: SchemaType.INTEGER,
-            description: "Number of WWCD / Chicken Dinners won. If empty, dash, or blank, return 0.",
+            description: "Number of WWCD chicken dinners won. Output 0 if the cell is blank, empty or dash.",
           },
-          placement_points: { type: SchemaType.INTEGER },
-          kill_points: { type: SchemaType.INTEGER },
-          total_points: { type: SchemaType.INTEGER },
+          placement_points: { type: SchemaType.INTEGER, description: "PP column (placement points)" },
+          kill_points: { type: SchemaType.INTEGER, description: "KP column (kill points)" },
+          total_points: { type: SchemaType.INTEGER, description: "TOTAL column (total points)" },
         },
         required: [
           "rank",
@@ -130,11 +188,30 @@ Deno.serve(async (req: Request) => {
     });
 
     const prompt = `
-Extract the esports / PUBG Mobile tournament standings table from this poster image.
-- Preserve exact clan tags, bracket symbols, and team names without abbreviation.
-- If WWCD column has blank, dash (-), or empty values, output 0.
-- Ensure ranks are sorted in sequential ascending order starting from 1.
-- Output valid ISO date YYYY-MM-DD. If only day and month are present, assume current year ${new Date().getFullYear()}.
+You are an expert esports / PUBG Mobile tournament referee and OCR parser.
+Analyze this tournament standings poster image and extract all structured data accurately:
+
+1. SCRIM / TOURNAMENT NAME:
+   - Identify the main tournament or scrim title at the top (e.g., 'CT SCRIMS', 'RYKHOR SCRIMS').
+   - Do NOT abbreviate. Ignore generic subtext like 'STANDINGS' or logos unless it's part of the title.
+
+2. MATCH DATE:
+   - Find the date text, typically above or beside the title (e.g., 'Thursday, 5 November 2026' or '5 November 2026').
+   - Convert it into strict ISO format YYYY-MM-DD. For example:
+     * 'Thursday, 5 November 2026' -> '2026-11-05'
+     * '5 Nov 2026' -> '2026-11-05'
+     * '05/11/2026' -> '2026-11-05'
+
+3. STANDINGS TABLE ROWS:
+   - Identify columns:
+     * '#' or 'RANK' -> rank (1, 2, 3...)
+     * 'T E A M' or 'TEAM' -> team_name (e.g., '4KRV BLACK NUMBER', 'SM REBORN7', 'VOLTRA VAMP').
+       Keep exact spelling, spaces, numbers, and casing. Do not cut off names even if text is colored red, gold, or white.
+     * 'WWCD' -> number of wins. VERY IMPORTANT: If the cell is empty, blank, has a dash or no number, output 0. Do NOT shift columns!
+     * 'PP' -> placement points (integer)
+     * 'KP' -> kill points (integer)
+     * 'TOTAL' or 'TOT' -> total points (integer)
+   - Extract ALL rows in order without skipping (e.g., if there are 20 rows from #1 to #20, return all 20 items).
 `;
 
     let result;
@@ -210,10 +287,7 @@ Extract the esports / PUBG Mobile tournament standings table from this poster im
       };
     });
 
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const safeDate = dateRegex.test(parsed.scrim_date)
-      ? parsed.scrim_date
-      : new Date().toISOString().split("T")[0];
+    const safeDate = parseFlexibleDate(parsed.scrim_date);
 
     return new Response(
       JSON.stringify({
