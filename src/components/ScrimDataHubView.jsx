@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   ChevronLeft,
   Info,
@@ -11,24 +11,13 @@ import {
   Plus,
   Sparkles,
   Trophy,
-  Users,
-  Zap,
-  ShieldCheck,
   Database,
-  Share2,
   Search,
-  BarChart2,
-  ArrowRight,
-  Copy,
-  Check,
-  FileText,
-  Clock,
-  Award,
-  Flame,
   LayoutGrid,
   Table as TableIcon,
   Calendar,
-  Filter
+  Filter,
+  User
 } from 'lucide-react';
 
 // Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
@@ -170,11 +159,11 @@ export default function ScrimDataHubView({
   navigateToTab,
   supabase,
   currentUser,
+  profileName = '',
   scrims,
   setScrims,
   showToast
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('ocr'); // 'ocr' | 'blueprint' | 'power-ranking'
   const [isHeaderInfoOpen, setIsHeaderInfoOpen] = useState(false);
 
   // --- OCR Scanner & Standings States ---
@@ -184,7 +173,19 @@ export default function ScrimDataHubView({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Start with clean empty state; user can upload any poster or click Demo buttons
+  // Host Username: Displayed directly in Results Scanner so user doesn't need to edit it later in Rekod
+  const defaultHost = profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Tournament Host');
+  const [hostUsername, setHostUsername] = useState(defaultHost);
+
+  useEffect(() => {
+    if (profileName) {
+      setHostUsername(profileName);
+    } else if (currentUser?.email && (!hostUsername || hostUsername === 'Tournament Host')) {
+      setHostUsername(currentUser.email.split('@')[0]);
+    }
+  }, [profileName, currentUser]);
+
+  // Start with clean empty state; user can upload any poster
   const [scrimName, setScrimName] = useState('');
   const [scrimDate, setScrimDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [scrimTier, setScrimTier] = useState('Tier 1 (Pro)');
@@ -195,15 +196,6 @@ export default function ScrimDataHubView({
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
 
-  // --- Interactive Alias Disambiguation Tester State ---
-  const [aliasTestInput, setAliasTestInput] = useState('[4KRV] 4KRV BLACK NUMBER OFFICIAL');
-
-  // --- Interactive Power Ranking Simulator State ---
-  const [simPoints, setSimPoints] = useState(84);
-  const [simTier, setSimTier] = useState(1.5); // 1.5 = Tier 1, 1.15 = Tier 2, 0.85 = Tier 3
-  const [simDaysAgo, setSimDaysAgo] = useState(5);
-  const [simMatchesCount, setSimMatchesCount] = useState(18);
-
   const fileInputRef = useRef(null);
 
   const fileToBase64 = (selectedFile) => {
@@ -213,28 +205,6 @@ export default function ScrimDataHubView({
       reader.onerror = (err) => reject(err);
       reader.readAsDataURL(selectedFile);
     });
-  };
-
-  const handleLoadMECScrims = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setScrimName('MEC SCRIMS');
-      setScrimDate('2026-11-09');
-      setStandings(MEC_SCRIMS_18_TEAMS);
-      setIsProcessing(false);
-      showToast('Data contoh poster MEC SCRIMS (9 Nov 2026 • 18 Pasukan) dimuatkan!');
-    }, 250);
-  };
-
-  const handleLoadCTScrims = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setScrimName('CT SCRIMS');
-      setScrimDate('2026-11-05');
-      setStandings(CT_SCRIMS_20_TEAMS);
-      setIsProcessing(false);
-      showToast('Data contoh poster CT SCRIMS (5 Nov 2026 • 20 Pasukan) dimuatkan!');
-    }, 250);
   };
 
   const handleProcessImage = useCallback(
@@ -383,10 +353,11 @@ export default function ScrimDataHubView({
       fileInputRef.current.value = '';
     }
     setScrimName('');
+    setHostUsername(defaultHost);
     setScrimDate(new Date().toISOString().split('T')[0]);
     setStandings([]);
     setTeamSearchQuery('');
-    showToast('Halaman Scrim Data telah dikosongkan.');
+    showToast('Halaman Results Scanner telah dikosongkan.');
   };
 
   const mismatchCount = useMemo(() => {
@@ -426,6 +397,7 @@ export default function ScrimDataHubView({
 
     try {
       setIsSaving(true);
+      const effectiveHost = hostUsername.trim() || profileName || (currentUser?.email ? currentUser.email.split('@')[0] : `${scrimName.trim()} Organizer`);
 
       // 1. Try inserting into normalized tables (`scrim_sessions` & `scrim_standings`)
       let committedToNewSchema = false;
@@ -434,8 +406,9 @@ export default function ScrimDataHubView({
           .from('scrim_sessions')
           .insert({
             scrim_name: scrimName.trim(),
-            scrim_date: scrimDate || '2026-11-05',
-            image_url: null
+            scrim_date: scrimDate || new Date().toISOString().split('T')[0],
+            image_url: null,
+            host_name: effectiveHost
           })
           .select('id')
           .single();
@@ -469,10 +442,10 @@ export default function ScrimDataHubView({
         title: scrimName.trim(),
         event_type: 'Scrim',
         tier: scrimTier,
-        description: `Diekstrak secara automatik melalui Scrim Data AI Poster OCR (${scrimName.trim()}).`,
+        description: `Diekstrak secara automatik melalui Results Scanner AI Poster OCR (${scrimName.trim()}).`,
         date: scrimDate || new Date().toISOString().split('T')[0],
         logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
-        host_name: currentUser?.email?.split('@')[0] || `${scrimName.trim()} Organizer`,
+        host_name: effectiveHost,
         host_contact: '',
         total_matches: 1,
         matches: [
@@ -540,6 +513,7 @@ export default function ScrimDataHubView({
         fileInputRef.current.value = '';
       }
       setScrimName('');
+      setHostUsername(defaultHost);
       setScrimDate(new Date().toISOString().split('T')[0]);
       setStandings([]);
       setTeamSearchQuery('');
@@ -550,27 +524,9 @@ export default function ScrimDataHubView({
     }
   };
 
-  // Alias tester output
-  const aliasPreview = useMemo(() => normalizeTeamAlias(aliasTestInput), [aliasTestInput]);
-
-  // Power ranking simulator output
-  const simulatedRating = useMemo(() => {
-    const lambda = 0.023; // 30-day half-life decay
-    const decay = Math.exp(-lambda * Number(simDaysAgo || 0));
-    const weightedSingle = Number(simPoints || 0) * Number(simTier || 1) * decay;
-    const totalProjected =
-      (weightedSingle * Number(simMatchesCount || 1)) /
-      (Math.sqrt(Number(simMatchesCount || 1)) + 2.5);
-    return {
-      decayPct: Math.round(decay * 100),
-      weightedSingle: weightedSingle.toFixed(1),
-      indexScore: Math.round(totalProjected)
-    };
-  }, [simPoints, simTier, simDaysAgo, simMatchesCount]);
-
   return (
     <div className="max-w-xl lg:max-w-4xl mx-auto space-y-5 pt-1 pb-8">
-      {/* 1. TOP NAVIGATION BAR (Consistent with Teams & Rekod) */}
+      {/* 1. TOP NAVIGATION BAR */}
       <div className="flex items-center justify-between px-1 animate-stagger-card">
         <button
           type="button"
@@ -579,7 +535,7 @@ export default function ScrimDataHubView({
           title="Kembali ke Laman Utama"
         >
           <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
-          <span className="text-base sm:text-lg font-bold tracking-tight">Scrim Data</span>
+          <span className="text-base sm:text-lg font-bold tracking-tight">Results Scanner</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -592,8 +548,8 @@ export default function ScrimDataHubView({
                 ? 'bg-[#D7FF00] text-black shadow-sm'
                 : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
             }
-            title="Info Scrim Data & AI OCR"
-            aria-label="Info Scrim Data & AI OCR"
+            title="Info Results Scanner & AI OCR"
+            aria-label="Info Results Scanner & AI OCR"
           >
             <Info className="w-4 h-4" />
           </button>
@@ -605,7 +561,7 @@ export default function ScrimDataHubView({
         <div className="p-3.5 bg-[#121214] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
           <Sparkles className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
           <p className="leading-relaxed flex-1">
-            Pusat <strong className="text-white">Scrim Data</strong> mengekstrak poster keputusan kejohanan secara automatik (`gemini-1.5-flash`), menyemak ketepatan matematik (`PP + KP = Total`), dan menyediakan paparan responsif mudah alih untuk 20+ pasukan.
+            <strong className="text-white">Results Scanner</strong> mengekstrak poster keputusan kejohanan secara automatik (`gemini-2.5-flash`), menyemak ketepatan matematik (`PP + KP = Total`), dan menyediakan paparan responsif mudah alih untuk semua pasukan.
           </p>
           <button
             type="button"
@@ -617,101 +573,45 @@ export default function ScrimDataHubView({
         </div>
       )}
 
-      {/* 2. HERO HEADING + CONNECTED SUB-TAB PILLS */}
+      {/* 2. HERO HEADING */}
       <div
-        className="space-y-3.5 px-1 animate-stagger-card"
+        className="space-y-2 px-1 animate-stagger-card"
         style={{ animationDelay: '60ms' }}
       >
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[10px] font-mono font-bold uppercase tracking-wider mb-1.5">
               <Sparkles className="w-3 h-3" />
-              <span>AI OCR &amp; Ecosystem Blueprint</span>
+              <span>AI RESULTS SCANNER</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-              Scrim Data Hub
+              Results Scanner
             </h1>
           </div>
           <p className="text-xs text-zinc-400 max-w-sm">
             Imbas poster keputusan harian ke pangkalan data &amp; semak senarai pasukan dalam paparan mesra telefon bimbit.
           </p>
         </div>
-
-        {/* Connected Pills Bar */}
-        <div className="relative flex items-center overflow-x-auto no-scrollbar py-1">
-          <div className="flex items-center relative">
-            <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[2px] bg-zinc-800 pointer-events-none z-0" />
-            {[
-              { key: 'ocr', label: '1. AI Poster OCR Scanner' },
-              { key: 'blueprint', label: '2. Product Architecture & Plan' },
-              { key: 'power-ranking', label: '3. Power Ranking & Alias Lab' }
-            ].map((tab, idx) => {
-              const isActive = activeSubTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveSubTab(tab.key)}
-                  className={
-                    'relative z-10 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
-                    (idx > 0 ? 'ml-2.5 ' : '') +
-                    (isActive
-                      ? 'bg-[#D7FF00] text-black shadow-[0_0_15px_rgba(215,255,0,0.25)]'
-                      : 'bg-[#18181C] text-zinc-300 hover:text-white hover:bg-zinc-800')
-                  }
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
-      {/* =====================================================================
-          TAB 1: AI POSTER OCR SCANNER & RESPONSIVE STANDINGS (MOBILE CARD + TABLE)
-      ===================================================================== */}
-      {activeSubTab === 'ocr' && (
-        <div className="space-y-4 px-1">
-          {/* Upload / Dropzone Card */}
-          <div
-            style={{ animationDelay: '120ms' }}
-            className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <UploadCloud className="w-5 h-5 text-[#D7FF00]" />
-                  <span>Muat Naik Poster Keputusan (AI OCR)</span>
-                </h2>
-                <p className="text-xs text-zinc-400">
-                  Dikuasakan oleh Gemini 1.5 Flash untuk membaca sebarang format poster kejohanan PUBG Mobile.
-                </p>
-              </div>
-
-              {/* Quick Sample Presets */}
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleLoadMECScrims}
-                  className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-                  title="Muat data contoh MEC SCRIMS (18 Pasukan • 9 Nov 2026)"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#D7FF00]" />
-                  <span>MEC SCRIMS (18)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleLoadCTScrims}
-                  className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-                  title="Muat data contoh CT SCRIMS (20 Pasukan • 5 Nov 2026)"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#D7FF00]" />
-                  <span>CT SCRIMS (20)</span>
-                </button>
-              </div>
+      {/* AI POSTER OCR SCANNER & RESPONSIVE STANDINGS */}
+      <div className="space-y-4 px-1">
+        {/* Upload / Dropzone Card */}
+        <div
+          style={{ animationDelay: '120ms' }}
+          className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-[#D7FF00]" />
+                <span>Muat Naik Poster Keputusan (AI OCR)</span>
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Dikuasakan oleh Gemini 2.5 Flash untuk membaca sebarang format poster kejohanan PUBG Mobile.
+              </p>
             </div>
+          </div>
 
             <div
               onDragOver={(e) => {
@@ -820,7 +720,7 @@ export default function ScrimDataHubView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
               <div>
                 <label className="text-zinc-400 font-semibold mb-1 block">
                   Nama Scrim / Kejohanan
@@ -831,6 +731,20 @@ export default function ScrimDataHubView({
                   onChange={(e) => setScrimName(e.target.value)}
                   className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
                   placeholder="cth: MEC SCRIMS atau CT SCRIMS"
+                />
+              </div>
+
+              <div>
+                <label className="text-zinc-400 font-semibold mb-1 flex items-center gap-1">
+                  <User className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Username Host</span>
+                </label>
+                <input
+                  type="text"
+                  value={hostUsername}
+                  onChange={(e) => setHostUsername(e.target.value)}
+                  className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
+                  placeholder="cth: rykhor, penganjur scrim"
                 />
               </div>
 
@@ -1366,420 +1280,6 @@ export default function ScrimDataHubView({
             </div>
           </div>
         </div>
-      )}
-
-      {/* =====================================================================
-          TAB 2: PRODUCT ARCHITECTURE & SCALING BLUEPRINT
-      ===================================================================== */}
-      {activeSubTab === 'blueprint' && (
-        <div className="space-y-4 px-1">
-          {/* 1. Core User Journeys */}
-          <div className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
-                  Bahagian 1 • Core User Journeys
-                </span>
-                <h2 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                  Aliran Kerja Ekosistem 3 Hala
-                </h2>
-              </div>
-              <Users className="w-5 h-5 text-[#D7FF00]" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {[
-                {
-                  role: '1. Penganjur Scrim (Organizers)',
-                  badge: 'Jimat 90% Masa',
-                  icon: Zap,
-                  points: [
-                    'Muat naik poster harian → AI OCR ekstrak markah dalam 5 saat.',
-                    'Gabung keputusan Day 1–Day 5 secara automatik ke Overall Weekly Leaderboard.',
-                    '1-klik eksport Poster HD & teks jadual WhatsApp/Discord.'
-                  ]
-                },
-                {
-                  role: '2. Pasukan & Pemain (Teams)',
-                  badge: 'Portfolio Rasmi',
-                  icon: Trophy,
-                  points: [
-                    'Tuntut profil pasukan rasmi (/teams/[slug]) melalui pengesahan Kapten.',
-                    'Rekod sejarah perlawanan merentas semua penganjur komuniti Malaysia.',
-                    'Jana resume digital & kad Story 9:16 untuk memohon tajaan (sponsorship).'
-                  ]
-                },
-                {
-                  role: '3. Komuniti, Caster & Scout',
-                  badge: 'Talent Radar',
-                  icon: Search,
-                  points: [
-                    'Caster Cheat-Sheet: Ringkasan head-to-head & form semasa 16 pasukan sebelum live.',
-                    'Underdog Radar: Kesan skuad Tier 2/3 dengan purata kills tinggi (>6.0 KP/match).',
-                    'Carian pantas rekod WWCD dan prestasi mengikut kategori tier.'
-                  ]
-                }
-              ].map((j, idx) => {
-                const IconComp = j.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="bg-[#18181C] rounded-2xl p-4 space-y-3 flex flex-col justify-between"
-                  >
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center">
-                          <IconComp className="w-4 h-4" />
-                        </div>
-                        <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00]">
-                          {j.badge}
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-bold text-white">{j.role}</h3>
-                      <ul className="space-y-1.5 text-xs text-zinc-400 leading-relaxed">
-                        {j.points.map((pt, pIdx) => (
-                          <li key={pIdx} className="flex items-start gap-1.5">
-                            <span className="text-[#D7FF00] font-bold">•</span>
-                            <span>{pt}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 2. Feature Specification: Public Team Profile & Viral Loop */}
-          <div
-            style={{ animationDelay: '100ms' }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-stagger-card"
-          >
-            <div className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
-                  Spesifikasi Profil • /teams/[slug]
-                </span>
-                <Award className="w-4 h-4 text-[#D7FF00]" />
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Metrik Profil Pasukan Awam
-              </h3>
-              <div className="space-y-2 text-xs text-zinc-300">
-                <div className="p-3 rounded-2xl bg-[#18181C] flex items-center justify-between">
-                  <span>Win Rate % &amp; Dominance Ratio</span>
-                  <span className="font-mono font-bold text-[#D7FF00]">WWCD % + Top 3 %</span>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#18181C] flex items-center justify-between">
-                  <span>Combat vs Survival Index</span>
-                  <span className="font-mono font-bold text-white">Avg KP vs Avg PP</span>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#18181C] flex items-center justify-between">
-                  <span>Recent Form (10 Match Terakhir)</span>
-                  <span className="font-mono font-bold text-emerald-400">[W] [T3] [W] [L] [W]</span>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#18181C] flex items-center justify-between">
-                  <span>Scrim Tier Breakdown</span>
-                  <span className="font-mono font-bold text-zinc-400">Tier 1 / Tier 2 / Open</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateToTab('teams')}
-                className="w-full py-2.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-200 hover:text-black text-xs font-bold transition cursor-pointer"
-              >
-                Buka Direktori Teams (Hall of Fame) →
-              </button>
-            </div>
-
-            <div className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
-                  Growth Engine • Viral Loop
-                </span>
-                <Share2 className="w-4 h-4 text-[#D7FF00]" />
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Mekanisme Perkongsian Sosial (IG, TikTok &amp; WA)
-              </h3>
-              <div className="space-y-2 text-xs text-zinc-400 leading-relaxed">
-                <div className="p-3 rounded-2xl bg-[#18181C] space-y-1">
-                  <strong className="text-white block">
-                    1. Kad Instagram Story &amp; TikTok 9:16 Automatik
-                  </strong>
-                  <p>
-                    Setiap pasukan boleh menjana poster menegak 9:16 dengan tolok Win-Rate, lencana Combat Archetype &amp; kod QR profil.
-                  </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#18181C] space-y-1">
-                  <strong className="text-white block">
-                    2. Format Copypasta Group WhatsApp Scrim
-                  </strong>
-                  <p>
-                    1-klik salin ringkasan keputusan berformat monospace lengkap dengan pautan terus ke papan markah penuh.
-                  </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#18181C] space-y-1">
-                  <strong className="text-white block">
-                    3. Lencana Pencapaian Dinamik (Milestone Badges)
-                  </strong>
-                  <p>
-                    Anugerah automatik seperti &quot;100+ Kills Club&quot; dan &quot;Back-to-Back WWCD&quot; yang mendorong pemain berkongsi pencapaian.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. 4-Phase Execution Roadmap */}
-          <div
-            style={{ animationDelay: '160ms' }}
-            className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
-          >
-            <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
-                Pelan Pelaksanaan • 4 Fasa
-              </span>
-              <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                Roadmap Skala Komuniti Kejohanan
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              {[
-                {
-                  phase: 'Fasa 1',
-                  title: 'OCR Utility Moat',
-                  status: 'Aktif',
-                  items: [
-                    'Enjin AI OCR Gemini 1.5 Flash',
-                    'Jadual semakan & audit matematik',
-                    'Eksport Poster PNG & teks WA'
-                  ]
-                },
-                {
-                  phase: 'Fasa 2',
-                  title: 'Identity & Viral Loop',
-                  status: 'Aktif',
-                  items: [
-                    'Direktori profil /teams/[slug]',
-                    'Penjana kad IG Story 9:16',
-                    'Penyatuan alias nama pasukan'
-                  ]
-                },
-                {
-                  phase: 'Fasa 3',
-                  title: 'Power Ranking & Caster',
-                  status: 'Binaan',
-                  items: [
-                    'Indeks Power Ranking rentas host',
-                    'Paparan Caster Cheat-Sheet',
-                    'Pengesahan Tier Penganjur'
-                  ]
-                },
-                {
-                  phase: 'Fasa 4',
-                  title: 'Pro Circuit & Scouting',
-                  status: 'Sasaran',
-                  items: [
-                    'Portal Scouting Organisasi Pro',
-                    'Integrasi penaja rasmi pada poster',
-                    'API Kejohanan Komuniti'
-                  ]
-                }
-              ].map((p, idx) => (
-                <div key={idx} className="bg-[#18181C] rounded-2xl p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-[#D7FF00]">{p.phase}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-[10px] font-mono text-zinc-300">
-                      {p.status}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-white text-sm">{p.title}</h4>
-                  <ul className="space-y-1 text-zinc-400">
-                    {p.items.map((it, i) => (
-                      <li key={i}>• {it}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =====================================================================
-          TAB 3: POWER RANKING SIMULATOR & TEAM ALIAS DISAMBIGUATION LAB
-      ===================================================================== */}
-      {activeSubTab === 'power-ranking' && (
-        <div className="space-y-4 px-1">
-          {/* Entity Resolution / Team Alias Tester */}
-          <div className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card">
-            <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
-                Database Optimization • Entity Resolution
-              </span>
-              <h2 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                Simulasi Penyatuan Variasi Nama Pasukan (Team Aliasing)
-              </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Mengelakkan rekod berpecah apabila pasukan menggunakan nama berbeza seperti{' '}
-                <code className="text-zinc-200">&quot;4KRV BLACK NUMBER&quot;</code> vs{' '}
-                <code className="text-zinc-200">&quot;[4KRV] OFFICIAL&quot;</code>.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-300 block">
-                  Uji Nama Mentah Dari Poster OCR:
-                </label>
-                <input
-                  type="text"
-                  value={aliasTestInput}
-                  onChange={(e) => setAliasTestInput(e.target.value)}
-                  className="w-full bg-[#18181C] rounded-2xl px-4 py-3 text-sm text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
-                  placeholder="cth: [4KRV] 4KRV BLACK NUMBER OFFICIAL"
-                />
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[
-                    '[4KRV] 4KRV BLACK NUMBER',
-                    'SM REBORN7 OFFICIAL',
-                    'DIY ALLIANCE MY',
-                    'VOLTRA VAMP SQUAD'
-                  ].map((sample) => (
-                    <button
-                      key={sample}
-                      type="button"
-                      onClick={() => setAliasTestInput(sample)}
-                      className="px-2.5 py-1 rounded-full bg-[#18181C] hover:bg-zinc-800 text-[11px] font-mono text-zinc-300 cursor-pointer transition"
-                    >
-                      {sample}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-[#18181C] rounded-2xl p-4 space-y-2.5 text-xs font-mono">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Canonical Team Name:</span>
-                  <span className="font-bold text-white">{aliasPreview.canonicalName}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Normalized `team_slug`:</span>
-                  <span className="font-bold text-[#D7FF00]">/teams/{aliasPreview.slug}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Extracted Clan Tag:</span>
-                  <span className="px-2 py-0.5 rounded bg-zinc-900 text-white font-bold">
-                    [{aliasPreview.tag}]
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Cross-Organizer Power Ranking Calculator */}
-          <div
-            style={{ animationDelay: '100ms' }}
-            className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
-          >
-            <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
-                Algoritma Adil Rentas Penganjur
-              </span>
-              <h2 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                Kalkulator Indeks Power Ranking
-              </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Mengambil kira pemberat Tier kejohanan, kemerosotan masa (30-hari half-life), dan faktor konsistensi jumlah perlawanan.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              <div className="bg-[#18181C] rounded-2xl p-3.5 space-y-1.5">
-                <label className="text-zinc-400 font-semibold block">
-                  Purata Mata Sesi (PTS)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="200"
-                  value={simPoints}
-                  onChange={(e) => setSimPoints(Number(e.target.value) || 0)}
-                  className="w-full bg-zinc-900 rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none"
-                />
-              </div>
-
-              <div className="bg-[#18181C] rounded-2xl p-3.5 space-y-1.5">
-                <label className="text-zinc-400 font-semibold block">
-                  Pemberat Tier (Multiplier)
-                </label>
-                <select
-                  value={simTier}
-                  onChange={(e) => setSimTier(Number(e.target.value))}
-                  className="w-full bg-zinc-900 rounded-xl px-3 py-2 text-white font-bold focus:outline-none"
-                >
-                  <option value={1.5}>Tier 1 Pro (1.50x)</option>
-                  <option value={1.15}>Tier 2 Semi-Pro (1.15x)</option>
-                  <option value={0.85}>Tier 3 / Open (0.85x)</option>
-                </select>
-              </div>
-
-              <div className="bg-[#18181C] rounded-2xl p-3.5 space-y-1.5">
-                <label className="text-zinc-400 font-semibold block">
-                  Usia Rekod (Hari Lepas)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="120"
-                  value={simDaysAgo}
-                  onChange={(e) => setSimDaysAgo(Number(e.target.value) || 0)}
-                  className="w-full bg-zinc-900 rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none"
-                />
-              </div>
-
-              <div className="bg-[#18181C] rounded-2xl p-3.5 space-y-1.5">
-                <label className="text-zinc-400 font-semibold block">
-                  Jumlah Sesi Disertai (N)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="200"
-                  value={simMatchesCount}
-                  onChange={(e) => setSimMatchesCount(Number(e.target.value) || 1)}
-                  className="w-full bg-zinc-900 rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="bg-[#18181C] rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="space-y-1 text-center sm:text-left">
-                <div className="text-xs text-zinc-400">
-                  Faktor Masa Semasa:{' '}
-                  <strong className="text-white font-mono">{simulatedRating.decayPct}%</strong> berat aktif • Mata Sesi Terlaras:{' '}
-                  <strong className="text-white font-mono">{simulatedRating.weightedSingle}</strong>
-                </div>
-                <p className="text-[11px] text-zinc-500 font-mono">
-                  Formula: Σ(Points × Tier × e^(-λΔt)) / (√N + K)
-                </p>
-              </div>
-
-              <div className="px-5 py-2.5 rounded-2xl bg-zinc-900 text-center shrink-0">
-                <span className="text-[10px] font-mono uppercase text-zinc-400 block">
-                  Scrim Hub Rating
-                </span>
-                <span className="text-2xl font-black font-mono text-[#D7FF00]">
-                  {simulatedRating.indexScore} MMR
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
   );
 }

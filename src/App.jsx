@@ -3641,12 +3641,12 @@ export default function App() {
             },
             {
               id: 'scrim-data-ocr',
-              title: 'Scrim Data & AI OCR',
+              title: 'Results Scanner',
               icon: Sparkles,
               badge: 'AI SCANNER',
-              description: 'Muat naik poster keputusan untuk ekstrak markah automatik (AI OCR), semakan matematik & pelan Power Ranking.',
-              pills: ['AI Poster OCR', 'Auto-Audit Math', 'Power Ranking'],
-              footerText: 'Buka Scrim Data & AI OCR →',
+              description: 'Muat naik poster keputusan untuk ekstrak markah automatik (AI OCR) & semakan matematik.',
+              pills: ['AI Results OCR', 'Auto-Audit Math', 'Mobile View'],
+              footerText: 'Buka Results Scanner →',
               onAction: () => navigateToTab('scrim-data'),
               renderVisual: (isActive) => (
                 <div
@@ -3655,7 +3655,7 @@ export default function App() {
                 >
                   <div className="space-y-1.5 min-w-0">
                     <div className={'text-2xl sm:text-3xl font-black tracking-tight text-white font-mono ' + (isActive ? 'animate-visual-pop' : '')}>
-                      AI Poster OCR
+                      Results Scanner
                     </div>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 text-[10px] font-mono text-[#D7FF00]">
                       <CheckCircle className="w-3 h-3 text-[#D7FF00]" />
@@ -6052,12 +6052,13 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5B: SCRIM DATA HUB (AI POSTER OCR & ECOSYSTEM BLUEPRINT) */}
+        {/* VIEW 5B: RESULTS SCANNER (AI POSTER OCR) */}
         {activeTab === 'scrim-data' && (
           <ScrimDataHubView
             navigateToTab={navigateToTab}
             supabase={supabase}
             currentUser={currentUser}
+            profileName={profileName}
             scrims={scrims}
             setScrims={setScrims}
             showToast={showToast}
@@ -7993,9 +7994,9 @@ export default function App() {
 
       {/* MODAL 4: EDIT EVENT SETTINGS */}
       {isEditScrimModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-lg w-full max-h-[92dvh] sm:max-h-[90vh] flex flex-col shadow-2xl my-auto overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5 pb-3 shrink-0">
               <h3 className="font-black text-sm text-white flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-[#D7FF00]"/>
                 <span>Edit Event Settings</span>
@@ -8008,118 +8009,121 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-zinc-900/60 border border-white/5 text-zinc-300 p-2.5 rounded-2xl flex items-center gap-2 text-xs">
-              <Info className="w-4 h-4 text-[#D7FF00] shrink-0" />
-              <span className="leading-snug">
-                Di sini anda boleh tukar <strong>nama sesi kejohanan</strong>, muat naik <strong>logo rasmi</strong> untuk poster, dan kemaskini <strong>description / peraturan</strong>.
-              </span>
-            </div>
-
-            <form onSubmit={handleUpdateScrimSettings} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Event Category</label>
-                <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setEditEventType('Scrim')}
-                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Scrim' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
-                  >
-                    Scrim (Practice)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditEventType('Tour')}
-                    className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-zinc-400 hover:text-white')}
-                  >
-                    Tour (Official Tournament)
-                  </button>
+            <form onSubmit={handleUpdateScrimSettings} className="flex flex-col flex-1 min-h-0 text-xs">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 pt-3 space-y-3.5 overscroll-contain">
+                <div className="bg-zinc-900/60 border border-white/5 text-zinc-300 p-2.5 rounded-2xl flex items-center gap-2 text-xs">
+                  <Info className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                  <span className="leading-snug">
+                    Di sini anda boleh tukar <strong>nama sesi kejohanan</strong>, muat naik <strong>logo rasmi</strong> untuk poster, dan kemaskini <strong>description / peraturan</strong>.
+                  </span>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Event Title</label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Host / Organizer Name</label>
+                  <label className="block text-zinc-400 uppercase font-bold mb-1">Event Category</label>
+                  <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setEditEventType('Scrim')}
+                      className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Scrim' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    >
+                      Scrim (Practice)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditEventType('Tour')}
+                      className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-zinc-400 hover:text-white')}
+                    >
+                      Tour (Official Tournament)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 uppercase font-bold mb-1">Event Title</label>
                   <input
                     type="text"
                     required
-                    value={editHostName}
-                    onChange={(e) => setEditHostName(e.target.value)}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
                   />
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-zinc-400 uppercase font-bold mb-1">Host / Organizer Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editHostName}
+                      onChange={(e) => setEditHostName(e.target.value)}
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-400 uppercase font-bold mb-1">Tier / Division</label>
+                    <select
+                      value={editTier}
+                      onChange={(e) => setEditTier(e.target.value)}
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#D7FF00] font-semibold"
+                    >
+                      {TIER_OPTIONS.map(t => (
+                        <option key={t} value={t} className="bg-zinc-950 text-white">{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Tier / Division</label>
-                  <select
-                    value={editTier}
-                    onChange={(e) => setEditTier(e.target.value)}
-                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#D7FF00] font-semibold"
-                  >
-                    {TIER_OPTIONS.map(t => (
-                      <option key={t} value={t} className="bg-zinc-950 text-white">{t}</option>
-                    ))}
-                  </select>
+                  <label className="block text-zinc-400 uppercase font-bold mb-1">Change Event Logo (Optional)</label>
+                  <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 text-zinc-300 cursor-pointer transition">
+                    <Upload className="w-4 h-4 text-[#D7FF00]"/>
+                    <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setEditLogoFile(e.target.files[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 uppercase font-bold mb-1">Host Contact</label>
+                  <input
+                    type="text"
+                    value={editContact}
+                    onChange={(e) => setEditContact(e.target.value)}
+                    placeholder="e.g. +60123456789"
+                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 uppercase font-bold mb-1">Description & Rules (Shown on Poster)</label>
+                  <textarea
+                    rows="2"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Change Event Logo (Optional)</label>
-                <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 text-zinc-300 cursor-pointer transition">
-                  <Upload className="w-4 h-4 text-[#D7FF00]"/>
-                  <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setEditLogoFile(e.target.files[0] || null)}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Host Contact</label>
-                <input
-                  type="text"
-                  value={editContact}
-                  onChange={(e) => setEditContact(e.target.value)}
-                  placeholder="e.g. +60123456789"
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Description & Rules (Shown on Poster)</label>
-                <textarea
-                  rows="2"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
+              {/* Pinned Sticky Footer - Always visible on mobile */}
+              <div className="flex items-center justify-end space-x-2 p-3 sm:p-4 border-t border-white/10 bg-zinc-950 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditScrimModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold"
+                  className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold active:scale-95 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingEdit}
-                  className="px-5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-xs"
+                  className="px-5 py-2.5 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-sm active:scale-95 transition"
                 >
                   {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -8571,7 +8575,7 @@ export default function App() {
                 </div>
               </button>
 
-              {/* Selection 3: Scrim Data */}
+              {/* Selection 3: Results Scanner */}
               <button
                 type="button"
                 onClick={() => navigateToTab('scrim-data')}
@@ -8582,11 +8586,11 @@ export default function App() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">3. Scrim Data</span>
-                    <span className="text-[9px] font-black text-[#D7FF00] bg-[#D7FF00]/15 px-1.5 py-0.5 rounded">AI OCR &amp; Plan</span>
+                    <span className="text-xs font-black text-white">3. Results Scanner</span>
+                    <span className="text-[9px] font-black text-[#D7FF00] bg-[#D7FF00]/15 px-1.5 py-0.5 rounded">AI OCR</span>
                   </div>
                   <p className="text-[11px] text-zinc-300 leading-snug mt-0.5">
-                    AI Poster OCR Scanner, audit matematik &amp; pelan ekosistem Scrim Hub.
+                    AI Poster OCR Scanner, audit matematik &amp; simpan kedudukan kejohanan secara automatik.
                   </p>
                 </div>
               </button>
