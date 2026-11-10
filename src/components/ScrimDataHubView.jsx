@@ -373,6 +373,19 @@ export default function ScrimDataHubView({
     showToast('Semua jumlah mata (Total = PP + KP) telah dikira semula secara automatik!');
   };
 
+  const handleResetPage = () => {
+    setFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setScrimName('');
+    setScrimDate(new Date().toISOString().split('T')[0]);
+    setStandings([]);
+    setTeamSearchQuery('');
+    showToast('Halaman Scrim Data telah dikosongkan.');
+  };
+
   const mismatchCount = useMemo(() => {
     return standings.filter(
       (r) =>
@@ -491,6 +504,17 @@ export default function ScrimDataHubView({
           ? 'Berjaya disimpan ke Database Supabase & dikemas kini ke Rekod / Hall of Fame!'
           : 'Berjaya disimpan ke Rekod Sesi & Hall of Fame!'
       );
+
+      // Kosongkan semula halaman selepas berjaya tambah ke database
+      setFile(null);
+      setPreviewUrl(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      setScrimName('');
+      setScrimDate(new Date().toISOString().split('T')[0]);
+      setStandings([]);
+      setTeamSearchQuery('');
     } catch (err) {
       showToast('Ralat menyimpan: ' + (err.message || String(err)));
     } finally {
@@ -886,6 +910,16 @@ export default function ScrimDataHubView({
                     <Zap className="w-3.5 h-3.5 text-[#D7FF00] fill-current" />
                     <span className="hidden sm:inline">Auto-Calculate</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetPage}
+                    className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                    title="Kosongkan semula borang dan jadual"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Kosongkan</span>
+                  </button>
                 </div>
               </div>
 
@@ -914,8 +948,20 @@ export default function ScrimDataHubView({
             {/* Content Display: Card View (Mobile-Friendly) OR Table View */}
             <div className="p-4 sm:p-5">
               {filteredStandings.length === 0 ? (
-                <div className="py-8 text-center text-xs text-zinc-400">
-                  Tiada pasukan sepadan dengan carian &quot;{teamSearchQuery}&quot;.
+                <div className="py-12 px-4 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto text-zinc-500">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-bold text-white">
+                    {teamSearchQuery
+                      ? `Tiada pasukan sepadan dengan "${teamSearchQuery}"`
+                      : 'Halaman Bersih • Sedia Untuk Muat Naik Baru'}
+                  </p>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                    {teamSearchQuery
+                      ? 'Cuba kata kunci yang lain atau padamkan carian anda.'
+                      : 'Muat naik poster di atas atau tekan salah satu butang contoh di atas untuk memulakan sesi baharu.'}
+                  </p>
                 </div>
               ) : viewMode === 'cards' ? (
                 /* --- 1. RESPONSIVE MOBILE CARD LIST (100% VISIBLE DETAILS) --- */
