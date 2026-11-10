@@ -184,11 +184,11 @@ export default function ScrimDataHubView({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Set default tournament name & date to the latest uploaded poster (MEC SCRIMS - 9 Nov 2026)
-  const [scrimName, setScrimName] = useState('MEC SCRIMS');
-  const [scrimDate, setScrimDate] = useState('2026-11-09');
+  // Start with clean empty state; user can upload any poster or click Demo buttons
+  const [scrimName, setScrimName] = useState('');
+  const [scrimDate, setScrimDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [scrimTier, setScrimTier] = useState('Tier 1 (Pro)');
-  const [standings, setStandings] = useState(MEC_SCRIMS_18_TEAMS);
+  const [standings, setStandings] = useState([]);
 
   // --- Mobile Ergonomics & View Mode States ---
   // Default to 'cards' so mobile users immediately see 100% full detail without horizontal scrolling!
@@ -244,15 +244,18 @@ export default function ScrimDataHubView({
       setPreviewUrl(objectUrl);
       setIsProcessing(true);
 
+      // Clear any previous poster's data immediately so stale data never persists
+      setScrimName('');
+      setStandings([]);
+      setTeamSearchQuery('');
+
       const fileName = (selectedFile.name || '').toLowerCase();
       const isMecMatch =
-        fileName.includes('mec') ||
-        fileName.includes('6b1e') ||
-        fileName.includes('standing') ||
-        fileName.includes('overall');
+        fileName.includes('mec_scrim') ||
+        fileName.includes('6b1e45a4');
       const isCtMatch =
-        fileName.includes('ct') ||
-        fileName.includes('441b');
+        fileName.includes('ct_scrim') ||
+        fileName.includes('441bda63');
 
       try {
         const base64Data = await fileToBase64(selectedFile);
@@ -294,7 +297,7 @@ export default function ScrimDataHubView({
           );
           showToast(`Berjaya ekstrak: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Pasukan!`);
         } else {
-          // Seamless template recognition fallback
+          // Only fallback to hardcoded preset if filename specifically matches one of the 2 demo files
           await new Promise((r) => setTimeout(r, 450));
           if (isMecMatch) {
             setScrimName('MEC SCRIMS');
@@ -307,7 +310,7 @@ export default function ScrimDataHubView({
             setStandings(CT_SCRIMS_20_TEAMS);
             showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan Lengkap)');
           } else {
-            showToast('Imej dimuat naik! Sila semak jadual kedudukan di bawah.');
+            showToast('Gagal mengekstrak poster secara automatik. Sila cuba muat naik semula atau tambah baris secara manual.');
           }
         }
       } catch {
@@ -322,7 +325,7 @@ export default function ScrimDataHubView({
           setStandings(CT_SCRIMS_20_TEAMS);
           showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan)');
         } else {
-          showToast('Imej dimuat naik. Sila semak jadual di bawah.');
+          showToast('Gagal memproses imej poster. Sila cuba sekali lagi.');
         }
       } finally {
         setIsProcessing(false);
@@ -460,17 +463,18 @@ export default function ScrimDataHubView({
         // Fallback to main scrims state below
       }
 
-      // 2. Also sync into SCRIM HUB's live `scrims` state so it immediately appears in Rekod & Teams (Hall of Fame)!
+      // 2. Build record matching the primary `public.scrims` table schema used by Rekod & Hall of Fame
       const newScrimRecord = {
-        id: 'ocr_scrim_' + Date.now(),
+        id: 'scrim_' + Date.now(),
         title: scrimName.trim(),
-        host_name: currentUser?.email?.split('@')[0] || `${scrimName.trim()} Organizer`,
         event_type: 'Scrim',
         tier: scrimTier,
-        date: scrimDate || new Date().toISOString().split('T')[0],
         description: `Diekstrak secara automatik melalui Scrim Data AI Poster OCR (${scrimName.trim()}).`,
-        is_finished: true,
-        created_by: currentUser?.id || 'public_ocr',
+        date: scrimDate || new Date().toISOString().split('T')[0],
+        logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+        host_name: currentUser?.email?.split('@')[0] || `${scrimName.trim()} Organizer`,
+        host_contact: '',
+        total_matches: 1,
         matches: [
           {
             matchNo: 1,
@@ -488,12 +492,36 @@ export default function ScrimDataHubView({
                 kills: kp,
                 placePts: pp,
                 totalPts: pp + kp,
-                wwcd: Number(r.wwcd) > 0
+                wwcd: Number(r.wwcd) || 0
               };
             })
           }
-        ]
+        ],
+        created_by: currentUser?.id || 'public_ocr',
+        co_hosts: [],
+        claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
+        is_finished: true
       };
+
+      // 3. Persist to Supabase `public.scrims` table so data survives page refresh (F5) across devices
+      try {
+        const { error: mainScrimErr } = await supabase.from('scrims').insert([newScrimRecord]);
+        if (!mainScrimErr) {
+          committedToNewSchema = true;
+        }
+      } catch (dbErr) {
+        console.warn('Supabase scrims insert warning:', dbErr);
+      }
+
+      // 4. Also persist to localStorage fallback so even without login / RLS, refresh never loses data
+      try {
+        const existingLocalRaw = localStorage.getItem('pubg_hub_saved_scrims');
+        const existingLocal = existingLocalRaw ? JSON.parse(existingLocalRaw) : [];
+        const updatedLocal = [newScrimRecord, ...existingLocal.filter((s) => s.id !== newScrimRecord.id)];
+        localStorage.setItem('pubg_hub_saved_scrims', JSON.stringify(updatedLocal));
+      } catch (lsErr) {
+        console.warn('LocalStorage save warning:', lsErr);
+      }
 
       if (setScrims) {
         setScrims((prev) => [newScrimRecord, ...(prev || [])]);

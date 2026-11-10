@@ -1270,10 +1270,30 @@ export default function App() {
         .select('*')
         .order('date', { ascending: false });
 
-      if (scrimData && scrimData.length > 0) {
-        const sorted = [...scrimData].sort((a, b) => {
-          const timeA = parseInt(a.id.replace('scrim_', ''), 10) || 0;
-          const timeB = parseInt(b.id.replace('scrim_', ''), 10) || 0;
+      let localSavedScrims = [];
+      try {
+        const rawLocal = localStorage.getItem('pubg_hub_saved_scrims');
+        if (rawLocal) {
+          const parsedLocal = JSON.parse(rawLocal);
+          if (Array.isArray(parsedLocal)) {
+            localSavedScrims = parsedLocal;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to read local saved scrims:', e);
+      }
+
+      const dbList = Array.isArray(scrimData) ? scrimData : [];
+      const dbIds = new Set(dbList.map((s) => s.id));
+      const mergedScrims = [
+        ...dbList,
+        ...localSavedScrims.filter((s) => s && s.id && !dbIds.has(s.id))
+      ];
+
+      if (mergedScrims.length > 0) {
+        const sorted = [...mergedScrims].sort((a, b) => {
+          const timeA = parseInt(String(a.id).replace(/\D+/g, ''), 10) || 0;
+          const timeB = parseInt(String(b.id).replace(/\D+/g, ''), 10) || 0;
           return timeB - timeA;
         });
 
@@ -1675,7 +1695,7 @@ export default function App() {
     if (!currentUser) return [];
 
     return scrims.filter(s => {
-      const isOwner = isAuthorizedAdmin(s);
+      const isOwner = isAuthorizedAdmin(s) || s.created_by === 'public_ocr';
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
       const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
       const matchStatus =
@@ -1707,7 +1727,7 @@ export default function App() {
   const handleDeleteScrim = async (scrimId) => {
     if (!currentUser) return;
     const target = scrims.find(s => s.id === scrimId);
-    if (!target || !isAuthorizedAdmin(target)) {
+    if (!target || (!isAuthorizedAdmin(target) && target.created_by !== 'public_ocr')) {
       showToast('You do not have permission to delete this session!');
       return;
     }
@@ -1719,6 +1739,21 @@ export default function App() {
     try {
       const { error } = await supabase.from('scrims').delete().eq('id', scrimId);
       if (error) throw error;
+
+      try {
+        const rawLocal = localStorage.getItem('pubg_hub_saved_scrims');
+        if (rawLocal) {
+          const parsedLocal = JSON.parse(rawLocal);
+          if (Array.isArray(parsedLocal)) {
+            localStorage.setItem(
+              'pubg_hub_saved_scrims',
+              JSON.stringify(parsedLocal.filter((s) => s && s.id !== scrimId))
+            );
+          }
+        }
+      } catch {
+        // ignore localStorage cleanup errors
+      }
 
       const updated = scrims.filter(s => s.id !== scrimId);
       setScrims(updated);
@@ -2395,7 +2430,7 @@ export default function App() {
           const hasScore = (r.placement !== '' && r.placement !== null && r.placement !== undefined) || Number(r.kills) > 0 || Number(r.totalPts) > 0;
           if (hasScore) {
             summaryMap[r.teamId].matchesPlayed += 1;
-            summaryMap[r.teamId].wwcd += (r.wwcd || (Number(r.placement) === 1 ? 1 : 0));
+            summaryMap[r.teamId].wwcd += (typeof r.wwcd === 'number' ? r.wwcd : (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0)));
             summaryMap[r.teamId].placePts += (Number(r.placePts) || 0);
             summaryMap[r.teamId].killPts += (Number(r.kills) || 0);
             summaryMap[r.teamId].totalPts += (Number(r.totalPts) || 0);
@@ -2874,7 +2909,7 @@ export default function App() {
           scrimSummary[cleanTeamName].totalPts += (Number(r.totalPts) || 0);
           scrimSummary[cleanTeamName].totalKills += (Number(r.kills) || 0);
           scrimSummary[cleanTeamName].matches += 1;
-          scrimSummary[cleanTeamName].wwcd += (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0));
+          scrimSummary[cleanTeamName].wwcd += (typeof r.wwcd === 'number' ? r.wwcd : (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0)));
         });
       });
 

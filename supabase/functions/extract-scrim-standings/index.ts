@@ -187,14 +187,14 @@ Deno.serve(async (req: Request) => {
       : imageBase64;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: extractionSchema,
-        temperature: 0.1,
-      },
-    });
+    const candidateModels = [
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-flash-lite-latest",
+      "gemini-3-flash-preview",
+      "gemini-flash-latest",
+      "gemini-2.5-pro",
+    ];
 
     const prompt = `
 You are an expert esports / PUBG Mobile tournament referee and OCR parser.
@@ -226,18 +226,39 @@ Analyze this tournament standings poster image and extract all structured data a
 `;
 
     let result;
-    try {
-      result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: sanitizedBase64,
-            mimeType: mimeType,
+    let lastError: any = null;
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: extractionSchema,
+            temperature: 0.1,
           },
-        },
-      ]);
-    } catch (aiError) {
-      const errorMessage = (aiError as any)?.message || String(aiError);
+        });
+        result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: sanitizedBase64,
+              mimeType: mimeType,
+            },
+          },
+        ]);
+        if (result) break;
+      } catch (err) {
+        lastError = err;
+        const msg = (err as any)?.message || String(err);
+        // Only try next model if 404/not found; otherwise break if rate limited
+        if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+          break;
+        }
+      }
+    }
+
+    if (!result) {
+      const errorMessage = lastError?.message || String(lastError);
 
       if (
         errorMessage.includes("429") ||
