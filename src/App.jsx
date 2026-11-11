@@ -8368,32 +8368,28 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 3: REDESIGNED HOST PROFILE SUMMARY (SCREENSHOT-MATCHED + ESPORTS THEME) */}
+      {/* MODAL 3: FULL PAGE HOST PROFILE SUMMARY (SCREENSHOT-MATCHED FULL MOBILE SCREEN) */}
       {isProfileModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-drawer-title"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
+          className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-in fade-in duration-150 flex flex-col select-none"
         >
-          <div
-            className="fixed inset-0"
-            onClick={() => setIsProfileModalOpen(false)}
-          />
-          <div className="relative z-10 bg-[#0A0A0D] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-md w-full max-h-[92dvh] overflow-y-auto no-scrollbar shadow-2xl overscroll-contain pb-6">
-            {/* Top Atmospheric Banner (Esports Dark Mood with Subtle Neon Glow) */}
-            <div className="relative h-32 w-full rounded-t-[2.5rem] sm:rounded-t-[2.5rem] overflow-hidden bg-gradient-to-br from-zinc-800 via-[#181820] to-[#0A0A0D] border-b border-white/5 shrink-0">
+          <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-full pb-10 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
+            {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
+            <div className="relative h-44 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0">
               {/* Subtle ambient light effects */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute top-2 right-4 w-32 h-32 bg-[#D7FF00]/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute top-2 right-4 w-40 h-40 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
 
               {/* Header Navigation: Back / Close & Quick Edit */}
-              <div className="relative z-10 flex items-center justify-between p-4">
+              <div className="relative z-10 flex items-center justify-between px-5 pt-6 sm:pt-5">
                 <button
                   type="button"
                   onClick={() => setIsProfileModalOpen(false)}
-                  aria-label="Tutup profil"
-                  className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/60 active:scale-95 transition cursor-pointer"
+                  aria-label="Kembali"
+                  className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/70 active:scale-95 transition cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -8402,10 +8398,10 @@ export default function App() {
                   type="button"
                   onClick={() => setIsEditProfileMode(prev => !prev)}
                   aria-label={isEditProfileMode ? "Tutup Sunting" : "Sunting Profil"}
-                  className={`w-9 h-9 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
+                  className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
                     isEditProfileMode
                       ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
-                      : 'bg-black/40 text-zinc-300 border-white/10 hover:text-white hover:bg-black/60'
+                      : 'bg-black/50 text-zinc-300 border-white/10 hover:text-white hover:bg-black/70'
                   }`}
                 >
                   <Edit3 className="w-4 h-4 stroke-[2.2]" />
@@ -8414,10 +8410,10 @@ export default function App() {
             </div>
 
             {/* Overlapping Profile Avatar + Display Name + Badges */}
-            <div className="relative -mt-12 flex flex-col items-center px-5 pb-4">
+            <div className="relative -mt-16 flex flex-col items-center px-5 pb-5">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full p-1 bg-[#0A0A0D] shadow-2xl">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 border-[#D7FF00]/50 flex items-center justify-center">
+                <div className="w-28 h-28 rounded-full p-1 bg-[#080808] shadow-2xl">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 border-[#D7FF00]/60 flex items-center justify-center">
                     {avatarDisplaySrc ? (
                       <img
                         src={avatarDisplaySrc}
@@ -8425,7 +8421,7 @@ export default function App() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-xl text-[#D7FF00]">
+                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-2xl text-[#D7FF00]">
                         {(profileName || activeOrganizationName || 'H').slice(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -8435,7 +8431,7 @@ export default function App() {
                 {/* Camera / Upload Badge */}
                 <label
                   title="Tukar foto profil"
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#0A0A0D] active:scale-90 transition hover:scale-105"
+                  className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#080808] active:scale-90 transition hover:scale-105"
                 >
                   <Camera className="w-4 h-4 stroke-[2.5]" />
                   <input
@@ -8448,12 +8444,12 @@ export default function App() {
               </div>
 
               {/* Display Name */}
-              <h3 id="profile-drawer-title" className="mt-3 text-lg font-black text-white text-center tracking-tight">
+              <h3 id="profile-drawer-title" className="mt-3 text-xl font-black text-white text-center tracking-tight">
                 {profileName || activeOrganizationName || 'Host Penganjur'}
               </h3>
 
               {/* Badges: Verified Host & Joined Date */}
-              <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+              <div className="mt-2.5 flex items-center justify-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shadow-xs">
                   <Crown className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Verified Host</span>
@@ -8466,8 +8462,8 @@ export default function App() {
             </div>
 
             {/* SECTION 1: SESI DIANJURKAN (MY PRACTICES) */}
-            <div className="px-5 mb-5">
-              <div className="flex items-center justify-between mb-2.5">
+            <div className="px-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Sesi Dianjurkan</h4>
                 <button
                   type="button"
@@ -8483,7 +8479,7 @@ export default function App() {
               </div>
 
               {/* Horizontal Scroll Carousel */}
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar snap-x overscroll-x-contain">
+              <div className="flex items-center gap-3 overflow-x-auto pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                 {adminHostedScrims.length > 0 ? (
                   adminHostedScrims.map((s) => (
                     <div
@@ -8493,7 +8489,7 @@ export default function App() {
                         setIsProfileModalOpen(false);
                         navigateToTab('admin');
                       }}
-                      className="snap-start shrink-0 w-60 p-3 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-white/10 hover:border-[#D7FF00]/40 flex items-center gap-3 transition cursor-pointer group active:scale-[0.98]"
+                      className="snap-start shrink-0 w-64 p-3.5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-white/10 hover:border-[#D7FF00]/40 flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98]"
                     >
                       <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                         {s.poster_url ? (
@@ -8521,7 +8517,7 @@ export default function App() {
                     </div>
                   ))
                 ) : (
-                  <div className="shrink-0 w-52 p-3 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center gap-2.5 text-zinc-400 text-xs">
+                  <div className="shrink-0 w-60 p-3.5 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center gap-3 text-zinc-400 text-xs">
                     <Trophy className="w-4 h-4 text-[#D7FF00]/50" />
                     <span>Belum ada sesi dianjurkan</span>
                   </div>
@@ -8534,18 +8530,18 @@ export default function App() {
                     setIsProfileModalOpen(false);
                     handleQuickNewSession();
                   }}
-                  className="snap-start shrink-0 w-32 h-[72px] p-2 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-dashed border-white/15 hover:border-[#D7FF00]/40 flex flex-col items-center justify-center gap-1 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
+                  className="snap-start shrink-0 w-36 h-[76px] p-2.5 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-dashed border-white/15 hover:border-[#D7FF00]/40 flex flex-col items-center justify-center gap-1 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
                 >
-                  <div className="w-6 h-6 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
-                    <Plus className="w-3.5 h-3.5" />
+                  <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
+                    <Plus className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-bold">+ Sesi Baru</span>
+                  <span className="text-[11px] font-bold">+ Sesi Baru</span>
                 </button>
               </div>
             </div>
 
             {/* SECTION 2: STATISTIK PENGANJUR (MY PROGRESS) */}
-            <div className="px-5 mb-5">
+            <div className="px-5 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Statistik Penganjur</h4>
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 border border-white/10 text-[10px] font-bold text-zinc-300">
@@ -8667,8 +8663,8 @@ export default function App() {
             </div>
 
             {/* SECTION 3: PROFIL & MAKLUMAT (NOTES) */}
-            <div className="px-5 mb-5">
-              <div className="flex items-center justify-between mb-2.5">
+            <div className="px-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Profil &amp; Maklumat</h4>
                 <button
                   type="button"
@@ -8682,7 +8678,7 @@ export default function App() {
 
               {isEditProfileMode ? (
                 /* INLINE EDIT MODE FORM */
-                <form onSubmit={handleSaveProfile} className="space-y-3 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 animate-in fade-in duration-200">
+                <form onSubmit={handleSaveProfile} className="space-y-3.5 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 animate-in fade-in duration-200">
                   <div>
                     <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
                       Nama Paparan (Display Name)
@@ -8754,9 +8750,9 @@ export default function App() {
                 </form>
               ) : (
                 /* CARDS VIEW MODE (Reference "Notes" Style) */
-                <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar snap-x overscroll-x-contain">
+                <div className="flex items-center gap-3 overflow-x-auto pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                   {/* Card 1: Official Contact */}
-                  <div className="snap-start shrink-0 w-44 p-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2">
+                  <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono font-bold text-zinc-400">HUBUNGI</span>
                       <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -8782,7 +8778,7 @@ export default function App() {
                   </div>
 
                   {/* Card 2: Bio & Rules */}
-                  <div className="snap-start shrink-0 w-48 p-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2">
+                  <div className="snap-start shrink-0 w-52 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono font-bold text-zinc-400">BIO &amp; PERATURAN</span>
                       <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
@@ -8796,7 +8792,7 @@ export default function App() {
                   </div>
 
                   {/* Card 3: Clan / Organization */}
-                  <div className="snap-start shrink-0 w-44 p-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2">
+                  <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono font-bold text-zinc-400">ORGANISASI</span>
                       <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
@@ -8813,12 +8809,12 @@ export default function App() {
             </div>
 
             {/* BOTTOM ACTIONS: LOGOUT */}
-            <div className="px-5 pt-3 border-t border-white/10">
+            <div className="mt-auto px-5 pt-4 border-t border-white/10">
               {currentUser && (
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full py-3 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Keluar Akaun</span>
