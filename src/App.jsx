@@ -1495,104 +1495,6 @@ export default function App() {
     showToast(`Switched to organization: ${trimmed}`);
   };
 
-  // --- MOBILE BACK BUTTON & MODAL SAFETY ---
-  const hasAnyActiveOverlay = Boolean(
-    isImportModalOpen ||
-    isOrgPopoverOpen ||
-    isProfileModalOpen ||
-    isScannerModalOpen ||
-    isQuickScorerModalOpen ||
-    isEditScrimModalOpen ||
-    isCreateScrimOpen ||
-    isQuickCreateModalOpen ||
-    isAuthModalOpen ||
-    isPerformanceModalOpen ||
-    isFeedbackModalOpen ||
-    isShowcaseModalOpen ||
-    isGuideModalOpen ||
-    inspectedScrim ||
-    inspectedPost
-  );
-
-  const closeTopmostOverlay = useCallback(() => {
-    if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
-    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); setIsAddingOrg(false); return true; }
-    if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
-    if (isEditScrimModalOpen) { setIsEditScrimModalOpen(false); return true; }
-    if (isCreateScrimOpen) { setIsCreateScrimOpen(false); return true; }
-    if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
-    if (isQuickScorerModalOpen) { setIsQuickScorerModalOpen(false); return true; }
-    if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
-    if (isAuthModalOpen) { setIsAuthModalOpen(false); setPendingCloudSync(false); return true; }
-    if (isPerformanceModalOpen) { setIsPerformanceModalOpen(false); return true; }
-    if (isFeedbackModalOpen) { setIsFeedbackModalOpen(false); return true; }
-    if (isShowcaseModalOpen) { setIsShowcaseModalOpen(false); return true; }
-    if (isGuideModalOpen) { setIsGuideModalOpen(false); return true; }
-    if (inspectedScrim) { setInspectedScrim(null); return true; }
-    if (inspectedPost) { setInspectedPost(null); return true; }
-    return false;
-  }, [
-    isImportModalOpen,
-    isOrgPopoverOpen,
-    isProfileModalOpen,
-    isEditScrimModalOpen,
-    isCreateScrimOpen,
-    isScannerModalOpen,
-    isQuickScorerModalOpen,
-    isQuickCreateModalOpen,
-    isAuthModalOpen,
-    isPerformanceModalOpen,
-    isFeedbackModalOpen,
-    isShowcaseModalOpen,
-    isGuideModalOpen,
-    inspectedScrim,
-    inspectedPost
-  ]);
-
-  const overlayHistoryPushedRef = useRef(false);
-
-  useEffect(() => {
-    if (hasAnyActiveOverlay && !overlayHistoryPushedRef.current) {
-      try {
-        window.history.pushState({ scrimHubOverlay: true }, '');
-        overlayHistoryPushedRef.current = true;
-      } catch {
-        // ignore
-      }
-    } else if (!hasAnyActiveOverlay && overlayHistoryPushedRef.current) {
-      overlayHistoryPushedRef.current = false;
-      try {
-        if (window.history.state && window.history.state.scrimHubOverlay) {
-          window.history.back();
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }, [hasAnyActiveOverlay]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      if (hasAnyActiveOverlay) {
-        overlayHistoryPushedRef.current = false;
-        closeTopmostOverlay();
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && hasAnyActiveOverlay) {
-        closeTopmostOverlay();
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [hasAnyActiveOverlay, closeTopmostOverlay]);
-
   useEffect(() => {
     if (adminHostedScrims.length > 0 && !adminHostedScrims.some(s => s.id === adminSelectedScrimId)) {
       setAdminSelectedScrimId(adminHostedScrims[0].id);
@@ -3375,6 +3277,104 @@ export default function App() {
       showToast('Post deleted successfully!');
     }
   };
+
+  // --- MOBILE BACK BUTTON & MODAL SAFETY ---
+  const hasAnyActiveOverlay = Boolean(
+    isImportModalOpen ||
+    isOrgPopoverOpen ||
+    isProfileModalOpen ||
+    isScannerModalOpen ||
+    isQuickScorerModalOpen ||
+    isEditScrimModalOpen ||
+    isCreateScrimOpen ||
+    isQuickCreateModalOpen ||
+    isAuthModalOpen ||
+    isPerformanceModalOpen ||
+    isFeedbackModalOpen ||
+    isShowcaseModalOpen ||
+    isGuideModalOpen ||
+    inspectedScrim ||
+    inspectedPost
+  );
+
+  const closeTopmostOverlay = useCallback(() => {
+    if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
+    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); setIsAddingOrg(false); return true; }
+    if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
+    if (isEditScrimModalOpen) { setIsEditScrimModalOpen(false); return true; }
+    if (isCreateScrimOpen) { setIsCreateScrimOpen(false); return true; }
+    if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
+    if (isQuickScorerModalOpen) { setIsQuickScorerModalOpen(false); return true; }
+    if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
+    if (isAuthModalOpen) { setIsAuthModalOpen(false); setPendingCloudSync(false); return true; }
+    if (isPerformanceModalOpen) { setIsPerformanceModalOpen(false); return true; }
+    if (isFeedbackModalOpen) { setIsFeedbackModalOpen(false); return true; }
+    if (isShowcaseModalOpen) { setIsShowcaseModalOpen(false); return true; }
+    if (isGuideModalOpen) { setIsGuideModalOpen(false); return true; }
+    if (inspectedScrim) { setInspectedScrim(null); return true; }
+    if (inspectedPost) { setInspectedPost(null); return true; }
+    return false;
+  }, [
+    isImportModalOpen,
+    isOrgPopoverOpen,
+    isProfileModalOpen,
+    isEditScrimModalOpen,
+    isCreateScrimOpen,
+    isScannerModalOpen,
+    isQuickScorerModalOpen,
+    isQuickCreateModalOpen,
+    isAuthModalOpen,
+    isPerformanceModalOpen,
+    isFeedbackModalOpen,
+    isShowcaseModalOpen,
+    isGuideModalOpen,
+    inspectedScrim,
+    inspectedPost
+  ]);
+
+  const overlayHistoryPushedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAnyActiveOverlay && !overlayHistoryPushedRef.current) {
+      try {
+        window.history.pushState({ scrimHubOverlay: true }, '');
+        overlayHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    } else if (!hasAnyActiveOverlay && overlayHistoryPushedRef.current) {
+      overlayHistoryPushedRef.current = false;
+      try {
+        if (window.history.state && window.history.state.scrimHubOverlay) {
+          window.history.back();
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [hasAnyActiveOverlay]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (hasAnyActiveOverlay) {
+        overlayHistoryPushedRef.current = false;
+        closeTopmostOverlay();
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && hasAnyActiveOverlay) {
+        closeTopmostOverlay();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [hasAnyActiveOverlay, closeTopmostOverlay]);
 
   return (
     <div className="min-h-screen bg-[#080808] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
