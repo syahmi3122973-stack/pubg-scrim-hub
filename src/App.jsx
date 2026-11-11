@@ -967,6 +967,9 @@ export default function App() {
 
   const navigateToTab = (tab) => {
     setIsQuickCreateModalOpen(false);
+    setIsOrgPopoverOpen(false);
+    setIsScannerModalOpen(false);
+    setIsQuickScorerModalOpen(false);
     setActiveTab(tab);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setTimeout(() => {
@@ -1185,21 +1188,67 @@ export default function App() {
 
   // Auth State
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Modals
+  // Modals & Popovers
   const [inspectedScrim, setInspectedScrim] = useState(null);
   const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isOrgPopoverOpen, setIsOrgPopoverOpen] = useState(false);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [isQuickScorerModalOpen, setIsQuickScorerModalOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+
+  // Organization / Account Selector State
+  const [userOrganizations, setUserOrganizations] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scrim_hub_user_orgs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return [
+      { id: 'org_mec', name: 'MEC Scrims Official', role: 'Clan Host' },
+      { id: 'org_ct', name: 'CT Scrims Management', role: 'Tournament Admin' }
+    ];
+  });
+  const [activeOrgId, setActiveOrgId] = useState(() => {
+    try {
+      return localStorage.getItem('scrim_hub_active_org') || 'primary';
+    } catch {
+      return 'primary';
+    }
+  });
+  const [isAddingOrg, setIsAddingOrg] = useState(false);
+  const [newOrgInput, setNewOrgInput] = useState('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('scrim_hub_user_orgs', JSON.stringify(userOrganizations));
+    } catch {
+      // ignore
+    }
+  }, [userOrganizations]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('scrim_hub_active_org', activeOrgId);
+    } catch {
+      // ignore
+    }
+  }, [activeOrgId]);
 
   // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -1236,13 +1285,20 @@ export default function App() {
 
   useEffect(() => {
     async function initApp() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user || null;
-      setCurrentUser(user);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user || null;
+        setCurrentUser(user);
+      } catch (err) {
+        console.warn('Auth session check note:', err);
+      } finally {
+        setIsAuthChecking(false);
+      }
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         const u = session?.user || null;
         setCurrentUser(u);
+        setIsAuthChecking(false);
         if (!u || event === 'SIGNED_OUT') {
           setProfileName('');
           setProfileContact('');
@@ -1253,6 +1309,8 @@ export default function App() {
           setNewHostContact('');
           setNewScrimTitle('');
           setAdminSelectedScrimId('');
+          setIsOrgPopoverOpen(false);
+          setIsProfileModalOpen(false);
         }
       });
 
@@ -1395,6 +1453,145 @@ export default function App() {
     if (!currentUser) return [];
     return scrims.filter(s => isAuthorizedAdmin(s));
   }, [scrims, currentUser, isAuthorizedAdmin]);
+
+  const formattedDateJoined = useMemo(() => {
+    if (currentUser?.created_at) {
+      try {
+        const d = new Date(currentUser.created_at);
+        if (!isNaN(d.getTime())) {
+          return `Joined ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return 'Joined Aug 2026';
+  }, [currentUser]);
+
+  const primaryAccountName = useMemo(() => {
+    return profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Host Admin');
+  }, [profileName, currentUser]);
+
+  const activeOrganizationName = useMemo(() => {
+    if (activeOrgId === 'primary') return primaryAccountName;
+    const found = userOrganizations.find(o => o.id === activeOrgId);
+    return found ? found.name : primaryAccountName;
+  }, [activeOrgId, userOrganizations, primaryAccountName]);
+
+  const handleAddOrganization = (e) => {
+    e.preventDefault();
+    const trimmed = newOrgInput.trim();
+    if (!trimmed) return;
+    const newOrg = {
+      id: 'org_' + Date.now().toString(36),
+      name: trimmed,
+      role: 'Organization Host'
+    };
+    setUserOrganizations(prev => [...prev, newOrg]);
+    setActiveOrgId(newOrg.id);
+    setNewOrgInput('');
+    setIsAddingOrg(false);
+    setIsOrgPopoverOpen(false);
+    showToast(`Switched to organization: ${trimmed}`);
+  };
+
+  // --- MOBILE BACK BUTTON & MODAL SAFETY ---
+  const hasAnyActiveOverlay = Boolean(
+    isImportModalOpen ||
+    isOrgPopoverOpen ||
+    isProfileModalOpen ||
+    isScannerModalOpen ||
+    isQuickScorerModalOpen ||
+    isEditScrimModalOpen ||
+    isCreateScrimOpen ||
+    isQuickCreateModalOpen ||
+    isAuthModalOpen ||
+    isPerformanceModalOpen ||
+    isFeedbackModalOpen ||
+    isShowcaseModalOpen ||
+    isGuideModalOpen ||
+    inspectedScrim ||
+    inspectedPost
+  );
+
+  const closeTopmostOverlay = useCallback(() => {
+    if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
+    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); setIsAddingOrg(false); return true; }
+    if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
+    if (isEditScrimModalOpen) { setIsEditScrimModalOpen(false); return true; }
+    if (isCreateScrimOpen) { setIsCreateScrimOpen(false); return true; }
+    if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
+    if (isQuickScorerModalOpen) { setIsQuickScorerModalOpen(false); return true; }
+    if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
+    if (isAuthModalOpen) { setIsAuthModalOpen(false); setPendingCloudSync(false); return true; }
+    if (isPerformanceModalOpen) { setIsPerformanceModalOpen(false); return true; }
+    if (isFeedbackModalOpen) { setIsFeedbackModalOpen(false); return true; }
+    if (isShowcaseModalOpen) { setIsShowcaseModalOpen(false); return true; }
+    if (isGuideModalOpen) { setIsGuideModalOpen(false); return true; }
+    if (inspectedScrim) { setInspectedScrim(null); return true; }
+    if (inspectedPost) { setInspectedPost(null); return true; }
+    return false;
+  }, [
+    isImportModalOpen,
+    isOrgPopoverOpen,
+    isProfileModalOpen,
+    isEditScrimModalOpen,
+    isCreateScrimOpen,
+    isScannerModalOpen,
+    isQuickScorerModalOpen,
+    isQuickCreateModalOpen,
+    isAuthModalOpen,
+    isPerformanceModalOpen,
+    isFeedbackModalOpen,
+    isShowcaseModalOpen,
+    isGuideModalOpen,
+    inspectedScrim,
+    inspectedPost
+  ]);
+
+  const overlayHistoryPushedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAnyActiveOverlay && !overlayHistoryPushedRef.current) {
+      try {
+        window.history.pushState({ scrimHubOverlay: true }, '');
+        overlayHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    } else if (!hasAnyActiveOverlay && overlayHistoryPushedRef.current) {
+      overlayHistoryPushedRef.current = false;
+      try {
+        if (window.history.state && window.history.state.scrimHubOverlay) {
+          window.history.back();
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [hasAnyActiveOverlay]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (hasAnyActiveOverlay) {
+        overlayHistoryPushedRef.current = false;
+        closeTopmostOverlay();
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && hasAnyActiveOverlay) {
+        closeTopmostOverlay();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [hasAnyActiveOverlay, closeTopmostOverlay]);
 
   useEffect(() => {
     if (adminHostedScrims.length > 0 && !adminHostedScrims.some(s => s.id === adminSelectedScrimId)) {
@@ -3180,7 +3377,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#080808] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
       
       {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
       {toastMessage && (
@@ -3190,144 +3387,333 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER NAVIGATION BERSEPADU */}
-      <header className="border-b border-white/5 bg-zinc-950/75 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      {/* HEADER & TOP NAVIGATION BAR */}
+      <header className="border-b border-white/5 bg-[#080808]/85 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
           
-          <div 
-            onClick={() => setActiveTab('playground')}
-            className="flex items-center space-x-2.5 cursor-pointer select-none group"
-            title="Kembali ke Laman Utama"
-          >
-            <div className="relative">
-              <img 
-                src="/logo.png" 
-                alt="RYKHOR Scrim Hub Logo" 
-                className="w-9 h-9 rounded-xl object-cover shadow-md shadow-[#D7FF00]/10 border border-[#D7FF00]/30 group-hover:scale-105 transition-transform" 
-              />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#D7FF00] border-2 border-zinc-950 animate-pulse" title="Sistem Aktif"></span>
-            </div>
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-base font-black tracking-wider text-white group-hover:text-[#D7FF00] transition-colors">
-                  RYKHOR
-                </span>
-                <span className="text-[10px] text-zinc-400 font-mono tracking-tight lowercase">
-                  scrim hub
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <nav className="hidden md:flex space-x-1 bg-zinc-900/60 p-1.5 rounded-2xl border border-white/5 text-xs font-semibold items-center">
-            <button
-              type="button"
-              onClick={() => navigateToTab('playground')}
-              title="Home (Laman Utama)"
-              aria-label="Home"
-              className={'p-2 rounded-xl transition-all active:scale-95 ' + (
-                activeTab === 'playground' || activeTab === 'home'
-                  ? 'bg-zinc-800 text-white font-black shadow-xs ring-1 ring-white/10' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-              )}
-            >
-              <Home className="w-4 h-4"/>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateToTab('history')}
-              title="Rekod Kejohanan & Live Leaderboard"
-              aria-label="Rekod Kejohanan"
-              className={'p-2 rounded-xl transition-all active:scale-95 ' + (
-                activeTab === 'history' || activeTab === 'leaderboard'
-                  ? 'bg-amber-500/20 text-amber-300 font-black border border-amber-500/30' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-              )}
-            >
-              <Trophy className="w-4 h-4 text-amber-400" />
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateToTab('teams')}
-              title="Hall of Fame & Direktori Pasukan"
-              aria-label="Hall of Fame"
-              className={'p-2 rounded-xl transition-all active:scale-95 ' + (
-                activeTab === 'teams'
-                  ? 'bg-indigo-500/20 text-indigo-300 font-black border border-indigo-500/30' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-              )}
-            >
-              <Users className="w-4 h-4 text-indigo-400" />
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateToTab('admin')}
-              title="Host Workspace & Portal Penganjur"
-              aria-label="Host Portal"
-              className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 ' + (
-                activeTab === 'admin'
-                  ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
-              )}
-            >
-              {currentUser ? (
-                <ShieldCheck className="w-4 h-4 text-[#D7FF00]" />
-              ) : (
-                <Lock className="w-3.5 h-3.5 text-zinc-500" />
-              )}
-              <span>Host</span>
-            </button>
-          </nav>
-
-          {/* Desktop Central [+] Action Menu Trigger */}
-          <button
-            type="button"
-            onClick={() => setIsQuickCreateModalOpen(true)}
-            className={'hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition active:scale-95 cursor-pointer ' + (
-              activeTab === 'scorer' || activeTab === 'scrim-data'
-                ? 'bg-[#D7FF00] text-black shadow-[0_0_20px_rgba(215, 255, 0,0.18)]'
-                : 'bg-zinc-900/80 hover:bg-zinc-800 text-[#D7FF00] border border-white/10'
-            )}
-            title="Pilih Quick Score, Admin Scorer atau Scrim Data"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span>Scorer / Data</span>
-          </button>
-
-          <div className="flex items-center gap-2">
+          {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
+          <div className="flex items-center gap-2.5 z-10">
             {currentUser ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsProfileModalOpen(true)}
-                  className="flex items-center gap-1.5 bg-zinc-900/80 hover:bg-zinc-800 border border-white/5 hover:border-white/20 px-2.5 py-1.5 rounded-xl transition text-left group active:scale-95"
-                  title="Urus Profil Host"
+                  aria-label="Open Host Profile Drawer"
+                  title="Profil Host & Ringkasan Sesi"
+                  className="relative w-10 h-10 rounded-full bg-zinc-900 border-2 border-[#D7FF00]/40 hover:border-[#D7FF00] flex items-center justify-center overflow-hidden shadow-[0_0_16px_rgba(215,255,0,0.15)] transition-all active:scale-95 cursor-pointer group"
                 >
-                  <User className="w-3.5 h-3.5 text-[#D7FF00]" />
-                  <span className="hidden sm:inline text-xs font-bold text-zinc-200 group-hover:text-white max-w-[130px] truncate">
-                    {profileName || currentUser.email.split('@')[0]}
-                  </span>
+                  {profileAvatarUrl ? (
+                    <img
+                      src={profileAvatarUrl}
+                      alt={primaryAccountName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <span className="text-xs font-black text-[#D7FF00] tracking-tight">
+                      {primaryAccountName.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  <span
+                    className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#080808]"
+                    title="Authenticated Session Active"
+                  />
                 </button>
+
                 <button
-                  onClick={handleLogout}
-                  className="px-2.5 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl transition flex items-center gap-1 active:scale-95"
-                  title="Sign Out"
+                  type="button"
+                  onClick={() => navigateToTab('playground')}
+                  className="hidden sm:flex flex-col text-left cursor-pointer group"
+                  title="Kembali ke Command Center"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <span className="text-xs font-black tracking-wider text-white group-hover:text-[#D7FF00] transition-colors leading-none">
+                    RYKHOR
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono tracking-tight lowercase mt-0.5">
+                    command center
+                  </span>
                 </button>
               </div>
             ) : (
+              <div 
+                onClick={() => navigateToTab('playground')}
+                className="flex items-center space-x-2.5 cursor-pointer select-none group"
+                title="Kembali ke Laman Utama"
+              >
+                <div className="relative">
+                  <img 
+                    src="/logo.png" 
+                    alt="RYKHOR Scrim Hub Logo" 
+                    className="w-9 h-9 rounded-full object-cover shadow-md shadow-[#D7FF00]/10 border border-[#D7FF00]/30 group-hover:scale-105 transition-transform" 
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#D7FF00] border-2 border-zinc-950 animate-pulse" title="Sistem Aktif"></span>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-base font-black tracking-wider text-white group-hover:text-[#D7FF00] transition-colors">
+                      RYKHOR
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-mono tracking-tight lowercase">
+                      scrim hub
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* TOP CENTER: Current Active Username / Organization Selector (Small, Clean, Clickable with Floating Popover Card) */}
+          {currentUser && (
+            <div className="absolute left-1/2 -translate-x-1/2 z-30">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOrgPopoverOpen(prev => !prev);
+                  setIsAddingOrg(false);
+                }}
+                aria-expanded={isOrgPopoverOpen}
+                aria-haspopup="dialog"
+                className="px-3.5 py-1.5 rounded-full bg-[#121216] hover:bg-[#19191F] border border-white/10 hover:border-white/20 flex items-center gap-2 text-xs font-bold text-white shadow-lg transition-all active:scale-95 cursor-pointer max-w-[190px] sm:max-w-[240px]"
+                title="Tukar Akaun / Organisasi Penganjur"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#D7FF00] shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
+                <span className="truncate">{activeOrganizationName}</span>
+                <ChevronDown
+                  className={
+                    'w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ' +
+                    (isOrgPopoverOpen ? 'rotate-180 text-[#D7FF00]' : '')
+                  }
+                />
+              </button>
+
+              {/* Non-Intrusive Floating Popover Card (Does NOT block full screen) */}
+              {isOrgPopoverOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => {
+                      setIsOrgPopoverOpen(false);
+                      setIsAddingOrg(false);
+                    }}
+                  />
+                  <div
+                    role="dialog"
+                    aria-label="Switch Account or Organization"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-68 sm:w-76 bg-[#121216]/95 backdrop-blur-2xl border border-white/15 rounded-[1.5rem] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.85)] z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
+                  >
+                    <div className="flex items-center justify-between px-1.5 pt-0.5">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                        Active Account / Clan
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOrgPopoverOpen(false);
+                          setIsAddingOrg(false);
+                        }}
+                        aria-label="Close organization switcher"
+                        className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5 overscroll-contain">
+                      {/* Primary Personal Host Account */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveOrgId('primary');
+                          setIsOrgPopoverOpen(false);
+                          showToast(`Active account: ${primaryAccountName}`);
+                        }}
+                        className={
+                          'w-full px-3 py-2 rounded-2xl flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ' +
+                          (activeOrgId === 'primary'
+                            ? 'bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold'
+                            : 'hover:bg-white/5 text-zinc-300')
+                        }
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center shrink-0">
+                            {primaryAccountName.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
+                            <div className="truncate text-[10px] text-zinc-400">{currentUser.email}</div>
+                          </div>
+                        </div>
+                        {activeOrgId === 'primary' && (
+                          <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                        )}
+                      </button>
+
+                      {/* Hosted Clan / Admin Organizations */}
+                      {userOrganizations.map((org) => {
+                        const isSelected = activeOrgId === org.id;
+                        return (
+                          <button
+                            key={org.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveOrgId(org.id);
+                              setIsOrgPopoverOpen(false);
+                              showToast(`Switched to ${org.name}`);
+                            }}
+                            className={
+                              'w-full px-3 py-2 rounded-2xl flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ' +
+                              (isSelected
+                                ? 'bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold'
+                                : 'hover:bg-white/5 text-zinc-300')
+                            }
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 rounded-full bg-zinc-800 text-[#D7FF00] font-black text-[10px] flex items-center justify-center shrink-0 border border-white/10">
+                                {org.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="truncate text-xs font-bold text-white">{org.name}</div>
+                                <div className="truncate text-[10px] text-zinc-400">{org.role || 'Clan / Admin Host'}</div>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Add Account / New Organization Section */}
+                    <div className="pt-2 border-t border-white/10 space-y-1.5">
+                      {isAddingOrg ? (
+                        <form onSubmit={handleAddOrganization} className="space-y-2 p-1">
+                          <input
+                            type="text"
+                            placeholder="Nama Clan / Organisasi..."
+                            value={newOrgInput}
+                            onChange={(e) => setNewOrgInput(e.target.value)}
+                            autoFocus
+                            className="w-full bg-zinc-900 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                          />
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingOrg(false)}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-zinc-400 hover:text-white"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="submit"
+                              className="px-3 py-1 rounded-lg bg-[#D7FF00] text-black text-[11px] font-black"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingOrg(true)}
+                          className="w-full px-3 py-2 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-[#D7FF00] text-xs font-bold flex items-center gap-2 transition cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Add Account / New Organization</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOrgPopoverOpen(false);
+                          setIsRegisterMode(false);
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="w-full px-3 py-1.5 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-zinc-200 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
+                      >
+                        <span>Log masuk akaun lain</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* TOP RIGHT: Desktop Navigation & Menu */}
+          <div className="flex items-center gap-2 z-10">
+            <nav className="hidden lg:flex space-x-1 bg-zinc-900/60 p-1 rounded-2xl border border-white/5 text-xs font-semibold items-center">
+              <button
+                type="button"
+                onClick={() => navigateToTab('playground')}
+                title="Command Center (Home)"
+                aria-label="Home"
+                className={'p-2 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                  activeTab === 'playground' || activeTab === 'home'
+                    ? 'bg-zinc-800 text-[#D7FF00] font-black shadow-xs ring-1 ring-white/10' 
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                )}
+              >
+                <Home className="w-4 h-4"/>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateToTab('history')}
+                title="Rekod Kejohanan & Live Leaderboard"
+                aria-label="Rekod Kejohanan"
+                className={'p-2 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                  activeTab === 'history' || activeTab === 'leaderboard'
+                    ? 'bg-emerald-500/20 text-emerald-300 font-black border border-emerald-500/30' 
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                )}
+              >
+                <Trophy className="w-4 h-4 text-emerald-400" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateToTab('teams')}
+                title="Hall of Fame & Direktori Pasukan"
+                aria-label="Hall of Fame"
+                className={'p-2 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                  activeTab === 'teams'
+                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                )}
+              >
+                <Users className="w-4 h-4 text-[#D7FF00]" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateToTab('admin')}
+                title="Host Workspace & Portal Penganjur"
+                aria-label="Host Portal"
+                className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                  activeTab === 'admin'
+                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
+                )}
+              >
+                {currentUser ? (
+                  <ShieldCheck className="w-4 h-4 text-[#D7FF00]" />
+                ) : (
+                  <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                )}
+                <span>Host</span>
+              </button>
+            </nav>
+
+            {!currentUser && (
               <button
                 onClick={() => {
                   setIsRegisterMode(false);
                   setPendingCloudSync(false);
                   setIsAuthModalOpen(true);
                 }}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-[#D7FF00] border border-white/10 transition flex items-center gap-1.5 shadow-sm"
-                title="Sign in to your host account"
+                className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center gap-1.5 shadow-[0_0_16px_rgba(215,255,0,0.25)] active:scale-95 cursor-pointer"
+                title="Sign in to unlock Command Center"
               >
-                <Lock className="w-3.5 h-3.5 text-[#D7FF00]" />
+                <Lock className="w-3.5 h-3.5 text-black" />
                 <span>Login</span>
               </button>
             )}
@@ -3337,10 +3723,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-                className={'p-2 rounded-xl transition border flex items-center justify-center ' + (
+                className={'p-2 rounded-full transition border flex items-center justify-center cursor-pointer ' + (
                   isNavMenuOpen 
                     ? 'bg-zinc-800 text-[#D7FF00] border-[#D7FF00]/40' 
-                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-white/10'
+                    : 'bg-[#121216] hover:bg-zinc-800 text-zinc-300 border-white/10'
                 )}
                 title="Menu"
                 aria-label="Navigation Menu"
@@ -3416,6 +3802,19 @@ export default function App() {
                         <Bug className="w-4 h-4 text-[#D7FF00]"/>
                         <span className="font-semibold">Feedback / Report Bug</span>
                       </button>
+                      {currentUser && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNavMenuOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-rose-500/10 text-rose-400 transition font-bold"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Log Keluar Akaun</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
@@ -3429,8 +3828,291 @@ export default function App() {
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
 
-        {/* VIEW 0: PLAYGROUND SPLIT-SCREEN WORKSPACE (ROOT ROUTE /) */}
+        {/* VIEW 0: AUTHENTICATION GUARD & BENTO-GRID COMMAND CENTER (ROOT ROUTE /) */}
         {(activeTab === 'playground' || activeTab === 'home') && (() => {
+          // 1. LOADING SESSION STATE: Minimalist Dark Skeleton / Spinner
+          if (isAuthChecking) {
+            return (
+              <div className="max-w-xl mx-auto space-y-4 pt-2 pb-6" aria-busy="true" aria-label="Loading session">
+                <div className="flex items-center justify-between px-1">
+                  <div className="h-4 w-32 rounded-full bg-zinc-900 animate-pulse" />
+                  <div className="h-6 w-24 rounded-full bg-zinc-900 animate-pulse flex items-center justify-center gap-1.5 px-3">
+                    <RefreshCw className="w-3 h-3 text-[#D7FF00] animate-spin" />
+                    <span className="text-[10px] font-mono text-zinc-400">Syncing...</span>
+                  </div>
+                </div>
+                <div className="h-44 rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse p-6 flex flex-col justify-between">
+                  <div className="h-6 w-40 rounded-full bg-zinc-800/80" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-56 rounded-full bg-zinc-800/60" />
+                    <div className="h-3 w-36 rounded-full bg-zinc-800/40" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div className="h-72 rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse" />
+                  <div className="space-y-3.5">
+                    <div className="h-[137px] rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse" />
+                    <div className="h-[137px] rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // 2. AUTHENTICATED STATE: Private Bento-Grid Command Center
+          if (currentUser) {
+            const leadingTeam = validTeamList[0] || null;
+            const highestKillTeam = validTeamList.reduce((best, cur) => {
+              const curAvg = cur.scrimResults?.length ? cur.totalKills / cur.scrimResults.length : 0;
+              const bestAvg = best?.scrimResults?.length ? best.totalKills / best.scrimResults.length : 0;
+              return curAvg > bestAvg ? cur : best;
+            }, validTeamList[0] || null);
+            const highestKillAvgVal = highestKillTeam?.scrimResults?.length
+              ? (highestKillTeam.totalKills / highestKillTeam.scrimResults.length).toFixed(1)
+              : '9.4';
+
+            const lastScannedRecord = scrims.find(
+              s => s.created_by === 'public_ocr' || (s.description && s.description.toLowerCase().includes('ocr'))
+            ) || scrims[0] || null;
+            const lastScannedLabel = lastScannedRecord
+              ? `${lastScannedRecord.title} • ${lastScannedRecord.date || 'Today'}`
+              : 'MEC Scrims • Today, 9:30 PM';
+
+            const quickScorerPreviewTitle =
+              playgroundSession?.title && playgroundSession.title !== 'PUBG Mobile Scrim Season'
+                ? playgroundSession.title
+                : scrims[0]?.title || 'CT Scrims S3';
+
+            const latestRekodSession = scrims[0] || null;
+            const latestRekodTitle = latestRekodSession?.title || 'MEC Scrims Official S4';
+            const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
+
+            return (
+              <div className="max-w-xl lg:max-w-2xl mx-auto space-y-4 sm:space-y-5 pt-1 pb-6">
+                
+                {/* Subtle Command Center Greeting Header (Zero progress bars or % indicators) */}
+                <div className="flex items-center justify-between px-1.5">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 block">
+                      Bento Command Center
+                    </span>
+                    <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                      Welcome back, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
+                    </h1>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="px-3 py-1.5 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <span>{adminHostedScrims.length} Hosted</span>
+                  </button>
+                </div>
+
+                {/* BENTO GRID LAYOUT */}
+                <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+                  
+                  {/* CARD A: Top Full-Width Card (Yellow / Acid Gold Accent) — [Hall of Fame] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToTab('teams')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigateToTab('teams');
+                      }
+                    }}
+                    className="col-span-2 rounded-[2rem] p-5 sm:p-6 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] active:scale-[0.98] transition-all duration-200 cursor-pointer relative overflow-hidden group select-none"
+                  >
+                    {/* Ambient decorative glow */}
+                    <div className="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/25 blur-2xl pointer-events-none" />
+
+                    <div className="relative z-10 flex flex-col justify-between gap-4">
+                      {/* Top Row: Title + Trophy/Star Icon */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3 fill-black" />
+                            <span>Global Standings</span>
+                          </div>
+                          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-black leading-none pt-0.5">
+                            Hall of Fame
+                          </h2>
+                        </div>
+
+                        <div className="w-12 h-12 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
+                          <Trophy className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                      </div>
+
+                      {/* Mini-info: Snapshot of top-performing teams */}
+                      <div className="grid grid-cols-2 gap-2.5 pt-1">
+                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 border border-black/10">
+                          <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
+                            #1 Leading Clan
+                          </span>
+                          <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                            <span className="text-sm sm:text-base font-black text-black truncate">
+                              {leadingTeam ? leadingTeam.name : 'Geek Fam'}
+                            </span>
+                            <span className="text-xs font-mono font-black text-black/80 shrink-0">
+                              {leadingTeam ? `${leadingTeam.totalPoints} PTS` : '148 PTS'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 border border-black/10">
+                          <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
+                            Kill Avg • WWCD Streak
+                          </span>
+                          <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                            <span className="text-sm sm:text-base font-black text-black font-mono">
+                              {highestKillAvgVal} Elims
+                            </span>
+                            <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-black text-[#D7FF00] shrink-0">
+                              {leadingTeam ? `${leadingTeam.totalWWCD} WWCD` : '4 WWCD'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD B: Left Tall Card (Pink Accent) — [Results Scanner] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsScannerModalOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsScannerModalOpen(true);
+                      }
+                    }}
+                    className="col-span-1 row-span-2 rounded-[2rem] p-5 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px]"
+                  >
+                    <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none" />
+
+                    {/* Top Icon & Badge */}
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md text-[10px] font-mono font-black uppercase tracking-wider">
+                        AI OCR
+                      </span>
+                    </div>
+
+                    {/* Middle Visual Graphic */}
+                    <div className="my-auto py-4 relative z-10 space-y-2">
+                      <div className="p-3 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-pink-100">
+                          <span>Auto-Audit Math</span>
+                          <CheckCircle className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div className="text-xs font-mono font-black text-white tracking-tight">
+                          PP + KP = TOTAL
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Title & Dynamic Last Scanned History */}
+                    <div className="space-y-1.5 relative z-10">
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">
+                        Results Scanner
+                      </h2>
+                      <p className="text-[11px] font-medium text-pink-100/90 leading-snug line-clamp-2">
+                        Last Scanned: <strong className="text-white font-bold">{lastScannedLabel}</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CARD C: Top-Right Card (Blue Accent) — [Quick Scorer] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsQuickScorerModalOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsQuickScorerModalOpen(true);
+                      }
+                    }}
+                    className="col-span-1 rounded-[2rem] p-4 sm:p-5 bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] text-white shadow-[0_12px_30px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px]"
+                  >
+                    <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
+
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Edit3 className="w-4 h-4" />
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-mono font-bold text-blue-100">
+                        Live Entry
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 pt-3 relative z-10">
+                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+                        Quick Scorer
+                      </h2>
+                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/25 text-[10px] font-mono font-semibold text-blue-100 max-w-full">
+                        <span className="truncate">Last Session: {quickScorerPreviewTitle}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD D: Bottom-Right Card (Green Accent) — [Rekod / Match Logs] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToTab('history')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigateToTab('history');
+                      }
+                    }}
+                    className="col-span-1 rounded-[2rem] p-4 sm:p-5 bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white shadow-[0_12px_30px_rgba(16,185,129,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px]"
+                  >
+                    <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
+
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Clock className="w-4 h-4" />
+                      </div>
+
+                      {/* Status Pill Badge ("Completed" in emerald or "Pending" in amber) */}
+                      {latestRekodFinished ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/75 border border-emerald-300/40 text-emerald-200 text-[10px] font-mono font-black">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+                          <span>Completed</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-300/40 text-amber-200 text-[10px] font-mono font-black">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+                          <span>Pending</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 pt-3 relative z-10">
+                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+                        Rekod / Sessions
+                      </h2>
+                      <p className="text-[11px] font-medium text-emerald-100 truncate">
+                        {latestRekodTitle}
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            );
+          }
+
+          // 3. UNAUTHENTICATED GUEST STATE: Public Login / Landing Screen
           const activeTeamsCount = Math.max(Object.keys(teamsStats || {}).length, 16);
           const homeSliderCards = [
             {
@@ -3756,12 +4438,95 @@ export default function App() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-md">
-                    Susun kedudukan &amp; tiebreaker automatik supaya anda tak perlu lagi baiki formula spreadsheet atau lukis poster manual.
+                    Log masuk untuk akses penuh ke <strong className="text-white">Bento Command Center</strong> — atau uji kiraan pantas di bawah.
                   </p>
                 </div>
               </div>
 
-              {/* 3. INTERACTIVE 4-SECOND AUTO SLIDER (Shrink Left -> Next Card Enters From Right & Grows) */}
+              {/* 3. GUEST LOGIN / SIGN-IN GUARD CARD (Direct Sign-In to Unlock Bento Command Center) */}
+              <div
+                id="guest-login-guard-card"
+                className="rounded-[2rem] bg-[#121216] border border-white/10 p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
+                style={{ animationDelay: '110ms' }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center font-black shadow-md">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm sm:text-base font-black text-white">
+                        {isRegisterMode ? 'Daftar Akaun Command Center' : 'Log Masuk ke Command Center'}
+                      </h2>
+                      <p className="text-[11px] text-zinc-400">
+                        Akses papan pemuka Bento-Grid, AI Results Scanner &amp; Rekod Cloud
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[10px] font-mono font-bold shrink-0">
+                    AUTH GUARD
+                  </span>
+                </div>
+
+                <form onSubmit={handleAuthSubmit} className="space-y-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
+                      <input
+                        type="email"
+                        required
+                        autoComplete="email"
+                        placeholder="Emel rasmi (cth: host@esports.com)"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full bg-zinc-950/90 border border-white/10 rounded-2xl pl-10 pr-3 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
+                      <input
+                        type="password"
+                        required
+                        autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+                        placeholder="Kata laluan (••••••••)"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full bg-zinc-950/90 border border-white/10 rounded-2xl pl-10 pr-3 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full sm:w-auto flex-1 py-2.5 px-5 rounded-2xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs uppercase tracking-wider transition shadow-[0_0_20px_rgba(215,255,0,0.2)] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {authLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Memproses...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{isRegisterMode ? 'Daftar & Buka Command Center' : 'Log Masuk Command Center'}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsRegisterMode(prev => !prev)}
+                      className="text-xs text-zinc-400 hover:text-[#D7FF00] font-bold transition cursor-pointer px-2 py-1"
+                    >
+                      {isRegisterMode ? 'Sudah ada akaun? Log Masuk' : 'Tiada akaun? Daftar Percuma'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* 4. INTERACTIVE 4-SECOND AUTO SLIDER (Shrink Left -> Next Card Enters From Right & Grows) */}
               <div
                 className="relative select-none animate-stagger-card"
                 style={{ animationDelay: '150ms' }}
@@ -3917,7 +4682,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 4. FULL-WIDTH PILL CTA BUTTON (Following Reference "Let's get started! (>)") */}
+              {/* 5. FULL-WIDTH PILL CTA BUTTON */}
               <div
                 className="space-y-3 pt-1 px-1 animate-stagger-card"
                 style={{ animationDelay: '240ms' }}
@@ -3929,50 +4694,13 @@ export default function App() {
                   title="Mula kira markah sekarang di Quick Scorer tanpa login"
                 >
                   <span className="text-sm sm:text-base font-bold tracking-tight text-white mx-auto pr-4">
-                    Mula Kira Sekarang!
+                    Cuba Quick Scorer (Tetamu)
                   </span>
                   <span className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#D7FF00] group-hover:bg-[#c2e600] text-black flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(215,255,0,0.3)] group-hover:translate-x-0.5 transition-all">
                     <ChevronRight className="w-5 h-5 stroke-[2.5] text-black" />
                   </span>
                 </button>
-
-                {/* Secondary Sign-In / Host Portal Link (Following Reference "Already have an account? Sign in") */}
-                <div className="text-center text-xs text-zinc-400">
-                  <span>Penganjur kejohanan rasmi? </span>
-                  <button
-                    type="button"
-                    onClick={() => navigateToTab('admin')}
-                    className="font-black text-white hover:text-[#D7FF00] underline decoration-[#D7FF00]/60 underline-offset-4 transition cursor-pointer"
-                  >
-                    Buka Portal Host
-                  </button>
-                </div>
               </div>
-
-              {/* 5. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
-              {scrims.length > 0 && (
-                <div
-                  onClick={() => {
-                    setSelectedScrimId(scrims[0].id);
-                    navigateToTab('history');
-                  }}
-                  className="p-3.5 bg-[#121214] hover:bg-[#161619] rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group shadow-md mx-1"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
-                    <div className="min-w-0">
-                      <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block">Sesi Terkini Diarkib</span>
-                      <span className="text-xs sm:text-sm font-bold text-white truncate block">
-                        {scrims[0].title || 'PUBG Mobile Scrim'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-[#D7FF00] transition-colors shrink-0">
-                    <span className="hidden sm:inline">Lihat Keputusan</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-              )}
 
             </div>
           );
@@ -6142,6 +6870,7 @@ export default function App() {
                           <input
                             type="email"
                             required
+                            autoComplete="email"
                             placeholder="admin@esports.com"
                             value={authEmail}
                             onChange={(e) => setAuthEmail(e.target.value)}
@@ -6157,6 +6886,7 @@ export default function App() {
                           <input
                             type="password"
                             required
+                            autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                             placeholder="••••••••"
                             value={authPassword}
                             onChange={(e) => setAuthPassword(e.target.value)}
@@ -7597,6 +8327,7 @@ export default function App() {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     placeholder="host@esports.com"
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
@@ -7612,6 +8343,7 @@ export default function App() {
                   <input
                     type="password"
                     required
+                    autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                     placeholder="••••••••"
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
@@ -7690,6 +8422,7 @@ export default function App() {
                 <label className="block text-zinc-400 uppercase font-bold mb-1">Your Email (Optional)</label>
                 <input
                   type="email"
+                  autoComplete="email"
                   placeholder="name@email.com (if follow-up is needed)"
                   value={feedbackEmail}
                   onChange={(e) => setFeedbackEmail(e.target.value)}
@@ -7730,42 +8463,100 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 3: EDIT HOST PROFILE */}
+      {/* MODAL 3: COMPACT PROFILE DRAWER / MODAL (TOP-LEFT AVATAR TRIGGER) */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <h3 className="font-black text-sm text-white flex items-center gap-1.5">
-                <User className="w-4 h-4 text-[#D7FF00]"/>
-                <span>Public Host Profile & Avatar</span>
-              </h3>
-              <button 
-                onClick={() => setIsProfileModalOpen(false)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="profile-drawer-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
+        >
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsProfileModalOpen(false)}
+          />
+          <div className="relative z-10 bg-[#101014] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4 overscroll-contain">
+            {/* Header + Date Joined Badge */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 flex items-center justify-center font-black">
+                  <User className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 id="profile-drawer-title" className="font-black text-sm text-white">
+                    Host Profile &amp; Summary
+                  </h3>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded-full border border-[#D7FF00]/20 mt-0.5">
+                    <Clock className="w-2.5 h-2.5" />
+                    <span>{formattedDateJoined}</span>
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(false)}
+                aria-label="Close profile drawer"
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Hosted Scrims Summary Mini-Stat */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+                Hosted Scrims Summary
+              </span>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 font-semibold block">Total Sessions Hosted</span>
+                    <span className="text-xl font-black font-mono text-white">{adminHostedScrims.length}</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-[#D7FF00]/15 text-[#D7FF00] flex items-center justify-center">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 font-semibold block">Active Tournaments</span>
+                    <span className="text-xl font-black font-mono text-emerald-400">
+                      {adminHostedScrims.filter(s => !s.is_finished).length}
+                    </span>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                    <Flame className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Host Profile Picture</label>
+                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                  Profile Avatar &amp; Photo
+                </label>
                 <div className="flex items-center space-x-3">
                   {avatarFile ? (
-                    <div className="w-12 h-12 rounded-2xl bg-[#D7FF00]/10 border border-[#D7FF00]/30 flex items-center justify-center font-bold text-[#D7FF00] text-[10px]">
-                      Selected
+                    <div className="w-12 h-12 rounded-full bg-[#D7FF00]/10 border border-[#D7FF00]/30 flex items-center justify-center font-bold text-[#D7FF00] text-[10px] shrink-0">
+                      Ready
                     </div>
                   ) : profileAvatarUrl ? (
-                    <img src={profileAvatarUrl} alt="Avatar" className="w-12 h-12 rounded-2xl object-cover border border-white/10" />
+                    <img
+                      src={profileAvatarUrl}
+                      alt="Avatar"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-[#D7FF00]/40 shrink-0"
+                    />
                   ) : (
-                    <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center text-zinc-500">
-                      <User className="w-5 h-5"/>
+                    <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-[#D7FF00] font-black text-sm shrink-0">
+                      {primaryAccountName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
 
-                  <label className="flex-1 flex items-center justify-center gap-2 bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 text-zinc-300 cursor-pointer transition">
-                    <Upload className="w-4 h-4 text-[#D7FF00]"/>
-                    <span className="truncate">{avatarFile ? avatarFile.name : 'Upload Profile Photo'}</span>
+                  <label className="flex-1 flex items-center justify-center gap-2 bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-2xl p-2.5 text-zinc-300 cursor-pointer transition">
+                    <Upload className="w-4 h-4 text-[#D7FF00]" />
+                    <span className="truncate">{avatarFile ? avatarFile.name : 'Upload Profile Avatar'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -7777,10 +8568,13 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Organizer Display Name</label>
+                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                  Edit Display Name
+                </label>
                 <input
                   type="text"
                   required
+                  autoComplete="name"
                   placeholder="e.g. RYKHOR Esports Organizer"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
@@ -7789,9 +8583,12 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Official Contact (WhatsApp / Telegram)</label>
+                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                  Official Contact (WhatsApp / Telegram)
+                </label>
                 <input
                   type="text"
+                  autoComplete="tel"
                   placeholder="+60123456789 or @username"
                   value={profileContact}
                   onChange={(e) => setProfileContact(e.target.value)}
@@ -7800,9 +8597,11 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">About / Host Bio</label>
+                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                  About / Host Bio
+                </label>
                 <textarea
-                  rows="3"
+                  rows="2"
                   placeholder="Tell teams about your upcoming tournaments or regular scrim schedules..."
                   value={profileBio}
                   onChange={(e) => setProfileBio(e.target.value)}
@@ -7810,23 +8609,292 @@ export default function App() {
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingProfile}
-                  className="px-5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-xs"
-                >
-                  {isSavingProfile ? 'Saving...' : 'Save Profile'}
-                </button>
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                {currentUser && (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingProfile}
+                    className="px-5 py-2.5 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-xs cursor-pointer"
+                  >
+                    {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                  </button>
+                </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3B: BENTO COMMAND CENTER — AI POSTER OCR RESULTS SCANNER MODAL */}
+      {isScannerModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="scanner-modal-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
+        >
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsScannerModalOpen(false)}
+          />
+          <div className="relative z-10 bg-[#0A0A0D] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] max-w-4xl w-full max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden overscroll-contain">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#101014] shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 id="scanner-modal-title" className="text-sm font-black text-white">
+                    Results Scanner (AI Poster OCR)
+                  </h3>
+                  <span className="text-[10px] font-mono text-zinc-400 block">
+                    Auto-Audit Matematik (PP + KP = Total)
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsScannerModalOpen(false)}
+                aria-label="Close Results Scanner modal"
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 overscroll-contain">
+              <ScrimDataHubView
+                navigateToTab={navigateToTab}
+                supabase={supabase}
+                currentUser={currentUser}
+                profileName={activeOrganizationName || profileName}
+                scrims={scrims}
+                setScrims={setScrims}
+                showToast={showToast}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3C: BENTO COMMAND CENTER — QUICK SCORER / LIVE POINTS ENTRY MODAL */}
+      {isQuickScorerModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quick-scorer-modal-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
+        >
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsQuickScorerModalOpen(false)}
+          />
+          <div className="relative z-10 bg-[#0A0A0D] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] max-w-3xl w-full max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden overscroll-contain">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#101014] shrink-0 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 id="quick-scorer-modal-title" className="text-sm font-black text-white truncate">
+                    Quick Scorer • Live Points Entry
+                  </h3>
+                  <span className="text-[10px] font-mono text-zinc-400 block truncate">
+                    Last Session: {playgroundSession.title || 'CT Scrims S3'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('scorer')}
+                  className="px-3 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[11px] font-bold text-[#D7FF00] flex items-center gap-1 transition cursor-pointer"
+                  title="Buka paparan penuh Quick Scorer & Poster HD"
+                >
+                  <span>Full View</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickScorerModalOpen(false)}
+                  aria-label="Close Quick Scorer modal"
+                  className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
+              {/* Session Title & Match Tabs */}
+              <div className="space-y-2.5">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={playgroundSession.title}
+                    onChange={(e) => handleSetPlaygroundTitle(e.target.value)}
+                    placeholder="Nama Sesi (cth: CT Scrims S3)"
+                    className="flex-1 bg-zinc-900/90 border border-white/10 rounded-xl px-3.5 py-2 text-xs font-bold text-white focus:outline-none focus:border-[#D7FF00]"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Import Team</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveMatchClick}
+                      disabled={isSavingCloudMatch}
+                      className="px-3.5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black text-xs font-black flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{isSavingCloudMatch ? 'Saving...' : 'Simpan Cloud'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Match 1-5 Selector Pills */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    {playgroundSession.matches.map((m, idx) => {
+                      const active = currentPlaygroundMatchIdx === idx;
+                      return (
+                        <button
+                          key={m.matchNo}
+                          type="button"
+                          onClick={() => setCurrentPlaygroundMatchIdx(idx)}
+                          className={
+                            'px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ' +
+                            (active
+                              ? 'bg-blue-500 text-white shadow-sm'
+                              : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5')
+                          }
+                        >
+                          M{m.matchNo} • {m.map}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleAddPlaygroundTeam}
+                      className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[11px] font-bold border border-white/10 cursor-pointer"
+                    >
+                      + Slot
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemovePlaygroundTeam}
+                      className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-[11px] font-bold border border-white/10 cursor-pointer"
+                    >
+                      - Slot
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compact Live Points Entry Table */}
+              <div className="bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden">
+                <div className="grid grid-cols-12 gap-1.5 px-3 py-2 bg-zinc-900/90 text-[10px] font-mono font-bold uppercase text-zinc-400 border-b border-white/5">
+                  <div className="col-span-1 text-center">#</div>
+                  <div className="col-span-5">Pasukan</div>
+                  <div className="col-span-3 text-center">Rank</div>
+                  <div className="col-span-2 text-center">Kills</div>
+                  <div className="col-span-1 text-right">PTS</div>
+                </div>
+                <div className="divide-y divide-white/5 max-h-64 overflow-y-auto overscroll-contain">
+                  {currentMatch.slots.map((row, rIdx) => (
+                    <div key={row.slot} className="grid grid-cols-12 gap-1.5 items-center px-3 py-1.5 text-xs hover:bg-zinc-900/40">
+                      <div className="col-span-1 text-center font-mono text-[11px] text-zinc-500 font-bold">
+                        {row.slot}
+                      </div>
+                      <div className="col-span-5">
+                        <input
+                          type="text"
+                          value={row.teamName}
+                          onChange={(e) => handlePlaygroundSlotChange(rIdx, 'teamName', e.target.value)}
+                          placeholder={`Squad ${row.slot}`}
+                          className="w-full bg-zinc-900/80 border border-white/5 rounded-lg px-2 py-1 text-xs text-white font-semibold focus:outline-none focus:border-blue-400"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <select
+                          value={row.placement}
+                          onChange={(e) => handlePlaygroundSlotChange(rIdx, 'placement', e.target.value)}
+                          className="w-full bg-zinc-900/80 border border-white/5 rounded-lg px-1.5 py-1 text-xs text-white font-mono font-bold focus:outline-none focus:border-blue-400"
+                        >
+                          <option value="">Rank</option>
+                          {Array.from({ length: currentMatch.slots.length }, (_, i) => i + 1).map(p => (
+                            <option key={p} value={p}>#{p}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={row.elims}
+                          onChange={(e) => handlePlaygroundSlotChange(rIdx, 'elims', e.target.value)}
+                          className="w-full bg-zinc-900/80 border border-white/5 rounded-lg px-1.5 py-1 text-center text-xs text-white font-mono font-bold focus:outline-none focus:border-blue-400"
+                        />
+                      </div>
+                      <div className="col-span-1 text-right font-mono font-black text-[#D7FF00]">
+                        {row.totalPts}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top 3 Live Overall Standings Strip */}
+              <div className="p-3 rounded-2xl bg-zinc-900/70 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-mono uppercase font-bold text-zinc-400">Live Top 3:</span>
+                  {sortedOverallLeaderboard.slice(0, 3).map((t, idx) => (
+                    <span
+                      key={t.slot}
+                      className="px-2 py-0.5 rounded-lg bg-zinc-950 border border-white/10 font-mono text-[11px] text-white"
+                    >
+                      <strong className="text-[#D7FF00]">#{idx + 1}</strong> {t.teamName} ({t.totalPts}p)
+                    </span>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('scorer')}
+                  className="text-xs font-black text-blue-400 hover:text-[#D7FF00] transition cursor-pointer shrink-0"
+                >
+                  Jana Poster HD →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
