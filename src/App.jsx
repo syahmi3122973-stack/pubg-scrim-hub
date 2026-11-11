@@ -6455,161 +6455,68 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-1">
                 {filteredScrims.map((s, idx) => {
-                  const matchCount = s.matches?.length || 0;
-                  const squadCount = s.matches?.[0]?.results?.length || 16;
                   const isFinished = Boolean(s.is_finished);
-                  const isOwner = currentUser && (s.created_by === currentUser.id || s.co_hosts?.includes(currentUser.id));
-
-                  // Calculate quick top 3 summary if matches exist
-                  const overallScores = calculateLeaderboard(s, 'overall');
-                  const top1 = overallScores[0];
-                  const top2 = overallScores[1];
-                  const top3 = overallScores[2];
 
                   return (
                     <div
                       key={s.id}
+                      onClick={() => setInspectedScrim(s)}
                       style={{ animationDelay: `${80 + Math.min(idx, 8) * 60}ms` }}
-                      className="bg-[#121214] hover:bg-[#151518] rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col justify-between animate-stagger-card"
+                      className="bg-[#121214] hover:bg-[#16161a] border border-white/5 hover:border-white/15 rounded-3xl p-3.5 sm:p-4 shadow-xl transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
                     >
-                      {/* Upper Card Body */}
-                      <div className="p-4 sm:p-5 space-y-3.5">
-                        {/* Top Row: Left (Logo Scrim + Nama Scrim) | Right (Edit Icon Only + View ↗ Button) */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {s.logo_url ? (
-                              <img
-                                src={s.logo_url}
-                                alt={s.title}
-                                className="w-12 h-12 rounded-2xl object-cover bg-zinc-900 shrink-0 shadow-md"
-                              />
+                      {/* Left: Scrim Logo / Badge + Info (Nama Scrim, Status, Date) */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {s.logo_url ? (
+                          <img
+                            src={s.logo_url}
+                            alt=""
+                            className="w-12 h-12 rounded-2xl object-cover bg-zinc-900 shrink-0 shadow-md border border-white/10"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-md border border-white/5">
+                            {s.event_type === 'Tour' ? (
+                              <Trophy className="w-5 h-5 text-[#D7FF00]" />
                             ) : (
-                              <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-md">
-                                {s.event_type === 'Tour' ? (
-                                  <Trophy className="w-5 h-5 text-[#D7FF00]" />
-                                ) : (
-                                  <Flame className="w-5 h-5 text-[#D7FF00]" />
-                                )}
-                              </div>
-                            )}
-
-                            <div className="min-w-0 flex-1">
-                              <h3 className="font-bold text-base sm:text-lg text-white truncate leading-snug">
-                                {s.title}
-                              </h3>
-                              <p className="text-xs text-zinc-400 truncate mt-0.5">
-                                {s.host_name || 'Esports Organizer'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Top-Right Action Buttons: Symbol-only Edit + View ↗ */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAdminSelectedScrimId(s.id);
-                                navigateToTab('admin');
-                              }}
-                              className="w-9 h-9 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-[#D7FF00] flex items-center justify-center transition cursor-pointer"
-                              title="Sunting Sesi"
-                              aria-label="Sunting Sesi"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setInspectedScrim(s)}
-                              className="h-9 px-3.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-white hover:text-black text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-                              title="Lihat Standings Sesi"
-                            >
-                              <span>View</span>
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </button>
-
-                            {isOwner && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteScrim(s.id)}
-                                className="w-9 h-9 rounded-full bg-zinc-900 hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 flex items-center justify-center transition cursor-pointer"
-                                title="Padam Sesi"
-                                aria-label="Padam Sesi"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <Flame className="w-5 h-5 text-[#D7FF00]" />
                             )}
                           </div>
-                        </div>
+                        )}
 
-                        {/* Middle Pills Row: Status Badge (Completed / Pending) + Event Type + Match/Squad Info */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {isFinished ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#D7FF00]/15 text-[#D7FF00]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
-                              <span>Completed</span>
+                        <div className="min-w-0 flex-1">
+                          {/* 1. Nama Scrim (Full title, clear and unobstructed) */}
+                          <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-[#D7FF00] transition leading-snug line-clamp-2">
+                            {s.title}
+                          </h3>
+
+                          {/* 2 & 3. Status & Date */}
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            {/* Status */}
+                            {isFinished ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
+                                <span>Completed</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                <span>Pending</span>
+                              </span>
+                            )}
+
+                            {/* Date */}
+                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-zinc-400 font-mono shrink-0">
+                              <Clock className="w-3 h-3 text-zinc-500" />
+                              <span>{s.date || 'Tiada Tarikh'}</span>
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-300">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                              <span>Pending</span>
-                            </span>
-                          )}
-
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-zinc-900 text-zinc-300">
-                            {s.event_type === 'Tour' ? 'Tournament' : 'Scrim'} • {s.tier?.split(' ')[0] || 'Tier 1'}
-                          </span>
-
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-zinc-900 text-zinc-300 font-mono">
-                            {matchCount} Match • {squadCount} Team
-                          </span>
+                          </div>
                         </div>
-
-                        {/* Description / Standings Preview Paragraph (Following Reference 2-line Summary + Read More) */}
-                        <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
-                          {overallScores.length > 0 ? (
-                            <>
-                              Kedudukan Semasa: <strong className="text-white">#1 {top1?.teamName}</strong> ({top1?.totalPts} PTS)
-                              {top2 ? `, #2 ${top2.teamName} (${top2.totalPts} PTS)` : ''}
-                              {top3 ? `, #3 ${top3.teamName} (${top3.totalPts} PTS)` : ''}.{' '}
-                            </>
-                          ) : (
-                            <>
-                              {s.description || 'Rekod rasmi perlawanan dan kedudukan mata keseluruhan pasukan bagi sesi ini.'}{' '}
-                            </>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setInspectedScrim(s)}
-                            className="text-white hover:text-[#D7FF00] underline font-semibold inline cursor-pointer"
-                          >
-                            Lihat Penuh
-                          </button>
-                        </p>
                       </div>
 
-                      {/* Bottom Contrasting Footer Bar: Left Date | Right Champion / Metric Highlight */}
-                      <div className="bg-[#18181C] px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                          <Clock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          <span>{s.date || 'Tiada Tarikh'}</span>
-                        </div>
-
-                        <div className="text-xs sm:text-sm font-black text-white truncate">
-                          {top1 ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <Trophy className="w-3.5 h-3.5 text-[#D7FF00] shrink-0" />
-                              <span className="truncate max-w-[130px] sm:max-w-[170px]">{top1.teamName}</span>
-                              <span className="text-[#D7FF00] font-mono">{top1.totalPts} PTS</span>
-                            </span>
-                          ) : (
-                            <span className="text-zinc-400 font-mono text-xs">
-                              {matchCount} Match Direkod
-                            </span>
-                          )}
-                        </div>
+                      {/* Right: Quick Action Chevron / Enter Indicator */}
+                      <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/40 transition shrink-0">
+                        <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
                   );
