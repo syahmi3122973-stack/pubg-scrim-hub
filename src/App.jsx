@@ -1174,7 +1174,6 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isEditProfileMode, setIsEditProfileMode] = useState(false);
   const [isOrgPopoverOpen, setIsOrgPopoverOpen] = useState(false);
-  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
@@ -3223,7 +3222,6 @@ export default function App() {
     const normalizedNext = tab === 'home' ? 'playground' : tab;
     setIsQuickCreateModalOpen(false);
     setIsOrgPopoverOpen(false);
-    setIsScannerModalOpen(false);
     setIsNavMenuOpen(false);
     setSelectedTeamProfile('');
     setActiveHeaderInfo(null);
@@ -3299,7 +3297,6 @@ export default function App() {
     (isShowcaseModalOpen ? 1 : 0) +
     (isGuideModalOpen ? 1 : 0) +
     ocrOverlayCount +
-    (isScannerModalOpen ? 1 : 0) +
     (isProfileModalOpen ? 1 : 0) +
     (isOrgPopoverOpen ? 1 : 0) +
     (isNavMenuOpen ? 1 : 0) +
@@ -3322,7 +3319,6 @@ export default function App() {
       const closedOcr = closeOcrOverlayRef.current();
       if (closedOcr) return true;
     }
-    if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
     if (isProfileModalOpen) {
       if (isEditProfileMode) {
         setIsEditProfileMode(false);
@@ -3350,7 +3346,6 @@ export default function App() {
     isGuideModalOpen,
     handleCloseGuide,
     ocrOverlayCount,
-    isScannerModalOpen,
     isProfileModalOpen,
     isEditProfileMode,
     isOrgPopoverOpen,
@@ -3896,11 +3891,11 @@ export default function App() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => setIsScannerModalOpen(true)}
+                    onClick={() => navigateToTab('scrim-data')}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        setIsScannerModalOpen(true);
+                        navigateToTab('scrim-data');
                       }
                     }}
                     className="col-span-1 row-span-2 rounded-[2rem] p-5 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px]"
@@ -6689,7 +6684,7 @@ export default function App() {
             closeOverlayRef={closeOcrOverlayRef}
             supabase={supabase}
             currentUser={currentUser}
-            profileName={profileName}
+            profileName={activeOrganizationName || profileName}
             scrims={scrims}
             setScrims={setScrims}
             showToast={showToast}
@@ -8820,60 +8815,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 3B: BENTO COMMAND CENTER — AI POSTER OCR RESULTS SCANNER MODAL */}
-      {isScannerModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="scanner-modal-title"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
-        >
-          <div
-            className="fixed inset-0"
-            onClick={() => setIsScannerModalOpen(false)}
-          />
-          <div className="relative z-10 bg-[#0A0A0D] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] max-w-4xl w-full max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden overscroll-contain">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#101014] shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 id="scanner-modal-title" className="text-sm font-black text-white">
-                    Results Scanner (AI Poster OCR)
-                  </h3>
-                  <span className="text-[10px] font-mono text-zinc-400 block">
-                    Auto-Audit Matematik (PP + KP = Total)
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsScannerModalOpen(false)}
-                aria-label="Close Results Scanner modal"
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 overscroll-contain">
-              <ScrimDataHubView
-                navigateToTab={navigateToTab}
-                onBack={() => setIsScannerModalOpen(false)}
-                onActiveOverlayChange={setOcrOverlayCount}
-                closeOverlayRef={closeOcrOverlayRef}
-                supabase={supabase}
-                currentUser={currentUser}
-                profileName={activeOrganizationName || profileName}
-                scrims={scrims}
-                setScrims={setScrims}
-                showToast={showToast}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
 
 
