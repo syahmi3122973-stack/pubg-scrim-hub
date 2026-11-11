@@ -4073,9 +4073,8 @@ export default function App() {
                       {/* Top Row: Title + Trophy/Star Icon */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
-                            <Sparkles className="w-3 h-3 fill-black" />
-                            <span>Global Standings</span>
+                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
+                            <span>Current Ranking</span>
                           </div>
                           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-black leading-none pt-0.5">
                             Hall of Fame
