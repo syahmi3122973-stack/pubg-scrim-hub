@@ -57,6 +57,7 @@ import {
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
+import { BackButtonHandler } from './hooks/useMobileBackButton';
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
   <svg 
@@ -343,6 +344,11 @@ export default function App() {
     }
     return 'playground';
   });
+
+  // Page / Tab History Stack & OCR Inner Overlay State for Mobile Back-Button Navigation
+  const [tabHistory, setTabHistory] = useState([]);
+  const [ocrOverlayCount, setOcrOverlayCount] = useState(0);
+  const closeOcrOverlayRef = useRef(null);
 
   // Top Right Hamburger 3-Line Menu State
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
@@ -963,43 +969,6 @@ export default function App() {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 60);
-  };
-
-  const navigateToTab = (tab) => {
-    setIsQuickCreateModalOpen(false);
-    setIsOrgPopoverOpen(false);
-    setIsScannerModalOpen(false);
-    setIsQuickScorerModalOpen(false);
-    setSelectedTeamProfile('');
-    setActiveTab(tab);
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }, 15);
-  };
-
-  const handleStartScoringSession = () => {
-    navigateToTab('scorer');
-  };
-
-  const handleOpenGuide = (slideIdx = 0) => {
-    setCurrentGuideSlide(slideIdx);
-    setIsGuideModalOpen(true);
-    setIsNavMenuOpen(false);
-    try {
-      if (window.location.hash !== '#guide') {
-        window.history.pushState(null, '', '#guide');
-      }
-    } catch {}
-  };
-
-  const handleCloseGuide = () => {
-    setIsGuideModalOpen(false);
-    try {
-      if (window.location.hash === '#guide' || window.location.hash === '#panduan' || window.location.hash === '#tutorial') {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    } catch {}
   };
 
   const handleCopyGuideLink = () => {
@@ -3226,110 +3195,152 @@ export default function App() {
     }
   };
 
-  // --- MOBILE BACK BUTTON & MODAL SAFETY ---
-  const hasAnyActiveOverlay = Boolean(
-    isImportModalOpen ||
-    isOrgPopoverOpen ||
-    isProfileModalOpen ||
-    isScannerModalOpen ||
-    isQuickScorerModalOpen ||
-    isEditScrimModalOpen ||
-    isCreateScrimOpen ||
-    isQuickCreateModalOpen ||
-    isAuthModalOpen ||
-    isPerformanceModalOpen ||
-    isFeedbackModalOpen ||
-    isShowcaseModalOpen ||
-    isGuideModalOpen ||
-    inspectedScrim ||
-    inspectedPost ||
-    (activeTab === 'teams' && selectedTeamProfile)
-  );
+  const navigateToTab = useCallback((tab) => {
+    const normalizedNext = tab === 'home' ? 'playground' : tab;
+    setIsQuickCreateModalOpen(false);
+    setIsOrgPopoverOpen(false);
+    setIsScannerModalOpen(false);
+    setIsQuickScorerModalOpen(false);
+    setIsNavMenuOpen(false);
+    setSelectedTeamProfile('');
+    setActiveHeaderInfo(null);
+
+    setActiveTab((prevTab) => {
+      const normalizedPrev = prevTab === 'home' ? 'playground' : prevTab;
+      if (normalizedNext === 'playground') {
+        setTabHistory([]);
+      } else if (normalizedNext !== normalizedPrev) {
+        setTabHistory((prevStack) => [...prevStack, normalizedPrev]);
+      }
+      return normalizedNext;
+    });
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 15);
+  }, []);
+
+  const handleNavigateBackTab = useCallback(() => {
+    setSelectedTeamProfile('');
+    setActiveHeaderInfo(null);
+    setIsNavMenuOpen(false);
+
+    if (tabHistory.length > 0) {
+      const previousTab = tabHistory[tabHistory.length - 1] || 'playground';
+      setTabHistory((prev) => prev.slice(0, -1));
+      setActiveTab(previousTab);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      return true;
+    }
+
+    if (activeTab !== 'playground' && activeTab !== 'home') {
+      setActiveTab('playground');
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      return true;
+    }
+
+    return false;
+  }, [tabHistory, activeTab]);
+
+  const handleStartScoringSession = () => {
+    navigateToTab('scorer');
+  };
+
+  const handleOpenGuide = (slideIdx = 0) => {
+    setCurrentGuideSlide(slideIdx);
+    setIsGuideModalOpen(true);
+    setIsNavMenuOpen(false);
+  };
+
+  const handleCloseGuide = useCallback(() => {
+    setIsGuideModalOpen(false);
+    try {
+      if (window.location.hash === '#guide' || window.location.hash === '#panduan' || window.location.hash === '#tutorial') {
+        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+      }
+    } catch {}
+  }, []);
+
+  // --- MOBILE BACK BUTTON, MODAL SAFETY & PAGE HISTORY NAVIGATION ---
+  const activeOverlayCount =
+    (isImportModalOpen ? 1 : 0) +
+    (isQuickCreateModalOpen ? 1 : 0) +
+    (isPerformanceModalOpen ? 1 : 0) +
+    (inspectedScrim ? 1 : 0) +
+    (inspectedPost ? 1 : 0) +
+    (isEditScrimModalOpen ? 1 : 0) +
+    (isCreateScrimOpen ? 1 : 0) +
+    (isAuthModalOpen ? 1 : 0) +
+    (isFeedbackModalOpen ? 1 : 0) +
+    (isShowcaseModalOpen ? 1 : 0) +
+    (isGuideModalOpen ? 1 : 0) +
+    ocrOverlayCount +
+    (isScannerModalOpen ? 1 : 0) +
+    (isQuickScorerModalOpen ? 1 : 0) +
+    (isProfileModalOpen ? 1 : 0) +
+    (isOrgPopoverOpen ? 1 : 0) +
+    (isNavMenuOpen ? 1 : 0) +
+    (activeTab === 'teams' && selectedTeamProfile ? 1 : 0) +
+    (activeHeaderInfo ? 1 : 0);
 
   const closeTopmostOverlay = useCallback(() => {
     if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
-    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
-    if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
-    if (isEditScrimModalOpen) { setIsEditScrimModalOpen(false); return true; }
-    if (isCreateScrimOpen) { setIsCreateScrimOpen(false); return true; }
-    if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
-    if (isQuickScorerModalOpen) { setIsQuickScorerModalOpen(false); return true; }
     if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
-    if (isAuthModalOpen) { setIsAuthModalOpen(false); setPendingCloudSync(false); return true; }
     if (isPerformanceModalOpen) { setIsPerformanceModalOpen(false); return true; }
-    if (isFeedbackModalOpen) { setIsFeedbackModalOpen(false); return true; }
-    if (isShowcaseModalOpen) { setIsShowcaseModalOpen(false); return true; }
-    if (isGuideModalOpen) { setIsGuideModalOpen(false); return true; }
     if (inspectedScrim) { setInspectedScrim(null); return true; }
     if (inspectedPost) { setInspectedPost(null); return true; }
+    if (isEditScrimModalOpen) { setIsEditScrimModalOpen(false); return true; }
+    if (isCreateScrimOpen) { setIsCreateScrimOpen(false); return true; }
+    if (isAuthModalOpen) { setIsAuthModalOpen(false); setPendingCloudSync(false); return true; }
+    if (isFeedbackModalOpen) { setIsFeedbackModalOpen(false); return true; }
+    if (isShowcaseModalOpen) { setIsShowcaseModalOpen(false); return true; }
+    if (isGuideModalOpen) { handleCloseGuide(); return true; }
+    if (ocrOverlayCount > 0 && typeof closeOcrOverlayRef.current === 'function') {
+      const closedOcr = closeOcrOverlayRef.current();
+      if (closedOcr) return true;
+    }
+    if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
+    if (isQuickScorerModalOpen) { setIsQuickScorerModalOpen(false); return true; }
+    if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
+    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
+    if (isNavMenuOpen) { setIsNavMenuOpen(false); return true; }
     if (activeTab === 'teams' && selectedTeamProfile) { setSelectedTeamProfile(''); return true; }
+    if (activeHeaderInfo) { setActiveHeaderInfo(null); return true; }
     return false;
   }, [
     isImportModalOpen,
-    isOrgPopoverOpen,
-    isProfileModalOpen,
+    isQuickCreateModalOpen,
+    isPerformanceModalOpen,
+    inspectedScrim,
+    inspectedPost,
     isEditScrimModalOpen,
     isCreateScrimOpen,
-    isScannerModalOpen,
-    isQuickScorerModalOpen,
-    isQuickCreateModalOpen,
     isAuthModalOpen,
-    isPerformanceModalOpen,
     isFeedbackModalOpen,
     isShowcaseModalOpen,
     isGuideModalOpen,
-    inspectedScrim,
-    inspectedPost,
+    handleCloseGuide,
+    ocrOverlayCount,
+    isScannerModalOpen,
+    isQuickScorerModalOpen,
+    isProfileModalOpen,
+    isOrgPopoverOpen,
+    isNavMenuOpen,
     activeTab,
-    selectedTeamProfile
+    selectedTeamProfile,
+    activeHeaderInfo
   ]);
-
-  const overlayHistoryPushedRef = useRef(false);
-
-  useEffect(() => {
-    if (hasAnyActiveOverlay && !overlayHistoryPushedRef.current) {
-      try {
-        window.history.pushState({ scrimHubOverlay: true }, '');
-        overlayHistoryPushedRef.current = true;
-      } catch {
-        // ignore
-      }
-    } else if (!hasAnyActiveOverlay && overlayHistoryPushedRef.current) {
-      overlayHistoryPushedRef.current = false;
-      try {
-        if (window.history.state && window.history.state.scrimHubOverlay) {
-          window.history.back();
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }, [hasAnyActiveOverlay]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      if (hasAnyActiveOverlay) {
-        overlayHistoryPushedRef.current = false;
-        closeTopmostOverlay();
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && hasAnyActiveOverlay) {
-        closeTopmostOverlay();
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [hasAnyActiveOverlay, closeTopmostOverlay]);
 
   return (
     <div className="min-h-screen bg-[#080808] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
+      <BackButtonHandler
+        activeTab={activeTab}
+        tabHistory={tabHistory}
+        activeOverlayCount={activeOverlayCount}
+        closeTopmostOverlay={closeTopmostOverlay}
+        onNavigateBackTab={handleNavigateBackTab}
+      />
       
       {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
       {toastMessage && (
@@ -3626,7 +3637,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveTab('showcase');
+                          navigateToTab('showcase');
                           setIsNavMenuOpen(false);
                         }}
                         className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 transition ' + (
@@ -3639,7 +3650,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveTab('hosts');
+                          navigateToTab('hosts');
                           setIsNavMenuOpen(false);
                         }}
                         className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 transition ' + (
@@ -3652,7 +3663,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveTab('about');
+                          navigateToTab('about');
                           setIsNavMenuOpen(false);
                         }}
                         className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 transition ' + (
@@ -5950,7 +5961,7 @@ export default function App() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('admin')}
+                  onClick={() => navigateToTab('admin')}
                   className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
                 >
                   Buka Portal Host →
@@ -6013,7 +6024,7 @@ export default function App() {
                               type="button"
                               onClick={() => {
                                 setAdminSelectedScrimId(s.id);
-                                setActiveTab('admin');
+                                navigateToTab('admin');
                               }}
                               className="w-9 h-9 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-[#D7FF00] flex items-center justify-center transition cursor-pointer"
                               title="Sunting Sesi"
@@ -6645,6 +6656,9 @@ export default function App() {
         {activeTab === 'scrim-data' && (
           <ScrimDataHubView
             navigateToTab={navigateToTab}
+            onBack={handleNavigateBackTab}
+            onActiveOverlayChange={setOcrOverlayCount}
+            closeOverlayRef={closeOcrOverlayRef}
             supabase={supabase}
             currentUser={currentUser}
             profileName={profileName}
@@ -7926,10 +7940,7 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         handleCloseGuide();
-                        setActiveTab('playground');
-                        setTimeout(() => {
-                          document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 80);
+                        navigateToTab('scorer');
                       }}
                       className="w-full sm:w-auto px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(215, 255, 0,0.18)] shrink-0 active:scale-95"
                     >
@@ -8008,7 +8019,7 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         handleCloseGuide();
-                        setActiveTab('admin');
+                        navigateToTab('admin');
                       }}
                       className="w-full sm:w-auto px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(215, 255, 0,0.18)] shrink-0 active:scale-95"
                     >
@@ -8544,6 +8555,9 @@ export default function App() {
             <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 overscroll-contain">
               <ScrimDataHubView
                 navigateToTab={navigateToTab}
+                onBack={() => setIsScannerModalOpen(false)}
+                onActiveOverlayChange={setOcrOverlayCount}
+                closeOverlayRef={closeOcrOverlayRef}
                 supabase={supabase}
                 currentUser={currentUser}
                 profileName={activeOrganizationName || profileName}
@@ -9188,8 +9202,8 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setAdminSelectedScrimId(inspectedScrim.id);
-                    setActiveTab('admin');
                     setInspectedScrim(null);
+                    navigateToTab('admin');
                   }}
                   className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215, 255, 0,0.18)]"
                 >

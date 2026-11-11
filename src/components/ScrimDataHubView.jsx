@@ -159,6 +159,9 @@ export function normalizeTeamAlias(rawName) {
 
 export default function ScrimDataHubView({
   navigateToTab,
+  onBack,
+  onActiveOverlayChange,
+  closeOverlayRef,
   supabase,
   currentUser,
   profileName = '',
@@ -200,6 +203,45 @@ export default function ScrimDataHubView({
 
   const fileInputRef = useRef(null);
   const standingsSectionRef = useRef(null);
+
+  const hasActiveOcrTableOrPreview = Boolean(standings.length > 0 || previewUrl);
+  const localOverlayCount = (isHeaderInfoOpen ? 1 : 0) + (hasActiveOcrTableOrPreview ? 1 : 0);
+
+  useEffect(() => {
+    if (typeof onActiveOverlayChange === 'function') {
+      onActiveOverlayChange(localOverlayCount);
+    }
+    return () => {
+      if (typeof onActiveOverlayChange === 'function') {
+        onActiveOverlayChange(0);
+      }
+    };
+  }, [localOverlayCount, onActiveOverlayChange]);
+
+  useEffect(() => {
+    if (!closeOverlayRef) return undefined;
+    closeOverlayRef.current = () => {
+      if (isHeaderInfoOpen) {
+        setIsHeaderInfoOpen(false);
+        return true;
+      }
+      if (standings.length > 0 || previewUrl) {
+        setFile(null);
+        setPreviewUrl(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        setScrimName('');
+        setStandings([]);
+        setTeamSearchQuery('');
+        return true;
+      }
+      return false;
+    };
+    return () => {
+      closeOverlayRef.current = null;
+    };
+  }, [closeOverlayRef, isHeaderInfoOpen, standings.length, previewUrl]);
 
   const scrollToStandings = useCallback(() => {
     setTimeout(() => {
@@ -561,9 +603,9 @@ export default function ScrimDataHubView({
       <div className="flex items-center justify-between px-1 animate-stagger-card">
         <button
           type="button"
-          onClick={() => navigateToTab('playground')}
+          onClick={() => (typeof onBack === 'function' ? onBack() : navigateToTab('playground'))}
           className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group"
-          title="Kembali ke Laman Utama"
+          title="Kembali ke skrin sebelumnya"
         >
           <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
           <span className="text-base sm:text-lg font-bold tracking-tight">Results Scanner</span>
