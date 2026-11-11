@@ -970,6 +970,7 @@ export default function App() {
     setIsOrgPopoverOpen(false);
     setIsScannerModalOpen(false);
     setIsQuickScorerModalOpen(false);
+    setSelectedTeamProfile('');
     setActiveTab(tab);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setTimeout(() => {
@@ -1208,47 +1209,15 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  // Organization / Account Selector State
-  const [userOrganizations, setUserOrganizations] = useState(() => {
-    try {
-      const saved = localStorage.getItem('scrim_hub_user_orgs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // ignore
-    }
-    return [
-      { id: 'org_mec', name: 'MEC Scrims Official', role: 'Clan Host' },
-      { id: 'org_ct', name: 'CT Scrims Management', role: 'Tournament Admin' }
-    ];
-  });
-  const [activeOrgId, setActiveOrgId] = useState(() => {
-    try {
-      return localStorage.getItem('scrim_hub_active_org') || 'primary';
-    } catch {
-      return 'primary';
-    }
-  });
-  const [isAddingOrg, setIsAddingOrg] = useState(false);
-  const [newOrgInput, setNewOrgInput] = useState('');
-
+  // Clear any legacy hardcoded organization entries from localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('scrim_hub_user_orgs', JSON.stringify(userOrganizations));
+      localStorage.removeItem('scrim_hub_user_orgs');
+      localStorage.removeItem('scrim_hub_active_org');
     } catch {
       // ignore
     }
-  }, [userOrganizations]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('scrim_hub_active_org', activeOrgId);
-    } catch {
-      // ignore
-    }
-  }, [activeOrgId]);
+  }, []);
 
   // Feedback Modal
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -1472,28 +1441,7 @@ export default function App() {
     return profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Host Admin');
   }, [profileName, currentUser]);
 
-  const activeOrganizationName = useMemo(() => {
-    if (activeOrgId === 'primary') return primaryAccountName;
-    const found = userOrganizations.find(o => o.id === activeOrgId);
-    return found ? found.name : primaryAccountName;
-  }, [activeOrgId, userOrganizations, primaryAccountName]);
-
-  const handleAddOrganization = (e) => {
-    e.preventDefault();
-    const trimmed = newOrgInput.trim();
-    if (!trimmed) return;
-    const newOrg = {
-      id: 'org_' + Date.now().toString(36),
-      name: trimmed,
-      role: 'Organization Host'
-    };
-    setUserOrganizations(prev => [...prev, newOrg]);
-    setActiveOrgId(newOrg.id);
-    setNewOrgInput('');
-    setIsAddingOrg(false);
-    setIsOrgPopoverOpen(false);
-    showToast(`Switched to organization: ${trimmed}`);
-  };
+  const activeOrganizationName = primaryAccountName;
 
   useEffect(() => {
     if (adminHostedScrims.length > 0 && !adminHostedScrims.some(s => s.id === adminSelectedScrimId)) {
@@ -3097,10 +3045,10 @@ export default function App() {
     if (selectedTeamProfile && categoryTeamList.some(t => t.name === selectedTeamProfile)) {
       return selectedTeamProfile;
     }
-    return categoryTeamList.length > 0 ? categoryTeamList[0].name : '';
+    return '';
   }, [selectedTeamProfile, categoryTeamList]);
 
-  const activeTeamData = teamsStats[currentSelectedTeam] || categoryTeamList[0] || null;
+  const activeTeamData = currentSelectedTeam ? (teamsStats[currentSelectedTeam] || null) : null;
 
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
@@ -3294,12 +3242,13 @@ export default function App() {
     isShowcaseModalOpen ||
     isGuideModalOpen ||
     inspectedScrim ||
-    inspectedPost
+    inspectedPost ||
+    (activeTab === 'teams' && selectedTeamProfile)
   );
 
   const closeTopmostOverlay = useCallback(() => {
     if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
-    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); setIsAddingOrg(false); return true; }
+    if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
     if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
     if (isEditScrimModalOpen) { setIsEditScrimModalOpen(false); return true; }
     if (isCreateScrimOpen) { setIsCreateScrimOpen(false); return true; }
@@ -3313,6 +3262,7 @@ export default function App() {
     if (isGuideModalOpen) { setIsGuideModalOpen(false); return true; }
     if (inspectedScrim) { setInspectedScrim(null); return true; }
     if (inspectedPost) { setInspectedPost(null); return true; }
+    if (activeTab === 'teams' && selectedTeamProfile) { setSelectedTeamProfile(''); return true; }
     return false;
   }, [
     isImportModalOpen,
@@ -3329,7 +3279,9 @@ export default function App() {
     isShowcaseModalOpen,
     isGuideModalOpen,
     inspectedScrim,
-    inspectedPost
+    inspectedPost,
+    activeTab,
+    selectedTeamProfile
   ]);
 
   const overlayHistoryPushedRef = useRef(false);
@@ -3461,19 +3413,16 @@ export default function App() {
             )}
           </div>
 
-          {/* TOP CENTER: Current Active Username / Organization Selector (Small, Clean, Clickable with Floating Popover Card) */}
+          {/* TOP CENTER: Current Active Logged-In Account Selector (Small, Clean, Clickable with Floating Popover Card) */}
           {currentUser && (
             <div className="absolute left-1/2 -translate-x-1/2 z-30">
               <button
                 type="button"
-                onClick={() => {
-                  setIsOrgPopoverOpen(prev => !prev);
-                  setIsAddingOrg(false);
-                }}
+                onClick={() => setIsOrgPopoverOpen(prev => !prev)}
                 aria-expanded={isOrgPopoverOpen}
                 aria-haspopup="dialog"
                 className="px-3.5 py-1.5 rounded-full bg-[#121216] hover:bg-[#19191F] border border-white/10 hover:border-white/20 flex items-center gap-2 text-xs font-bold text-white shadow-lg transition-all active:scale-95 cursor-pointer max-w-[190px] sm:max-w-[240px]"
-                title="Tukar Akaun / Organisasi Penganjur"
+                title="Akaun Aktif Semasa"
               >
                 <span className="w-2 h-2 rounded-full bg-[#D7FF00] shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
                 <span className="truncate">{activeOrganizationName}</span>
@@ -3485,143 +3434,55 @@ export default function App() {
                 />
               </button>
 
-              {/* Non-Intrusive Floating Popover Card (Does NOT block full screen) */}
+              {/* Non-Intrusive Floating Popover Card (Shows Only Logged-In User Account) */}
               {isOrgPopoverOpen && (
                 <>
                   <div
                     className="fixed inset-0 z-30"
-                    onClick={() => {
-                      setIsOrgPopoverOpen(false);
-                      setIsAddingOrg(false);
-                    }}
+                    onClick={() => setIsOrgPopoverOpen(false)}
                   />
                   <div
                     role="dialog"
-                    aria-label="Switch Account or Organization"
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-68 sm:w-76 bg-[#121216]/95 backdrop-blur-2xl border border-white/15 rounded-[1.5rem] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.85)] z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
+                    aria-label="Active User Account"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 bg-[#121216]/95 backdrop-blur-2xl border border-white/15 rounded-[1.5rem] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.85)] z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
                   >
                     <div className="flex items-center justify-between px-1.5 pt-0.5">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
-                        Active Account / Clan
+                        Akaun Log Masuk
                       </span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsOrgPopoverOpen(false);
-                          setIsAddingOrg(false);
-                        }}
-                        aria-label="Close organization switcher"
+                        onClick={() => setIsOrgPopoverOpen(false)}
+                        aria-label="Tutup"
                         className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5 overscroll-contain">
-                      {/* Primary Personal Host Account */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveOrgId('primary');
-                          setIsOrgPopoverOpen(false);
-                          showToast(`Active account: ${primaryAccountName}`);
-                        }}
-                        className={
-                          'w-full px-3 py-2 rounded-2xl flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ' +
-                          (activeOrgId === 'primary'
-                            ? 'bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold'
-                            : 'hover:bg-white/5 text-zinc-300')
-                        }
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center shrink-0">
-                            {primaryAccountName.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
-                            <div className="truncate text-[10px] text-zinc-400">{currentUser.email}</div>
-                          </div>
+                    {/* Logged-in User Account Only */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOrgPopoverOpen(false);
+                        setIsProfileModalOpen(true);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-2xl bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-[#D7FF00] text-black font-black text-[11px] flex items-center justify-center shrink-0">
+                          {primaryAccountName.slice(0, 2).toUpperCase()}
                         </div>
-                        {activeOrgId === 'primary' && (
-                          <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
-                        )}
-                      </button>
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
+                          <div className="truncate text-[10px] text-zinc-400">{currentUser.email}</div>
+                        </div>
+                      </div>
+                      <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                    </button>
 
-                      {/* Hosted Clan / Admin Organizations */}
-                      {userOrganizations.map((org) => {
-                        const isSelected = activeOrgId === org.id;
-                        return (
-                          <button
-                            key={org.id}
-                            type="button"
-                            onClick={() => {
-                              setActiveOrgId(org.id);
-                              setIsOrgPopoverOpen(false);
-                              showToast(`Switched to ${org.name}`);
-                            }}
-                            className={
-                              'w-full px-3 py-2 rounded-2xl flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ' +
-                              (isSelected
-                                ? 'bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold'
-                                : 'hover:bg-white/5 text-zinc-300')
-                            }
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-full bg-zinc-800 text-[#D7FF00] font-black text-[10px] flex items-center justify-center shrink-0 border border-white/10">
-                                {org.name.slice(0, 2).toUpperCase()}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="truncate text-xs font-bold text-white">{org.name}</div>
-                                <div className="truncate text-[10px] text-zinc-400">{org.role || 'Clan / Admin Host'}</div>
-                              </div>
-                            </div>
-                            {isSelected && (
-                              <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Add Account / New Organization Section */}
-                    <div className="pt-2 border-t border-white/10 space-y-1.5">
-                      {isAddingOrg ? (
-                        <form onSubmit={handleAddOrganization} className="space-y-2 p-1">
-                          <input
-                            type="text"
-                            placeholder="Nama Clan / Organisasi..."
-                            value={newOrgInput}
-                            onChange={(e) => setNewOrgInput(e.target.value)}
-                            autoFocus
-                            className="w-full bg-zinc-900 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                          />
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setIsAddingOrg(false)}
-                              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-zinc-400 hover:text-white"
-                            >
-                              Batal
-                            </button>
-                            <button
-                              type="submit"
-                              className="px-3 py-1 rounded-lg bg-[#D7FF00] text-black text-[11px] font-black"
-                            >
-                              Simpan
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingOrg(true)}
-                          className="w-full px-3 py-2 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-[#D7FF00] text-xs font-bold flex items-center gap-2 transition cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Add Account / New Organization</span>
-                        </button>
-                      )}
-
+                    {/* Account Actions */}
+                    <div className="pt-2 border-t border-white/10 space-y-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -3629,10 +3490,22 @@ export default function App() {
                           setIsRegisterMode(false);
                           setIsAuthModalOpen(true);
                         }}
-                        className="w-full px-3 py-1.5 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-zinc-200 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-[#D7FF00] text-xs font-bold flex items-center justify-between transition cursor-pointer"
                       >
-                        <span>Log masuk akaun lain</span>
-                        <ArrowRight className="w-3 h-3" />
+                        <span>Tukar / Log Masuk Akaun Lain</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOrgPopoverOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full px-3 py-1.5 rounded-xl hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
+                      >
+                        <span>Log Keluar</span>
+                        <LogOut className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -3876,15 +3749,15 @@ export default function App() {
             ) || scrims[0] || null;
             const lastScannedLabel = lastScannedRecord
               ? `${lastScannedRecord.title} • ${lastScannedRecord.date || 'Today'}`
-              : 'MEC Scrims • Today, 9:30 PM';
+              : 'Tiada rekod imbasan terkini';
 
             const quickScorerPreviewTitle =
               playgroundSession?.title && playgroundSession.title !== 'PUBG Mobile Scrim Season'
                 ? playgroundSession.title
-                : scrims[0]?.title || 'CT Scrims S3';
+                : scrims[0]?.title || 'Sesi Pantas PMGC';
 
             const latestRekodSession = scrims[0] || null;
-            const latestRekodTitle = latestRekodSession?.title || 'MEC Scrims Official S4';
+            const latestRekodTitle = latestRekodSession?.title || 'Tiada sesi direkod lagi';
             const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
 
             return (
@@ -4438,95 +4311,12 @@ export default function App() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-md">
-                    Log masuk untuk akses penuh ke <strong className="text-white">Bento Command Center</strong> — atau uji kiraan pantas di bawah.
+                    Susun kedudukan &amp; tiebreaker automatik supaya anda tak perlu lagi baiki formula spreadsheet atau lukis poster manual.
                   </p>
                 </div>
               </div>
 
-              {/* 3. GUEST LOGIN / SIGN-IN GUARD CARD (Direct Sign-In to Unlock Bento Command Center) */}
-              <div
-                id="guest-login-guard-card"
-                className="rounded-[2rem] bg-[#121216] border border-white/10 p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
-                style={{ animationDelay: '110ms' }}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center font-black shadow-md">
-                      <Lock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm sm:text-base font-black text-white">
-                        {isRegisterMode ? 'Daftar Akaun Command Center' : 'Log Masuk ke Command Center'}
-                      </h2>
-                      <p className="text-[11px] text-zinc-400">
-                        Akses papan pemuka Bento-Grid, AI Results Scanner &amp; Rekod Cloud
-                      </p>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[10px] font-mono font-bold shrink-0">
-                    AUTH GUARD
-                  </span>
-                </div>
-
-                <form onSubmit={handleAuthSubmit} className="space-y-3 text-xs">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
-                      <input
-                        type="email"
-                        required
-                        autoComplete="email"
-                        placeholder="Emel rasmi (cth: host@esports.com)"
-                        value={authEmail}
-                        onChange={(e) => setAuthEmail(e.target.value)}
-                        className="w-full bg-zinc-950/90 border border-white/10 rounded-2xl pl-10 pr-3 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                      />
-                    </div>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
-                      <input
-                        type="password"
-                        required
-                        autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
-                        placeholder="Kata laluan (••••••••)"
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        className="w-full bg-zinc-950/90 border border-white/10 rounded-2xl pl-10 pr-3 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
-                    <button
-                      type="submit"
-                      disabled={authLoading}
-                      className="w-full sm:w-auto flex-1 py-2.5 px-5 rounded-2xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs uppercase tracking-wider transition shadow-[0_0_20px_rgba(215,255,0,0.2)] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {authLoading ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>Memproses...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{isRegisterMode ? 'Daftar & Buka Command Center' : 'Log Masuk Command Center'}</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsRegisterMode(prev => !prev)}
-                      className="text-xs text-zinc-400 hover:text-[#D7FF00] font-bold transition cursor-pointer px-2 py-1"
-                    >
-                      {isRegisterMode ? 'Sudah ada akaun? Log Masuk' : 'Tiada akaun? Daftar Percuma'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* 4. INTERACTIVE 4-SECOND AUTO SLIDER (Shrink Left -> Next Card Enters From Right & Grows) */}
+              {/* 3. INTERACTIVE 4-SECOND AUTO SLIDER (Shrink Left -> Next Card Enters From Right & Grows) */}
               <div
                 className="relative select-none animate-stagger-card"
                 style={{ animationDelay: '150ms' }}
@@ -4682,7 +4472,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 5. FULL-WIDTH PILL CTA BUTTON */}
+              {/* 4. FULL-WIDTH PILL CTA BUTTON (Following Reference "Let's get started! (>)") */}
               <div
                 className="space-y-3 pt-1 px-1 animate-stagger-card"
                 style={{ animationDelay: '240ms' }}
@@ -4694,13 +4484,50 @@ export default function App() {
                   title="Mula kira markah sekarang di Quick Scorer tanpa login"
                 >
                   <span className="text-sm sm:text-base font-bold tracking-tight text-white mx-auto pr-4">
-                    Cuba Quick Scorer (Tetamu)
+                    Mula Kira Sekarang!
                   </span>
                   <span className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#D7FF00] group-hover:bg-[#c2e600] text-black flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(215,255,0,0.3)] group-hover:translate-x-0.5 transition-all">
                     <ChevronRight className="w-5 h-5 stroke-[2.5] text-black" />
                   </span>
                 </button>
+
+                {/* Secondary Sign-In / Host Portal Link (Following Reference "Already have an account? Sign in") */}
+                <div className="text-center text-xs text-zinc-400">
+                  <span>Penganjur kejohanan rasmi? </span>
+                  <button
+                    type="button"
+                    onClick={() => navigateToTab('admin')}
+                    className="font-black text-white hover:text-[#D7FF00] underline decoration-[#D7FF00]/60 underline-offset-4 transition cursor-pointer"
+                  >
+                    Buka Portal Host
+                  </button>
+                </div>
               </div>
+
+              {/* 5. ACTIVE OFFICIAL SCRIM BANNER (IF ANY) */}
+              {scrims.length > 0 && (
+                <div
+                  onClick={() => {
+                    setSelectedScrimId(scrims[0].id);
+                    navigateToTab('history');
+                  }}
+                  className="p-3.5 bg-[#121214] hover:bg-[#161619] rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group shadow-md mx-1"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block">Sesi Terkini Diarkib</span>
+                      <span className="text-xs sm:text-sm font-bold text-white truncate block">
+                        {scrims[0].title || 'PUBG Mobile Scrim'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-[#D7FF00] transition-colors shrink-0">
+                    <span className="hidden sm:inline">Lihat Keputusan</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              )}
 
             </div>
           );
@@ -5460,10 +5287,7 @@ export default function App() {
                     <button
                       key={t.name}
                       type="button"
-                      onClick={() => {
-                        setSelectedTeamProfile(t.name);
-                        document.getElementById('hof-team-detail-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                      }}
+                      onClick={() => setSelectedTeamProfile(t.name)}
                       className={
                         'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
                         (isSelected
@@ -5482,11 +5306,18 @@ export default function App() {
                 <div className="relative px-1 animate-in fade-in duration-150">
                   <Search className="w-4 h-4 text-zinc-500 absolute left-4 top-3" />
                   <input
-                    type="text"
+                    type="search"
+                    enterKeyHint="search"
                     placeholder="Cari nama pasukan atau tag..."
                     value={teamSearchQuery}
                     onChange={(e) => setTeamSearchQuery(e.target.value)}
-                    className="w-full bg-[#121214] border border-white/10 rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00] transition font-semibold placeholder:text-zinc-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    className="w-full bg-[#121214] border border-white/10 rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00] transition font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
                   />
                   {teamSearchQuery && (
                     <button
@@ -5640,10 +5471,7 @@ export default function App() {
                       return (
                         <div
                           key={team.name}
-                          onClick={() => {
-                            setSelectedTeamProfile(team.name);
-                            document.getElementById('hof-team-detail-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                          }}
+                          onClick={() => setSelectedTeamProfile(team.name)}
                           style={{ animationDelay: `${180 + Math.min(idx, 8) * 60}ms` }}
                           className={
                             'p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all animate-stagger-card ' +
@@ -5748,28 +5576,66 @@ export default function App() {
                 )}
               </div>
 
-              {/* 5. SELECTED TEAM DETAILED STATS & MATCH LOGS */}
+              {/* 5. SELECTED TEAM DETAILED STATS & MATCH LOGS MODAL (Opens only when a team is clicked, without lengthening page) */}
               {activeTeamData && activeTeamScopedStats && (
                 <div
-                  id="hof-team-detail-panel"
-                  style={{ animationDelay: '260ms' }}
-                  className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 scroll-mt-20 animate-stagger-card"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`Statistik Pasukan ${activeTeamData.name}`}
+                  className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+                  onClick={() => setSelectedTeamProfile('')}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-300 flex items-center justify-center text-black font-black text-base shadow-sm">
-                        {activeTeamData.tag}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="font-black text-sm sm:text-base text-white">{activeTeamData.name}</h3>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 font-mono font-bold">
-                            Rekod {teamStatsCategory === 'ALL' ? 'Keseluruhan' : teamStatsCategory}
+                  <div
+                    id="hof-team-detail-panel"
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full max-w-xl bg-[#121216] border border-white/10 rounded-[2rem] p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain relative animate-in zoom-in-95 duration-150"
+                  >
+                    <div className="flex items-start justify-between pb-3 border-b border-white/10 gap-3">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-300 flex items-center justify-center text-black font-black text-base shadow-sm shrink-0">
+                          {activeTeamData.tag}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-black text-sm sm:text-base text-white truncate">{activeTeamData.name}</h3>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 font-mono font-bold">
+                              Rekod {teamStatsCategory === 'ALL' ? 'Keseluruhan' : teamStatsCategory}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-zinc-400 block mt-0.5">
+                            Klik sesi di bawah untuk lihat papan markah penuh
                           </span>
                         </div>
-                        <span className="text-[11px] text-zinc-400">
-                          Klik sesi di bawah untuk lihat papan markah penuh atau jana IG Story 9:16
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTeamProfile('')}
+                        aria-label="Tutup statistik pasukan"
+                        className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="bg-zinc-950/60 p-3 rounded-2xl text-center border border-white/5">
+                        <span className="text-[10px] uppercase font-bold text-zinc-400 block">Points</span>
+                        <span className="text-xl font-black font-mono text-[#D7FF00]">{activeTeamScopedStats.totalPoints}</span>
+                      </div>
+                      <div className="bg-zinc-950/60 p-3 rounded-2xl text-center border border-white/5">
+                        <span className="text-[10px] uppercase font-bold text-zinc-400 block">Elims</span>
+                        <span className="text-xl font-black font-mono text-white">{activeTeamScopedStats.totalKills}</span>
+                      </div>
+                      <div className="bg-zinc-950/60 p-3 rounded-2xl text-center border border-white/5">
+                        <span className="text-[10px] uppercase font-bold text-zinc-400 block">WWCD</span>
+                        <span className="text-xl font-black font-mono text-[#D7FF00]">
+                          {activeTeamScopedStats.totalWWCD}
                         </span>
+                      </div>
+                      <div className="bg-zinc-950/60 p-3 rounded-2xl text-center border border-white/5">
+                        <span className="text-[10px] uppercase font-bold text-zinc-400 block">Sesi</span>
+                        <span className="text-xl font-black font-mono text-zinc-300">{activeTeamScopedStats.eventsCount}</span>
                       </div>
                     </div>
 
@@ -5781,118 +5647,99 @@ export default function App() {
                         setPerformanceModalCategory(teamStatsCategory);
                         setIsPerformanceModalOpen(true);
                       }}
-                      className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(215,255,0,0.18)] active:scale-95 cursor-pointer"
+                      className="w-full py-2.5 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl text-xs transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(215,255,0,0.18)] active:scale-[0.98] cursor-pointer"
                     >
                       <Share2 className="w-4 h-4 text-black" />
-                      <span>Jana IG Story 9:16</span>
+                      <span>Jana Kad Analitik &amp; IG Story 9:16</span>
                     </button>
-                  </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">Points</span>
-                      <span className="text-xl font-black font-mono text-[#D7FF00]">{activeTeamScopedStats.totalPoints}</span>
-                    </div>
-                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">Elims</span>
-                      <span className="text-xl font-black font-mono text-white">{activeTeamScopedStats.totalKills}</span>
-                    </div>
-                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">WWCD</span>
-                      <span className="text-xl font-black font-mono text-[#D7FF00]">
-                        {activeTeamScopedStats.totalWWCD}
-                      </span>
-                    </div>
-                    <div className="bg-zinc-950/60 p-3 rounded-2xl text-center">
-                      <span className="text-[10px] uppercase font-bold text-zinc-400 block">Sesi</span>
-                      <span className="text-xl font-black font-mono text-zinc-300">{activeTeamScopedStats.eventsCount}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                        Sejarah Perlawanan ({activeTeamScopedStats.filteredResults.length})
-                      </span>
-                      <span className="text-[10px] text-[#D7FF00] font-semibold flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> Semak Standings
-                      </span>
-                    </div>
-
-                    {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
-                      activeTeamScopedStats.filteredResults.map((item, idx) => {
-                        const isFirst = item.ranking === 1;
-                        return (
-                          <div
-                            key={idx}
-                            onClick={() => setInspectedScrim(item.scrimData)}
-                            className={
-                              'p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition ' +
-                              (isFirst
-                                ? 'bg-zinc-900/90 shadow-[0_0_15px_rgba(215,255,0,0.06)]'
-                                : 'bg-zinc-950/60 hover:bg-zinc-900/60')
-                            }
-                          >
-                            <div className="flex items-center space-x-3 min-w-0 flex-1">
-                              {item.scrimData?.logo_url && (
-                                <img
-                                  src={item.scrimData.logo_url}
-                                  alt=""
-                                  className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-                                />
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
-                                  <span className="truncate max-w-[160px] sm:max-w-none">{item.scrimName}</span>
-                                  <span
-                                    className={
-                                      'text-[9px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ' +
-                                      ((item.eventType || 'Scrim') === 'Tour'
-                                        ? 'bg-amber-500/20 text-amber-300'
-                                        : 'bg-[#D7FF00]/15 text-[#D7FF00]')
-                                    }
-                                  >
-                                    {(item.eventType || 'Scrim').toUpperCase()}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1 flex-wrap">
-                                  <span className="text-[#D7FF00] font-bold">{item.scrimTier}</span>
-                                  <span>•</span>
-                                  <span className="truncate max-w-[120px] sm:max-w-none">Host: {item.hostName}</span>
-                                  <span>•</span>
-                                  <span className="font-mono">{item.date}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5 flex-shrink-0">
-                              <div className="text-left sm:text-right">
-                                <span className="text-[9px] text-zinc-500 uppercase font-bold block">Kills</span>
-                                <span className="text-xs font-mono font-bold text-zinc-200">{item.kills} K</span>
-                              </div>
-                              <div className="text-left sm:text-right">
-                                <span className="text-[9px] text-zinc-500 uppercase font-bold block">Points</span>
-                                <span className="text-xs font-mono font-black text-[#D7FF00]">{item.points} PTS</span>
-                              </div>
-                              <div className="text-right pl-1">
-                                <span
-                                  className={
-                                    'text-xs font-black font-mono px-2.5 py-1 rounded-xl inline-block ' +
-                                    (isFirst ? 'bg-[#D7FF00] text-black shadow-xs' : 'bg-zinc-800 text-zinc-300')
-                                  }
-                                >
-                                  #{item.ranking}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="p-6 text-center text-zinc-500 text-xs bg-zinc-950/60 rounded-2xl">
-                        Tiada rekod bagi kategori ini.
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                          Sejarah Perlawanan ({activeTeamScopedStats.filteredResults.length})
+                        </span>
+                        <span className="text-[10px] text-[#D7FF00] font-semibold flex items-center gap-1">
+                          <Eye className="w-3 h-3" /> Semak Standings
+                        </span>
                       </div>
-                    )}
+
+                      {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5 overscroll-contain">
+                          {activeTeamScopedStats.filteredResults.map((item, idx) => {
+                            const isFirst = item.ranking === 1;
+                            return (
+                              <div
+                                key={idx}
+                                onClick={() => setInspectedScrim(item.scrimData)}
+                                className={
+                                  'p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition ' +
+                                  (isFirst
+                                    ? 'bg-zinc-900/90 shadow-[0_0_15px_rgba(215,255,0,0.06)] border border-[#D7FF00]/20'
+                                    : 'bg-zinc-950/60 hover:bg-zinc-900/60 border border-white/5')
+                                }
+                              >
+                                <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                  {item.scrimData?.logo_url && (
+                                    <img
+                                      src={item.scrimData.logo_url}
+                                      alt=""
+                                      className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+                                    />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-bold text-xs text-white flex items-center gap-1.5 flex-wrap">
+                                      <span className="truncate max-w-[160px] sm:max-w-none">{item.scrimName}</span>
+                                      <span
+                                        className={
+                                          'text-[9px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ' +
+                                          ((item.eventType || 'Scrim') === 'Tour'
+                                            ? 'bg-amber-500/20 text-amber-300'
+                                            : 'bg-[#D7FF00]/15 text-[#D7FF00]')
+                                        }
+                                      >
+                                        {(item.eventType || 'Scrim').toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1 flex-wrap">
+                                      <span className="text-[#D7FF00] font-bold">{item.scrimTier}</span>
+                                      <span>•</span>
+                                      <span className="truncate max-w-[120px] sm:max-w-none">Host: {item.hostName}</span>
+                                      <span>•</span>
+                                      <span className="font-mono">{item.date}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5 flex-shrink-0">
+                                  <div className="text-left sm:text-right">
+                                    <span className="text-[9px] text-zinc-500 uppercase font-bold block">Kills</span>
+                                    <span className="text-xs font-mono font-bold text-zinc-200">{item.kills} K</span>
+                                  </div>
+                                  <div className="text-left sm:text-right">
+                                    <span className="text-[9px] text-zinc-500 uppercase font-bold block">Points</span>
+                                    <span className="text-xs font-mono font-black text-[#D7FF00]">{item.points} PTS</span>
+                                  </div>
+                                  <div className="text-right pl-1">
+                                    <span
+                                      className={
+                                        'text-xs font-black font-mono px-2.5 py-1 rounded-xl inline-block ' +
+                                        (isFirst ? 'bg-[#D7FF00] text-black shadow-xs' : 'bg-zinc-800 text-zinc-300')
+                                      }
+                                    >
+                                      #{item.ranking}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center text-zinc-500 text-xs bg-zinc-950/60 rounded-2xl">
+                          Tiada rekod bagi kategori ini.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -6053,11 +5900,18 @@ export default function App() {
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
                     <input
-                      type="text"
+                      type="search"
+                      enterKeyHint="search"
                       placeholder="Cari nama scrim, penganjur atau tier..."
                       value={searchScrimQuery}
                       onChange={(e) => setSearchScrimQuery(e.target.value)}
-                      className="w-full bg-[#121214] rounded-2xl pl-10 pr-8 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] font-semibold placeholder:text-zinc-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      className="w-full bg-[#121214] rounded-2xl pl-10 pr-8 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
                     />
                     {searchScrimQuery && (
                       <button
@@ -6284,11 +6138,18 @@ export default function App() {
               <div className="relative">
                 <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3"/>
                 <input
-                  type="text"
+                  type="search"
+                  enterKeyHint="search"
                   placeholder="Cari penganjur..."
                   value={searchHostQuery}
                   onChange={(e) => setSearchHostQuery(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 [&::-webkit-search-cancel-button]:hidden"
                 />
               </div>
             </div>
