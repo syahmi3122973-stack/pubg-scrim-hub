@@ -1146,7 +1146,26 @@ export default function App() {
     }
   };
   
-  const [teams, setTeams] = useState(INITIAL_FALLBACK_TEAMS);
+  const [teams, setTeams] = useState(() => {
+    try {
+      const raw = localStorage.getItem('pubg_hub_custom_teams');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map(INITIAL_FALLBACK_TEAMS.map(t => [t.name.toLowerCase(), t]));
+          parsed.forEach(t => {
+            if (t && t.name) {
+              map.set(t.name.toLowerCase(), { ...map.get(t.name.toLowerCase()), ...t });
+            }
+          });
+          return Array.from(map.values());
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_FALLBACK_TEAMS;
+  });
   const [scrims, setScrims] = useState([]);
   const [posts, setPosts] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -1166,6 +1185,19 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Master Admin (Kuasa Mutlak) State - syahmi3122973@gmail.com
+  const isMasterAdmin = useMemo(() => {
+    if (!currentUser || !currentUser.email) return false;
+    return currentUser.email.trim().toLowerCase() === 'syahmi3122973@gmail.com';
+  }, [currentUser]);
+
+  const [isTeamManagerModalOpen, setIsTeamManagerModalOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [teamManagerSearch, setTeamManagerSearch] = useState('');
+  const [isSavingTeam, setIsSavingTeam] = useState(false);
+  const [isUploadingTeamLogo, setIsUploadingTeamLogo] = useState(false);
+  const logoFileInputRef = useRef(null);
 
   // Modals & Popovers
   const [inspectedScrim, setInspectedScrim] = useState(null);
@@ -1271,7 +1303,24 @@ export default function App() {
         .order('name', { ascending: true });
 
       if (teamsData && teamsData.length > 0) {
-        setTeams(teamsData);
+        setTeams(prevTeams => {
+          const map = new Map(teamsData.map(t => [t.name.toLowerCase(), t]));
+          try {
+            const raw = localStorage.getItem('pubg_hub_custom_teams');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(pt => {
+                  if (pt && pt.name) {
+                    const existing = map.get(pt.name.toLowerCase());
+                    map.set(pt.name.toLowerCase(), { ...existing, ...pt });
+                  }
+                });
+              }
+            }
+          } catch {}
+          return Array.from(map.values());
+        });
       }
 
       const { data: scrimData } = await supabase
@@ -2906,6 +2955,7 @@ export default function App() {
       stats[t.name] = {
         name: t.name,
         tag: t.tag || t.name.slice(0, 4).toUpperCase(),
+        logo_url: t.logo_url || null,
         scrimResults: [],
         totalKills: 0,
         totalPoints: 0,
@@ -2947,6 +2997,7 @@ export default function App() {
             scrimSummary[cleanTeamName] = {
               teamName: cleanTeamName,
               tag: r.tag || dbTeam?.tag || cleanTeamName.slice(0, 4).toUpperCase(),
+              logo_url: dbTeam?.logo_url || null,
               totalPts: 0,
               totalKills: 0,
               wwcd: 0,
@@ -2967,15 +3018,22 @@ export default function App() {
       sortedTeams.forEach((teamRes, idx) => {
         const tName = teamRes.teamName;
         if (!stats[tName]) {
+          const dbTeam = teams.find(t => t.name.toLowerCase() === tName.toLowerCase());
           stats[tName] = {
             name: tName,
             tag: teamRes.tag,
+            logo_url: dbTeam?.logo_url || null,
             scrimResults: [],
             totalKills: 0,
             totalPoints: 0,
             totalWWCD: 0,
             matchesCount: 0
           };
+        } else if (!stats[tName].logo_url) {
+          const dbTeam = teams.find(t => t.name.toLowerCase() === tName.toLowerCase());
+          if (dbTeam?.logo_url) {
+            stats[tName].logo_url = dbTeam.logo_url;
+          }
         }
 
         stats[tName].totalKills += teamRes.totalKills;
@@ -3040,6 +3098,144 @@ export default function App() {
       (t.tag && t.tag.toLowerCase().includes(query))
     );
   }, [categoryTeamList, teamSearchQuery]);
+
+  // Master Admin (Kuasa Mutlak) Manageable Teams Directory
+  const allManageableTeams = useMemo(() => {
+    const map = new Map();
+    // 1. Registered teams from state
+    teams.forEach(t => {
+      if (t && t.name) {
+        map.set(t.name.toLowerCase(), {
+          id: t.id || ('tm_' + t.name.replace(/\s+/g, '_').toLowerCase()),
+          name: t.name,
+          tag: t.tag || t.name.slice(0, 4).toUpperCase(),
+          logo_url: t.logo_url || ''
+        });
+      }
+    });
+
+    // 2. Teams appearing in scrims/Hall of Fame
+    Object.values(teamsStats).forEach(st => {
+      if (st && st.name) {
+        const key = st.name.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, {
+            id: 'tm_' + st.name.replace(/\s+/g, '_').toLowerCase(),
+            name: st.name,
+            tag: st.tag || st.name.slice(0, 4).toUpperCase(),
+            logo_url: st.logo_url || ''
+          });
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [teams, teamsStats]);
+
+  const filteredManageableTeams = useMemo(() => {
+    const q = teamManagerSearch.toLowerCase().trim();
+    if (!q) return allManageableTeams;
+    return allManageableTeams.filter(t => 
+      t.name.toLowerCase().includes(q) || 
+      (t.tag && t.tag.toLowerCase().includes(q))
+    );
+  }, [allManageableTeams, teamManagerSearch]);
+
+  const handleSaveTeamDetails = async (updatedTeam) => {
+    if (!updatedTeam || !updatedTeam.name.trim()) {
+      showToast('Sila masukkan nama pasukan yang sah.');
+      return;
+    }
+
+    setIsSavingTeam(true);
+    try {
+      const cleanTeam = {
+        id: updatedTeam.id || ('tm_' + Date.now().toString(36)),
+        name: updatedTeam.name.trim(),
+        tag: (updatedTeam.tag || updatedTeam.name.slice(0, 4)).trim().toUpperCase(),
+        logo_url: updatedTeam.logo_url?.trim() || null
+      };
+
+      // 1. Update React state & localStorage
+      setTeams(prevTeams => {
+        const map = new Map(prevTeams.map(t => [t.name.toLowerCase(), t]));
+        if (updatedTeam._originalName && updatedTeam._originalName.toLowerCase() !== cleanTeam.name.toLowerCase()) {
+          map.delete(updatedTeam._originalName.toLowerCase());
+        }
+        map.set(cleanTeam.name.toLowerCase(), cleanTeam);
+        const nextTeams = Array.from(map.values());
+        try {
+          localStorage.setItem('pubg_hub_custom_teams', JSON.stringify(nextTeams));
+        } catch (err) {
+          console.warn('LocalStorage save error:', err);
+        }
+        return nextTeams;
+      });
+
+      // 2. Persist to Supabase teams table
+      try {
+        await supabase
+          .from('teams')
+          .upsert({
+            name: cleanTeam.name,
+            tag: cleanTeam.tag,
+            logo_url: cleanTeam.logo_url
+          }, { onConflict: 'name' });
+      } catch (dbErr) {
+        console.info('Supabase teams sync note:', dbErr);
+      }
+
+      showToast(`Pasukan ${cleanTeam.name} berjaya dikemaskini!`);
+      setEditingTeam(null);
+    } catch (error) {
+      showToast('Gagal menyimpan: ' + error.message);
+    } finally {
+      setIsSavingTeam(false);
+    }
+  };
+
+  const handleUploadLogoFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Sila pilih fail gambar (PNG, JPG, WEBP).');
+      return;
+    }
+
+    setIsUploadingTeamLogo(true);
+    try {
+      let publicUrl = null;
+      try {
+        publicUrl = await uploadImageToStorage(file, 'team-logos');
+      } catch (storageErr) {
+        console.warn('Storage upload error, using local data URL fallback:', storageErr);
+      }
+
+      if (!publicUrl) {
+        publicUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      setEditingTeam(prev => ({
+        ...prev,
+        logo_url: publicUrl
+      }));
+
+      showToast('Gambar logo dipilih!');
+    } catch (err) {
+      showToast('Gagal memuat naik gambar: ' + err.message);
+    } finally {
+      setIsUploadingTeamLogo(false);
+      if (logoFileInputRef.current) {
+        logoFileInputRef.current.value = '';
+      }
+    }
+  };
 
   const currentSelectedTeam = useMemo(() => {
     if (selectedTeamProfile && validTeamList.some(t => t.name === selectedTeamProfile)) {
@@ -3307,6 +3503,7 @@ export default function App() {
     ocrOverlayCount +
     (isProfileModalOpen ? 1 : 0) +
     (isOrgPopoverOpen ? 1 : 0) +
+    (isTeamManagerModalOpen ? 1 : 0) +
     (isNavMenuOpen ? 1 : 0) +
     (activeTab === 'teams' && selectedTeamProfile ? 1 : 0) +
     (activeHeaderInfo ? 1 : 0);
@@ -3314,6 +3511,14 @@ export default function App() {
   const closeTopmostOverlay = useCallback(() => {
     if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
     if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
+    if (isTeamManagerModalOpen) {
+      if (editingTeam) {
+        setEditingTeam(null);
+        return true;
+      }
+      setIsTeamManagerModalOpen(false);
+      return true;
+    }
     if (isPerformanceModalOpen) { setIsPerformanceModalOpen(false); return true; }
     if (inspectedScrim) { setInspectedScrim(null); return true; }
     if (inspectedPost) { setInspectedPost(null); return true; }
@@ -3343,6 +3548,8 @@ export default function App() {
   }, [
     isImportModalOpen,
     isQuickCreateModalOpen,
+    isTeamManagerModalOpen,
+    editingTeam,
     isPerformanceModalOpen,
     inspectedScrim,
     inspectedPost,
@@ -3655,7 +3862,25 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-52 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 py-1.5 divide-y divide-white/5 text-xs">
+                  <div className="absolute right-0 mt-2 w-56 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 py-1.5 divide-y divide-white/5 text-xs">
+                    {isMasterAdmin && (
+                      <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNavMenuOpen(false);
+                            setIsTeamManagerModalOpen(true);
+                          }}
+                          className="w-full px-3.5 py-2.5 text-left flex items-center gap-2 hover:bg-[#D7FF00]/15 text-[#D7FF00] transition font-black"
+                        >
+                          <Crown className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                          <div className="min-w-0">
+                            <span className="block leading-tight">Urus Pasukan &amp; Logo</span>
+                            <span className="text-[9px] text-[#D7FF00]/70 font-mono font-normal">Kuasa Mutlak</span>
+                          </div>
+                        </button>
+                      </div>
+                    )}
                     <div className="py-1">
                       <button
                         type="button"
@@ -5273,9 +5498,17 @@ export default function App() {
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-gradient-to-tr from-[#D7FF00] via-lime-300 to-emerald-400 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_25px_rgba(215,255,0,0.25)] shrink-0">
-                        {activeTeamData.tag || activeTeamData.name.slice(0, 3).toUpperCase()}
-                      </div>
+                      {activeTeamData.logo_url ? (
+                        <img
+                          src={activeTeamData.logo_url}
+                          alt={activeTeamData.name}
+                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover border-2 border-[#D7FF00]/40 shadow-[0_0_25px_rgba(215,255,0,0.25)] shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-gradient-to-tr from-[#D7FF00] via-lime-300 to-emerald-400 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_25px_rgba(215,255,0,0.25)] shrink-0">
+                          {activeTeamData.tag || activeTeamData.name.slice(0, 3).toUpperCase()}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
@@ -5701,13 +5934,16 @@ export default function App() {
                       type="button"
                       onClick={() => setSelectedTeamProfile(t.name)}
                       className={
-                        'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
+                        'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ' +
                         (isSelected
                           ? 'bg-zinc-800 text-white border border-white/25'
                           : 'bg-zinc-900/40 text-zinc-500 hover:text-zinc-300 border border-white/5')
                       }
                     >
-                      {t.name}
+                      {t.logo_url && (
+                        <img src={t.logo_url} alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+                      )}
+                      <span>{t.name}</span>
                     </button>
                   );
                 })}
@@ -5909,19 +6145,37 @@ export default function App() {
                               #{rankNum}
                             </span>
 
-                            <div
-                              className={
-                                'w-12 h-12 sm:w-13 sm:h-13 rounded-2xl flex flex-col items-center justify-center shrink-0 font-black ' +
-                                badgeBg
-                              }
-                            >
-                              <span className="text-xs sm:text-sm tracking-tight leading-none">
-                                {team.tag || team.name.slice(0, 3).toUpperCase()}
-                              </span>
-                              <span className="text-[8px] font-mono uppercase opacity-75 mt-0.5">
-                                {team.scopedWWCD > 0 ? `${team.scopedWWCD} WWCD` : 'SQUAD'}
-                              </span>
-                            </div>
+                            {team.logo_url ? (
+                              <div className="relative w-12 h-12 sm:w-13 sm:h-13 shrink-0">
+                                <img
+                                  src={team.logo_url}
+                                  alt={team.name}
+                                  className="w-full h-full rounded-2xl object-cover border border-white/10 shadow-sm"
+                                />
+                                {team.scopedWWCD > 0 && (
+                                  <span
+                                    className="absolute -bottom-1 -right-1 bg-[#D7FF00] text-black text-[8px] font-mono font-black px-1 rounded-md shadow-xs"
+                                    title={`${team.scopedWWCD} WWCD`}
+                                  >
+                                    🏆{team.scopedWWCD}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div
+                                className={
+                                  'w-12 h-12 sm:w-13 sm:h-13 rounded-2xl flex flex-col items-center justify-center shrink-0 font-black ' +
+                                  badgeBg
+                                }
+                              >
+                                <span className="text-xs sm:text-sm tracking-tight leading-none">
+                                  {team.tag || team.name.slice(0, 3).toUpperCase()}
+                                </span>
+                                <span className="text-[8px] font-mono uppercase opacity-75 mt-0.5">
+                                  {team.scopedWWCD > 0 ? `${team.scopedWWCD} WWCD` : 'SQUAD'}
+                                </span>
+                              </div>
+                            )}
 
                             <div className="min-w-0 flex-1">
                               <div className="text-sm sm:text-base font-bold text-white truncate">
@@ -9025,11 +9279,330 @@ export default function App() {
         </div>
       )}
 
+      {/* MODAL: PENGURUSAN PASUKAN & LOGO (KUASA MUTLAK - syahmi3122973@gmail.com) */}
+      {isTeamManagerModalOpen && isMasterAdmin && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pengurusan Pasukan & Logo"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => {
+            if (editingTeam) setEditingTeam(null);
+            else setIsTeamManagerModalOpen(false);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-[#121216] border border-white/10 rounded-[2rem] p-5 sm:p-6 shadow-2xl space-y-4 max-h-[88vh] flex flex-col relative animate-in zoom-in-95 duration-150 overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-400 flex items-center justify-center text-black font-black shrink-0 shadow-sm">
+                  <Crown className="w-5 h-5 text-black" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-black text-sm sm:text-base text-white truncate">
+                      Pengurusan Pasukan &amp; Logo
+                    </h3>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 font-mono font-bold">
+                      Kuasa Mutlak
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                    {currentUser?.email}
+                  </p>
+                </div>
+              </div>
 
+              <button
+                type="button"
+                onClick={() => {
+                  if (editingTeam) setEditingTeam(null);
+                  else setIsTeamManagerModalOpen(false);
+                }}
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            {/* Hidden File Input for Logo upload */}
+            <input
+              type="file"
+              ref={logoFileInputRef}
+              accept="image/*"
+              onChange={handleUploadLogoFile}
+              className="hidden"
+            />
 
+            {/* View A: Edit Team Form */}
+            {editingTeam ? (
+              <div className="space-y-4 overflow-y-auto pr-0.5 flex-1 overscroll-contain">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTeam(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#D7FF00] transition cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Kembali ke Senarai</span>
+                  </button>
+                  <span className="text-[10px] text-zinc-500 font-mono font-bold truncate max-w-[150px]">
+                    {editingTeam.id}
+                  </span>
+                </div>
 
-      {/* MODAL: CIPTA SESI KEJOHANAN / SCRIM BARU (CLOUD) */}
+                {/* Logo Editor Card */}
+                <div className="p-4 rounded-2xl bg-zinc-950/70 border border-white/5 space-y-3">
+                  <label className="block text-[11px] uppercase font-bold text-zinc-400">
+                    Gambar Logo Pasukan
+                  </label>
+                  <div className="flex items-center gap-4">
+                    {editingTeam.logo_url ? (
+                      <div className="relative group shrink-0">
+                        <img
+                          src={editingTeam.logo_url}
+                          alt="Logo Preview"
+                          className="w-18 h-18 sm:w-20 sm:h-20 rounded-3xl object-cover border-2 border-[#D7FF00]/50 shadow-[0_0_20px_rgba(215,255,0,0.2)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditingTeam(prev => ({ ...prev, logo_url: '' }))}
+                          title="Buang logo"
+                          className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow cursor-pointer transition"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-3xl bg-zinc-900 border border-dashed border-white/20 flex flex-col items-center justify-center text-zinc-500 shrink-0">
+                        <Camera className="w-6 h-6 mb-1 text-zinc-500" />
+                        <span className="text-[9px] font-bold">Tiada Logo</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => logoFileInputRef.current?.click()}
+                        disabled={isUploadingTeamLogo}
+                        className="w-full py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-white/10 active:scale-[0.98]"
+                      >
+                        {isUploadingTeamLogo ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#D7FF00]" />
+                            <span>Memuat naik...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5 text-[#D7FF00]" />
+                            <span>Pilih Gambar dari Telefon</span>
+                          </>
+                        )}
+                      </button>
+
+                      {editingTeam.logo_url && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingTeam(prev => ({ ...prev, logo_url: '' }))}
+                          className="w-full py-1.5 px-2 rounded-xl text-[10px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
+                        >
+                          Padam Logo Semasa
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-1">
+                      Atau Tampal Pautan URL Gambar:
+                    </label>
+                    <input
+                      type="url"
+                      value={editingTeam.logo_url || ''}
+                      onChange={(e) => setEditingTeam(prev => ({ ...prev, logo_url: e.target.value }))}
+                      placeholder="https://... (PNG/JPG/WEBP)"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00] font-mono transition placeholder:text-zinc-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Team Name & Tag Input */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-400 mb-1.5">
+                      Nama Penuh Pasukan
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingTeam.name || ''}
+                      onChange={(e) => setEditingTeam(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="cth: Geek Fam MY"
+                      className="w-full bg-zinc-950/70 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-[#D7FF00] font-bold transition placeholder:text-zinc-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-400 mb-1.5">
+                      Tag Singkatan Pasukan (Contoh: GEEK, SEM9)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={editingTeam.tag || ''}
+                      onChange={(e) => setEditingTeam(prev => ({ ...prev, tag: e.target.value.toUpperCase() }))}
+                      placeholder="cth: GEEK"
+                      className="w-full bg-zinc-950/70 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-[#D7FF00] font-mono font-bold transition uppercase placeholder:text-zinc-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTeam(null)}
+                    className="flex-1 py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSavingTeam || !editingTeam.name?.trim()}
+                    onClick={() => handleSaveTeamDetails(editingTeam)}
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-50 text-black text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(215,255,0,0.2)] active:scale-[0.98]"
+                  >
+                    {isSavingTeam ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-black" />
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5 text-black" />
+                        <span>Simpan Perubahan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* View B: Search and Simple Team List */
+              <>
+                {/* Search Bar & Add Button */}
+                <div className="space-y-2.5 shrink-0">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      value={teamManagerSearch}
+                      onChange={(e) => setTeamManagerSearch(e.target.value)}
+                      placeholder="Cari nama atau tag pasukan..."
+                      className="w-full bg-zinc-950/80 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00] font-medium transition placeholder:text-zinc-500"
+                    />
+                    {teamManagerSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setTeamManagerSearch('')}
+                        className="absolute right-3 top-2.5 text-zinc-500 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-400 font-mono">
+                      {filteredManageableTeams.length} pasukan dikesan
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingTeam({
+                          id: 'tm_new_' + Date.now().toString(36),
+                          name: '',
+                          tag: '',
+                          logo_url: '',
+                          _isNew: true
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 text-[#D7FF00] hover:underline font-bold cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Tambah Pasukan</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Team List */}
+                <div className="space-y-2 overflow-y-auto pr-0.5 flex-1 overscroll-contain max-h-96">
+                  {filteredManageableTeams.length > 0 ? (
+                    filteredManageableTeams.map((team) => {
+                      return (
+                        <div
+                          key={team.id || team.name}
+                          className="p-3 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900/80 border border-white/5 flex items-center justify-between gap-3 transition group"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {team.logo_url ? (
+                              <img
+                                src={team.logo_url}
+                                alt={team.name}
+                                className="w-11 h-11 rounded-2xl object-cover shrink-0 border border-white/10 shadow-sm"
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center font-black text-xs text-[#D7FF00] shrink-0">
+                                {team.tag || team.name.slice(0, 3).toUpperCase()}
+                              </div>
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-[#D7FF00] transition">
+                                {team.name}
+                              </h4>
+                              <p className="text-[10px] text-zinc-400 font-mono mt-0.5 flex items-center gap-2">
+                                <span>Tag: <strong className="text-zinc-300">[{team.tag}]</strong></span>
+                                {team.logo_url ? (
+                                  <span className="text-emerald-400 flex items-center gap-0.5">
+                                    <Check className="w-2.5 h-2.5" /> Ada Logo
+                                  </span>
+                                ) : (
+                                  <span className="text-zinc-500">Tiada Logo</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingTeam({
+                                ...team,
+                                _originalName: team.name
+                              });
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-zinc-900 group-hover:bg-[#D7FF00] text-zinc-300 group-hover:text-black border border-white/10 group-hover:border-transparent text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="py-8 text-center text-zinc-500 text-xs">
+                      Tiada pasukan sepadan dengan carian "{teamManagerSearch}".
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {isCreateScrimOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
           <div className="fixed inset-0" onClick={() => setIsCreateScrimOpen(false)} />
