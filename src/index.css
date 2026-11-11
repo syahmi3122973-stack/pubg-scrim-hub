@@ -162,3 +162,53 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Direction-Aware Tab & Screen Transitions */
+@keyframes tabSlideInForward {
+  0% {
+    opacity: 0;
+    transform: translateX(20px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes tabSlideInBackward {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-tab-forward {
+  animation: tabSlideInForward 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-tab-backward {
+  animation: tabSlideInBackward 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Profile Bottom-Drawer Slide Up Animation */
+@keyframes drawerSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-drawer-up {
+  animation: drawerSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}

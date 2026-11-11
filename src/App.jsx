@@ -350,6 +350,7 @@ export default function App() {
 
   // Page / Tab History Stack & OCR Inner Overlay State for Mobile Back-Button Navigation
   const [tabHistory, setTabHistory] = useState([]);
+  const [navDirection, setNavDirection] = useState('forward');
   const [ocrOverlayCount, setOcrOverlayCount] = useState(0);
   const closeOcrOverlayRef = useRef(null);
 
@@ -3429,6 +3430,7 @@ export default function App() {
     setIsNavMenuOpen(false);
     setSelectedTeamProfile('');
     setActiveHeaderInfo(null);
+    setNavDirection('forward');
 
     setActiveTab((prevTab) => {
       const normalizedPrev = prevTab === 'home' ? 'playground' : prevTab;
@@ -3450,6 +3452,7 @@ export default function App() {
     setSelectedTeamProfile('');
     setActiveHeaderInfo(null);
     setIsNavMenuOpen(false);
+    setNavDirection('backward');
 
     if (tabHistory.length > 0) {
       const previousTab = tabHistory[tabHistory.length - 1] || 'playground';
@@ -3542,7 +3545,11 @@ export default function App() {
     }
     if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
     if (isNavMenuOpen) { setIsNavMenuOpen(false); return true; }
-    if (activeTab === 'teams' && selectedTeamProfile) { setSelectedTeamProfile(''); return true; }
+    if (activeTab === 'teams' && selectedTeamProfile) {
+      setNavDirection('backward');
+      setSelectedTeamProfile('');
+      return true;
+    }
     if (activeHeaderInfo) { setActiveHeaderInfo(null); return true; }
     return false;
   }, [
@@ -3967,6 +3974,10 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
+        <div
+          key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
+          className={navDirection === 'backward' ? 'animate-tab-backward' : 'animate-tab-forward'}
+        >
 
         {/* VIEW 0: AUTHENTICATION GUARD & BENTO-GRID COMMAND CENTER (ROOT ROUTE /) */}
         {(activeTab === 'playground' || activeTab === 'home') && (() => {
@@ -5462,7 +5473,10 @@ export default function App() {
                 <div className="flex items-center justify-between px-1">
                   <button
                     type="button"
-                    onClick={() => setSelectedTeamProfile('')}
+                    onClick={() => {
+                      setNavDirection('backward');
+                      setSelectedTeamProfile('');
+                    }}
                     className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1"
                     title="Kembali ke Hall of Fame"
                   >
@@ -6463,7 +6477,7 @@ export default function App() {
                       key={s.id}
                       onClick={() => setInspectedScrim(s)}
                       style={{ animationDelay: `${80 + Math.min(idx, 8) * 60}ms` }}
-                      className="bg-[#121214] hover:bg-[#16161a] border border-white/5 hover:border-white/15 rounded-3xl p-3.5 sm:p-4 shadow-xl transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
+                      className="bg-[#121214] hover:bg-[#16161a] rounded-3xl p-3.5 sm:p-4 shadow-xl transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
                     >
                       {/* Left: Scrim Logo / Badge + Info (Nama Scrim, Status, Date) */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -6471,10 +6485,10 @@ export default function App() {
                           <img
                             src={s.logo_url}
                             alt=""
-                            className="w-12 h-12 rounded-2xl object-cover bg-zinc-900 shrink-0 shadow-md border border-white/10"
+                            className="w-12 h-12 rounded-2xl object-cover bg-zinc-900 shrink-0 shadow-md"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-md border border-white/5">
+                          <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-md">
                             {s.event_type === 'Tour' ? (
                               <Trophy className="w-5 h-5 text-[#D7FF00]" />
                             ) : (
@@ -6493,12 +6507,12 @@ export default function App() {
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             {/* Status */}
                             {isFinished ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shrink-0">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#D7FF00]/15 text-[#D7FF00] shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
                                 <span>Completed</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                                 <span>Pending</span>
                               </span>
@@ -6514,7 +6528,7 @@ export default function App() {
                       </div>
 
                       {/* Right: Quick Action Chevron / Enter Indicator */}
-                      <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/40 transition shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-zinc-900/80 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:bg-zinc-800 transition shrink-0">
                         <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
@@ -7964,6 +7978,8 @@ export default function App() {
           </div>
         )}
 
+        </div>
+
         {/* FOOTER METADATA */}
         <div className="mt-8 pt-4 pb-2 border-t border-white/5 text-center">
           <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
@@ -8734,7 +8750,7 @@ export default function App() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-drawer-title"
-          className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-in fade-in duration-150 flex flex-col select-none"
+          className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
           <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-full pb-10 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
