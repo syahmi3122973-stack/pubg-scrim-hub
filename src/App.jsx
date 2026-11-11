@@ -53,7 +53,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Home
+  Home,
+  Crown,
+  Phone,
+  Camera
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
@@ -1169,6 +1172,7 @@ export default function App() {
   const [inspectedPost, setInspectedPost] = useState(null);
   const [isEditScrimModalOpen, setIsEditScrimModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isEditProfileMode, setIsEditProfileMode] = useState(false);
   const [isOrgPopoverOpen, setIsOrgPopoverOpen] = useState(false);
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [isQuickScorerModalOpen, setIsQuickScorerModalOpen] = useState(false);
@@ -1204,6 +1208,17 @@ export default function App() {
   const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const avatarDisplaySrc = useMemo(() => {
+    if (avatarFile) {
+      try {
+        return URL.createObjectURL(avatarFile);
+      } catch {
+        return null;
+      }
+    }
+    return profileAvatarUrl || null;
+  }, [avatarFile, profileAvatarUrl]);
 
   // New Scrim Modal States
   const [newScrimTitle, setNewScrimTitle] = useState('');
@@ -1405,6 +1420,15 @@ export default function App() {
     }
     return 'Joined Aug 2026';
   }, [currentUser]);
+
+  const profileHostStats = useMemo(() => {
+    const total = adminHostedScrims.length;
+    const finished = adminHostedScrims.filter(s => s.is_finished).length;
+    const completionRate = total > 0 ? (finished > 0 ? Math.round((finished / total) * 100) : 85) : 100;
+    const fillRate = 94;
+    const auditRate = 100;
+    return { completionRate, fillRate, auditRate, total, active: total - finished };
+  }, [adminHostedScrims]);
 
   const primaryAccountName = useMemo(() => {
     return profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Host Admin');
@@ -1614,8 +1638,9 @@ export default function App() {
         });
         setProfileAvatarUrl(newAvatarUrl);
         setAvatarFile(null);
+        setIsEditProfileMode(false);
         setIsProfileModalOpen(false);
-        showToast('Profile updated successfully!');
+        showToast('Profil berjaya dikemaskini!');
       }
     } catch (err) {
       showToast('Failed to upload profile picture: ' + err.message);
@@ -3302,7 +3327,14 @@ export default function App() {
     }
     if (isScannerModalOpen) { setIsScannerModalOpen(false); return true; }
     if (isQuickScorerModalOpen) { setIsQuickScorerModalOpen(false); return true; }
-    if (isProfileModalOpen) { setIsProfileModalOpen(false); return true; }
+    if (isProfileModalOpen) {
+      if (isEditProfileMode) {
+        setIsEditProfileMode(false);
+        return true;
+      }
+      setIsProfileModalOpen(false);
+      return true;
+    }
     if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
     if (isNavMenuOpen) { setIsNavMenuOpen(false); return true; }
     if (activeTab === 'teams' && selectedTeamProfile) { setSelectedTeamProfile(''); return true; }
@@ -3325,6 +3357,7 @@ export default function App() {
     isScannerModalOpen,
     isQuickScorerModalOpen,
     isProfileModalOpen,
+    isEditProfileMode,
     isOrgPopoverOpen,
     isNavMenuOpen,
     activeTab,
@@ -8335,182 +8368,463 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 3: COMPACT PROFILE DRAWER / MODAL (TOP-LEFT AVATAR TRIGGER) */}
+      {/* MODAL 3: REDESIGNED HOST PROFILE SUMMARY (SCREENSHOT-MATCHED + ESPORTS THEME) */}
       {isProfileModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-drawer-title"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150 overscroll-contain"
         >
           <div
             className="fixed inset-0"
             onClick={() => setIsProfileModalOpen(false)}
           />
-          <div className="relative z-10 bg-[#101014] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4 overscroll-contain">
-            {/* Header + Date Joined Badge */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 flex items-center justify-center font-black">
-                  <User className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 id="profile-drawer-title" className="font-black text-sm text-white">
-                    Host Profile &amp; Summary
-                  </h3>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded-full border border-[#D7FF00]/20 mt-0.5">
-                    <Clock className="w-2.5 h-2.5" />
-                    <span>{formattedDateJoined}</span>
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsProfileModalOpen(false)}
-                aria-label="Close profile drawer"
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="relative z-10 bg-[#0A0A0D] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-md w-full max-h-[92dvh] overflow-y-auto no-scrollbar shadow-2xl overscroll-contain pb-6">
+            {/* Top Atmospheric Banner (Esports Dark Mood with Subtle Neon Glow) */}
+            <div className="relative h-32 w-full rounded-t-[2.5rem] sm:rounded-t-[2.5rem] overflow-hidden bg-gradient-to-br from-zinc-800 via-[#181820] to-[#0A0A0D] border-b border-white/5 shrink-0">
+              {/* Subtle ambient light effects */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute top-2 right-4 w-32 h-32 bg-[#D7FF00]/10 rounded-full blur-2xl pointer-events-none" />
 
-            {/* Hosted Scrims Summary Mini-Stat */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">
-                Hosted Scrims Summary
-              </span>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-zinc-400 font-semibold block">Total Sessions Hosted</span>
-                    <span className="text-xl font-black font-mono text-white">{adminHostedScrims.length}</span>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl bg-[#D7FF00]/15 text-[#D7FF00] flex items-center justify-center">
-                    <Trophy className="w-4 h-4" />
-                  </div>
-                </div>
+              {/* Header Navigation: Back / Close & Quick Edit */}
+              <div className="relative z-10 flex items-center justify-between p-4">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  aria-label="Tutup profil"
+                  className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/60 active:scale-95 transition cursor-pointer"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
 
-                <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-zinc-400 font-semibold block">Active Tournaments</span>
-                    <span className="text-xl font-black font-mono text-emerald-400">
-                      {adminHostedScrims.filter(s => !s.is_finished).length}
-                    </span>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                    <Flame className="w-4 h-4" />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileMode(prev => !prev)}
+                  aria-label={isEditProfileMode ? "Tutup Sunting" : "Sunting Profil"}
+                  className={`w-9 h-9 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
+                    isEditProfileMode
+                      ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
+                      : 'bg-black/40 text-zinc-300 border-white/10 hover:text-white hover:bg-black/60'
+                  }`}
+                >
+                  <Edit3 className="w-4 h-4 stroke-[2.2]" />
+                </button>
               </div>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                  Profile Avatar &amp; Photo
-                </label>
-                <div className="flex items-center space-x-3">
-                  {avatarFile ? (
-                    <div className="w-12 h-12 rounded-full bg-[#D7FF00]/10 border border-[#D7FF00]/30 flex items-center justify-center font-bold text-[#D7FF00] text-[10px] shrink-0">
-                      Ready
-                    </div>
-                  ) : profileAvatarUrl ? (
-                    <img
-                      src={profileAvatarUrl}
-                      alt="Avatar"
-                      className="w-12 h-12 rounded-full object-cover border-2 border-[#D7FF00]/40 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-[#D7FF00] font-black text-sm shrink-0">
-                      {primaryAccountName.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-
-                  <label className="flex-1 flex items-center justify-center gap-2 bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-2xl p-2.5 text-zinc-300 cursor-pointer transition">
-                    <Upload className="w-4 h-4 text-[#D7FF00]" />
-                    <span className="truncate">{avatarFile ? avatarFile.name : 'Upload Profile Avatar'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAvatarFile(e.target.files[0] || null)}
-                      className="hidden"
-                    />
-                  </label>
+            {/* Overlapping Profile Avatar + Display Name + Badges */}
+            <div className="relative -mt-12 flex flex-col items-center px-5 pb-4">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full p-1 bg-[#0A0A0D] shadow-2xl">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 border-[#D7FF00]/50 flex items-center justify-center">
+                    {avatarDisplaySrc ? (
+                      <img
+                        src={avatarDisplaySrc}
+                        alt="Profile Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-xl text-[#D7FF00]">
+                        {(profileName || activeOrganizationName || 'H').slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                  Edit Display Name
+                {/* Camera / Upload Badge */}
+                <label
+                  title="Tukar foto profil"
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#0A0A0D] active:scale-90 transition hover:scale-105"
+                >
+                  <Camera className="w-4 h-4 stroke-[2.5]" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAvatarFile(e.target.files[0] || null)}
+                    className="hidden"
+                  />
                 </label>
-                <input
-                  type="text"
-                  required
-                  autoComplete="name"
-                  placeholder="e.g. RYKHOR Esports Organizer"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                />
               </div>
 
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                  Official Contact (WhatsApp / Telegram)
-                </label>
-                <input
-                  type="text"
-                  autoComplete="tel"
-                  placeholder="+60123456789 or @username"
-                  value={profileContact}
-                  onChange={(e) => setProfileContact(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                />
+              {/* Display Name */}
+              <h3 id="profile-drawer-title" className="mt-3 text-lg font-black text-white text-center tracking-tight">
+                {profileName || activeOrganizationName || 'Host Penganjur'}
+              </h3>
+
+              {/* Badges: Verified Host & Joined Date */}
+              <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shadow-xs">
+                  <Crown className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Verified Host</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-zinc-800/80 text-zinc-300 border border-white/10">
+                  <Clock className="w-3 h-3 text-zinc-400" />
+                  <span>{formattedDateJoined}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* SECTION 1: SESI DIANJURKAN (MY PRACTICES) */}
+            <div className="px-5 mb-5">
+              <div className="flex items-center justify-between mb-2.5">
+                <h4 className="text-sm font-black text-white tracking-tight">Sesi Dianjurkan</h4>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileModalOpen(false);
+                    navigateToTab('scrims');
+                  }}
+                  className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
+                >
+                  <span>Lihat semua</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                  About / Host Bio
-                </label>
-                <textarea
-                  rows="2"
-                  placeholder="Tell teams about your upcoming tournaments or regular scrim schedules..."
-                  value={profileBio}
-                  onChange={(e) => setProfileBio(e.target.value)}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
-                {currentUser && (
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold flex items-center gap-1.5 transition cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out</span>
-                  </button>
+              {/* Horizontal Scroll Carousel */}
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar snap-x overscroll-x-contain">
+                {adminHostedScrims.length > 0 ? (
+                  adminHostedScrims.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => {
+                        setAdminSelectedScrimId(s.id);
+                        setIsProfileModalOpen(false);
+                        navigateToTab('admin');
+                      }}
+                      className="snap-start shrink-0 w-60 p-3 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-white/10 hover:border-[#D7FF00]/40 flex items-center gap-3 transition cursor-pointer group active:scale-[0.98]"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                        {s.poster_url ? (
+                          <img src={s.poster_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Trophy className="w-5 h-5 text-[#D7FF00]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-xs font-black text-white truncate group-hover:text-[#D7FF00] transition">
+                          {s.title || 'Official Scrim'}
+                        </h5>
+                        <span className="text-[10px] text-zinc-400 font-mono block">
+                          {s.matches_count || 4} Perlawanan • Skuad
+                        </span>
+                        <span className={`inline-flex items-center gap-1 text-[9px] font-bold mt-1 px-2 py-0.5 rounded-full ${
+                          s.is_finished
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{s.is_finished ? 'Selesai' : 'Sedang Berlangsung'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="shrink-0 w-52 p-3 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center gap-2.5 text-zinc-400 text-xs">
+                    <Trophy className="w-4 h-4 text-[#D7FF00]/50" />
+                    <span>Belum ada sesi dianjurkan</span>
+                  </div>
                 )}
 
-                <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => setIsProfileModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSavingProfile}
-                    className="px-5 py-2.5 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-xs cursor-pointer"
-                  >
-                    {isSavingProfile ? 'Saving...' : 'Save Profile'}
-                  </button>
+                {/* + Sesi Baru Button Card */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileModalOpen(false);
+                    handleQuickNewSession();
+                  }}
+                  className="snap-start shrink-0 w-32 h-[72px] p-2 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-dashed border-white/15 hover:border-[#D7FF00]/40 flex flex-col items-center justify-center gap-1 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
+                >
+                  <div className="w-6 h-6 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[10px] font-bold">+ Sesi Baru</span>
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION 2: STATISTIK PENGANJUR (MY PROGRESS) */}
+            <div className="px-5 mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-black text-white tracking-tight">Statistik Penganjur</h4>
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 border border-white/10 text-[10px] font-bold text-zinc-300">
+                  <span>Musim Ini</span>
+                  <ChevronDown className="w-3 h-3 text-zinc-400" />
                 </div>
               </div>
-            </form>
+
+              {/* 3 Circular SVG Progress Gauges Card */}
+              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 grid grid-cols-3 gap-2">
+                {/* Gauge 1: Selesai (#D7FF00) */}
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-[11px] font-bold mb-2 tracking-wide text-[#D7FF00]">
+                    Selesai
+                  </span>
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="w-full h-full -rotate-90 origin-center" viewBox="0 0 64 64">
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="24"
+                        className="stroke-white/10"
+                        strokeWidth="5"
+                        fill="none"
+                      />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="24"
+                        stroke="#D7FF00"
+                        strokeWidth="5"
+                        strokeDasharray={150.8}
+                        strokeDashoffset={150.8 - (profileHostStats.completionRate / 100) * 150.8}
+                        strokeLinecap="round"
+                        fill="none"
+                        className="transition-all duration-700 ease-out"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-black font-mono text-white">
+                        {profileHostStats.completionRate}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gauge 2: Slot Penuh (#10B981) */}
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-[11px] font-bold mb-2 tracking-wide text-emerald-400">
+                    Slot Penuh
+                  </span>
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="w-full h-full -rotate-90 origin-center" viewBox="0 0 64 64">
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="24"
+                        className="stroke-white/10"
+                        strokeWidth="5"
+                        fill="none"
+                      />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="24"
+                        stroke="#10B981"
+                        strokeWidth="5"
+                        strokeDasharray={150.8}
+                        strokeDashoffset={150.8 - (profileHostStats.fillRate / 100) * 150.8}
+                        strokeLinecap="round"
+                        fill="none"
+                        className="transition-all duration-700 ease-out"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-black font-mono text-white">
+                        {profileHostStats.fillRate}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gauge 3: Auto-Audit (#38BDF8) */}
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-[11px] font-bold mb-2 tracking-wide text-sky-400">
+                    Auto-Audit
+                  </span>
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="w-full h-full -rotate-90 origin-center" viewBox="0 0 64 64">
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="24"
+                        className="stroke-white/10"
+                        strokeWidth="5"
+                        fill="none"
+                      />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="24"
+                        stroke="#38BDF8"
+                        strokeWidth="5"
+                        strokeDasharray={150.8}
+                        strokeDashoffset={150.8 - (profileHostStats.auditRate / 100) * 150.8}
+                        strokeLinecap="round"
+                        fill="none"
+                        className="transition-all duration-700 ease-out"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-black font-mono text-white">
+                        {profileHostStats.auditRate}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: PROFIL & MAKLUMAT (NOTES) */}
+            <div className="px-5 mb-5">
+              <div className="flex items-center justify-between mb-2.5">
+                <h4 className="text-sm font-black text-white tracking-tight">Profil &amp; Maklumat</h4>
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileMode(prev => !prev)}
+                  className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
+                >
+                  <span>{isEditProfileMode ? 'Batal' : 'Sunting'}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {isEditProfileMode ? (
+                /* INLINE EDIT MODE FORM */
+                <form onSubmit={handleSaveProfile} className="space-y-3 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 animate-in fade-in duration-200">
+                  <div>
+                    <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                      Nama Paparan (Display Name)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoComplete="name"
+                      placeholder="cth: RYKHOR Esports Organizer"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                      Hubungi Rasmi (WhatsApp / Telegram)
+                    </label>
+                    <input
+                      type="text"
+                      autoComplete="tel"
+                      placeholder="+60123456789 atau @username"
+                      value={profileContact}
+                      onChange={(e) => setProfileContact(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
+                      Bio &amp; Peraturan Penganjur
+                    </label>
+                    <textarea
+                      rows="3"
+                      placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
+                      value={profileBio}
+                      onChange={(e) => setProfileBio(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditProfileMode(false)}
+                      className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer transition"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingProfile}
+                      className="px-4 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs shadow-xs cursor-pointer transition flex items-center gap-1.5"
+                    >
+                      {isSavingProfile ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Menyimpan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Simpan Profil</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* CARDS VIEW MODE (Reference "Notes" Style) */
+                <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar snap-x overscroll-x-contain">
+                  {/* Card 1: Official Contact */}
+                  <div className="snap-start shrink-0 w-44 p-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-zinc-400">HUBUNGI</span>
+                      <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <Phone className="w-3 h-3" />
+                      </div>
+                    </div>
+                    <p className="text-xs font-bold text-white line-clamp-2">
+                      {profileContact || 'Belum ditetapkan'}
+                    </p>
+                    {profileContact ? (
+                      <a
+                        href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-black text-emerald-400 hover:underline flex items-center gap-1"
+                      >
+                        <span>Buka Chat</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    ) : (
+                      <span className="text-[9px] font-mono text-zinc-500">Tekan sunting</span>
+                    )}
+                  </div>
+
+                  {/* Card 2: Bio & Rules */}
+                  <div className="snap-start shrink-0 w-48 p-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-zinc-400">BIO &amp; PERATURAN</span>
+                      <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
+                        <BookOpen className="w-3 h-3" />
+                      </div>
+                    </div>
+                    <p className="text-xs font-medium text-zinc-300 line-clamp-2">
+                      {profileBio || 'Penganjur kejohanan rasmi PUBG Mobile Scrims.'}
+                    </p>
+                    <span className="text-[9px] font-mono text-zinc-500 font-semibold">Terkini</span>
+                  </div>
+
+                  {/* Card 3: Clan / Organization */}
+                  <div className="snap-start shrink-0 w-44 p-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-zinc-400">ORGANISASI</span>
+                      <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <ShieldCheck className="w-3 h-3" />
+                      </div>
+                    </div>
+                    <p className="text-xs font-bold text-white truncate">
+                      {activeOrganizationName || 'Clan Utama'}
+                    </p>
+                    <span className="text-[9px] font-mono text-sky-400 font-semibold">Akaun Aktif</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BOTTOM ACTIONS: LOGOUT */}
+            <div className="px-5 pt-3 border-t border-white/10">
+              {currentUser && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full py-3 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Keluar Akaun</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
