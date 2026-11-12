@@ -7829,9 +7829,9 @@ export default function App() {
           aria-labelledby="profile-drawer-title"
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
+          <div className="w-full max-w-md md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl md:px-6 lg:px-8">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
-            <div className="relative h-44 md:h-56 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0">
+            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0 md:rounded-3xl md:mt-4">
               {/* Subtle ambient light effects */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
               <div className="absolute top-2 right-4 w-40 h-40 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
@@ -7857,13 +7857,14 @@ export default function App() {
                     type="button"
                     onClick={toggleEditProfileMode}
                     aria-label={isEditProfileMode ? "Tutup Edit" : "Edit Profile"}
-                    className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
+                    className={`w-10 h-10 md:w-auto md:px-4 rounded-full backdrop-blur-md border flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer ${
                       isEditProfileMode
                         ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
                         : 'bg-black/50 text-zinc-300 border-white/10 hover:text-white hover:bg-black/70'
                     }`}
                   >
                     <Edit3 className="w-4 h-4 stroke-[2.2]" />
+                    <span className="hidden md:inline text-xs font-bold">{isEditProfileMode ? "Tutup Edit" : "Edit Profile"}</span>
                   </button>
                 )}
               </div>
@@ -7892,54 +7893,70 @@ export default function App() {
             ) : (
               <>
             {/* Overlapping Profile Avatar + Display Name + Badges */}
-            <div className="relative -mt-16 flex flex-col items-center px-5 pb-5">
-              <div className="relative">
-                <div className="w-28 h-28 rounded-full p-1 bg-[#080808] shadow-2xl">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 border-[#D7FF00]/60 flex items-center justify-center">
-                    {avatarDisplaySrc ? (
-                      <img
-                        src={avatarDisplaySrc}
-                        alt="Profile Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-2xl text-[#D7FF00]">
-                        {(profileName || activeOrganizationName || 'H').slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+            <div className="relative -mt-16 md:-mt-20 flex flex-col md:flex-row items-center md:items-end justify-between px-5 md:px-6 lg:px-8 pb-6 gap-6">
+              <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 text-center md:text-left">
+                <div className="relative">
+                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full p-1 bg-[#080808] shadow-2xl">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 border-[#D7FF00]/60 flex items-center justify-center">
+                      {avatarDisplaySrc ? (
+                        <img
+                          src={avatarDisplaySrc}
+                          alt="Profile Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-2xl md:text-3xl text-[#D7FF00]">
+                          {(profileName || activeOrganizationName || 'H').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Camera / Upload Badge */}
+                  <label
+                    title="Tukar foto profil"
+                    className="absolute bottom-1 right-1 w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#080808] active:scale-90 transition hover:scale-105"
+                  >
+                    <Camera className="w-4 h-4 stroke-[2.5]" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAvatarFile(e.target.files[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
-                {/* Camera / Upload Badge */}
-                <label
-                  title="Tukar foto profil"
-                  className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#080808] active:scale-90 transition hover:scale-105"
-                >
-                  <Camera className="w-4 h-4 stroke-[2.5]" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setAvatarFile(e.target.files[0] || null)}
-                    className="hidden"
-                  />
-                </label>
+                {/* Display Name & Badges */}
+                <div className="space-y-1.5">
+                  <h3 id="profile-drawer-title" className="text-xl md:text-3xl font-black text-white tracking-tight">
+                    {profileName || activeOrganizationName || 'Host Penganjur'}
+                  </h3>
+
+                  {/* Badges: Verified Host & Joined Date */}
+                  <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-black bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shadow-xs">
+                      <Crown className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Verified Host</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold bg-zinc-800/80 text-zinc-300 border border-white/10">
+                      <Clock className="w-3 h-3 text-zinc-400" />
+                      <span>{formattedDateJoined}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Display Name */}
-              <h3 id="profile-drawer-title" className="mt-3 text-xl font-black text-white text-center tracking-tight">
-                {profileName || activeOrganizationName || 'Host Penganjur'}
-              </h3>
-
-              {/* Badges: Verified Host & Joined Date */}
-              <div className="mt-2.5 flex items-center justify-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shadow-xs">
-                  <Crown className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Verified Host</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-zinc-800/80 text-zinc-300 border border-white/10">
-                  <Clock className="w-3 h-3 text-zinc-400" />
-                  <span>{formattedDateJoined}</span>
-                </span>
+              {/* Desktop Quick Action */}
+              <div className="hidden md:flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={toggleEditProfileMode}
+                  className="px-4 py-2.5 rounded-2xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs transition active:scale-95 shadow-[0_0_20px_rgba(215,255,0,0.2)] flex items-center gap-2 cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4 stroke-[2.5]" />
+                  <span>{isEditProfileMode ? 'Tutup Edit' : 'Edit Profile'}</span>
+                </button>
               </div>
             </div>
 
@@ -7964,47 +7981,49 @@ export default function App() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveProfile} className="space-y-3.5 p-4 sm:p-5 rounded-3xl bg-zinc-900/95 border border-[#D7FF00]/30 shadow-[0_0_30px_rgba(215,255,0,0.08)]">
-                  <div>
-                    <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                      Nama Paparan (Display Name)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      autoComplete="name"
-                      placeholder="cth: RYKHOR Esports Organizer"
-                      value={profileName}
-                      onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                    />
-                  </div>
+                <form onSubmit={handleSaveProfile} className="space-y-4 p-4 sm:p-6 rounded-3xl bg-zinc-900/95 border border-[#D7FF00]/30 shadow-[0_0_30px_rgba(215,255,0,0.08)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div className="md:col-span-1">
+                      <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
+                        Nama Paparan (Display Name)
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        autoComplete="name"
+                        placeholder="cth: RYKHOR Esports Organizer"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                      Contact
-                    </label>
-                    <input
-                      type="text"
-                      autoComplete="tel"
-                      placeholder="+60123456789 atau @username"
-                      value={profileContact}
-                      onChange={(e) => setProfileContact(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                    />
-                  </div>
+                    <div className="md:col-span-1">
+                      <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
+                        Contact
+                      </label>
+                      <input
+                        type="text"
+                        autoComplete="tel"
+                        placeholder="+60123456789 atau @username"
+                        value={profileContact}
+                        onChange={(e) => setProfileContact(e.target.value)}
+                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                      Bio
-                    </label>
-                    <textarea
-                      rows="3"
-                      placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
-                      value={profileBio}
-                      onChange={(e) => setProfileBio(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                    />
+                    <div className="md:col-span-2">
+                      <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
+                        Bio
+                      </label>
+                      <textarea
+                        rows="3"
+                        placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
+                        value={profileBio}
+                        onChange={(e) => setProfileBio(e.target.value)}
+                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
@@ -8038,7 +8057,7 @@ export default function App() {
             )}
 
             {/* SECTION 1: SESI DIANJURKAN (MY PRACTICES) */}
-            <div className="px-5 mb-6">
+            <div className="px-5 md:px-6 lg:px-8 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Sesi Dianjurkan</h4>
                 <button
@@ -8054,8 +8073,8 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Horizontal Scroll Carousel */}
-              <div className="flex items-center gap-3 overflow-x-auto pb-1.5 no-scrollbar snap-x overscroll-x-contain">
+              {/* Horizontal Scroll Carousel on Mobile, Expansive Grid on Desktop */}
+              <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-center md:items-stretch gap-3 md:gap-4 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                 {adminHostedScrims.length > 0 ? (
                   adminHostedScrims.map((s) => (
                     <div
@@ -8065,7 +8084,7 @@ export default function App() {
                         setIsProfileModalOpen(false);
                         navigateToTab('admin');
                       }}
-                      className="snap-start shrink-0 w-64 p-3.5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-white/10 hover:border-[#D7FF00]/40 flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98]"
+                      className="snap-start shrink-0 w-64 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-white/10 hover:border-[#D7FF00]/40 flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98] shadow-md"
                     >
                       <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                         {s.poster_url ? (
@@ -8093,7 +8112,7 @@ export default function App() {
                     </div>
                   ))
                 ) : (
-                  <div className="shrink-0 w-60 p-3.5 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center gap-3 text-zinc-400 text-xs">
+                  <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center gap-3 text-zinc-400 text-xs">
                     <Trophy className="w-4 h-4 text-[#D7FF00]/50" />
                     <span>Belum ada sesi dianjurkan</span>
                   </div>
@@ -8106,7 +8125,7 @@ export default function App() {
                     setIsProfileModalOpen(false);
                     handleQuickNewSession();
                   }}
-                  className="snap-start shrink-0 w-36 h-[76px] p-2.5 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-dashed border-white/15 hover:border-[#D7FF00]/40 flex flex-col items-center justify-center gap-1 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
+                  className="snap-start shrink-0 w-36 md:w-auto h-[76px] md:h-auto md:min-h-[76px] p-2.5 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-dashed border-white/15 hover:border-[#D7FF00]/40 flex flex-col md:flex-row items-center justify-center gap-2 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
                 >
                   <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
                     <Plus className="w-4 h-4" />
@@ -8117,7 +8136,7 @@ export default function App() {
             </div>
 
             {/* SECTION 2: STATISTIK PENGANJUR (MY PROGRESS) */}
-            <div className="px-5 mb-6">
+            <div className="px-5 md:px-6 lg:px-8 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Statistik Penganjur</h4>
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 border border-white/10 text-[10px] font-bold text-zinc-300">
@@ -8127,13 +8146,13 @@ export default function App() {
               </div>
 
               {/* 3 Circular SVG Progress Gauges Card */}
-              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 grid grid-cols-3 gap-2">
+              <div className="p-4 sm:p-6 lg:p-7 rounded-2xl bg-zinc-900/60 border border-white/10 grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
                 {/* Gauge 1: Selesai (#D7FF00) */}
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-[11px] font-bold mb-2 tracking-wide text-[#D7FF00]">
+                  <span className="text-[11px] sm:text-xs font-bold mb-2 tracking-wide text-[#D7FF00]">
                     Selesai
                   </span>
-                  <div className="relative w-16 h-16 flex items-center justify-center">
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 flex items-center justify-center">
                     <svg className="w-full h-full -rotate-90 origin-center" viewBox="0 0 64 64">
                       <circle
                         cx="32"
@@ -8157,7 +8176,7 @@ export default function App() {
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-black font-mono text-white">
+                      <span className="text-xs sm:text-sm lg:text-base font-black font-mono text-white">
                         {profileHostStats.completionRate}%
                       </span>
                     </div>
@@ -8166,10 +8185,10 @@ export default function App() {
 
                 {/* Gauge 2: Slot Penuh (#10B981) */}
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-[11px] font-bold mb-2 tracking-wide text-emerald-400">
+                  <span className="text-[11px] sm:text-xs font-bold mb-2 tracking-wide text-emerald-400">
                     Slot Penuh
                   </span>
-                  <div className="relative w-16 h-16 flex items-center justify-center">
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 flex items-center justify-center">
                     <svg className="w-full h-full -rotate-90 origin-center" viewBox="0 0 64 64">
                       <circle
                         cx="32"
@@ -8193,7 +8212,7 @@ export default function App() {
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-black font-mono text-white">
+                      <span className="text-xs sm:text-sm lg:text-base font-black font-mono text-white">
                         {profileHostStats.fillRate}%
                       </span>
                     </div>
@@ -8202,10 +8221,10 @@ export default function App() {
 
                 {/* Gauge 3: Auto-Audit (#38BDF8) */}
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-[11px] font-bold mb-2 tracking-wide text-sky-400">
+                  <span className="text-[11px] sm:text-xs font-bold mb-2 tracking-wide text-sky-400">
                     Auto-Audit
                   </span>
-                  <div className="relative w-16 h-16 flex items-center justify-center">
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 flex items-center justify-center">
                     <svg className="w-full h-full -rotate-90 origin-center" viewBox="0 0 64 64">
                       <circle
                         cx="32"
@@ -8229,7 +8248,7 @@ export default function App() {
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-black font-mono text-white">
+                      <span className="text-xs sm:text-sm lg:text-base font-black font-mono text-white">
                         {profileHostStats.auditRate}%
                       </span>
                     </div>
@@ -8239,7 +8258,7 @@ export default function App() {
             </div>
 
             {/* SECTION 3: PROFIL & MAKLUMAT (NOTES) */}
-            <div className="px-5 mb-6">
+            <div className="px-5 md:px-6 lg:px-8 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Profil &amp; Maklumat</h4>
                 <button
@@ -8253,16 +8272,16 @@ export default function App() {
               </div>
 
               {/* CARDS VIEW MODE (Reference "Notes" Style) */}
-              <div className="flex md:grid md:grid-cols-3 items-center md:items-stretch gap-3 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
+              <div className="flex md:grid md:grid-cols-3 items-center md:items-stretch gap-3 md:gap-4 lg:gap-6 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                 {/* Card 1: Official Contact */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 md:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-zinc-400">CONTACT</span>
-                    <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                      <Phone className="w-3 h-3" />
+                    <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">CONTACT</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <Phone className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  <p className="text-xs font-bold text-white line-clamp-2">
+                  <p className="text-xs sm:text-sm font-bold text-white line-clamp-2">
                     {profileContact || 'Belum ditetapkan'}
                   </p>
                   {profileContact ? (
@@ -8270,10 +8289,10 @@ export default function App() {
                       href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] font-black text-emerald-400 hover:underline flex items-center gap-1"
+                      className="text-[10px] sm:text-xs font-black text-emerald-400 hover:underline flex items-center gap-1"
                     >
                       <span>Buka Chat</span>
-                      <ExternalLink className="w-2.5 h-2.5" />
+                      <ExternalLink className="w-3 h-3" />
                     </a>
                   ) : (
                     <span className="text-[9px] font-mono text-zinc-500">Tekan edit</span>
@@ -8281,28 +8300,28 @@ export default function App() {
                 </div>
 
                 {/* Card 2: Bio & Rules */}
-                <div className="snap-start shrink-0 w-52 md:w-auto p-4 md:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                <div className="snap-start shrink-0 w-52 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-zinc-400">BIO</span>
-                    <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
-                      <BookOpen className="w-3 h-3" />
+                    <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">BIO</span>
+                    <div className="w-7 h-7 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
+                      <BookOpen className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  <p className="text-xs font-medium text-zinc-300 line-clamp-2">
+                  <p className="text-xs sm:text-sm font-medium text-zinc-300 line-clamp-3">
                     {profileBio || 'Penganjur kejohanan rasmi PUBG Mobile Scrims.'}
                   </p>
                   <span className="text-[9px] font-mono text-zinc-500 font-semibold">Terkini</span>
                 </div>
 
                 {/* Card 3: Clan / Organization */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 md:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-zinc-400">ORGANISASI</span>
-                    <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
-                      <ShieldCheck className="w-3 h-3" />
+                    <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">ORGANISASI</span>
+                    <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                      <ShieldCheck className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  <p className="text-xs font-bold text-white truncate">
+                  <p className="text-xs sm:text-sm font-bold text-white truncate">
                     {activeOrganizationName || 'Clan Utama'}
                   </p>
                   <span className="text-[9px] font-mono text-sky-400 font-semibold">Akaun Aktif</span>
@@ -8311,12 +8330,12 @@ export default function App() {
             </div>
 
             {/* BOTTOM ACTIONS: LOGOUT */}
-            <div className="mt-auto px-5 pt-4 pb-6 border-t border-white/10">
+            <div className="mt-auto px-5 md:px-6 lg:px-8 pt-4 pb-6 border-t border-white/10 flex justify-center">
               {currentUser && (
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
+                  className="w-full md:max-w-md py-3.5 px-6 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer shadow-md"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Keluar Akaun</span>
