@@ -7811,7 +7811,7 @@ export default function App() {
           aria-labelledby="profile-drawer-title"
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-full pb-10 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
+          <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-16 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
             <div className="relative h-44 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0">
               {/* Subtle ambient light effects */}
@@ -8027,7 +8027,7 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setIsProfileModalOpen(false);
-                    navigateToTab('scrims');
+                    navigateToTab('history');
                   }}
                   className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
                 >
@@ -8293,7 +8293,7 @@ export default function App() {
             </div>
 
             {/* BOTTOM ACTIONS: LOGOUT */}
-            <div className="mt-auto px-5 pt-4 border-t border-white/10">
+            <div className="mt-auto px-5 pt-4 pb-6 border-t border-white/10">
               {currentUser && (
                 <button
                   type="button"
