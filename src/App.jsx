@@ -192,7 +192,7 @@ const matchesStatsFilter = (result, filterKey) => {
     return (result?.eventType || 'Scrim') === filterKey;
   }
   const tierRaw = String(result?.scrimTier || result?.scrimData?.tier || '').toLowerCase();
-  if (filterKey === 'TIER_1') return tierRaw.includes('tier 1') || tierRaw.includes('pro');
+  if (filterKey === 'TIER_1') return tierRaw.includes('tier 1') || /(?:^|[^a-z-])pro(?:[^a-z]|$)/i.test(tierRaw);
   if (filterKey === 'TIER_2') return tierRaw.includes('tier 2') || tierRaw.includes('semi');
   if (filterKey === 'TIER_3') return tierRaw.includes('tier 3') || tierRaw.includes('amateur');
   if (filterKey === 'OPEN') return tierRaw.includes('open') || tierRaw.includes('community');
@@ -6152,11 +6152,41 @@ export default function App() {
                       Tiada pasukan dengan rekod perlawanan lagi. Rekod akan muncul secara automatik sebaik sahaja markah disimpan.
                     </p>
                   </div>
-                ) : displayedRankedTeams.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-zinc-400">
-                    Tiada pasukan sepadan dengan tapisan semasa.
-                  </div>
-                ) : (() => {
+                ) : displayedRankedTeams.length === 0 ? (() => {
+                  const activeFilterLabel = HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory;
+                  return (
+                    <div className="py-10 px-4 text-center space-y-3 bg-zinc-950/50 rounded-2xl">
+                      <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-zinc-400 flex items-center justify-center mx-auto">
+                        {teamSearchQuery.trim() ? <Search className="w-5 h-5" /> : <Trophy className="w-5 h-5 text-[#D7FF00]/80" />}
+                      </div>
+                      <div className="space-y-1 max-w-xs mx-auto">
+                        <p className="text-xs sm:text-sm font-bold text-white">
+                          {teamSearchQuery.trim()
+                            ? `Tiada pasukan sepadan dengan "${teamSearchQuery.trim()}"`
+                            : `Belum ada rekod untuk ${activeFilterLabel}`}
+                        </p>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed">
+                          {teamSearchQuery.trim()
+                            ? 'Cuba kata kunci nama atau tag pasukan yang lain.'
+                            : `Statistik dan ranking pasukan akan muncul secara automatik selepas sesi kategori ${activeFilterLabel} direkodkan.`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (teamSearchQuery.trim()) {
+                            setTeamSearchQuery('');
+                          } else {
+                            setTeamStatsCategory('ALL');
+                          }
+                        }}
+                        className="px-4 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] transition cursor-pointer"
+                      >
+                        {teamSearchQuery.trim() ? 'Reset Carian' : 'Lihat Semua Data'}
+                      </button>
+                    </div>
+                  );
+                })() : (() => {
                   const isSearchingTeams = Boolean(teamSearchQuery.trim());
                   const top3Teams = isSearchingTeams ? [] : displayedRankedTeams.slice(0, 3);
                   const listTeams = isSearchingTeams ? displayedRankedTeams : displayedRankedTeams.slice(3);
