@@ -5522,7 +5522,7 @@ export default function App() {
           const showAllTeams = isHallOfFameFullView || Boolean(teamSearchQuery.trim());
           const displayedRankedTeams = showAllTeams
             ? rankedTeamsWithStats
-            : rankedTeamsWithStats.slice(0, 3);
+            : rankedTeamsWithStats.slice(0, 10);
 
           // Generate radial tick marks for the minimalist semi-circle dial (-74 deg to +74 deg)
           const dialTicks = [];
@@ -5772,9 +5772,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 4. TOP PERFORM TEAM CARD (Following Reference "Mood Summary" + Top-Right View Full Button) */}
+              {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
-                className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
+                className="bg-[#121214] border border-white/8 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
                 style={{ animationDelay: '140ms' }}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -5783,14 +5783,16 @@ export default function App() {
                       Top Perform Team
                     </h2>
                     <span className="text-[11px] text-zinc-500">
-                      {showAllTeams
+                      {teamSearchQuery.trim()
+                        ? `Hasil carian (${displayedRankedTeams.length} pasukan)`
+                        : showAllTeams
                         ? `Senarai penuh (${rankedTeamsWithStats.length} pasukan aktif)`
-                        : 'Kedudukan 3 pasukan terbaik keseluruhan'}
+                        : `Kedudukan Top ${Math.min(10, rankedTeamsWithStats.length)} pasukan terbaik`}
                     </span>
                   </div>
 
-                  {/* Top-Right View Full Button (↗) */}
-                  {rankedTeamsWithStats.length > 0 && (
+                  {/* Top-Right View Full Button */}
+                  {!teamSearchQuery.trim() && rankedTeamsWithStats.length > 10 && (
                     <button
                       type="button"
                       onClick={() => setIsHallOfFameFullView(prev => !prev)}
@@ -5802,7 +5804,7 @@ export default function App() {
                       }
                       title={isHallOfFameFullView ? 'Tutup senarai penuh' : 'Lihat senarai penuh semua pasukan'}
                     >
-                      <span>{isHallOfFameFullView ? 'Ringkas' : 'View Full'}</span>
+                      <span>{isHallOfFameFullView ? 'Top 10' : 'View Full'}</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -5819,141 +5821,300 @@ export default function App() {
                   <div className="py-6 text-center text-xs text-zinc-400">
                     Tiada pasukan sepadan dengan tapisan semasa.
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 space-y-0">
-                    {displayedRankedTeams.map((team, idx) => {
-                      const rankNum = team.globalRank || (idx + 1);
-                      const isSelected = currentSelectedTeam === team.name;
-                      const badgeBg =
-                        rankNum === 1
-                          ? 'bg-gradient-to-br from-[#D7FF00] via-lime-300 to-emerald-400 text-black shadow-[0_0_18px_rgba(215,255,0,0.25)]'
-                          : rankNum === 2
-                          ? 'bg-gradient-to-br from-zinc-200 via-zinc-300 to-zinc-500 text-black'
-                          : rankNum === 3
-                          ? 'bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 text-black'
-                          : 'bg-zinc-800/90 text-zinc-200';
+                ) : (() => {
+                  const isSearchingTeams = Boolean(teamSearchQuery.trim());
+                  const top3Teams = isSearchingTeams ? [] : displayedRankedTeams.slice(0, 3);
+                  const listTeams = isSearchingTeams ? displayedRankedTeams : displayedRankedTeams.slice(3);
 
-                      return (
+                  // Arrange podium slots visually: [#2 Left, #1 Center Elevated, #3 Right]
+                  const podiumSlots =
+                    top3Teams.length === 3
+                      ? [
+                          { team: top3Teams[1], slotRank: 2 },
+                          { team: top3Teams[0], slotRank: 1 },
+                          { team: top3Teams[2], slotRank: 3 }
+                        ]
+                      : top3Teams.length === 2
+                      ? [
+                          { team: top3Teams[1], slotRank: 2 },
+                          { team: top3Teams[0], slotRank: 1 }
+                        ]
+                      : top3Teams.map((t, i) => ({ team: t, slotRank: i + 1 }));
+
+                  return (
+                    <div className="max-w-4xl mx-auto space-y-2.5 sm:space-y-3">
+                      {/* TOP 3 PODIUM SHOWCASE */}
+                      {podiumSlots.length > 0 && (
                         <div
-                          key={team.name}
-                          onClick={() => setSelectedTeamProfile(team.name)}
-                          style={{ animationDelay: `${180 + Math.min(idx, 8) * 60}ms` }}
-                          className={
-                            'p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all animate-stagger-card ' +
-                            (isSelected
-                              ? 'bg-zinc-800/80 shadow-md'
-                              : 'hover:bg-zinc-900/70')
-                          }
+                          className={`grid items-end gap-2 sm:gap-3.5 ${
+                            podiumSlots.length === 1
+                              ? 'grid-cols-1 max-w-xs mx-auto'
+                              : podiumSlots.length === 2
+                              ? 'grid-cols-2 max-w-lg mx-auto'
+                              : 'grid-cols-3'
+                          }`}
                         >
-                          {/* Left: #Rank + Square Rounded Thumbnail Badge + Team Info */}
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <span
-                              className={
-                                'w-6 text-xs sm:text-sm font-mono font-bold shrink-0 ' +
-                                (rankNum === 1
-                                  ? 'text-[#D7FF00]'
-                                  : rankNum === 2
-                                  ? 'text-zinc-300'
-                                  : rankNum === 3
-                                  ? 'text-amber-400'
-                                  : 'text-zinc-500')
-                              }
-                            >
-                              #{rankNum}
-                            </span>
+                          {podiumSlots.map(({ team, slotRank }) => {
+                            const rankNum = team.globalRank || slotRank;
+                            const isSelected = currentSelectedTeam === team.name;
+                            const isFirst = slotRank === 1;
+                            const isSecond = slotRank === 2;
 
-                            {team.logo_url ? (
-                              <div className="relative w-12 h-12 sm:w-13 sm:h-13 shrink-0">
-                                <img
-                                  src={team.logo_url}
-                                  alt={team.name}
-                                  className="w-full h-full rounded-2xl object-cover border border-white/10 shadow-sm"
-                                />
-                                {team.scopedWWCD > 0 && (
-                                  <span
-                                    className="absolute -bottom-1 -right-1 bg-[#D7FF00] text-black text-[8px] font-mono font-black px-1 rounded-md shadow-xs"
-                                    title={`${team.scopedWWCD} WWCD`}
-                                  >
-                                    🏆{team.scopedWWCD}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
+                            const cardBorderClass = isFirst
+                              ? 'border-[#D7FF00]/45 shadow-[0_0_28px_rgba(215,255,0,0.14)] hover:border-[#D7FF00]/75'
+                              : isSecond
+                              ? 'border-white/15 hover:border-white/30'
+                              : 'border-amber-500/30 hover:border-amber-400/55';
+
+                            const heroBgClass = isFirst
+                              ? 'bg-gradient-to-br from-[#191e0e] via-[#101116] to-[#09090b]'
+                              : isSecond
+                              ? 'bg-gradient-to-br from-[#1b1d24] via-[#101116] to-[#09090b]'
+                              : 'bg-gradient-to-br from-[#20160c] via-[#101116] to-[#09090b]';
+
+                            const watermarkColor = isFirst
+                              ? 'text-[#D7FF00]/22'
+                              : isSecond
+                              ? 'text-zinc-200/18'
+                              : 'text-amber-400/20';
+
+                            const tagBadgeStyle = isFirst
+                              ? 'bg-[#D7FF00] text-black'
+                              : isSecond
+                              ? 'bg-zinc-200 text-black'
+                              : 'bg-amber-400 text-black';
+
+                            const fallbackPedestalBg = isFirst
+                              ? 'bg-gradient-to-br from-[#D7FF00] via-lime-300 to-emerald-400 text-black'
+                              : isSecond
+                              ? 'bg-gradient-to-br from-zinc-200 via-zinc-300 to-zinc-500 text-black'
+                              : 'bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 text-black';
+
+                            return (
                               <div
-                                className={
-                                  'w-12 h-12 sm:w-13 sm:h-13 rounded-2xl flex flex-col items-center justify-center shrink-0 font-black ' +
-                                  badgeBg
-                                }
+                                key={team.name}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedTeamProfile(team.name)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setSelectedTeamProfile(team.name);
+                                  }
+                                }}
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden bg-[#09090b] border transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardBorderClass} ${
+                                  isSelected ? 'ring-2 ring-[#D7FF00]/60' : ''
+                                }`}
                               >
-                                <span className="text-xs sm:text-sm tracking-tight leading-none">
-                                  {team.tag || team.name.slice(0, 3).toUpperCase()}
-                                </span>
-                                <span className="text-[8px] font-mono uppercase opacity-75 mt-0.5">
-                                  {team.scopedWWCD > 0 ? `${team.scopedWWCD} WWCD` : 'SQUAD'}
-                                </span>
-                              </div>
-                            )}
-
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm sm:text-base font-bold text-white truncate">
-                                {team.name}
-                              </div>
-                              <div className="text-xs text-zinc-400 truncate mt-0.5">
-                                {team.scopedPoints} PTS • {team.scopedKills} Elims • {team.scopedWWCD} WWCD
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Right: Overlapping Mini Badges + Quick IG Story Button (Following Reference Right Badges) */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="hidden xs:flex items-center -space-x-1.5">
-                              <span
-                                className="w-6 h-6 rounded-full bg-zinc-900 text-[#D7FF00] text-[9px] font-mono font-bold flex items-center justify-center ring-2 ring-[#121214]"
-                                title={`${team.scopedEvents} Sesi Disertai`}
-                              >
-                                {team.scopedEvents}S
-                              </span>
-                              {team.scopedWWCD > 0 && (
-                                <span
-                                  className="w-6 h-6 rounded-full bg-[#D7FF00] text-black text-[9px] font-mono font-black flex items-center justify-center ring-2 ring-[#121214]"
-                                  title={`${team.scopedWWCD} Chicken Dinner`}
+                                {/* Upper Visual Hero Area */}
+                                <div
+                                  className={`relative overflow-hidden flex items-center justify-center ${
+                                    isFirst ? 'h-36 sm:h-52' : 'h-28 sm:h-44'
+                                  } ${heroBgClass}`}
                                 >
-                                  🏆
-                                </span>
-                              )}
-                            </div>
+                                  {/* Ambient Blurred Logo Glow Layer */}
+                                  {team.logo_url && (
+                                    <img
+                                      src={team.logo_url}
+                                      alt=""
+                                      aria-hidden="true"
+                                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none"
+                                    />
+                                  )}
 
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPerformanceTeam(team);
-                                setSelectedPerformanceHost('ALL');
-                                setPerformanceModalCategory(teamStatsCategory);
-                                setIsPerformanceModalOpen(true);
-                              }}
-                              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-[#D7FF00] text-zinc-300 hover:text-black text-[10px] font-mono font-bold transition flex items-center gap-1 cursor-pointer"
-                              title="Buka Kad Analitik & IG Story 9:16"
-                            >
-                              <Share2 className="w-3 h-3" />
-                              <span className="hidden sm:inline">Story 9:16</span>
-                            </button>
-                          </div>
+                                  {/* Subtle Top Spotlight Glow */}
+                                  <div
+                                    aria-hidden="true"
+                                    className={`absolute -top-6 right-0 w-24 h-24 rounded-full blur-2xl pointer-events-none ${
+                                      isFirst
+                                        ? 'bg-[#D7FF00]/20'
+                                        : isSecond
+                                        ? 'bg-white/10'
+                                        : 'bg-amber-500/15'
+                                    }`}
+                                  />
+
+                                  {/* Giant Background Rank Watermark */}
+                                  <span
+                                    aria-hidden="true"
+                                    className={`absolute -top-1 left-1.5 sm:left-2.5 text-[4.8rem] sm:text-[8rem] font-black leading-none tracking-tighter select-none pointer-events-none ${watermarkColor}`}
+                                  >
+                                    {rankNum}
+                                  </span>
+
+                                  {/* Small Clean Eye View Button Top-Right */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTeamProfile(team.name);
+                                    }}
+                                    className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/55 backdrop-blur-md border border-white/15 flex items-center justify-center text-zinc-300 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/50 transition cursor-pointer"
+                                    title={`Lihat maklumat ${team.name}`}
+                                    aria-label={`Lihat maklumat ${team.name}`}
+                                  >
+                                    <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  </button>
+
+                                  {/* Immersive Centered Team Logo Pedestal */}
+                                  {team.logo_url ? (
+                                    <div className="relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#09090b]/85 backdrop-blur-md border border-white/15 p-1.5 sm:p-2 shadow-2xl group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+                                      <img
+                                        src={team.logo_url}
+                                        alt={team.name}
+                                        className="w-full h-full object-contain rounded-xl sm:rounded-2xl"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className={`relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black shadow-2xl group-hover:scale-105 transition-transform duration-300 ${fallbackPedestalBg}`}
+                                    >
+                                      <span className="text-xs sm:text-xl tracking-tight">
+                                        {team.tag || team.name.slice(0, 3).toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Bottom Overlay Strip: [TAG] Pill + Points */}
+                                  <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent pt-6 pb-1.5 px-2 sm:px-3 flex items-end justify-between gap-1">
+                                    <span
+                                      className={`px-1.5 sm:px-2 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-xs uppercase leading-tight truncate max-w-[48%] ${tagBadgeStyle}`}
+                                    >
+                                      {team.tag || team.name.slice(0, 3).toUpperCase()}
+                                    </span>
+
+                                    <div className="flex items-baseline gap-0.5 font-mono font-black shrink-0">
+                                      <span className="text-sm sm:text-2xl leading-none text-white">
+                                        {team.scopedPoints}
+                                      </span>
+                                      <span className="text-[8px] sm:text-[10px] text-[#D7FF00] font-bold">
+                                        PTS
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Lower Dark Name Caption Block */}
+                                <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-[#09090b] border-t border-white/5 text-left space-y-0.5">
+                                  <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 truncate">
+                                    {team.scopedKills}K • {team.scopedWWCD} WWCD
+                                  </div>
+                                  <div className="text-[11px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight line-clamp-2 min-h-[2.1em] sm:min-h-[2.3em]">
+                                    {team.name}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      )}
 
-                {/* Bottom Toggle if there are more than 3 teams */}
-                {!teamSearchQuery.trim() && rankedTeamsWithStats.length > 3 && (
+                      {/* RANK #4 TO #10+ BROADCAST STACKED DARK LIST */}
+                      {listTeams.length > 0 && (
+                        <div className="space-y-1.5 pt-0.5">
+                          {listTeams.map((team, idx) => {
+                            const rankNum = team.globalRank || (isSearchingTeams ? idx + 1 : idx + 4);
+                            const isSelected = currentSelectedTeam === team.name;
+                            const tagText = (team.tag || team.name.slice(0, 3)).toUpperCase();
+
+                            return (
+                              <div
+                                key={team.name}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedTeamProfile(team.name)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setSelectedTeamProfile(team.name);
+                                  }
+                                }}
+                                style={{ animationDelay: `${160 + Math.min(idx, 10) * 40}ms` }}
+                                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#09090b] hover:bg-[#15151b] border transition-all flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-stagger-card select-none ${
+                                  isSelected
+                                    ? 'border-[#D7FF00]/50 bg-[#141418]'
+                                    : 'border-white/8 hover:border-[#D7FF00]/30'
+                                }`}
+                              >
+                                {/* Left: Rank # + Compact Tag Pill + Uppercase Team Name */}
+                                <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                                  <span
+                                    className={`w-6 sm:w-7 text-center font-mono font-black text-xs sm:text-sm shrink-0 ${
+                                      rankNum === 1
+                                        ? 'text-[#D7FF00]'
+                                        : rankNum === 2
+                                        ? 'text-zinc-200'
+                                        : rankNum === 3
+                                        ? 'text-amber-400'
+                                        : 'text-zinc-400'
+                                    }`}
+                                  >
+                                    {rankNum}
+                                  </span>
+
+                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 text-[#D7FF00] border border-[#D7FF00]/25">
+                                    {tagText}
+                                  </span>
+
+                                  <span className="text-xs sm:text-sm font-black uppercase tracking-tight text-white truncate">
+                                    {team.name}
+                                  </span>
+                                </div>
+
+                                {/* Right: Mini Logo + Stats + Points + Small Eye View Button */}
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                  <span className="hidden sm:inline font-mono text-[11px] text-zinc-500">
+                                    {team.scopedKills}K • {team.scopedWWCD}W
+                                  </span>
+
+                                  {team.logo_url && (
+                                    <img
+                                      src={team.logo_url}
+                                      alt=""
+                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-contain bg-zinc-950 p-0.5 border border-white/10 shrink-0"
+                                    />
+                                  )}
+
+                                  <div className="flex items-baseline gap-0.5 font-mono font-black min-w-[52px] sm:min-w-[62px] justify-end">
+                                    <span className="text-sm sm:text-base text-white">
+                                      {team.scopedPoints}
+                                    </span>
+                                    <span className="text-[9px] text-[#D7FF00] font-bold">
+                                      PTS
+                                    </span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTeamProfile(team.name);
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-zinc-900/90 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/40 transition shrink-0 cursor-pointer"
+                                    title={`Lihat maklumat ${team.name}`}
+                                    aria-label={`Lihat maklumat ${team.name}`}
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Bottom Toggle if there are more than 10 teams */}
+                {!teamSearchQuery.trim() && rankedTeamsWithStats.length > 10 && (
                   <button
                     type="button"
                     onClick={() => setIsHallOfFameFullView(prev => !prev)}
                     className="w-full py-2.5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] transition cursor-pointer"
                   >
                     {isHallOfFameFullView
-                      ? 'Tunjukkan Top 3 Sahaja ↑'
+                      ? 'Tunjukkan Top 10 Sahaja ↑'
                       : `Lihat Semua ${rankedTeamsWithStats.length} Pasukan ↓`}
                   </button>
                 )}
