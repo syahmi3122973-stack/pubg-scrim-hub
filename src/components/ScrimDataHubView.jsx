@@ -568,8 +568,8 @@ export default function ScrimDataHubView({
 
       showToast(
         committedToNewSchema
-          ? 'Berjaya disimpan ke Database Supabase & dikemas kini ke Rekod / Hall of Fame!'
-          : 'Berjaya disimpan ke Rekod Sesi & Hall of Fame!'
+          ? 'Berjaya disimpan ke Database Supabase & dikemas kini ke Rekod / Team Matrix!'
+          : 'Berjaya disimpan ke Rekod Sesi & Team Matrix!'
       );
 
       // Kosongkan semula halaman selepas berjaya tambah ke database

@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: 'Oswald', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 body {
   background-color: #09090B;
   color: #F4F4F5;
@@ -310,11 +315,27 @@ body {
   }
 }
 
-/* Exclusive Monumental Display Typography for Hall of Fame */
-.font-exclusive-hof {
-  font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size-adjust: cap-height from-font;
+/* Team Matrix Display & Technical Lockup Typography (Oswald + JetBrains Mono) */
+.font-team-matrix {
+  font-family: 'Oswald', system-ui, -apple-system, sans-serif;
+  font-size-adjust: from-font;
   font-feature-settings: 'kern' 1, 'liga' 1;
   text-wrap: balance;
-  line-height: 1.12;
+  line-height: 1.08;
+}
+
+.font-jetbrains {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size-adjust: from-font;
+  font-feature-settings: 'kern' 1, 'tnum' 1;
+}
+
+@supports not (font-size-adjust: from-font) {
+  .font-team-matrix {
+    line-height: 1.12;
+  }
+  .font-jetbrains {
+    font-size: 0.94em;
+    line-height: 1.14;
+  }
 }

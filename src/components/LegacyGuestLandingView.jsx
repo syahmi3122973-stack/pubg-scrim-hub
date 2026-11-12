@@ -101,9 +101,9 @@ export default function LegacyGuestLandingView({
       id: 'portfolio-pasukan',
       title: 'Portfolio Pasukan & Penaja',
       icon: Award,
-      badge: 'HALL OF FAME',
+      badge: 'TEAM MATRIX',
       description: 'Rekod match se-Malaysia disimpan kolektif — jadi portfolio rasmi untuk pitching tajaan & scouting bakat baru.',
-      footerText: 'Teroka Database Hall of Fame →',
+      footerText: 'Teroka Database Team Matrix →',
       onAction: () => navigateToTab('teams'),
       renderVisual: (isActive) => (
         <div

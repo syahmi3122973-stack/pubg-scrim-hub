@@ -3019,7 +3019,7 @@ export default function App() {
         ctx.fillText(truncateText(ctx, team.tag || 'TM', avatarSize - 20), avatarX + avatarSize / 2, avatarY + 76);
       }
 
-      // Compute overall rank matching Hall of Fame (#rank without 'Global')
+      // Compute overall rank matching Team Matrix (#rank without 'Global')
       const targetTeamKey = getCanonicalTeamKey(team.name);
       const rankIdx = Array.isArray(validTeamList)
         ? validTeamList.findIndex(t => getCanonicalTeamKey(t.name) === targetTeamKey)
@@ -4009,7 +4009,7 @@ export default function App() {
       }
     });
 
-    // 2. Teams appearing in scrims/Hall of Fame
+    // 2. Teams appearing in scrims/Team Matrix
     Object.values(teamsStats).forEach(st => {
       if (st && st.name) {
         const cleanName = cleanTeamDisplayName(st.name);
@@ -4799,8 +4799,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigateToTab('teams')}
-                title="Hall of Fame & Direktori Pasukan"
-                aria-label="Hall of Fame"
+                title="Team Matrix & Direktori Pasukan"
+                aria-label="Team Matrix"
                 className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'teams'
                     ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black' 
@@ -5150,7 +5150,7 @@ export default function App() {
                 {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
                 <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5">
                   
-                  {/* CARD A: Focal Hero Card (Acid Lime Accent) — [Hall of Fame + Tier 3 Rank Slide] */}
+                  {/* CARD A: Focal Hero Card (Acid Lime Accent) — [Team Matrix + Tier 3 Rank Slide] */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -5188,8 +5188,9 @@ export default function App() {
                           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
                             <span>{homeHofSlide === 0 ? 'Current Ranking • Semua' : 'Division Spotlight • Tier 3'}</span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-black leading-none pt-0.5">
-                            Hall of Fame
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-black leading-none pt-0.5 flex items-baseline gap-1.5">
+                            <span className="font-team-matrix font-bold uppercase">Team</span>
+                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em]">Matrix</span>
                           </h2>
                         </div>
 
@@ -5202,7 +5203,7 @@ export default function App() {
                       <div
                         role="region"
                         aria-roledescription="carousel"
-                        aria-label="Ringkasan Hall of Fame dan Tier 3"
+                        aria-label="Ringkasan Team Matrix dan Tier 3"
                         className="overflow-hidden rounded-2xl"
                       >
                         <div
@@ -5629,7 +5630,7 @@ export default function App() {
                           }}
                           className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] flex items-center gap-1.5 transition cursor-pointer shrink-0"
                         >
-                          <span>Hall of Fame</span>
+                          <span>Team Matrix</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -5841,7 +5842,7 @@ export default function App() {
 
         {/* NOTA: Quick Scorer kini telah dinaiktaraf sepenuhnya menggunakan enjin Admin Scorer */}
 
-        {/* VIEW 1: TEAM STATS (HALL OF FAME - REFERENCE DIAL & SUMMARY LAYOUT) */}
+        {/* VIEW 1: TEAM STATS (TEAM MATRIX - REFERENCE DIAL & SUMMARY LAYOUT) */}
         {activeTab === 'teams' && (() => {
           const totalTeamsCount = validTeamList.length;
           const totalScrimsCount = scrims.filter(s => (s.event_type || 'Scrim') !== 'Tour').length;
@@ -5915,13 +5916,13 @@ export default function App() {
                       setSelectedTeamProfile('');
                     }}
                     className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1"
-                    title="Kembali ke Hall of Fame"
+                    title="Kembali ke Team Matrix"
                   >
                     <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition">
                       <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] transition" />
                     </div>
                     <span className="text-sm sm:text-base font-bold tracking-tight text-zinc-300 group-hover:text-white transition">
-                      Kembali ke Hall of Fame
+                      Kembali ke Team Matrix
                     </span>
                   </button>
 
@@ -6360,8 +6361,8 @@ export default function App() {
                         ? 'bg-[#D7FF00] text-black shadow-sm'
                         : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
                     }
-                    title="Info Hall of Fame"
-                    aria-label="Info Hall of Fame"
+                    title="Info Team Matrix"
+                    aria-label="Info Team Matrix"
                   >
                     <Info className="w-4 h-4" />
                   </button>
@@ -6441,7 +6442,7 @@ export default function App() {
                 {/* Tier / Division Pills Row (Semua, SSS, Tier 1, Tier 2, Tier 3, Open) */}
                 <div
                   role="group"
-                  aria-label="Tapis Tier Hall of Fame"
+                  aria-label="Tapis Tier Team Matrix"
                   className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {HALL_OF_FAME_FILTERS.map((cat) => {
@@ -6504,7 +6505,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* 3. MINIMALIST SEMI-CIRCULAR DIAL + HALL OF FAME CENTERPIECE (No Floating Icons Around It) */}
+              {/* 3. MINIMALIST SEMI-CIRCULAR DIAL + TEAM MATRIX CENTERPIECE (No Floating Icons Around It) */}
               <div className="relative pt-2 pb-3 flex flex-col items-center text-center select-none overflow-hidden">
                 <svg
                   viewBox="0 0 400 130"
@@ -6556,8 +6557,13 @@ export default function App() {
                   className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-stagger-card"
                   style={{ animationDelay: '60ms' }}
                 >
-                  <h1 className="font-exclusive-hof text-[clamp(1.75rem,1rem+3.2vw,3.35rem)] font-bold tracking-[0.16em] uppercase bg-gradient-to-b from-white via-zinc-100 to-amber-200/85 bg-clip-text text-transparent drop-shadow-[0_4px_24px_rgba(215,255,0,0.16)]">
-                    HALL OF FAME
+                  <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-bold uppercase flex items-center justify-center gap-2.5 sm:gap-3.5 drop-shadow-[0_4px_24px_rgba(215,255,0,0.16)]">
+                    <span className="font-team-matrix tracking-[0.1em] bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">
+                      TEAM
+                    </span>
+                    <span className="font-jetbrains font-extrabold tracking-[0.06em] text-[#D7FF00] drop-shadow-[0_0_24px_rgba(215,255,0,0.28)]">
+                      MATRIX
+                    </span>
                   </h1>
 
                   {/* Stats Line: Jumlah Team - Jumlah Scrim - Jumlah Tournament */}
@@ -7102,7 +7108,7 @@ export default function App() {
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
           <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-4 md:pb-12">
             
-            {/* 1. TOP NAVIGATION BAR (Exact Position & Size of Search & Info Buttons as Teams / Hall of Fame) */}
+            {/* 1. TOP NAVIGATION BAR (Exact Position & Size of Search & Info Buttons as Teams / Team Matrix) */}
             <div className="flex items-center justify-between px-1">
               <button
                 type="button"
@@ -11694,7 +11700,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => navigateToTab('teams')}
-            title="Hall of Fame & Database Pasukan"
+            title="Team Matrix & Database Pasukan"
             aria-label="Teams"
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'teams' || activeTab === 'database'
