@@ -1882,10 +1882,12 @@ export default function App() {
     }
   };
 
+  const [editTargetScrim, setEditTargetScrim] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
+  const [editDate, setEditDate] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editContact, setEditContact] = useState('');
   const [editLogoFile, setEditLogoFile] = useState(null);
@@ -2015,28 +2017,36 @@ export default function App() {
     }
   };
 
-  const openEditScrimModal = () => {
-    if (!activeAdminScrim) return;
-    setEditTitle(activeAdminScrim.title || '');
-    setEditHostName(activeAdminScrim.host_name || '');
-    setEditEventType(activeAdminScrim.event_type || 'Scrim');
-    setEditTier(activeAdminScrim.tier || 'Tier 1 (Pro)');
-    setEditDesc(activeAdminScrim.description || '');
-    setEditContact(activeAdminScrim.host_contact || '');
+  const openEditScrimModal = (scrimOverride = null) => {
+    const targetScrim = scrimOverride && scrimOverride.id ? scrimOverride : activeAdminScrim;
+    if (!targetScrim) return;
+    if (!isAuthorizedAdmin(targetScrim)) {
+      showToast('Hanya penganjur / host dibenarkan ubah maklumat sesi ini.');
+      return;
+    }
+    setEditTargetScrim(targetScrim);
+    setEditTitle(targetScrim.title || '');
+    setEditHostName(targetScrim.host_name || '');
+    setEditEventType(targetScrim.event_type || 'Scrim');
+    setEditTier(targetScrim.tier || 'Tier 1 (Pro)');
+    setEditDate(targetScrim.date || new Date().toISOString().split('T')[0]);
+    setEditDesc(targetScrim.description || '');
+    setEditContact(targetScrim.host_contact || '');
     setEditLogoFile(null);
     setIsEditScrimModalOpen(true);
   };
 
   const handleUpdateScrimSettings = async (e) => {
     e.preventDefault();
-    if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
+    const editingScrim = editTargetScrim || activeAdminScrim;
+    if (!editingScrim || !isAuthorizedAdmin(editingScrim)) {
       showToast('Access denied!');
       return;
     }
 
     try {
       setIsSavingEdit(true);
-      let updatedLogoUrl = activeAdminScrim.logo_url;
+      let updatedLogoUrl = editingScrim.logo_url;
 
       if (editLogoFile) {
         updatedLogoUrl = await uploadMediaToSupabase(editLogoFile, 'logos');
@@ -2044,9 +2054,10 @@ export default function App() {
 
       const updatedData = {
         title: editTitle.trim(),
-        host_name: editHostName.trim() || activeAdminScrim.host_name || 'Tournament Organizer',
+        host_name: editHostName.trim() || editingScrim.host_name || 'Tournament Organizer',
         event_type: editEventType,
         tier: editTier,
+        date: editDate || editingScrim.date || new Date().toISOString().split('T')[0],
         description: editDesc.trim(),
         host_contact: editContact.trim(),
         logo_url: updatedLogoUrl
@@ -2055,21 +2066,37 @@ export default function App() {
       const { error } = await supabase
         .from('scrims')
         .update(updatedData)
-        .eq('id', activeAdminScrim.id);
+        .eq('id', editingScrim.id);
 
       if (error) {
         showToast('Update failed: ' + error.message);
       } else {
-        const merged = { ...activeAdminScrim, ...updatedData };
+        const merged = { ...editingScrim, ...updatedData };
         setScrims(prev => {
-          const exists = prev.some(s => s.id === activeAdminScrim.id);
+          const exists = prev.some(s => s.id === editingScrim.id);
           if (exists) {
-            return prev.map(s => s.id === activeAdminScrim.id ? merged : s);
+            return prev.map(s => s.id === editingScrim.id ? merged : s);
           } else {
             return [merged, ...prev];
           }
         });
+        try {
+          const rawLocal = localStorage.getItem('pubg_hub_saved_scrims');
+          if (rawLocal) {
+            const parsedLocal = JSON.parse(rawLocal);
+            if (Array.isArray(parsedLocal) && parsedLocal.some((s) => s && s.id === editingScrim.id)) {
+              localStorage.setItem(
+                'pubg_hub_saved_scrims',
+                JSON.stringify(parsedLocal.map((s) => (s && s.id === editingScrim.id ? merged : s)))
+              );
+            }
+          }
+        } catch {
+          // ignore localStorage sync errors
+        }
+        setInspectedScrim(prev => (prev && prev.id === editingScrim.id ? merged : prev));
         setIsEditScrimModalOpen(false);
+        setEditTargetScrim(null);
         showToast('Event settings saved successfully!');
       }
     } catch (err) {
@@ -6775,9 +6802,25 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Right: Quick Action Chevron / Enter Indicator */}
-                      <div className="w-8 h-8 rounded-full bg-zinc-900/80 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:bg-zinc-800 transition shrink-0">
-                        <ChevronRight className="w-4 h-4" />
+                      {/* Right: Quick Edit (for Hosts) & Enter Indicator */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isAuthorizedAdmin(s) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditScrimModal(s);
+                            }}
+                            aria-label={`Ubah tarikh dan info ${s.title}`}
+                            title="Ubah tarikh & maklumat sesi"
+                            className="w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-[#D7FF00] text-zinc-400 hover:text-black flex items-center justify-center transition cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <div className="w-8 h-8 rounded-full bg-zinc-900/80 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:bg-zinc-800 transition shrink-0">
+                          <ChevronRight className="w-4 h-4" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -9961,14 +10004,14 @@ export default function App() {
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden">
           <div className="bg-zinc-950 border border-white/10 rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[88dvh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5 pb-3 shrink-0">
-              <h3 className="font-black text-sm text-white flex items-center gap-1.5">
+              <h3 id="edit-scrim-modal-title" className="font-black text-sm text-white flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-[#D7FF00]"/>
                 <span>Edit Event Settings</span>
               </h3>
               <div className="flex items-center gap-2">
                 <button
-                  type="button"
-                  onClick={handleUpdateScrimSettings}
+                  type="submit"
+                  form="edit-scrim-form"
                   disabled={isSavingEdit}
                   className="sm:hidden px-3.5 py-1.5 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-50 text-black font-black text-xs active:scale-95 transition shadow-sm"
                 >
@@ -9976,7 +10019,11 @@ export default function App() {
                 </button>
                 <button 
                   type="button"
-                  onClick={() => setIsEditScrimModalOpen(false)} 
+                  onClick={() => {
+                    setIsEditScrimModalOpen(false);
+                    setEditTargetScrim(null);
+                  }} 
+                  aria-label="Tutup modal edit"
                   className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
                 >
                   <X className="w-4 h-4" />
@@ -9984,17 +10031,22 @@ export default function App() {
               </div>
             </div>
 
-            <form onSubmit={handleUpdateScrimSettings} className="flex flex-col flex-1 min-h-0 text-xs">
+            <form
+              id="edit-scrim-form"
+              aria-labelledby="edit-scrim-modal-title"
+              onSubmit={handleUpdateScrimSettings}
+              className="flex flex-col flex-1 min-h-0 text-xs"
+            >
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 pt-3 space-y-3.5 overscroll-contain">
                 <div className="bg-zinc-900/60 border border-white/5 text-zinc-300 p-2.5 rounded-2xl flex items-center gap-2 text-xs">
                   <Info className="w-4 h-4 text-[#D7FF00] shrink-0" />
                   <span className="leading-snug">
-                    Di sini anda boleh tukar <strong>nama sesi kejohanan</strong>, muat naik <strong>logo rasmi</strong> untuk poster, dan kemaskini <strong>description / peraturan</strong>.
+                    Di sini anda boleh tukar <strong>nama sesi</strong>, <strong>tarikh scrim</strong>, muat naik <strong>logo rasmi</strong>, dan kemaskini <strong>description / peraturan</strong>.
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Event Category</label>
+                  <span className="block text-zinc-400 uppercase font-bold mb-1">Event Category</span>
                   <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-white/10">
                     <button
                       type="button"
@@ -10013,35 +10065,62 @@ export default function App() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Event Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1">Host / Organizer Name</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-2">
+                    <label htmlFor="edit-scrim-title" className="block text-zinc-400 uppercase font-bold mb-1">
+                      Event Title <span aria-hidden="true" className="text-[#D7FF00]">*</span>
+                    </label>
                     <input
+                      id="edit-scrim-title"
+                      name="title"
                       type="text"
                       required
-                      value={editHostName}
-                      onChange={(e) => setEditHostName(e.target.value)}
-                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00] font-semibold"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1">Tier / Division</label>
+                    <label htmlFor="edit-scrim-date" className="block text-zinc-400 uppercase font-bold mb-1">
+                      Tarikh Sesi <span aria-hidden="true" className="text-[#D7FF00]">*</span>
+                    </label>
+                    <input
+                      id="edit-scrim-date"
+                      name="date"
+                      type="date"
+                      required
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white [color-scheme:dark] focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00] font-semibold font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label htmlFor="edit-scrim-host" className="block text-zinc-400 uppercase font-bold mb-1">
+                      Host / Organizer Name <span aria-hidden="true" className="text-[#D7FF00]">*</span>
+                    </label>
+                    <input
+                      id="edit-scrim-host"
+                      name="host_name"
+                      type="text"
+                      required
+                      value={editHostName}
+                      onChange={(e) => setEditHostName(e.target.value)}
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00] font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="edit-scrim-tier" className="block text-zinc-400 uppercase font-bold mb-1">Tier / Division</label>
                     <select
+                      id="edit-scrim-tier"
+                      name="tier"
                       value={editTier}
                       onChange={(e) => setEditTier(e.target.value)}
-                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#D7FF00] font-semibold"
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00] font-semibold"
                     >
                       {TIER_OPTIONS.map(t => (
                         <option key={t} value={t} className="bg-zinc-950 text-white">{t}</option>
@@ -10051,8 +10130,8 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Change Event Logo (Optional)</label>
-                  <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 text-zinc-300 cursor-pointer transition">
+                  <span className="block text-zinc-400 uppercase font-bold mb-1">Change Event Logo (Optional)</span>
+                  <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 min-h-[44px] text-zinc-300 cursor-pointer transition">
                     <Upload className="w-4 h-4 text-[#D7FF00]"/>
                     <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
                     <input
@@ -10065,23 +10144,27 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Host Contact</label>
+                  <label htmlFor="edit-scrim-contact" className="block text-zinc-400 uppercase font-bold mb-1">Host Contact</label>
                   <input
+                    id="edit-scrim-contact"
+                    name="host_contact"
                     type="text"
                     value={editContact}
                     onChange={(e) => setEditContact(e.target.value)}
                     placeholder="e.g. +60123456789"
-                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 uppercase font-bold mb-1">Description & Rules (Shown on Poster)</label>
+                  <label htmlFor="edit-scrim-desc" className="block text-zinc-400 uppercase font-bold mb-1">Description & Rules (Shown on Poster)</label>
                   <textarea
+                    id="edit-scrim-desc"
+                    name="description"
                     rows="2"
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
-                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-base sm:text-xs text-white placeholder-zinc-500 resize-y focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00]"
                   />
                 </div>
               </div>
@@ -10090,7 +10173,10 @@ export default function App() {
               <div className="flex items-center gap-2.5 p-3.5 sm:p-4 pb-6 sm:pb-4 border-t border-white/10 bg-zinc-950 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setIsEditScrimModalOpen(false)}
+                  onClick={() => {
+                    setIsEditScrimModalOpen(false);
+                    setEditTargetScrim(null);
+                  }}
                   className="w-1/3 sm:w-auto px-4 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold active:scale-95 transition text-center"
                 >
                   Cancel
@@ -10145,11 +10231,24 @@ export default function App() {
                       {inspectedScrim.tier || 'Tier 1'}
                     </span>
 
-                    {inspectedScrim.date && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-400 bg-zinc-900/60 px-2.5 py-0.5 rounded-full border border-white/5 shrink-0">
-                        <Clock className="w-2.5 h-2.5 text-zinc-500" />
-                        <span>{inspectedScrim.date}</span>
-                      </span>
+                    {isAuthorizedAdmin(inspectedScrim) ? (
+                      <button
+                        type="button"
+                        onClick={() => openEditScrimModal(inspectedScrim)}
+                        title="Klik untuk ubah tarikh sesi"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-300 hover:text-[#D7FF00] bg-zinc-900/60 hover:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/5 hover:border-[#D7FF00]/40 transition shrink-0 cursor-pointer"
+                      >
+                        <Clock className="w-2.5 h-2.5 text-zinc-400" />
+                        <span>{inspectedScrim.date || 'Set Tarikh'}</span>
+                        <Edit3 className="w-2.5 h-2.5 text-[#D7FF00]" />
+                      </button>
+                    ) : (
+                      inspectedScrim.date && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-400 bg-zinc-900/60 px-2.5 py-0.5 rounded-full border border-white/5 shrink-0">
+                          <Clock className="w-2.5 h-2.5 text-zinc-500" />
+                          <span>{inspectedScrim.date}</span>
+                        </span>
+                      )
                     )}
 
                     {inspectedScrim.is_finished && (
@@ -10236,7 +10335,18 @@ export default function App() {
             </div>
 
             <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {isAuthorizedAdmin(inspectedScrim) && (
+                  <button
+                    type="button"
+                    onClick={() => openEditScrimModal(inspectedScrim)}
+                    className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.18)] cursor-pointer active:scale-95"
+                  >
+                    <Edit3 className="w-3.5 h-3.5"/>
+                    <span>Ubah Info &amp; Tarikh</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -10244,10 +10354,14 @@ export default function App() {
                     setInspectedScrim(null);
                     navigateToTab('admin');
                   }}
-                  className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215, 255, 0,0.18)]"
+                  className={
+                    isAuthorizedAdmin(inspectedScrim)
+                      ? 'px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10 cursor-pointer'
+                      : 'px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.18)] cursor-pointer'
+                  }
                 >
                   <Edit3 className="w-3.5 h-3.5"/>
-                  <span>Edit</span>
+                  <span>{isAuthorizedAdmin(inspectedScrim) ? 'Portal Host' : 'Edit'}</span>
                 </button>
 
                 <button
