@@ -384,6 +384,18 @@ export default function App() {
   const [isSavingCloudMatch, setIsSavingCloudMatch] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingCloudSync, setPendingCloudSync] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState(() => {
+    try {
+      const raw = localStorage.getItem('pubg_saved_accounts');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved accounts:', e);
+    }
+    return [];
+  });
 
   const [currentPlaygroundMatchIdx, setCurrentPlaygroundMatchIdx] = useState(0);
   const [posterViewMode, setPosterViewMode] = useState('overall'); // 'overall' (default) or 'match'
@@ -1274,6 +1286,33 @@ export default function App() {
         const { data: { session } } = await supabase.auth.getSession();
         const user = session?.user || null;
         setCurrentUser(user);
+        if (user && session) {
+          const acc = {
+            id: user.id,
+            email: user.email,
+            name: user.email.split('@')[0],
+            avatarUrl: '',
+            session: {
+              access_token: session.access_token,
+              refresh_token: session.refresh_token
+            },
+            lastActive: Date.now()
+          };
+          setSavedAccounts(prev => {
+            const idx = prev.findIndex(a => a.email.toLowerCase() === acc.email.toLowerCase());
+            let nextList;
+            if (idx !== -1) {
+              nextList = [...prev];
+              nextList[idx] = { ...prev[idx], session: acc.session, lastActive: Date.now() };
+            } else {
+              nextList = [acc, ...prev];
+            }
+            try {
+              localStorage.setItem('pubg_saved_accounts', JSON.stringify(nextList));
+            } catch {}
+            return nextList;
+          });
+        }
       } catch (err) {
         console.warn('Auth session check note:', err);
       } finally {
@@ -1421,12 +1460,80 @@ export default function App() {
         showToast('Welcome back, ' + data.user.email);
         setAuthPassword('');
         setIsAuthModalOpen(false);
+        if (data?.user && data?.session) {
+          const acc = {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.email.split('@')[0],
+            avatarUrl: '',
+            session: {
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token
+            },
+            lastActive: Date.now()
+          };
+          setSavedAccounts(prev => {
+            const filtered = prev.filter(a => a.email.toLowerCase() !== acc.email.toLowerCase());
+            const nextList = [acc, ...filtered];
+            try {
+              localStorage.setItem('pubg_saved_accounts', JSON.stringify(nextList));
+            } catch {}
+            return nextList;
+          });
+        }
         if (pendingCloudSync) {
           await syncMatchToCloud(data.user, playgroundSession);
         }
       }
     }
     setAuthLoading(false);
+  };
+
+  const handleSwitchAccount = async (targetAccount) => {
+    if (!targetAccount) return;
+    if (currentUser?.email?.toLowerCase() === targetAccount.email?.toLowerCase()) {
+      setIsOrgPopoverOpen(false);
+      return;
+    }
+    if (!targetAccount.session?.access_token || !targetAccount.session?.refresh_token) {
+      setAuthEmail(targetAccount.email || '');
+      setAuthPassword('');
+      setIsAuthModalOpen(true);
+      setIsOrgPopoverOpen(false);
+      return;
+    }
+    setIsOrgPopoverOpen(false);
+    showToast(`Menukar ke akaun ${targetAccount.name || targetAccount.email}...`);
+    try {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: targetAccount.session.access_token,
+        refresh_token: targetAccount.session.refresh_token
+      });
+      if (error) {
+        showToast('Sesi akaun telah tamat tempoh. Sila log masuk semula.');
+        setAuthEmail(targetAccount.email);
+        setAuthPassword('');
+        setIsAuthModalOpen(true);
+      } else if (data?.user) {
+        setCurrentUser(data.user);
+        showToast(`Berjaya bertukar: ${targetAccount.name || data.user.email}`);
+      }
+    } catch (err) {
+      showToast('Ralat menukar akaun: ' + err.message);
+    }
+  };
+
+  const handleRemoveSavedAccount = (e, emailToRemove) => {
+    e.stopPropagation();
+    const nextList = savedAccounts.filter(a => a.email.toLowerCase() !== emailToRemove.toLowerCase());
+    setSavedAccounts(nextList);
+    try {
+      localStorage.setItem('pubg_saved_accounts', JSON.stringify(nextList));
+    } catch {}
+    showToast(`Akaun ${emailToRemove} dipadam dari senarai peranti.`);
+    if (currentUser?.email?.toLowerCase() === emailToRemove.toLowerCase()) {
+      handleLogout();
+    }
   };
 
   const handleLogout = async () => {
@@ -3717,26 +3824,81 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Logged-in User Account Only */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsOrgPopoverOpen(false);
-                        setIsProfileModalOpen(true);
-                      }}
-                      className="w-full px-3 py-2.5 rounded-2xl bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-[#D7FF00] text-black font-black text-[11px] flex items-center justify-center shrink-0">
-                          {primaryAccountName.slice(0, 2).toUpperCase()}
+                    {/* Multi-Account List (1-Tap Switch) */}
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto no-scrollbar">
+                      {savedAccounts.length > 0 ? (
+                        savedAccounts.map((acc) => {
+                          const isActive = currentUser?.email?.toLowerCase() === acc.email?.toLowerCase();
+                          const displayName = acc.name || acc.email.split('@')[0];
+                          return (
+                            <div
+                              key={acc.email}
+                              onClick={() => {
+                                if (!isActive) handleSwitchAccount(acc);
+                                else setIsOrgPopoverOpen(false);
+                              }}
+                              className={`w-full px-3 py-2 rounded-2xl border font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ${
+                                isActive
+                                  ? 'bg-[#D7FF00]/15 text-white border-[#D7FF00]/40 shadow-sm'
+                                  : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 border-white/5 hover:border-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`w-8 h-8 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 ${
+                                  isActive ? 'bg-[#D7FF00] text-black' : 'bg-zinc-800 text-zinc-300'
+                                }`}>
+                                  {displayName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="truncate text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span>{displayName}</span>
+                                    {isActive && (
+                                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#D7FF00] text-black font-black">
+                                        Aktif
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="truncate text-[10px] text-zinc-400">{acc.email}</div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isActive ? (
+                                  <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                                ) : (
+                                  <span className="text-[10px] font-mono text-zinc-400 group-hover:text-[#D7FF00]">
+                                    Pilih
+                                  </span>
+                                )}
+                                {savedAccounts.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleRemoveSavedAccount(e, acc.email)}
+                                    title="Padam akaun dari senarai ini"
+                                    className="w-5 h-5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-rose-400 flex items-center justify-center transition"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="w-full px-3 py-2 rounded-2xl bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold flex items-center justify-between gap-2 text-left text-xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-[#D7FF00] text-black font-black text-[11px] flex items-center justify-center shrink-0">
+                              {primaryAccountName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
+                              <div className="truncate text-[10px] text-zinc-400">{currentUser.email}</div>
+                            </div>
+                          </div>
+                          <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
-                          <div className="truncate text-[10px] text-zinc-400">{currentUser.email}</div>
-                        </div>
-                      </div>
-                      <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
-                    </button>
+                      )}
+                    </div>
 
                     {/* Account Actions */}
                     <div className="pt-2 border-t border-white/10 space-y-1">
@@ -3745,11 +3907,16 @@ export default function App() {
                         onClick={() => {
                           setIsOrgPopoverOpen(false);
                           setIsRegisterMode(false);
+                          setAuthEmail('');
+                          setAuthPassword('');
                           setIsAuthModalOpen(true);
                         }}
                         className="w-full px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-[#D7FF00] text-xs font-bold flex items-center justify-between transition cursor-pointer"
                       >
-                        <span>Tukar / Log Masuk Akaun Lain</span>
+                        <div className="flex items-center gap-2">
+                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Tambah Akaun Baru</span>
+                        </div>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
 
@@ -3761,7 +3928,7 @@ export default function App() {
                         }}
                         className="w-full px-3 py-1.5 rounded-xl hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
                       >
-                        <span>Log Keluar</span>
+                        <span>Log Keluar Akaun Semasa</span>
                         <LogOut className="w-3 h-3" />
                       </button>
                     </div>
@@ -4044,9 +4211,6 @@ export default function App() {
               {/* Subtle Command Center Greeting Header (Zero progress bars or % indicators) */}
               <div className="flex items-center justify-between px-1.5">
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 block">
-                    Bento Command Center
-                  </span>
                   {currentUser ? (
                     <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
                       Welcome back, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
@@ -4281,611 +4445,7 @@ export default function App() {
           // ke dalam komponen `LegacyGuestLandingView.jsx` dan sedia untuk dipanggil bila-bila masa.
         })()}
 
-        {/* DEDICATED QUICK SCORER TAB (KHAS TEMPAT KIRA QUICK SCORE) */}
-        {activeTab === 'scorer' && (
-          <div className="space-y-4 animate-card-entrance">
-            
-            {/* STRATEGIC PAGE HEADER: QUICK SCORER */}
-            <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-                <div className="space-y-2.5 flex-1 min-w-0">
-                  {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
-                  <div className="flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => navigateToTab('playground')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
-                      title="Kembali ke Laman Utama"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                      <span>Laman Utama</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleHeaderInfo('scorer')}
-                      className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer shrink-0 ' + (
-                        activeHeaderInfo === 'scorer'
-                          ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
-                      )}
-                      title="Info sistem Quick Scorer"
-                      aria-label="Info Quick Scorer"
-                    >
-                      <Info className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-                    </button>
-                  </div>
-
-                  {/* Big Highlight Title */}
-                  <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
-                    Quick Scorer
-                  </h1>
-
-                  {/* Memorable Helper Text */}
-                  <p className="text-xs sm:text-sm text-zinc-400 font-normal">
-                    Kiraan mata automatik PMGC 1-5 match &amp; penjana poster Overall Standings HD.
-                  </p>
-
-                  {/* Expandable Info Card */}
-                  {activeHeaderInfo === 'scorer' && (
-                    <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
-                      <Zap className="w-4 h-4 text-[#D7FF00] fill-current shrink-0 mt-0.5 sm:mt-0" />
-                      <p className="leading-relaxed flex-1">
-                        Kiraan mata automatik 1–5 match mengikut format rasmi PMGC 10-points tanpa login. Poster HD sedia dimuat turun terus.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setActiveHeaderInfo(null)}
-                        className="text-zinc-500 hover:text-white p-0.5 rounded transition shrink-0"
-                        title="Tutup info"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status Indicator */}
-                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-white/10 text-xs font-mono text-zinc-300">
-                    <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse"></span>
-                    <span>Auto-saved (Local)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Split Screen Grid */}
-            <div id="quick-scorer-workspace" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
-              
-              {/* LEFT PANEL: Quick Input Grid (5 Matches with Dynamic Team Rows) */}
-              <div className="lg:col-span-7 space-y-4">
-                
-                <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5">
-                  
-                  {/* Clean Workspace Header with Actions */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-black shadow-xs shrink-0">
-                        <Zap className="w-5 h-5 fill-current"/>
-                      </div>
-                      <div>
-                        <h2 className="text-sm sm:text-base font-black text-white">Borang Pengisian Markah</h2>
-                        <p className="text-[11px] text-zinc-400">
-                          Pusingan Match {currentPlaygroundMatchIdx + 1} of 5 • {playgroundSession.matches[0]?.slots?.length || 16} Pasukan
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                      {/* Quick WhatsApp / Text Import Button */}
-                      <button
-                        type="button"
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
-                        title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
-                      >
-                        <Copy className="w-3.5 h-3.5 text-black"/>
-                        <span>Import WA</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleLoadDemoPlaygroundData}
-                        className="px-2.5 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs"
-                        title="Muat contoh preset demo untuk cuba segera"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-black"/>
-                        <span>Demo</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleClearPlaygroundForm}
-                        className="px-2 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/5"
-                        title="Kosongkan markah perlawanan ini"
-                      >
-                        <Trash2 className="w-3.5 h-3.5"/>
-                        <span className="hidden sm:inline">Clear</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleResetPlaygroundToDefault}
-                        className="px-2 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/5"
-                        title="Reset semula ke format asal (Slot 1..16)"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5"/>
-                        <span className="hidden sm:inline">Reset</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 5-Match Segmented Bar */}
-                  <div className="grid grid-cols-5 gap-1 bg-zinc-950/70 p-1 rounded-2xl">
-                    {playgroundSession.matches.map((m, mIdx) => {
-                      const isSelected = currentPlaygroundMatchIdx === mIdx;
-                      return (
-                        <button
-                          key={mIdx}
-                          type="button"
-                          onClick={() => setCurrentPlaygroundMatchIdx(mIdx)}
-                          className={'py-1.5 px-1 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ' + (
-                            isSelected 
-                              ? 'bg-zinc-800 text-[#D7FF00] shadow-sm border border-white/10' 
-                              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                          )}
-                        >
-                          <span className="text-[11px]">Match {mIdx + 1}</span>
-                          <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
-                            isSelected ? 'bg-[#D7FF00]/20 text-[#D7FF00]' : 'text-zinc-500'
-                          )}>
-                            {m.map}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Title & Inline Team Slot Stepper (Clean Single Row) */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                    <div className="flex-1 min-w-[200px]">
-                      <input
-                        type="text"
-                        value={playgroundSession.title}
-                        onChange={(e) => handleSetPlaygroundTitle(e.target.value)}
-                        placeholder="Nama Kejohanan / Sesi Scrim (e.g. Scrim Malam Minggu)"
-                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-[#D7FF00] focus:ring-1 focus:ring-[#D7FF00]/40 transition placeholder:text-zinc-600"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/60 px-2.5 py-1 rounded-xl shrink-0">
-                      <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleRemovePlaygroundTeam}
-                          disabled={currentMatch.slots.length <= 2}
-                          className="w-6 h-6 rounded-lg bg-zinc-800 border border-white/10 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition shadow-2xs"
-                          title="Padam slot baris team terakhir"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="font-mono font-black text-xs text-white px-1">
-                          {currentMatch.slots.length} Teams
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleAddPlaygroundTeam}
-                          disabled={currentMatch.slots.length >= 24}
-                          className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
-                          title="Tambah slot baris team baru"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Input Grid Table */}
-                  <div className="border border-white/5 rounded-2xl overflow-hidden shadow-xs bg-zinc-950/60">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-zinc-950 text-zinc-400 uppercase text-[10px] font-bold tracking-wider border-b border-white/10">
-                          <tr>
-                            <th className="py-2.5 px-3 w-12 text-center">Slot</th>
-                            <th className="py-2.5 px-3 min-w-[150px]">Team Name</th>
-                            <th className="py-2.5 px-2 w-24 text-center">Placement</th>
-                            <th className="py-2.5 px-2 w-28 text-center">Elims</th>
-                            <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
-                            <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 font-mono">
-                          {currentMatch.slots.map((row, idx) => {
-                            const isWWCD = Number(row.placement) === 1 || row.wwcd;
-                            return (
-                              <tr 
-                                key={idx} 
-                                className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15' : 'hover:bg-white/[0.02]')}
-                              >
-                                {/* Slot # */}
-                                <td className="py-2 px-3 text-center text-zinc-500 font-bold">
-                                  #{String(row.slot).padStart(2, '0')}
-                                </td>
-
-                                {/* Team Name (Synchronized across all 5 matches) */}
-                                <td className="py-2 px-3 font-sans">
-                                  <input
-                                    type="text"
-                                    data-cell={`teamName-${idx}`}
-                                    value={row.teamName}
-                                    onChange={(e) => handlePlaygroundSlotChange(idx, 'teamName', e.target.value)}
-                                    onKeyDown={(e) => handleCellKeyDown(e, idx, 'teamName')}
-                                    placeholder={`Squad ${row.slot}...`}
-                                    className="w-full bg-zinc-900/90 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-[#D7FF00] focus:ring-1 focus:ring-[#D7FF00]/40 placeholder:text-zinc-600"
-                                  />
-                                </td>
-
-                                {/* Placement Dropdown (Scales dynamically with total slots) */}
-                                <td className="py-2 px-2 text-center">
-                                  <select
-                                    data-cell={`placement-${idx}`}
-                                    value={row.placement || ''}
-                                    onChange={(e) => handlePlaygroundSlotChange(idx, 'placement', e.target.value)}
-                                    onKeyDown={(e) => handleCellKeyDown(e, idx, 'placement')}
-                                    className="w-full bg-zinc-900/90 border border-white/10 rounded-lg py-1 px-1 font-bold text-white focus:outline-none focus:border-[#D7FF00] text-xs text-center cursor-pointer"
-                                  >
-                                    <option value="">--</option>
-                                    {Array.from({ length: currentMatch.slots.length }, (_, i) => i + 1).map((num) => (
-                                      <option key={num} value={num}>
-                                        #{num}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-
-                                {/* Elims */}
-                                <td className="py-2 px-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => handlePlaygroundSlotChange(idx, 'elims', Math.max(0, row.elims - 1))}
-                                      className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center font-black text-xs transition active:scale-90"
-                                      title="Kurangkan 1 kill"
-                                    >
-                                      -
-                                    </button>
-                                    <input
-                                      type="number"
-                                      inputMode="numeric"
-                                      pattern="[0-9]*"
-                                      min="0"
-                                      data-cell={`elims-${idx}`}
-                                      value={row.elims}
-                                      onChange={(e) => handlePlaygroundSlotChange(idx, 'elims', e.target.value)}
-                                      onKeyDown={(e) => handleCellKeyDown(e, idx, 'elims')}
-                                      className="w-11 bg-zinc-900/90 border border-white/10 rounded-lg text-center py-1 text-xs font-bold text-white focus:outline-none focus:border-[#D7FF00] font-mono"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handlePlaygroundSlotChange(idx, 'elims', row.elims + 1)}
-                                      className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs transition active:scale-90"
-                                      title="Tambah 1 kill"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </td>
-
-                                {/* WWCD Toggle */}
-                                <td className="py-2 px-2 text-center font-sans">
-                                  <button
-                                    type="button"
-                                    onClick={() => handlePlaygroundSlotChange(idx, 'wwcd', !isWWCD)}
-                                    className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
-                                      isWWCD 
-                                        ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215, 255, 0,0.25)]' 
-                                        : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-200'
-                                    )}
-                                  >
-                                    {isWWCD ? 'WWCD' : 'Normal'}
-                                  </button>
-                                </td>
-
-                                {/* Total Points for current match */}
-                                <td className="py-2 px-3 text-center">
-                                  <div className="font-mono font-black text-xs text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded border border-[#D7FF00]/25 inline-block">
-                                    {row.totalPts}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* PMGC Standard Scoring Micro Note */}
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono px-1">
-                    <span>PMGC: WWCD=10pts • Elim=1pt</span>
-                    <span>Total = Place + Elims</span>
-                  </div>
-
-                  {/* Strategic Action on Mobile: Flow down to Poster */}
-                  <div className="lg:hidden pt-2 border-t border-white/5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                      className="w-full py-3 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(215, 255, 0,0.18)] active:scale-98 uppercase tracking-wider"
-                    >
-                      <Trophy className="w-4 h-4 text-black" />
-                      <span>Lihat Keputusan &amp; Poster ↓</span>
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* RIGHT PANEL: Sticky Real-Time Poster Preview (Direct Overall Standings - Always Visible) */}
-              <div id="quick-scorer-leaderboard" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
-                
-                {/* Clean State Helper Pill */}
-                {!hasAnyPlaygroundScores && (
-                  <div className="flex items-center justify-between gap-2 p-3 bg-zinc-900/60 border border-white/5 rounded-2xl shadow-sm text-xs text-zinc-300">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#D7FF00] flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-white text-xs">Borang Bersih &amp; Sedia Diisi</div>
-                        <div className="text-[11px] text-zinc-400">Poster dikemaskini langsung bila anda isi placement &amp; elims.</div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleLoadDemoPlaygroundData}
-                      className="px-2.5 py-1 bg-[#D7FF00]/15 hover:bg-[#D7FF00]/25 text-[#D7FF00] border border-[#D7FF00]/30 rounded-xl font-bold text-[11px] whitespace-nowrap transition"
-                      title="Lihat contoh poster dengan data demo"
-                    >
-                      Cuba Demo
-                    </button>
-                  </div>
-                )}
-
-                {/* Poster Display Toggle: Overall Standings (Default) vs Single Match */}
-                <div className="flex items-center justify-between bg-zinc-950/80 p-1 rounded-2xl text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setPosterViewMode('overall')}
-                    className={'flex-1 py-1.5 px-2 rounded-xl font-black text-center transition flex items-center justify-center gap-1.5 ' + (
-                      posterViewMode === 'overall'
-                        ? 'bg-[#D7FF00] text-black shadow-sm'
-                        : 'text-zinc-400 hover:text-white'
-                    )}
-                  >
-                    <Trophy className="w-3.5 h-3.5"/>
-                    <span>Overall (5M)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPosterViewMode('match')}
-                    className={'flex-1 py-1.5 px-2 rounded-xl font-bold text-center transition flex items-center justify-center gap-1.5 ' + (
-                      posterViewMode === 'match'
-                        ? 'bg-[#D7FF00] text-black shadow-sm'
-                        : 'text-zinc-400 hover:text-white'
-                    )}
-                  >
-                    <Zap className="w-3.5 h-3.5"/>
-                    <span>Match {currentPlaygroundMatchIdx + 1}</span>
-                  </button>
-                </div>
-
-                {/* Visual Esports Leaderboard Card (Dark Aesthetic #0D0D0D) */}
-                <div 
-                  ref={posterRef}
-                  className="bg-[#0D0D0D] text-white rounded-3xl p-5 shadow-2xl relative font-sans select-none overflow-hidden"
-                  style={{ backgroundColor: '#0D0D0D' }}
-                >
-                  {/* Angled background accents */}
-                  <div className="absolute -top-16 -right-16 w-48 h-48 bg-lime-500/15 rounded-full blur-3xl pointer-events-none"></div>
-                  <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                  {/* Poster Header */}
-                  <div className="relative pb-3 mb-3 border-b border-slate-800/80">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-6 h-6 rounded-lg bg-lime-400 flex items-center justify-center text-slate-950 font-black text-xs">
-                          SH
-                        </div>
-                        <span className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-lime-400 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
-                          <span>LIVE PMGC LEADERBOARD</span>
-                        </span>
-                      </div>
-
-                      {/* Mode Badge */}
-                      <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border bg-lime-500/20 text-lime-400 border-lime-500/30">
-                        {posterViewMode === 'overall' ? 'OVERALL • 5 ROUNDS' : `${currentMatch.map.toUpperCase()} • ROUND ${currentPlaygroundMatchIdx + 1}`}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-black uppercase tracking-wider text-white truncate">
-                      {playgroundSession.title ? `${playgroundSession.title.toUpperCase()} ${posterViewMode === 'overall' ? '• OVERALL' : `• R${currentPlaygroundMatchIdx + 1}`}` : 'PUBG MOBILE SCRIM • OVERALL'}
-                    </h3>
-                    
-                    <p className="text-[10px] text-slate-400 font-mono tracking-tight uppercase flex items-center gap-2 mt-0.5">
-                      <span>{posterViewMode === 'overall' ? '5 ROUNDS COMBINED' : `ROUND ${currentPlaygroundMatchIdx + 1} (${currentMatch.map})`}</span>
-                      <span>•</span>
-                      <span>{currentMatch.slots.length} COMPETING SQUADS</span>
-                    </p>
-
-                    {posterViewMode === 'overall' && (
-                      <div className="flex items-center gap-1 mt-2 text-[9px] font-mono font-bold text-slate-400">
-                        <span className="text-lime-400">MAPS:</span>
-                        <span>ERANGEL • ERANGEL • MIRAMAR • MIRAMAR • RONDO</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Leaderboard Table */}
-                  <div className="space-y-1 relative font-mono text-xs">
-                    {/* Header Row */}
-                    <div className="grid grid-cols-12 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800">
-                      <div className="col-span-2 text-center">RANK</div>
-                      <div className="col-span-5 text-left font-sans pl-1">SQUAD / TEAM</div>
-                      <div className="col-span-2 text-center text-slate-300">PLACE</div>
-                      <div className="col-span-1 text-center">ELIM</div>
-                      <div className="col-span-2 text-center text-lime-400">TOTAL</div>
-                    </div>
-
-                    {/* Sorted Rows */}
-                    <div className="space-y-1">
-                      {(posterViewMode === 'overall' ? sortedOverallLeaderboard : sortedCurrentMatchLeaderboard).map((row, pos) => {
-                        const rankNumber = pos + 1;
-                        const placePtsDisplay = posterViewMode === 'overall' ? row.totalPlacePts : row.placePts;
-                        const hasWWCD = posterViewMode === 'overall' ? (row.totalWWCD > 0) : (Boolean(row.wwcd) || Number(row.placement) === 1);
-                        const wwcdCount = posterViewMode === 'overall' ? row.totalWWCD : 1;
-
-                        const totalPoints = posterViewMode === 'overall' ? row.totalPts : row.totalPts;
-                        const elimPoints = posterViewMode === 'overall' ? row.totalElims : row.elims;
-                        const isChamp = pos === 0 && (totalPoints > 0 || hasWWCD);
-
-                        return (
-                          <div 
-                            key={row.slot}
-                            className={'grid grid-cols-12 items-center px-2 py-1 rounded-lg text-xs transition ' + (
-                              isChamp 
-                                ? 'bg-gradient-to-r from-lime-500/25 via-lime-500/10 to-transparent border-l-4 border-l-lime-400 text-white font-bold' 
-                                : rankNumber <= 3
-                                ? 'bg-slate-900/60 border-l-2 border-l-slate-400 text-slate-200'
-                                : 'bg-slate-900/30 text-slate-300 hover:bg-slate-900/50'
-                            )}
-                          >
-                            {/* Rank */}
-                            <div className="col-span-2 text-center font-bold flex items-center justify-center gap-1">
-                              {isChamp ? (
-                                <span className="text-lime-400 font-black">
-                                  #1
-                                </span>
-                              ) : rankNumber === 2 ? (
-                                <span className="text-slate-300">#2</span>
-                              ) : rankNumber === 3 ? (
-                                <span className="text-amber-500">#3</span>
-                              ) : (
-                                <span className="text-slate-500">#{rankNumber}</span>
-                              )}
-                            </div>
-
-                            {/* Squad Name with Chicken Dinner Badge */}
-                            <div className="col-span-5 text-left font-sans truncate pl-1 flex items-center gap-1.5">
-                              <span className="truncate font-semibold text-white">
-                                {row.teamName || `Slot #${row.slot}`}
-                              </span>
-                              {hasWWCD && (
-                                <span className="text-[8px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider flex-shrink-0">
-                                  WWCD{wwcdCount > 1 ? ` x${wwcdCount}` : ''}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Point Placement */}
-                            <div className="col-span-2 text-center text-slate-300 font-mono font-bold">
-                              {placePtsDisplay}
-                            </div>
-
-                            {/* Elims */}
-                            <div className="col-span-1 text-center font-bold text-slate-300">
-                              {elimPoints}
-                            </div>
-
-                            {/* Total Points */}
-                            <div className="col-span-2 text-center font-black text-lime-400 font-mono">
-                              {totalPoints}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Poster Footer */}
-                  <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between text-[9px] font-mono text-slate-400 uppercase tracking-wider">
-                    <span>GENERATED VIA SCRIM HUB</span>
-                    <span>TIEBREAK: TOTAL PTS &gt; PLACEMENT PTS &gt; ELIMS &gt; WWCD</span>
-                  </div>
-                </div>
-
-                {/* Primary Action Buttons */}
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadPlaygroundPoster}
-                    disabled={isDownloadingPoster}
-                    className="w-full py-3.5 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl shadow-[0_0_20px_rgba(215, 255, 0,0.18)] text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
-                  >
-                    {isDownloadingPoster ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin"/>
-                        <span>Rendering...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 text-black"/>
-                        <span>Export PNG</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveMatchClick}
-                    disabled={isSavingCloudMatch}
-                    className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white border border-white/10 font-bold rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
-                  >
-                    {isSavingCloudMatch ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-[#D7FF00]"/>
-                        <span>Menyimpan...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-4 h-4 text-[#D7FF00]"/>
-                        <span>Simpan Cloud</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Strategic Action on Mobile: Return to Scoring Form */}
-                <div className="lg:hidden">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className="w-full py-2.5 px-4 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-1.5 border border-white/5 active:scale-95"
-                  >
-                    <ChevronLeft className="w-4 h-4 rotate-90 text-[#D7FF00]" />
-                    <span>Kembali Ke Borang Markah ↑</span>
-                  </button>
-                </div>
-
-                {/* Local Storage Auto-Save Indicator */}
-                <div className="text-center">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse"></span>
-                    <span>Auto-saved</span>
-                  </span>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        )}
+        {/* NOTA: Quick Scorer kini telah dinaiktaraf sepenuhnya menggunakan enjin Admin Scorer */}
 
         {/* VIEW 1: TEAM STATS (HALL OF FAME - REFERENCE DIAL & SUMMARY LAYOUT) */}
         {activeTab === 'teams' && (() => {
@@ -4939,7 +4499,12 @@ export default function App() {
               : 'Balanced Hybrid ⚡';
 
             return (
-              <div className="max-w-xl lg:max-w-2xl mx-auto space-y-4 pt-1 pb-10 animate-in fade-in duration-200">
+              <div className="max-w-xl lg:max-w-2xl mx-auto space-y-4 pt-1 pb-10 animate-in fade-in duration-200 relative">
+                {/* Prestigious Gold Ambient Background Glow */}
+                <div 
+                  aria-hidden="true" 
+                  className="absolute -top-12 left-1/2 -translate-x-1/2 w-80 sm:w-[30rem] h-60 bg-amber-500/15 rounded-full blur-[85px] pointer-events-none -z-10" 
+                />
                 {/* 1. TOP NAVIGATION BAR */}
                 <div className="flex items-center justify-between px-1">
                   <button
@@ -5319,7 +4884,16 @@ export default function App() {
           }
 
           return (
-            <div className="max-w-xl lg:max-w-2xl mx-auto space-y-5 pt-1 pb-4">
+            <div className="max-w-xl lg:max-w-2xl mx-auto space-y-5 pt-1 pb-4 relative">
+              {/* Prestigious Gold Ambient Background Glow */}
+              <div 
+                aria-hidden="true" 
+                className="absolute -top-16 left-1/2 -translate-x-1/2 w-80 sm:w-[32rem] h-64 bg-amber-500/15 rounded-full blur-[90px] pointer-events-none -z-10" 
+              />
+              <div 
+                aria-hidden="true" 
+                className="absolute top-48 right-0 w-64 h-64 bg-[#D7FF00]/10 rounded-full blur-[100px] pointer-events-none -z-10" 
+              />
               
               {/* 1. TOP NAVIGATION BAR (Following Reference: "< My Personality" + Search Right) */}
               <div className="flex items-center justify-between px-1">
@@ -6546,8 +6120,8 @@ export default function App() {
           />
         )}
 
-        {/* VIEW 6: ADMIN PORTAL */}
-        {activeTab === 'admin' && (
+        {/* VIEW 6: QUICK SCORER (POWERED BY FULL ADMIN SCORER ENGINE) */}
+        {(activeTab === 'scorer' || activeTab === 'admin') && (
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
@@ -6725,12 +6299,12 @@ export default function App() {
 
                       {/* Big Highlight Title */}
                       <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
-                        Host Workspace
+                        Quick Scorer
                       </h1>
 
                       {/* Memorable Helper Text */}
                       <p className="text-xs sm:text-sm text-zinc-400 font-normal">
-                        Pusat kawalan kejohanan rasmi, simpanan cloud database &amp; jemputan Co-Host.
+                        Kiraan mata automatik PMGC, simpanan Cloud Database &amp; poster Overall Standings HD.
                       </p>
 
                       {/* Expandable Info Card */}
@@ -8216,7 +7790,7 @@ export default function App() {
       )}
 
       {/* MODAL 3: FULL PAGE HOST PROFILE SUMMARY (SCREENSHOT-MATCHED FULL MOBILE SCREEN) */}
-      {isProfileModalOpen && (
+      {(isProfileModalOpen || activeTab === 'profile') && (
         <div
           role="dialog"
           aria-modal="true"
@@ -8234,28 +7808,57 @@ export default function App() {
               <div className="relative z-10 flex items-center justify-between px-5 pt-6 sm:pt-5">
                 <button
                   type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
+                  onClick={() => {
+                    setIsProfileModalOpen(false);
+                    if (activeTab === 'profile') {
+                      handleNavigateBackTab();
+                    }
+                  }}
                   aria-label="Kembali"
                   className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/70 active:scale-95 transition cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsEditProfileMode(prev => !prev)}
-                  aria-label={isEditProfileMode ? "Tutup Sunting" : "Sunting Profil"}
-                  className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
-                    isEditProfileMode
-                      ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
-                      : 'bg-black/50 text-zinc-300 border-white/10 hover:text-white hover:bg-black/70'
-                  }`}
-                >
-                  <Edit3 className="w-4 h-4 stroke-[2.2]" />
-                </button>
+                {currentUser && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditProfileMode(prev => !prev)}
+                    aria-label={isEditProfileMode ? "Tutup Sunting" : "Sunting Profil"}
+                    className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
+                      isEditProfileMode
+                        ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
+                        : 'bg-black/50 text-zinc-300 border-white/10 hover:text-white hover:bg-black/70'
+                    }`}
+                  >
+                    <Edit3 className="w-4 h-4 stroke-[2.2]" />
+                  </button>
+                )}
               </div>
             </div>
 
+            {!currentUser ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 my-auto">
+                <div className="w-20 h-20 rounded-3xl bg-zinc-900 border border-white/10 flex items-center justify-center text-[#D7FF00] shadow-xl">
+                  <User className="w-10 h-10" />
+                </div>
+                <div className="space-y-1.5 max-w-xs">
+                  <h3 className="text-lg font-black text-white">Profil &amp; Akaun Host</h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Sila log masuk untuk melihat profil penganjur, statistik sesi, dan pengurusan cloud anda.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="px-6 py-3 rounded-2xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs transition active:scale-95 shadow-[0_0_20px_rgba(215,255,0,0.3)] cursor-pointer flex items-center gap-2"
+                >
+                  <User className="w-4 h-4 text-black" />
+                  <span>Log Masuk / Daftar Akaun</span>
+                </button>
+              </div>
+            ) : (
+              <>
             {/* Overlapping Profile Avatar + Display Name + Badges */}
             <div className="relative -mt-16 flex flex-col items-center px-5 pb-5">
               <div className="relative">
@@ -8668,6 +8271,8 @@ export default function App() {
                 </button>
               )}
             </div>
+          </>
+        )}
           </div>
         </div>
       )}
@@ -9006,8 +8611,8 @@ export default function App() {
                   <Plus className="w-4 h-4 stroke-[3]" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-black text-white">Cipta Sesi Kejohanan / Scrim Baru</h3>
-                  <p className="text-[11px] text-zinc-400">Data disimpan terus ke Cloud Database (Supabase)</p>
+                  <h3 className="text-sm sm:text-base font-black text-white">Create Session</h3>
+                  <p className="text-[11px] text-zinc-400">Data Saved</p>
                 </div>
               </div>
               <button
@@ -9030,7 +8635,7 @@ export default function App() {
                 )}
               >
                 <Flame className="w-3.5 h-3.5" />
-                <span>Scrim (Practice)</span>
+                <span>Scrim</span>
               </button>
               <button
                 type="button"
@@ -9042,7 +8647,7 @@ export default function App() {
                 )}
               >
                 <Trophy className="w-3.5 h-3.5" />
-                <span>Tournament (Official)</span>
+                <span>Tournament</span>
               </button>
             </div>
 
@@ -9086,28 +8691,15 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Nama Penganjur / Host</label>
-                  <input
-                    type="text"
-                    placeholder="cth: RYKHOR Esports"
-                    value={newHostName}
-                    onChange={(e) => setNewHostName(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Contact (WhatsApp / Discord)</label>
-                  <input
-                    type="text"
-                    placeholder="cth: +60123456789"
-                    value={newHostContact}
-                    onChange={(e) => setNewHostContact(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00]"
-                  />
-                </div>
+              <div>
+                <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Nama Penganjur / Host</label>
+                <input
+                  type="text"
+                  placeholder="cth: RYKHOR Esports"
+                  value={newHostName}
+                  onChange={(e) => setNewHostName(e.target.value)}
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00]"
+                />
               </div>
 
               <div>
@@ -9148,7 +8740,7 @@ export default function App() {
                   disabled={isUploadingLogo}
                   className="px-5 py-2.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition shadow-[0_0_15px_rgba(215, 255, 0,0.2)] active:scale-95 disabled:opacity-50"
                 >
-                  {isUploadingLogo ? 'Memproses...' : 'Cipta Sesi Kejohanan'}
+                  {isUploadingLogo ? 'Memproses...' : 'Create Session'}
                 </button>
               </div>
             </form>
@@ -9694,7 +9286,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-white">Pilih Tindakan (+)</h3>
-                  <p className="text-[11px] text-zinc-400">Pilih salah satu daripada 3 fungsi utama</p>
+                  <p className="text-[11px] text-zinc-400">Pilih salah satu daripada 2 fungsi utama</p>
                 </div>
               </div>
               <button
@@ -9707,53 +9299,36 @@ export default function App() {
             </div>
 
             <div className="space-y-2.5">
-              {/* Selection 1: Quick Score */}
-              <button
-                type="button"
-                onClick={() => navigateToTab('scorer')}
-                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800/90 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-                  <Zap className="w-5 h-5 fill-current" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">1. Quick Score</span>
-                    <span className="text-[9px] font-bold text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded">1–5 Match</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400 leading-snug mt-0.5">
-                    Kira markah pantas &amp; jana poster HD tanpa perlu login.
-                  </p>
-                </div>
-              </button>
-
-              {/* Selection 2: Admin Scorer */}
+              {/* Option 1: Quick Scorer */}
               <button
                 type="button"
                 onClick={() => {
-                  navigateToTab('admin');
-                  setIsCreateScrimOpen(true);
+                  setIsQuickCreateModalOpen(false);
+                  navigateToTab('scorer');
                 }}
                 className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800/90 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-                  <Trophy className="w-5 h-5" />
+                  <Zap className="w-5 h-5 fill-black" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">2. Admin Scorer</span>
-                    <span className="text-[9px] font-black text-black bg-[#D7FF00] px-1.5 py-0.5 rounded">Cloud Host</span>
+                    <span className="text-xs font-black text-white">1. Quick Scorer</span>
+                    <span className="text-[9px] font-black text-black bg-[#D7FF00] px-1.5 py-0.5 rounded">PMGC Engine</span>
                   </div>
                   <p className="text-[11px] text-zinc-400 leading-snug mt-0.5">
-                    Kejohanan rasmi Cloud, pusingan penuh, database &amp; co-host.
+                    Pusat kira markah kejohanan rasmi, simpanan Cloud &amp; poster HD.
                   </p>
                 </div>
               </button>
 
-              {/* Selection 3: Results Scanner */}
+              {/* Option 2: Results Scanner */}
               <button
                 type="button"
-                onClick={() => navigateToTab('scrim-data')}
+                onClick={() => {
+                  setIsQuickCreateModalOpen(false);
+                  navigateToTab('scrim-data');
+                }}
                 className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
@@ -9761,7 +9336,7 @@ export default function App() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">3. Results Scanner</span>
+                    <span className="text-xs font-black text-white">2. Results Scanner</span>
                     <span className="text-[9px] font-black text-[#D7FF00] bg-[#D7FF00]/15 px-1.5 py-0.5 rounded">AI OCR</span>
                   </div>
                   <p className="text-[11px] text-zinc-300 leading-snug mt-0.5">
@@ -9988,30 +9563,26 @@ export default function App() {
             </span>
           </button>
 
-          {/* Tab 5: Host */}
+          {/* Tab 5: Profile */}
           <button
             type="button"
-            onClick={() => navigateToTab('admin')}
-            title="Portal Host"
-            aria-label="Host"
+            onClick={() => navigateToTab('profile')}
+            title="Profil Pengguna"
+            aria-label="Profile"
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 relative ' + (
-              activeTab === 'admin'
+              activeTab === 'profile'
                 ? 'text-[#D7FF00]'
                 : 'text-zinc-400 hover:text-zinc-200'
             )}
           >
             <div className="relative">
-              {currentUser ? (
-                <ShieldCheck className={'w-5 h-5 ' + (activeTab === 'admin' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
-              ) : (
-                <User className={'w-5 h-5 ' + (activeTab === 'admin' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
-              )}
-              {currentUser && activeTab !== 'admin' && (
+              <User className={'w-5 h-5 ' + (activeTab === 'profile' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
+              {currentUser && activeTab !== 'profile' && (
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#D7FF00] border border-zinc-950"></span>
               )}
             </div>
-            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'admin' ? 'font-black' : 'font-medium')}>
-              Host
+            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'profile' ? 'font-black' : 'font-medium')}>
+              Profile
             </span>
           </button>
 
