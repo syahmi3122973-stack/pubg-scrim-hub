@@ -298,6 +298,18 @@ body {
   }
 }
 
+.hof-slide-track {
+  display: flex;
+  width: 100%;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hof-slide-track {
+    transition: transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
 /* Exclusive Monumental Display Typography for Hall of Fame */
 .font-exclusive-hof {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;

@@ -10,6 +10,7 @@ import {
   Users, 
   Copy, 
   Play, 
+  Pause,
   Save, 
   RefreshCw, 
   Check, 
@@ -1279,6 +1280,21 @@ export default function App() {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
   const [searchHostQuery, setSearchHostQuery] = useState('');
+  const [homeHofSlide, setHomeHofSlide] = useState(0);
+  const [isHomeHofPaused, setIsHomeHofPaused] = useState(false);
+  const [isHomeHofInteracting, setIsHomeHofInteracting] = useState(false);
+  const [homeContendersCategory, setHomeContendersCategory] = useState('ALL');
+
+  useEffect(() => {
+    if (activeTab !== 'playground' || isHomeHofPaused || isHomeHofInteracting) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setHomeHofSlide((prev) => (prev === 0 ? 1 : 0));
+    }, 5500);
+    return () => window.clearInterval(timer);
+  }, [activeTab, isHomeHofPaused, isHomeHofInteracting]);
 
   // User Profile States
   const [profileName, setProfileName] = useState('');
@@ -3920,6 +3936,44 @@ export default function App() {
       });
   }, [validTeamList, teamStatsCategory]);
 
+  const tier3RankedTeams = useMemo(() => {
+    return validTeamList
+      .map((t) => {
+        const res = (t.scrimResults || []).filter(r => matchesStatsFilter(r, 'TIER_3'));
+        if (res.length === 0) return null;
+        const tier3Points = res.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
+        const tier3Kills = res.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
+        const tier3WWCD = res.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
+        const tier3Matches = res.reduce((acc, c) => acc + (Number(c.matches) || 1), 0);
+        return {
+          ...t,
+          tier3Points,
+          tier3Kills,
+          tier3WWCD,
+          tier3Events: res.length,
+          tier3Matches
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (
+        b.tier3Points - a.tier3Points ||
+        b.tier3WWCD - a.tier3WWCD ||
+        b.tier3Kills - a.tier3Kills
+      ))
+      .map((t, idx) => ({
+        ...t,
+        tier3Rank: idx + 1
+      }));
+  }, [validTeamList]);
+
+  const tier3RankByTeam = useMemo(() => {
+    const map = new Map();
+    tier3RankedTeams.forEach((t) => {
+      map.set(t.name, t);
+    });
+    return map;
+  }, [tier3RankedTeams]);
+
   const filteredTeamList = useMemo(() => {
     const query = teamSearchQuery.toLowerCase().trim();
     return categoryTeamList.filter(t => 
@@ -4964,8 +5018,16 @@ export default function App() {
           // 2. BENTO-GRID COMMAND CENTER (Available for both Guests & Authenticated Users)
           const leadingTeam = validTeamList[0] || null;
           const topThreePreview = validTeamList.slice(0, 3);
-          const desktopContenders = validTeamList.slice(0, 4);
-          const desktopTopPoints = Math.max(desktopContenders[0]?.totalPoints || 1, 1);
+          const tier3Leader = tier3RankedTeams[0] || null;
+          const tier3TopThree = tier3RankedTeams.slice(0, 3);
+          const desktopContendersSource = homeContendersCategory === 'TIER_3' ? tier3RankedTeams : validTeamList;
+          const desktopContenders = desktopContendersSource.slice(0, 4);
+          const desktopTopPoints = Math.max(
+            homeContendersCategory === 'TIER_3'
+              ? (desktopContenders[0]?.tier3Points || 1)
+              : (desktopContenders[0]?.totalPoints || 1),
+            1
+          );
           const recentSessionsDock = scrims.slice(0, 3);
 
           const highestKillTeam = validTeamList.reduce((best, cur) => {
@@ -4976,6 +5038,15 @@ export default function App() {
           const highestKillAvgVal = highestKillTeam?.scrimResults?.length
             ? (highestKillTeam.totalKills / highestKillTeam.scrimResults.length).toFixed(1)
             : '9.4';
+
+          const tier3HighestKillTeam = tier3RankedTeams.reduce((best, cur) => {
+            const curAvg = cur.tier3Events ? cur.tier3Kills / cur.tier3Events : 0;
+            const bestAvg = best?.tier3Events ? best.tier3Kills / best.tier3Events : 0;
+            return curAvg > bestAvg ? cur : best;
+          }, tier3RankedTeams[0] || null);
+          const tier3KillAvgVal = tier3HighestKillTeam?.tier3Events
+            ? (tier3HighestKillTeam.tier3Kills / tier3HighestKillTeam.tier3Events).toFixed(1)
+            : '0.0';
 
           const lastScannedRecord = scrims.find(
             s => s.created_by === 'public_ocr' || (s.description && s.description.toLowerCase().includes('ocr'))
@@ -5072,17 +5143,25 @@ export default function App() {
                 {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
                 <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5">
                   
-                  {/* CARD A: Focal Hero Card (Acid Lime Accent) — [Hall of Fame] */}
+                  {/* CARD A: Focal Hero Card (Acid Lime Accent) — [Hall of Fame + Tier 3 Rank Slide] */}
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigateToTab('teams')}
+                    onClick={() => {
+                      setTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
+                      navigateToTab('teams');
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
+                        setTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
                         navigateToTab('teams');
                       }
                     }}
+                    onMouseEnter={() => setIsHomeHofInteracting(true)}
+                    onMouseLeave={() => setIsHomeHofInteracting(false)}
+                    onFocus={() => setIsHomeHofInteracting(true)}
+                    onBlur={() => setIsHomeHofInteracting(false)}
                     style={{ '--home-delay': '80ms' }}
                     className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] lg:hover:-translate-y-1 lg:hover:shadow-[0_22px_55px_rgba(215,255,0,0.28)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
@@ -5093,95 +5172,253 @@ export default function App() {
                       className="hidden md:block hero-card-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                     />
 
-                    <div className="relative z-10 flex flex-col justify-between gap-4 lg:h-full">
-                      {/* Top Row: Title + Trophy/Star Icon */}
+                    <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
+                      {/* Top Row: Slide Status Pill, Title & Trophy Icon (spacious on narrow mobile) */}
                       <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
-                            <span>Current Ranking</span>
+                            <span>{homeHofSlide === 0 ? 'Current Ranking • Semua' : 'Division Spotlight • Tier 3'}</span>
                           </div>
                           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-black leading-none pt-0.5">
                             Hall of Fame
                           </h2>
                         </div>
 
-                        <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
-                          <Trophy className="w-6 h-6 lg:w-7 lg:h-7 stroke-[2.2]" />
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
+                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 stroke-[2.2]" />
                         </div>
                       </div>
 
-                      {/* Mini-info: Snapshot of top-performing teams */}
-                      <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
-                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
-                          <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
-                            #1 Leading Clan
-                          </span>
-                          <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                            <span className="text-sm sm:text-base lg:text-lg font-black text-black truncate">
-                              {leadingTeam ? leadingTeam.name : 'Geek Fam'}
-                            </span>
-                            <span className="text-xs font-mono font-black text-black/80 shrink-0">
-                              {leadingTeam ? `${leadingTeam.totalPoints} PTS` : '148 PTS'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
-                          <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
-                            Kill Avg • WWCD Streak
-                          </span>
-                          <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                            <span className="text-sm sm:text-base lg:text-lg font-black text-black font-mono">
-                              {highestKillAvgVal} Elims
-                            </span>
-                            <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-black text-[#D7FF00] shrink-0">
-                              {leadingTeam ? `${leadingTeam.totalWWCD} WWCD` : '4 WWCD'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Desktop-only Live Top 3 Podium Mini-Strip inside Hero Card */}
-                      {topThreePreview.length > 0 && (
-                        <div className="hidden lg:flex flex-col gap-2 pt-1">
-                          <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-black/65 px-0.5">
-                            <span>Live Podium Top 3</span>
-                            <span className="inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                              <span>Buka Leaderboard</span>
-                              <ArrowRight className="w-3 h-3" />
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2.5">
-                            {topThreePreview.map((team, idx) => (
-                              <div
-                                key={team.name}
-                                className="rounded-xl bg-black/12 px-3 py-2 flex items-center gap-2 min-w-0"
-                              >
-                                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
-                                  idx === 0 ? 'bg-black text-[#D7FF00]' : 'bg-black/20 text-black'
-                                }`}>
-                                  #{idx + 1}
+                      {/* Slide Carousel Viewport (Composited Translate3d Slide Animation) */}
+                      <div
+                        role="region"
+                        aria-roledescription="carousel"
+                        aria-label="Ringkasan Hall of Fame dan Tier 3"
+                        className="overflow-hidden rounded-2xl"
+                      >
+                        <div
+                          className="hof-slide-track"
+                          style={{ transform: `translate3d(-${homeHofSlide * 100}%, 0, 0)` }}
+                        >
+                          {/* SLIDE 1: OVERALL RANKING (SEMUA) */}
+                          <div
+                            role="group"
+                            aria-roledescription="slide"
+                            aria-label="1 of 2"
+                            inert={homeHofSlide !== 0 ? true : undefined}
+                            className="w-full shrink-0 space-y-3"
+                          >
+                            <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
+                              <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
+                                  #1 Leading Clan
                                 </span>
-                                {team.logo_url && (
-                                  <img
-                                    src={team.logo_url}
-                                    alt=""
-                                    className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/20"
-                                  />
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs font-black text-black truncate leading-tight">
-                                    {team.name}
-                                  </div>
-                                  <div className="text-[10px] font-mono font-bold text-black/75 leading-tight">
-                                    {team.totalPoints} PTS • {team.totalWWCD}W
-                                  </div>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-black truncate">
+                                    {leadingTeam ? leadingTeam.name : 'Geek Fam'}
+                                  </span>
+                                  <span className="text-xs font-mono font-black text-black/80 shrink-0">
+                                    {leadingTeam ? `${leadingTeam.totalPoints} PTS` : '148 PTS'}
+                                  </span>
                                 </div>
                               </div>
-                            ))}
+
+                              <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
+                                  Kill Avg • WWCD Streak
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-black font-mono">
+                                    {highestKillAvgVal} Elims
+                                  </span>
+                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-black text-[#D7FF00] shrink-0">
+                                    {leadingTeam ? `${leadingTeam.totalWWCD} WWCD` : '4 WWCD'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {topThreePreview.length > 0 && (
+                              <div className="hidden lg:flex flex-col gap-2 pt-0.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-black/65 px-0.5">
+                                  <span>Live Podium Top 3 • Semua</span>
+                                  <span className="inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Leaderboard</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2.5">
+                                  {topThreePreview.map((team, idx) => (
+                                    <div
+                                      key={team.name}
+                                      className="rounded-xl bg-black/12 px-3 py-2 flex items-center gap-2 min-w-0"
+                                    >
+                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
+                                        idx === 0 ? 'bg-black text-[#D7FF00]' : 'bg-black/20 text-black'
+                                      }`}>
+                                        #{idx + 1}
+                                      </span>
+                                      {team.logo_url && (
+                                        <img
+                                          src={team.logo_url}
+                                          alt=""
+                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/20"
+                                        />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-black truncate leading-tight">
+                                          {team.name}
+                                        </div>
+                                        <div className="text-[10px] font-mono font-bold text-black/75 leading-tight">
+                                          {team.totalPoints} PTS • {team.totalWWCD}W
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* SLIDE 2: TIER 3 (AMATEUR) RANKING SPOTLIGHT */}
+                          <div
+                            role="group"
+                            aria-roledescription="slide"
+                            aria-label="2 of 2"
+                            inert={homeHofSlide !== 1 ? true : undefined}
+                            className="w-full shrink-0 space-y-3"
+                          >
+                            <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
+                              <div className="bg-black/12 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
+                                  #1 Tier 3 Leader
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-black truncate">
+                                    {tier3Leader ? tier3Leader.name : 'Sedia Untuk Cabaran'}
+                                  </span>
+                                  <span className="text-xs font-mono font-black text-black/80 shrink-0">
+                                    {tier3Leader ? `${tier3Leader.tier3Points} PTS` : 'Tier 3'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="bg-black/12 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
+                                  Tier 3 Kill Avg • Aktif
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-black font-mono">
+                                    {tier3KillAvgVal} Elims
+                                  </span>
+                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-black text-[#D7FF00] shrink-0">
+                                    {tier3Leader ? `${tier3RankedTeams.length} Team` : 'Amateur'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {tier3TopThree.length > 0 ? (
+                              <div className="hidden lg:flex flex-col gap-2 pt-0.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-black/65 px-0.5">
+                                  <span>Podium Top 3 • Tier 3 (Amateur)</span>
+                                  <span className="inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Rank Tier 3</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2.5">
+                                  {tier3TopThree.map((team, idx) => (
+                                    <div
+                                      key={`t3_${team.name}`}
+                                      className="rounded-xl bg-black/12 px-3 py-2 flex items-center gap-2 min-w-0"
+                                    >
+                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
+                                        idx === 0 ? 'bg-black text-[#D7FF00]' : 'bg-black/20 text-black'
+                                      }`}>
+                                        #{idx + 1}
+                                      </span>
+                                      {team.logo_url && (
+                                        <img
+                                          src={team.logo_url}
+                                          alt=""
+                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/20"
+                                        />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-black truncate leading-tight">
+                                          {team.name}
+                                        </div>
+                                        <div className="text-[10px] font-mono font-bold text-black/75 leading-tight">
+                                          {team.tier3Points} PTS • {team.tier3WWCD}W
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="hidden lg:flex items-center justify-between rounded-xl bg-black/10 px-3.5 py-2.5 text-xs font-bold text-black/80">
+                                <span>Rekod kejohanan Tier 3 akan terpapar di sini secara automatik.</span>
+                                <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase shrink-0">
+                                  <span>Buka Tier 3</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      )}
+                      </div>
+
+                      {/* Bottom Slide Switcher Bar + Tier 3 Teaser + Pause Control (WCAG 2.2.2) */}
+                      <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
+                        <span className="text-[10px] font-mono font-black text-black/75 truncate min-w-0 flex-1">
+                          {homeHofSlide === 0
+                            ? (tier3Leader
+                                ? `Tier 3 #1: ${tier3Leader.name} (${tier3Leader.tier3Points} PTS)`
+                                : 'Ketik untuk buka Leaderboard penuh')
+                            : (tier3TopThree.length > 1
+                                ? `#2 ${tier3TopThree[1].name} • #3 ${tier3TopThree[2]?.name || '-'}`
+                                : 'Ketik untuk buka Ranking Tier 3')}
+                        </span>
+
+                        <div
+                          className="flex items-center gap-1 bg-black/12 rounded-full p-0.5 touch-manipulation shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setHomeHofSlide(0)}
+                            aria-label="Paparan Semua Ranking"
+                            aria-current={homeHofSlide === 0 ? 'true' : undefined}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black touch-manipulation ${
+                              homeHofSlide === 0 ? 'bg-black text-[#D7FF00]' : 'text-black/75 hover:text-black'
+                            }`}
+                          >
+                            Semua
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHomeHofSlide(1)}
+                            aria-label="Paparan Ranking Tier 3"
+                            aria-current={homeHofSlide === 1 ? 'true' : undefined}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black touch-manipulation ${
+                              homeHofSlide === 1 ? 'bg-black text-[#D7FF00]' : 'text-black/75 hover:text-black'
+                            }`}
+                          >
+                            Tier 3
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsHomeHofPaused((prev) => !prev)}
+                            aria-label={isHomeHofPaused ? 'Mainkan slaid' : 'Jeda slaid'}
+                            title={isHomeHofPaused ? 'Mainkan slaid automatik' : 'Jeda slaid automatik'}
+                            className="w-6 h-6 rounded-full bg-black/15 hover:bg-black hover:text-[#D7FF00] text-black flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black touch-manipulation"
+                          >
+                            {isHomeHofPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -5339,32 +5576,69 @@ export default function App() {
                         </div>
                         <div>
                           <h3 className="text-base font-black text-white tracking-tight">
-                            Top Contenders Semasa
+                            {homeContendersCategory === 'TIER_3' ? 'Top Contenders • Tier 3' : 'Top Contenders Semasa'}
                           </h3>
                           <p className="text-[11px] text-zinc-400">
                             Klik mana-mana pasukan untuk terus buka profil analitik &amp; graf scrim
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => navigateToTab('teams')}
-                        className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] flex items-center gap-1.5 transition cursor-pointer shrink-0"
-                      >
-                        <span>Hall of Fame</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center bg-zinc-900 rounded-full p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setHomeContendersCategory('ALL')}
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                              homeContendersCategory === 'ALL'
+                                ? 'bg-[#D7FF00] text-black'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            Semua
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHomeContendersCategory('TIER_3')}
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                              homeContendersCategory === 'TIER_3'
+                                ? 'bg-amber-400 text-black'
+                                : 'text-amber-300/80 hover:text-amber-200'
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            <span>Tier 3</span>
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTeamStatsCategory(homeContendersCategory);
+                            navigateToTab('teams');
+                          }}
+                          className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                        >
+                          <span>Hall of Fame</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {desktopContenders.length > 0 ? (
                       <div className="space-y-2.5">
                         {desktopContenders.map((team, idx) => {
-                          const pct = Math.max(12, Math.round((team.totalPoints / desktopTopPoints) * 100));
+                          const pts = homeContendersCategory === 'TIER_3' ? team.tier3Points : team.totalPoints;
+                          const kills = homeContendersCategory === 'TIER_3' ? team.tier3Kills : team.totalKills;
+                          const wwcd = homeContendersCategory === 'TIER_3' ? team.tier3WWCD : team.totalWWCD;
+                          const tier3Info = homeContendersCategory === 'ALL' ? tier3RankByTeam.get(team.name) : null;
+                          const pct = Math.max(12, Math.round((pts / desktopTopPoints) * 100));
                           return (
                             <button
-                              key={team.name}
+                              key={`${homeContendersCategory}_${team.name}`}
                               type="button"
                               onClick={() => {
+                                setTeamStatsCategory(homeContendersCategory);
                                 navigateToTab('teams');
                                 setSelectedTeamProfile(team.name);
                               }}
@@ -5373,7 +5647,7 @@ export default function App() {
                               <span
                                 className={`w-8 h-8 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
                                   idx === 0
-                                    ? 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215,255,0,0.28)]'
+                                    ? (homeContendersCategory === 'TIER_3' ? 'bg-amber-400 text-black shadow-[0_0_14px_rgba(245,158,11,0.28)]' : 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215,255,0,0.28)]')
                                     : idx === 1
                                     ? 'bg-zinc-200 text-black'
                                     : idx === 2
@@ -5407,11 +5681,16 @@ export default function App() {
                                         {team.tag}
                                       </span>
                                     )}
+                                    {tier3Info && (
+                                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 shrink-0">
+                                        T3 #{tier3Info.tier3Rank}
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-3 text-xs font-mono shrink-0">
-                                    <span className="text-zinc-400">{team.totalKills} Kills</span>
-                                    <span className="text-emerald-400 font-bold">{team.totalWWCD} WWCD</span>
-                                    <span className="text-[#D7FF00] font-black">{team.totalPoints} PTS</span>
+                                    <span className="text-zinc-400">{kills} Kills</span>
+                                    <span className="text-emerald-400 font-bold">{wwcd} WWCD</span>
+                                    <span className={`${homeContendersCategory === 'TIER_3' ? 'text-amber-300' : 'text-[#D7FF00]'} font-black`}>{pts} PTS</span>
                                   </div>
                                 </div>
 
@@ -5420,7 +5699,7 @@ export default function App() {
                                     style={{ width: `${pct}%` }}
                                     className={`h-full rounded-full transition-all duration-500 ${
                                       idx === 0
-                                        ? 'bg-gradient-to-r from-[#D7FF00] to-lime-300'
+                                        ? (homeContendersCategory === 'TIER_3' ? 'bg-gradient-to-r from-amber-400 to-orange-300' : 'bg-gradient-to-r from-[#D7FF00] to-lime-300')
                                         : 'bg-zinc-600 group-hover:bg-zinc-400'
                                     }`}
                                   />
@@ -5432,7 +5711,9 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="py-10 text-center text-xs text-zinc-500 rounded-2xl bg-[#16161c]/70">
-                        Belum ada data ranking pasukan direkodkan.
+                        {homeContendersCategory === 'TIER_3'
+                          ? 'Belum ada rekod kejohanan Tier 3 direkodkan lagi.'
+                          : 'Belum ada data ranking pasukan direkodkan.'}
                       </div>
                     )}
                   </div>
@@ -6078,6 +6359,7 @@ export default function App() {
               >
                 {HALL_OF_FAME_FILTERS.map((cat) => {
                   const isActive = teamStatsCategory === cat.key;
+                  const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
                   return (
                     <button
                       key={cat.key}
@@ -6088,10 +6370,16 @@ export default function App() {
                         'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
                         (isActive
                           ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
+                          : isTier3Highlight
+                          ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
                           : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
                       }
                     >
-                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />}
+                      {isActive ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
+                      ) : isTier3Highlight ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                      ) : null}
                       <span>{cat.label}</span>
                     </button>
                   );
@@ -6203,6 +6491,99 @@ export default function App() {
                   </p>
                 </div>
               </div>
+
+              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Visible on "Semua" so Tier 3 stays prominent) */}
+              {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
+                <div
+                  className="bg-gradient-to-br from-[#19150c] via-[#121216] to-[#111114] rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5 animate-stagger-card relative overflow-hidden"
+                  style={{ animationDelay: '105ms' }}
+                >
+                  <div aria-hidden="true" className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-amber-400/10 blur-2xl pointer-events-none" />
+
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-2xl bg-amber-400/15 text-amber-300 flex items-center justify-center shrink-0">
+                        <Award className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
+                            Sorotan Tier 3
+                          </h2>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-mono font-black text-[9px] uppercase tracking-wider">
+                            Divisyen Amateur • {tier3RankedTeams.length} Team
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 truncate">
+                          Ranking pasukan cemerlang Tier 3 supaya bakat baru kekal menonjol
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setTeamStatsCategory('TIER_3')}
+                      className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
+                    >
+                      <span>Rank Tier 3</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10">
+                    {tier3RankedTeams.slice(0, 3).map((t3Team, idx) => (
+                      <button
+                        key={`hof_t3_${t3Team.name}`}
+                        type="button"
+                        onClick={() => setSelectedTeamProfile(t3Team.name)}
+                        className="w-full text-left rounded-2xl bg-black/35 hover:bg-black/55 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className={`w-7 h-7 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
+                            idx === 0
+                              ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.3)]'
+                              : idx === 1
+                              ? 'bg-zinc-200 text-black'
+                              : 'bg-orange-400/90 text-black'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+
+                          {t3Team.logo_url ? (
+                            <img
+                              src={t3Team.logo_url}
+                              alt=""
+                              className="w-8 h-8 rounded-xl object-cover bg-zinc-900 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-xl bg-zinc-900 text-amber-300 font-black text-[11px] flex items-center justify-center shrink-0">
+                              {(t3Team.tag || t3Team.name.slice(0, 3)).toUpperCase()}
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-black text-white truncate group-hover:text-amber-300 transition-colors">
+                              {t3Team.name}
+                            </div>
+                            <div className="text-[10px] font-mono text-zinc-400">
+                              {t3Team.tier3Kills}K • {t3Team.tier3WWCD} WWCD
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right font-mono shrink-0">
+                          <div className="text-sm font-black text-amber-300 leading-none">
+                            {t3Team.tier3Points}
+                          </div>
+                          <div className="text-[9px] text-zinc-500 font-bold">
+                            T3 PTS
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
@@ -6459,8 +6840,13 @@ export default function App() {
 
                                 {/* Lower Dark Name Caption Block */}
                                 <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-[#09090b] text-left space-y-0.5">
-                                  <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 truncate">
-                                    {team.scopedKills}K • {team.scopedWWCD} WWCD
+                                  <div className="flex items-center justify-between gap-1 text-[9px] sm:text-[10px] font-mono text-zinc-400">
+                                    <span className="truncate">{team.scopedKills}K • {team.scopedWWCD} WWCD</span>
+                                    {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
+                                      <span className="px-1.5 py-0.2 rounded bg-amber-400/15 text-amber-300 font-black shrink-0">
+                                        T3 #{tier3RankByTeam.get(team.name).tier3Rank}
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-[11px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight line-clamp-2 min-h-[2.1em] sm:min-h-[2.3em]">
                                     {team.name}
@@ -6522,6 +6908,12 @@ export default function App() {
                                   <span className="text-xs sm:text-sm font-black uppercase tracking-tight text-white truncate">
                                     {team.name}
                                   </span>
+
+                                  {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
+                                    <span className="px-1.5 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
+                                      T3 #{tier3RankByTeam.get(team.name).tier3Rank}
+                                    </span>
+                                  )}
                                 </div>
 
                                 {/* Right: Mini Logo + Stats + Points + Small Eye View Button */}
