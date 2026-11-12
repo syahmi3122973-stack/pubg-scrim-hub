@@ -6431,10 +6431,10 @@ export default function App() {
                           type="button"
                           onClick={openEditScrimModal}
                           className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
-                          title="Sunting maklumat sesi (nama, tier, logo)"
+                          title="Edit maklumat sesi (nama, tier, logo)"
                         >
                           <Edit3 className="w-3.5 h-3.5 text-[#D7FF00]" />
-                          <span className="hidden md:inline">Sunting</span>
+                          <span className="hidden md:inline">Edit</span>
                         </button>
 
                         <button
@@ -6445,7 +6445,7 @@ export default function App() {
                               ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
                               : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-white/10'
                           )}
-                          title={activeAdminScrim.is_finished ? 'Buka kunci sesi untuk menyunting' : 'Kunci keputusan rasmi'}
+                          title={activeAdminScrim.is_finished ? 'Buka kunci sesi untuk edit' : 'Kunci keputusan rasmi'}
                         >
                           {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5" /> : <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />}
                           <span className="hidden sm:inline">{activeAdminScrim.is_finished ? 'Buka Kunci' : 'Kunci'}</span>
@@ -6637,12 +6637,12 @@ export default function App() {
                           </select>
                         </div>
 
-                        {/* Middle: Session Title & Sunting Info link */}
+                        {/* Middle: Session Title & Edit Info link */}
                         <button
                           type="button"
                           onClick={openEditScrimModal}
                           className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white truncate px-2 py-1 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer group"
-                          title="Tekan untuk sunting info kejohanan"
+                          title="Tekan untuk edit info kejohanan"
                         >
                           <span className="text-[#D7FF00] font-mono font-bold">[{activeAdminScrim?.tier || 'Tier 1'}]</span>
                           <span className="truncate group-hover:text-[#D7FF00] transition font-bold">{activeAdminScrim?.title || 'PUBG Mobile Scrim'}</span>
@@ -7838,7 +7838,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={toggleEditProfileMode}
-                    aria-label={isEditProfileMode ? "Tutup Sunting" : "Sunting Profil"}
+                    aria-label={isEditProfileMode ? "Tutup Edit" : "Edit Profile"}
                     className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
                       isEditProfileMode
                         ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
@@ -7934,8 +7934,7 @@ export default function App() {
                       <Edit3 className="w-4 h-4 stroke-[2.5]" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-white tracking-tight">Borang Sunting Profil</h4>
-                      <p className="text-[10px] text-zinc-400">Kemaskini maklumat profil anda di sini</p>
+                      <h4 className="text-sm font-black text-white tracking-tight">Edit Profile</h4>
                     </div>
                   </div>
                   <button
@@ -7965,7 +7964,7 @@ export default function App() {
 
                   <div>
                     <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                      Hubungi Rasmi (WhatsApp / Telegram)
+                      Contact
                     </label>
                     <input
                       type="text"
@@ -7979,7 +7978,7 @@ export default function App() {
 
                   <div>
                     <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                      Bio &amp; Peraturan Penganjur
+                      Bio
                     </label>
                     <textarea
                       rows="3"
@@ -8230,7 +8229,7 @@ export default function App() {
                   onClick={toggleEditProfileMode}
                   className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
                 >
-                  <span>{isEditProfileMode ? 'Tutup Sunting' : 'Sunting'}</span>
+                  <span>{isEditProfileMode ? 'Tutup Edit' : 'Edit'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -8240,7 +8239,7 @@ export default function App() {
                 {/* Card 1: Official Contact */}
                 <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-zinc-400">HUBUNGI</span>
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">CONTACT</span>
                     <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                       <Phone className="w-3 h-3" />
                     </div>
@@ -8259,14 +8258,14 @@ export default function App() {
                       <ExternalLink className="w-2.5 h-2.5" />
                     </a>
                   ) : (
-                    <span className="text-[9px] font-mono text-zinc-500">Tekan sunting</span>
+                    <span className="text-[9px] font-mono text-zinc-500">Tekan edit</span>
                   )}
                 </div>
 
                 {/* Card 2: Bio & Rules */}
                 <div className="snap-start shrink-0 w-52 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-zinc-400">BIO &amp; PERATURAN</span>
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">BIO</span>
                     <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
                       <BookOpen className="w-3 h-3" />
                     </div>
@@ -9056,7 +9055,7 @@ export default function App() {
                   className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215, 255, 0,0.18)]"
                 >
                   <Edit3 className="w-3.5 h-3.5"/>
-                  <span>Sunting</span>
+                  <span>Edit</span>
                 </button>
 
                 <button
