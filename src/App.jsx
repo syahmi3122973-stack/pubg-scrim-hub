@@ -6603,7 +6603,7 @@ export default function App() {
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 truncate">
-                          Ranking pasukan cemerlang Tier 3 supaya bakat baru kekal menonjol
+                          Ranking Pasukan cemerlang Tier 3
                         </p>
                       </div>
                     </div>
