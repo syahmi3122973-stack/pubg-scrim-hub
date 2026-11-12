@@ -6596,10 +6596,10 @@ export default function App() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
-                            Sorotan Tier 3
+                            Division Amateur
                           </h2>
                           <span className="px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-mono font-black text-[9px] uppercase tracking-wider">
-                            Divisyen Amateur • {tier3RankedTeams.length} Team
+                            {tier3RankedTeams.length} Team
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 truncate">
