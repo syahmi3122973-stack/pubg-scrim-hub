@@ -4821,6 +4821,9 @@ export default function App() {
                                     >
                                       {(item.eventType || 'Scrim').toUpperCase()}
                                     </span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 bg-zinc-800/90 text-zinc-300 border border-white/10">
+                                      {item.scrimTier || item.scrimData?.tier || 'Tier 1 (Pro)'}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-1">
                                     <span className="font-mono text-zinc-400">{item.date || 'Tarikh -'}</span>
