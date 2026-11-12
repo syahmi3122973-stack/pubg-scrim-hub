@@ -2757,6 +2757,43 @@ export default function App() {
       return;
     }
 
+    const drawRoundRect = (ctx, x, y, w, h, r) => {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    };
+
+    const truncateText = (ctx, text, maxWidth) => {
+      const str = String(text || '');
+      if (ctx.measureText(str).width <= maxWidth) return str;
+      let truncated = str;
+      while (truncated.length > 1 && ctx.measureText(truncated + '...').width > maxWidth) {
+        truncated = truncated.slice(0, -1);
+      }
+      return truncated + '...';
+    };
+
+    const loadCorsImage = (url) => new Promise((resolve) => {
+      if (!url) return resolve(null);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const timer = setTimeout(() => resolve(null), 4000);
+      img.onload = () => {
+        clearTimeout(timer);
+        resolve(img);
+      };
+      img.onerror = () => {
+        clearTimeout(timer);
+        resolve(null);
+      };
+      img.src = url;
+    });
+
     try {
       setIsGeneratingStory(true);
       const canvas = document.createElement('canvas');
@@ -2765,293 +2802,597 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const bg = ctx.createLinearGradient(0, 0, 0, 1920);
-      bg.addColorStop(0, '#0a0d14');
-      bg.addColorStop(0.4, '#10141f');
-      bg.addColorStop(0.8, '#0b0e17');
-      bg.addColorStop(1, '#05070b');
-      ctx.fillStyle = bg;
+      const fontSans = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      const fontMono = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
+      // 1. Matte dark background matching in-app Team Profile mood
+      ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Grid background lines
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      // Subtle ambient radial glows (gold top-left, electric lime top-right, emerald bottom)
+      const topLimeGlow = ctx.createRadialGradient(900, 180, 20, 900, 180, 620);
+      topLimeGlow.addColorStop(0, 'rgba(215, 255, 0, 0.11)');
+      topLimeGlow.addColorStop(1, 'rgba(215, 255, 0, 0)');
+      ctx.fillStyle = topLimeGlow;
+      ctx.fillRect(0, 0, 1080, 900);
+
+      const goldGlow = ctx.createRadialGradient(160, 160, 10, 160, 160, 520);
+      goldGlow.addColorStop(0, 'rgba(245, 158, 11, 0.08)');
+      goldGlow.addColorStop(1, 'rgba(245, 158, 11, 0)');
+      ctx.fillStyle = goldGlow;
+      ctx.fillRect(0, 0, 1080, 800);
+
+      const bottomEmeraldGlow = ctx.createRadialGradient(540, 1780, 20, 540, 1780, 650);
+      bottomEmeraldGlow.addColorStop(0, 'rgba(16, 185, 129, 0.08)');
+      bottomEmeraldGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+      ctx.fillStyle = bottomEmeraldGlow;
+      ctx.fillRect(0, 1100, 1080, 820);
+
+      // Subtle hairline grid overlay
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
       ctx.lineWidth = 1;
-      for (let i = 0; i < 1080; i += 60) {
+      for (let gx = 64; gx < 1080; gx += 95) {
         ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, 1920);
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, 1920);
         ctx.stroke();
       }
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 1080, 56);
+      const padX = 64;
+      const contentW = 1080 - padX * 2; // 952
 
-      ctx.fillStyle = '#f97316';
+      // Top Header Bar
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 22px ${fontSans}`;
+      ctx.fillText('SCRIM HUB', padX, 102);
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = `700 18px ${fontMono}`;
+      ctx.fillText('•  TEAM ANALYTICS', padX + ctx.measureText('SCRIM HUB').width + 16, 101);
+
+      const scopeTopLabel = `${(eventTypeLabel || 'OFFICIAL SCRIM & TOUR').toUpperCase()} • ${hostFilterName === 'ALL' ? 'ALL HOSTS' : String(hostFilterName || '').toUpperCase()}`;
+      ctx.font = `700 16px ${fontMono}`;
+      const clampedScopeTop = truncateText(ctx, scopeTopLabel, 460);
+      const scopePillW = Math.min(480, ctx.measureText(clampedScopeTop).width + 36);
+      drawRoundRect(ctx, 1080 - padX - scopePillW, 72, scopePillW, 42, 21);
+      ctx.fillStyle = '#141418';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#a1a1aa';
+      ctx.textAlign = 'center';
+      ctx.fillText(clampedScopeTop, 1080 - padX - scopePillW / 2, 99);
+
+      // 2. Team Identity Hero Card
+      const heroY = 144;
+      const heroH = 290;
+      drawRoundRect(ctx, padX, heroY, contentW, heroH, 36);
+      const heroBg = ctx.createLinearGradient(padX, heroY, padX + contentW, heroY + heroH);
+      heroBg.addColorStop(0, '#141418');
+      heroBg.addColorStop(1, '#101013');
+      ctx.fillStyle = heroBg;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Subtle lime top-right aura clipped inside hero card
+      ctx.save();
+      drawRoundRect(ctx, padX, heroY, contentW, heroH, 36);
+      ctx.clip();
+      const heroAura = ctx.createRadialGradient(padX + contentW - 80, heroY + 40, 10, padX + contentW - 80, heroY + 40, 320);
+      heroAura.addColorStop(0, 'rgba(215, 255, 0, 0.10)');
+      heroAura.addColorStop(1, 'rgba(215, 255, 0, 0)');
+      ctx.fillStyle = heroAura;
+      ctx.fillRect(padX, heroY, contentW, heroH);
+      ctx.restore();
+
+      // Team Avatar (logo_url or gradient tag box)
+      const avatarX = padX + 40;
+      const avatarY = heroY + 40;
+      const avatarSize = 144;
+      const teamLogoImg = await loadCorsImage(team.logo_url);
+
+      if (teamLogoImg) {
+        ctx.save();
+        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 32);
+        ctx.clip();
+        ctx.fillStyle = '#09090b';
+        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+        const scale = Math.max(avatarSize / teamLogoImg.width, avatarSize / teamLogoImg.height);
+        const drawW = teamLogoImg.width * scale;
+        const drawH = teamLogoImg.height * scale;
+        ctx.drawImage(
+          teamLogoImg,
+          avatarX + (avatarSize - drawW) / 2,
+          avatarY + (avatarSize - drawH) / 2,
+          drawW,
+          drawH
+        );
+        ctx.restore();
+        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 32);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 32);
+        const avatarGrad = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
+        avatarGrad.addColorStop(0, '#D7FF00');
+        avatarGrad.addColorStop(1, '#10b981');
+        ctx.fillStyle = avatarGrad;
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.font = `900 40px ${fontSans}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(truncateText(ctx, team.tag || 'TM', avatarSize - 20), avatarX + avatarSize / 2, avatarY + 86);
+      }
+
+      // Compute overall rank matching Hall of Fame (#rank without 'Global')
+      const rankIdx = Array.isArray(validTeamList)
+        ? validTeamList.findIndex(t => (t.name || '').trim().toLowerCase() === (team.name || '').trim().toLowerCase())
+        : -1;
+      const overallRank = rankIdx >= 0 ? rankIdx + 1 : null;
+
+      // Team Name + #Rank pill
+      const infoX = avatarX + avatarSize + 34;
+      const rightEdgeHero = padX + contentW - 40;
+      const sessionCount = stats.results ? stats.results.length : 0;
+
+      ctx.font = `900 46px ${fontSans}`;
+      const rankText = overallRank ? `#${overallRank}` : '';
+      let rankPillW = 0;
+      if (rankText) {
+        ctx.font = `900 24px ${fontSans}`;
+        rankPillW = ctx.measureText(rankText).width + 32;
+      }
+
+      ctx.font = `900 46px ${fontSans}`;
+      const maxNameW = rightEdgeHero - infoX - (rankPillW ? rankPillW + 16 : 0);
+      const displayTeamName = truncateText(ctx, team.name || 'UNKNOWN TEAM', maxNameW);
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.fillText(displayTeamName, infoX, avatarY + 58);
+
+      if (rankText) {
+        const nameW = ctx.measureText(displayTeamName).width;
+        const rPillX = infoX + nameW + 16;
+        const rPillY = avatarY + 24;
+        drawRoundRect(ctx, rPillX, rPillY, rankPillW, 42, 21);
+        ctx.fillStyle = 'rgba(215, 255, 0, 0.14)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(215, 255, 0, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#D7FF00';
+        ctx.font = `900 24px ${fontSans}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(rankText, rPillX + rankPillW / 2, rPillY + 29);
+      }
+
+      // Team subtitle
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#a1a1aa';
+      ctx.font = `600 22px ${fontSans}`;
+      ctx.fillText(`Tag: [${team.tag || '---'}]  •  ${sessionCount} Sesi Berdaftar`, infoX, avatarY + 106);
+
+      // Divider & Scope Pills inside Hero Card
+      const scopeRowY = heroY + 210;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(340, 0);
-      ctx.lineTo(300, 56);
-      ctx.lineTo(0, 56);
+      ctx.moveTo(padX + 40, scopeRowY);
+      ctx.lineTo(padX + contentW - 40, scopeRowY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = `800 18px ${fontSans}`;
+      ctx.textAlign = 'left';
+      ctx.fillText('SKOP:', padX + 40, scopeRowY + 48);
+
+      const activeScopeText = eventTypeLabel === 'Tournament'
+        ? 'Tournament Sahaja'
+        : (eventTypeLabel === 'Scrim' ? 'Scrim Sahaja' : 'Semua Rekod');
+      ctx.font = `800 19px ${fontSans}`;
+      const activePillW = ctx.measureText(activeScopeText).width + 38;
+      const scopePillStartX = padX + 114;
+      drawRoundRect(ctx, scopePillStartX, scopeRowY + 20, activePillW, 42, 14);
+      ctx.fillStyle = '#D7FF00';
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      ctx.fillText(activeScopeText, scopePillStartX + activePillW / 2, scopeRowY + 47);
+
+      if (hostFilterName && hostFilterName !== 'ALL') {
+        const hostTagText = truncateText(ctx, `Host: ${hostFilterName}`, 420);
+        ctx.font = `700 18px ${fontSans}`;
+        const hostPillW = ctx.measureText(hostTagText).width + 34;
+        const hostPillX = scopePillStartX + activePillW + 14;
+        drawRoundRect(ctx, hostPillX, scopeRowY + 20, hostPillW, 42, 14);
+        ctx.fillStyle = '#18181b';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#d4d4d8';
+        ctx.fillText(hostTagText, hostPillX + hostPillW / 2, scopeRowY + 47);
+      }
+
+      // 3. 4 Bento Stats Cards (2x2 Grid matching Team Profile UI)
+      const gridY = 466;
+      const gridGap = 24;
+      const cardW = (contentW - gridGap) / 2; // 464
+      const cardH = 210;
+      const matchesCount = stats.matchesCount || 0;
+      const avgKillsPerMatch = matchesCount > 0
+        ? (Number(stats.totalKills || 0) / matchesCount).toFixed(1)
+        : '0.0';
+
+      const bentoCards = [
+        {
+          x: padX,
+          y: gridY,
+          label: 'TOTAL POINTS',
+          value: String(stats.totalPts || 0),
+          valueColor: '#D7FF00',
+          sub: `~${stats.avgPts || '0.0'} pts / sesi`,
+          glow: 'rgba(215, 255, 0, 0.08)'
+        },
+        {
+          x: padX + cardW + gridGap,
+          y: gridY,
+          label: 'ELIMS (KILLS)',
+          value: String(stats.totalKills || 0),
+          valueColor: '#ffffff',
+          sub: `~${avgKillsPerMatch} kills / match`,
+          glow: 'rgba(255, 255, 255, 0.04)'
+        },
+        {
+          x: padX,
+          y: gridY + cardH + gridGap,
+          label: 'WWCD DINNERS',
+          value: String(stats.totalWwcd || 0),
+          valueColor: '#D7FF00',
+          sub: `${stats.winRate || '0%'} Win Rate`,
+          glow: 'rgba(245, 158, 11, 0.07)'
+        },
+        {
+          x: padX + cardW + gridGap,
+          y: gridY + cardH + gridGap,
+          label: 'SESI / MATCH',
+          value: String(sessionCount),
+          valueColor: '#ffffff',
+          sub: `${matchesCount} match beraksi`,
+          glow: 'rgba(16, 185, 129, 0.06)'
+        }
+      ];
+
+      bentoCards.forEach((c) => {
+        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 32);
+        ctx.fillStyle = '#121216';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 32);
+        ctx.clip();
+        const cardAura = ctx.createRadialGradient(c.x + cardW - 30, c.y + 30, 5, c.x + cardW - 30, c.y + 30, 210);
+        cardAura.addColorStop(0, c.glow);
+        cardAura.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = cardAura;
+        ctx.fillRect(c.x, c.y, cardW, cardH);
+        ctx.restore();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#a1a1aa';
+        ctx.font = `800 18px ${fontSans}`;
+        ctx.fillText(c.label, c.x + cardW / 2, c.y + 46);
+
+        ctx.fillStyle = c.valueColor;
+        ctx.font = `900 76px ${fontSans}`;
+        ctx.fillText(c.value, c.x + cardW / 2, c.y + 132);
+
+        ctx.fillStyle = '#71717a';
+        ctx.font = `600 19px ${fontMono}`;
+        ctx.fillText(c.sub, c.x + cardW / 2, c.y + 178);
+      });
+
+      // 4. Profil Gaya Permainan Card (KP vs PP Breakdown — without gimmick labels)
+      const ratioY = gridY + cardH * 2 + gridGap + 28; // 938
+      const ratioH = 224;
+      const totalPtsNum = Number(stats.totalPts || 0);
+      const totalKillsNum = Number(stats.totalKills || 0);
+      const placementPtsNum = Math.max(0, totalPtsNum - totalKillsNum);
+      const kpPercent = totalPtsNum > 0 ? Math.round((totalKillsNum / totalPtsNum) * 100) : 0;
+      const ppPercent = totalPtsNum > 0 ? Math.max(0, 100 - kpPercent) : 0;
+
+      drawRoundRect(ctx, padX, ratioY, contentW, ratioH, 32);
+      ctx.fillStyle = '#121216';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#a1a1aa';
+      ctx.font = `800 18px ${fontSans}`;
+      ctx.fillText('PROFIL GAYA PERMAINAN', padX + 40, ratioY + 52);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `800 26px ${fontSans}`;
+      ctx.fillText('Taburan Mata Pasukan', padX + 40, ratioY + 90);
+
+      // KP / PP percentage readout on right
+      const ppText = `PP: ${ppPercent}%`;
+      const kpText = `KP: ${kpPercent}%`;
+      ctx.font = `900 24px ${fontMono}`;
+      const ppW = ctx.measureText(ppText).width;
+      const dotSep = '  •  ';
+      const sepW = ctx.measureText(dotSep).width;
+      const rightEdgeRatio = padX + contentW - 40;
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#2dd4bf';
+      ctx.fillText(ppText, rightEdgeRatio, ratioY + 76);
+
+      ctx.fillStyle = '#52525b';
+      ctx.fillText(dotSep, rightEdgeRatio - ppW, ratioY + 76);
+
+      ctx.fillStyle = '#D7FF00';
+      ctx.fillText(kpText, rightEdgeRatio - ppW - sepW, ratioY + 76);
+
+      // Segmented Progress Bar
+      const barX = padX + 40;
+      const barY = ratioY + 116;
+      const barW = contentW - 80;
+      const barH = 24;
+
+      drawRoundRect(ctx, barX, barY, barW, barH, 12);
+      ctx.fillStyle = '#27272a';
       ctx.fill();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 18px monospace';
+      ctx.save();
+      drawRoundRect(ctx, barX, barY, barW, barH, 12);
+      ctx.clip();
+      const kpFillW = (barW * kpPercent) / 100;
+      if (kpFillW > 0) {
+        ctx.fillStyle = '#D7FF00';
+        ctx.fillRect(barX, barY, kpFillW, barH);
+      }
+      if (barW - kpFillW > 0) {
+        const ppGrad = ctx.createLinearGradient(barX + kpFillW, barY, barX + barW, barY);
+        ppGrad.addColorStop(0, '#10b981');
+        ppGrad.addColorStop(1, '#2dd4bf');
+        ctx.fillStyle = ppGrad;
+        ctx.fillRect(barX + kpFillW, barY, barW - kpFillW, barH);
+      }
+      ctx.restore();
+
+      // Legend Row
+      const legendY = ratioY + 182;
+      ctx.fillStyle = '#D7FF00';
+      ctx.beginPath();
+      ctx.arc(barX + 8, legendY - 7, 7, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.textAlign = 'left';
-      ctx.fillText('SCRIM HUB MATCHDAY', 40, 36);
+      ctx.fillStyle = '#d4d4d8';
+      ctx.font = `600 20px ${fontSans}`;
+      ctx.fillText(`Kill Points (${totalKillsNum} pts)`, barX + 26, legendY);
 
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 16px monospace';
+      const rightLegendText = `Placement Points (${placementPtsNum} pts)`;
       ctx.textAlign = 'right';
-      ctx.fillText('PUBGM COMPETITIVE LEAGUE • BY RY.KHOR', 1040, 36);
+      ctx.fillText(rightLegendText, barX + barW, legendY);
+      const rightLegendW = ctx.measureText(rightLegendText).width;
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(barX + barW - rightLegendW - 18, legendY - 7, 7, 0, Math.PI * 2);
+      ctx.fill();
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-      ctx.fillRect(0, 56, 1080, 140);
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(0, 194, 1080, 4);
-
-      ctx.fillStyle = '#f97316';
-      ctx.font = '900 48px monospace';
+      // 5. Sejarah Perlawanan (Recent Sessions matching accordion summary cards)
+      const histHeaderY = ratioY + ratioH + 46; // 1208
       ctx.textAlign = 'left';
-      ctx.fillText(`[${team.tag}]`, 60, 145);
-
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 36px sans-serif';
-      const cleanTeamName = team.name.length > 20 ? team.name.slice(0, 18) + '..' : team.name;
-      ctx.fillText(cleanTeamName.toUpperCase(), 230, 142);
+      ctx.font = `900 22px ${fontSans}`;
+      ctx.fillText('SEJARAH PERLAWANAN', padX, histHeaderY);
 
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 16px monospace';
-      ctx.textAlign = 'right';
-      const scopeBadge = `${eventTypeLabel.toUpperCase()} • ${hostFilterName === 'ALL' ? 'ALL HOSTS' : hostFilterName.toUpperCase()}`;
-      ctx.fillText(scopeBadge, 1020, 142);
+      const recBadgeText = `${sessionCount} Rekod`;
+      ctx.font = `700 18px ${fontSans}`;
+      const recBadgeW = ctx.measureText(recBadgeText).width + 32;
+      drawRoundRect(ctx, padX + contentW - recBadgeW, histHeaderY - 26, recBadgeW, 34, 17);
+      ctx.fillStyle = '#141418';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#a1a1aa';
+      ctx.textAlign = 'center';
+      ctx.fillText(recBadgeText, padX + contentW - recBadgeW / 2, histHeaderY - 3);
 
-      const drawRibbonHeader = (title, y) => {
-        ctx.fillStyle = '#f97316';
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(440, y);
-        ctx.lineTo(400, y + 42);
-        ctx.lineTo(0, y + 42);
+      const recentResults = (stats.results || []).slice(0, 4);
+      const rowStartY = histHeaderY + 24;
+      const rowH = 104;
+      const rowGap = 16;
+
+      if (recentResults.length === 0) {
+        drawRoundRect(ctx, padX, rowStartY, contentW, 140, 24);
+        ctx.fillStyle = '#121216';
         ctx.fill();
-
-        ctx.fillStyle = '#000000';
-        ctx.font = '900 18px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(title, 40, y + 28);
-      };
-
-      drawRibbonHeader('PERFORMANCE METRICS', 225);
-
-      const drawCircularGauge = (centerX, centerY, radius, value, maxVal, title, unitColor = '#f97316') => {
-        const startAngle = -0.75 * Math.PI;
-        const totalAngle = 1.5 * Math.PI;
-        const progress = Math.min(Math.max(parseFloat(value) || 0, 0) / maxVal, 1);
-        const endAngle = startAngle + (totalAngle * (progress || 0.15));
-
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 18;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, startAngle, startAngle + totalAngle);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
         ctx.stroke();
-
-        ctx.strokeStyle = unitColor;
-        ctx.lineWidth = 18;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-        ctx.stroke();
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'bold 15px monospace';
+        ctx.fillStyle = '#71717a';
+        ctx.font = `600 22px ${fontSans}`;
         ctx.textAlign = 'center';
-        ctx.fillText(title, centerX, centerY - 65);
+        ctx.fillText('Tiada rekod perlawanan dalam skop ini.', 540, rowStartY + 78);
+      } else {
+        recentResults.forEach((res, idx) => {
+          const ry = rowStartY + idx * (rowH + rowGap);
+          drawRoundRect(ctx, padX, ry, contentW, rowH, 24);
+          ctx.fillStyle = '#121216';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 36px monospace';
-        ctx.fillText(String(value), centerX, centerY + 10);
-      };
+          // Left Accent Icon Tile
+          const tileX = padX + 22;
+          const tileY = ry + 20;
+          const tileSize = 64;
+          drawRoundRect(ctx, tileX, tileY, tileSize, tileSize, 16);
+          ctx.fillStyle = res.ranking === 1 ? 'rgba(245, 158, 11, 0.14)' : '#18181b';
+          ctx.fill();
+          ctx.strokeStyle = res.ranking === 1 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
 
-      drawCircularGauge(200, 360, 68, stats.avgPts || 0, 35, 'AVG POINTS', '#f97316');
-      drawCircularGauge(540, 360, 68, stats.avgKills || 0, 18, 'AVG ELIMS', '#D7FF00');
-      drawCircularGauge(880, 360, 68, stats.winRate || '0%', 100, 'WIN RATIO', '#f97316');
+          ctx.fillStyle = res.ranking === 1 ? '#fbbf24' : '#a1a1aa';
+          ctx.font = `900 22px ${fontMono}`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`#${res.ranking || '-'}`, tileX + tileSize / 2, tileY + 40);
 
-      drawRibbonHeader('SQUAD COMBAT PROFILE', 490);
+          // Right Rank Pill + PTS
+          const rightRankStr = `#${res.ranking || '-'}`;
+          ctx.font = `900 22px ${fontSans}`;
+          const rightPillW = Math.max(74, ctx.measureText(rightRankStr).width + 32);
+          const rightPillX = padX + contentW - 24 - rightPillW;
+          const rightPillY = ry + 30;
+          drawRoundRect(ctx, rightPillX, rightPillY, rightPillW, 44, 14);
+          ctx.fillStyle = res.ranking <= 3 ? 'rgba(215, 255, 0, 0.14)' : '#18181b';
+          ctx.fill();
+          ctx.strokeStyle = res.ranking <= 3 ? 'rgba(215, 255, 0, 0.35)' : 'rgba(255, 255, 255, 0.08)';
+          ctx.stroke();
+          ctx.fillStyle = res.ranking <= 3 ? '#D7FF00' : '#e4e4e7';
+          ctx.textAlign = 'center';
+          ctx.fillText(rightRankStr, rightPillX + rightPillW / 2, rightPillY + 30);
 
-      ctx.fillStyle = '#141a24';
-      ctx.fillRect(60, 555, 960, 290);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(60, 555, 960, 290);
+          // Event Title + Type Pill + Tier Pill
+          const textX = tileX + tileSize + 20;
+          const titleMaxW = rightPillX - textX - 180;
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `800 24px ${fontSans}`;
+          const eventTitle = truncateText(ctx, res.scrimName || 'Scrim Session', Math.max(200, titleMaxW));
+          ctx.fillText(eventTitle, textX, ry + 44);
+          const titleActualW = ctx.measureText(eventTitle).width;
 
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(60, 555, 10, 290);
+          // Event Type Badge (SCRIM / TOUR)
+          const typeLabel = res.eventType === 'Tour' ? 'TOUR' : 'SCRIM';
+          ctx.font = `900 14px ${fontSans}`;
+          const typeBadgeW = ctx.measureText(typeLabel).width + 18;
+          let badgeCursorX = textX + titleActualW + 12;
+          drawRoundRect(ctx, badgeCursorX, ry + 24, typeBadgeW, 24, 6);
+          ctx.fillStyle = res.eventType === 'Tour' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(215, 255, 0, 0.12)';
+          ctx.fill();
+          ctx.strokeStyle = res.eventType === 'Tour' ? 'rgba(245, 158, 11, 0.35)' : 'rgba(215, 255, 0, 0.30)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = res.eventType === 'Tour' ? '#fbbf24' : '#D7FF00';
+          ctx.textAlign = 'center';
+          ctx.fillText(typeLabel, badgeCursorX + typeBadgeW / 2, ry + 41);
+          badgeCursorX += typeBadgeW + 8;
 
-      const isWinner = Number(stats.totalWwcd) >= 2;
-      const isLethal = Number(stats.totalKills) >= 20;
-      const archetype = isWinner ? 'CHICKEN DINNER HUNTER' : (isLethal ? 'LETHAL COMBAT PREDATOR' : 'TACTICAL SURVIVOR');
-
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(100, 585, 360, 38);
-      ctx.fillStyle = '#000000';
-      ctx.font = '900 15px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(archetype.toUpperCase(), 115, 610);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 32px sans-serif';
-      ctx.fillText(cleanTeamName.toUpperCase(), 100, 675);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '500 18px sans-serif';
-      ctx.fillText(`Total Eliminations: ${stats.totalKills || 0} Kills`, 100, 725);
-      ctx.fillText(`Total Points: ${stats.totalPts || 0} Pts`, 100, 760);
-      ctx.fillText(`Total WWCD: ${stats.totalWwcd || 0}`, 100, 795);
-
-      ctx.fillStyle = '#0b0f17';
-      ctx.fillRect(680, 585, 310, 230);
-      ctx.strokeStyle = '#f97316';
-      ctx.strokeRect(680, 585, 310, 230);
-
-      ctx.fillStyle = '#f97316';
-      ctx.font = 'bold 15px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('CATEGORY SCOPE', 835, 625);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 48px monospace';
-      ctx.fillText(`${stats.results ? stats.results.length : 0}`, 835, 695);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText(`${eventTypeLabel.toUpperCase()} JOINED`, 835, 735);
-      ctx.fillText(`(${stats.matchesCount || 0} TOTAL MATCHES)`, 835, 765);
-
-      drawRibbonHeader('ANALYSIS STATEMENT', 885);
-
-      ctx.fillStyle = '#141a24';
-      ctx.fillRect(60, 950, 960, 210);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.strokeRect(60, 950, 960, 210);
-
-      ctx.fillStyle = 'rgba(249, 115, 22, 0.3)';
-      ctx.font = '900 120px serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('“', 90, 1050);
-
-      ctx.fillStyle = '#f97316';
-      ctx.font = '900 18px monospace';
-      ctx.fillText(`${eventTypeLabel.toUpperCase()} RECORD`, 170, 995);
-
-      ctx.fillStyle = '#f1f5f9';
-      ctx.font = 'italic 500 21px sans-serif';
-      const quoteText = isWinner 
-        ? 'This squad displays elite zone dominance consistency with an outstanding win rate.'
-        : 'A high-impact aggressive squad consistently pressuring opponents for maximum eliminations.';
-      ctx.fillText(quoteText, 170, 1040);
-      ctx.fillText('Verified for official competitive tier participation.', 170, 1075);
-
-      drawRibbonHeader('NUMBERS TO KNOW', 1200);
-
-      ctx.fillStyle = '#141a24';
-      ctx.fillRect(60, 1265, 960, 270);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.strokeRect(60, 1265, 960, 270);
-
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = '500 20px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(`WITH A RECORD OF ${stats.totalPts || 0} TOTAL POINTS AND`, 100, 1340);
-      ctx.fillText(`${stats.totalKills || 0} ELIMINATIONS, [${team.tag}] RANKS AMONG`, 100, 1380);
-      ctx.fillText(`THE MOST FORMIDABLE ROSTERS IN THE`, 100, 1420);
-      ctx.fillText(`SCRIM HUB ${eventTypeLabel.toUpperCase()} SERIES.`, 100, 1460);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 110px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(String(stats.totalPts || 0), 830, 1410);
-
-      ctx.fillStyle = '#f97316';
-      ctx.font = '900 18px monospace';
-      ctx.fillText('CAREER POINTS', 830, 1455);
-
-      drawRibbonHeader('COLORWAY & METADATA', 1575);
-
-      ctx.fillStyle = '#141a24';
-      ctx.fillRect(60, 1635, 960, 130);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.strokeRect(60, 1635, 960, 130);
-
-      const drawColorSwatch = (x, color, label) => {
-        ctx.fillStyle = color;
-        ctx.fillRect(x, 1655, 90, 60);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, 1655, 90, 60);
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'bold 12px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, x + 45, 1740);
-      };
-
-      drawColorSwatch(120, '#f97316', 'PRIMARY');
-      drawColorSwatch(240, '#000000', 'SECONDARY');
-      drawColorSwatch(360, '#ffffff', 'ACCENT');
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 24px monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(cleanTeamName.toUpperCase(), 980, 1695);
-      ctx.fillStyle = '#f97316';
-      ctx.font = 'bold 16px monospace';
-      ctx.fillText(`${eventTypeLabel.toUpperCase()} DIVISION`, 980, 1725);
-
-      ctx.fillStyle = '#05070b';
-      ctx.fillRect(0, 1805, 1080, 115);
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(0, 1805, 1080, 4);
-
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 26px monospace';
-      ctx.fillText('SCRIM HUB', 60, 1860);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 16px monospace';
-      ctx.fillText('BY RY.KHOR  •  POWERED BY SUPABASE', 60, 1890);
-
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#f97316';
-      ctx.font = '900 28px sans-serif';
-      ctx.fillText('scrim.rykhor.my', 1020, 1872);
-
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-
-        const file = new File([blob], `${team.tag}-${eventTypeLabel.toLowerCase()}-stats.png`, { type: 'image/png' });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: `[${team.tag}] ${eventTypeLabel} Stats Infographic`,
-              text: `Check out our team's ${eventTypeLabel} performance infographic on SCRIM HUB! (scrim.rykhor.my)`
-            });
-            showToast('Instagram Story infographic ready to share!');
-          } catch (err) {
-            if (err.name !== 'AbortError') showToast('Error: ' + err.message);
+          // Scrim Tier Badge (matching Sejarah Perlawanan in-app feature)
+          if (res.scrimTier) {
+            const tierLabel = truncateText(ctx, res.scrimTier, Math.max(60, rightPillX - badgeCursorX - 16));
+            ctx.font = `700 14px ${fontSans}`;
+            const tierBadgeW = ctx.measureText(tierLabel).width + 18;
+            if (badgeCursorX + tierBadgeW < rightPillX - 10) {
+              drawRoundRect(ctx, badgeCursorX, ry + 24, tierBadgeW, 24, 6);
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+              ctx.fill();
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+              ctx.stroke();
+              ctx.fillStyle = '#d4d4d8';
+              ctx.textAlign = 'center';
+              ctx.fillText(tierLabel, badgeCursorX + tierBadgeW / 2, ry + 41);
+            }
           }
-        } else {
-          const link = document.createElement('a');
-          link.download = `${team.tag}-${eventTypeLabel.toLowerCase()}-stats.png`;
-          link.href = URL.createObjectURL(blob);
-          link.click();
-          showToast('Infographic poster downloaded successfully!');
+
+          // Bottom metadata line: Date • PTS • Kills • WWCD
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#71717a';
+          ctx.font = `600 18px ${fontMono}`;
+          const datePart = res.date ? `${res.date}  •  ` : '';
+          ctx.fillText(datePart, textX, ry + 78);
+          const datePartW = datePart ? ctx.measureText(datePart).width : 0;
+
+          ctx.fillStyle = '#D7FF00';
+          ctx.font = `800 18px ${fontMono}`;
+          const ptsPart = `${res.points || 0} PTS`;
+          ctx.fillText(ptsPart, textX + datePartW, ry + 78);
+          const ptsPartW = ctx.measureText(ptsPart).width;
+
+          ctx.fillStyle = '#a1a1aa';
+          ctx.font = `600 18px ${fontMono}`;
+          const extraStats = `  •  ${res.kills || 0} Kills${res.wwcd > 0 ? `  •  ${res.wwcd} WWCD` : ''}`;
+          ctx.fillText(extraStats, textX + datePartW + ptsPartW, ry + 78);
+        });
+
+        if (stats.results.length > 4) {
+          const extraY = rowStartY + 4 * (rowH + rowGap) + 12;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#71717a';
+          ctx.font = `600 18px ${fontSans}`;
+          ctx.fillText(`+ ${stats.results.length - 4} lagi rekod perlawanan di Scrim Hub`, 540, extraY);
         }
-      }, 'image/png');
+      }
+
+      // 6. Clean Matte Footer
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(padX, 1796);
+      ctx.lineTo(1080 - padX, 1796);
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 24px ${fontSans}`;
+      ctx.fillText('SCRIM HUB', padX, 1850);
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = `600 18px ${fontSans}`;
+      ctx.fillText('BY RY.KHOR  •  OFFICIAL ANALYTICS', padX + ctx.measureText('SCRIM HUB').width + 20, 1849);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#D7FF00';
+      ctx.font = `900 26px ${fontSans}`;
+      ctx.fillText('scrim.rykhor.my', 1080 - padX, 1850);
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) return;
+
+      const fileSlug = (team.tag || 'team').replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'team';
+      const scopeSlug = (eventTypeLabel || 'stats').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+      const fileName = `${fileSlug}-${scopeSlug}-stats.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `[${team.tag}] ${eventTypeLabel} Stats`,
+            text: `Statistik pasukan ${team.name} di SCRIM HUB! (scrim.rykhor.my)`
+          });
+          showToast('Instagram Story card sedia untuk dikongsi!');
+        } catch (err) {
+          if (err.name !== 'AbortError') showToast('Error: ' + err.message);
+        }
+      } else {
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = objectUrl;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+        showToast('Kad statistik berjaya dimuat turun!');
+      }
 
     } catch (error) {
-      showToast('Failed to generate poster: ' + error.message);
+      showToast('Gagal menjana kad: ' + error.message);
     } finally {
       setIsGeneratingStory(false);
     }
