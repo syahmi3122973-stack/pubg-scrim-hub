@@ -5861,34 +5861,34 @@ export default function App() {
                             const isSecond = slotRank === 2;
 
                             const cardBorderClass = isFirst
-                              ? 'border-[#D7FF00]/45 shadow-[0_0_28px_rgba(215,255,0,0.14)] hover:border-[#D7FF00]/75'
+                              ? 'border-[#D7FF00]/75 shadow-[0_0_32px_rgba(215,255,0,0.24)] hover:border-[#D7FF00]'
                               : isSecond
-                              ? 'border-white/15 hover:border-white/30'
-                              : 'border-amber-500/30 hover:border-amber-400/55';
+                              ? 'border-zinc-300/45 shadow-[0_0_24px_rgba(228,228,231,0.14)] hover:border-zinc-200/75'
+                              : 'border-amber-400/55 shadow-[0_0_24px_rgba(245,158,11,0.18)] hover:border-amber-300/85';
 
                             const heroBgClass = isFirst
-                              ? 'bg-gradient-to-br from-[#191e0e] via-[#101116] to-[#09090b]'
+                              ? 'bg-gradient-to-b from-[#D7FF00]/50 via-lime-500/25 to-[#12160c]'
                               : isSecond
-                              ? 'bg-gradient-to-br from-[#1b1d24] via-[#101116] to-[#09090b]'
-                              : 'bg-gradient-to-br from-[#20160c] via-[#101116] to-[#09090b]';
+                              ? 'bg-gradient-to-b from-slate-200/40 via-zinc-400/20 to-[#15171d]'
+                              : 'bg-gradient-to-b from-amber-400/45 via-orange-500/22 to-[#1a130b]';
 
                             const watermarkColor = isFirst
-                              ? 'text-[#D7FF00]/22'
+                              ? 'text-[#D7FF00]/55'
                               : isSecond
-                              ? 'text-zinc-200/18'
-                              : 'text-amber-400/20';
+                              ? 'text-white/40'
+                              : 'text-amber-300/45';
 
                             const tagBadgeStyle = isFirst
-                              ? 'bg-[#D7FF00] text-black'
+                              ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.35)]'
                               : isSecond
-                              ? 'bg-zinc-200 text-black'
+                              ? 'bg-zinc-100 text-black'
                               : 'bg-amber-400 text-black';
 
                             const fallbackPedestalBg = isFirst
                               ? 'bg-gradient-to-br from-[#D7FF00] via-lime-300 to-emerald-400 text-black'
                               : isSecond
-                              ? 'bg-gradient-to-br from-zinc-200 via-zinc-300 to-zinc-500 text-black'
-                              : 'bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 text-black';
+                              ? 'bg-gradient-to-br from-zinc-100 via-zinc-300 to-zinc-400 text-black'
+                              : 'bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-black';
 
                             return (
                               <div
@@ -5902,8 +5902,8 @@ export default function App() {
                                     setSelectedTeamProfile(team.name);
                                   }
                                 }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden bg-[#09090b] border transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardBorderClass} ${
-                                  isSelected ? 'ring-2 ring-[#D7FF00]/60' : ''
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden bg-[#101015] border transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardBorderClass} ${
+                                  isSelected ? 'ring-2 ring-[#D7FF00]/70' : ''
                                 }`}
                               >
                                 {/* Upper Visual Hero Area */}
@@ -5918,19 +5918,19 @@ export default function App() {
                                       src={team.logo_url}
                                       alt=""
                                       aria-hidden="true"
-                                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none"
+                                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-45 scale-125 pointer-events-none"
                                     />
                                   )}
 
-                                  {/* Subtle Top Spotlight Glow */}
+                                  {/* Luminous Top Spotlight Glow */}
                                   <div
                                     aria-hidden="true"
-                                    className={`absolute -top-6 right-0 w-24 h-24 rounded-full blur-2xl pointer-events-none ${
+                                    className={`absolute -top-8 left-1/2 -translate-x-1/2 rounded-full blur-2xl pointer-events-none ${
                                       isFirst
-                                        ? 'bg-[#D7FF00]/20'
+                                        ? 'w-32 h-32 bg-[#D7FF00]/45'
                                         : isSecond
-                                        ? 'bg-white/10'
-                                        : 'bg-amber-500/15'
+                                        ? 'w-28 h-28 bg-white/30'
+                                        : 'w-28 h-28 bg-amber-400/35'
                                     }`}
                                   />
 
@@ -5949,7 +5949,7 @@ export default function App() {
                                       e.stopPropagation();
                                       setSelectedTeamProfile(team.name);
                                     }}
-                                    className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/55 backdrop-blur-md border border-white/15 flex items-center justify-center text-zinc-300 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/50 transition cursor-pointer"
+                                    className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/50 backdrop-blur-md border border-white/25 flex items-center justify-center text-white/90 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/60 transition cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
                                     aria-label={`Lihat maklumat ${team.name}`}
                                   >
@@ -5958,7 +5958,11 @@ export default function App() {
 
                                   {/* Immersive Centered Team Logo Pedestal */}
                                   {team.logo_url ? (
-                                    <div className="relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#09090b]/85 backdrop-blur-md border border-white/15 p-1.5 sm:p-2 shadow-2xl group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+                                    <div
+                                      className={`relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#0c0c10]/70 backdrop-blur-md border p-1.5 sm:p-2 shadow-2xl group-hover:scale-105 transition-transform duration-300 flex items-center justify-center ${
+                                        isFirst ? 'border-[#D7FF00]/50' : 'border-white/25'
+                                      }`}
+                                    >
                                       <img
                                         src={team.logo_url}
                                         alt={team.name}
@@ -5976,7 +5980,7 @@ export default function App() {
                                   )}
 
                                   {/* Bottom Overlay Strip: [TAG] Pill + Points */}
-                                  <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent pt-6 pb-1.5 px-2 sm:px-3 flex items-end justify-between gap-1">
+                                  <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#09090b]/95 via-[#09090b]/60 to-transparent pt-5 pb-1.5 px-2 sm:px-3 flex items-end justify-between gap-1">
                                     <span
                                       className={`px-1.5 sm:px-2 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-xs uppercase leading-tight truncate max-w-[48%] ${tagBadgeStyle}`}
                                     >
