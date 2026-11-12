@@ -3715,10 +3715,9 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER & TOP NAVIGATION BAR (ONLY ON HOME PAGE, SEAMLESS BACKGROUND, NO SEPARATING LINE) */}
-      {(activeTab === 'playground' || activeTab === 'home') && (
-        <header className="bg-[#080808] sticky top-0 z-40 px-4 pt-3 pb-1">
-          <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+      {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
+      <header className={`bg-[#080808] sticky top-0 z-40 px-4 pt-3 pb-1 md:py-3.5 transition-colors ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
           <div className="flex items-center gap-2.5 z-10">
@@ -3953,52 +3952,55 @@ export default function App() {
 
           {/* TOP RIGHT: Desktop Navigation & Menu */}
           <div className="flex items-center gap-2 z-10">
-            <nav className="hidden lg:flex space-x-1 bg-zinc-900/60 p-1 rounded-2xl border border-white/5 text-xs font-semibold items-center">
+            <nav className="hidden md:flex space-x-1 bg-zinc-900/70 p-1 rounded-2xl border border-white/10 text-xs font-semibold items-center backdrop-blur-md shadow-lg">
               <button
                 type="button"
                 onClick={() => navigateToTab('playground')}
                 title="Command Center (Home)"
                 aria-label="Home"
-                className={'p-2 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'playground' || activeTab === 'home'
                     ? 'bg-zinc-800 text-[#D7FF00] font-black shadow-xs ring-1 ring-white/10' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
                 <Home className="w-4 h-4"/>
+                <span className="hidden xl:inline">Home</span>
               </button>
               <button
                 type="button"
                 onClick={() => navigateToTab('history')}
                 title="Rekod Kejohanan & Live Leaderboard"
                 aria-label="Rekod Kejohanan"
-                className={'p-2 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'history' || activeTab === 'leaderboard'
                     ? 'bg-emerald-500/20 text-emerald-300 font-black border border-emerald-500/30' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
                 <Trophy className="w-4 h-4 text-emerald-400" />
+                <span className="hidden xl:inline">Rekod</span>
               </button>
               <button
                 type="button"
                 onClick={() => navigateToTab('teams')}
                 title="Hall of Fame & Direktori Pasukan"
                 aria-label="Hall of Fame"
-                className={'p-2 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'teams'
                     ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
                 <Users className="w-4 h-4 text-[#D7FF00]" />
+                <span className="hidden xl:inline">Teams</span>
               </button>
               <button
                 type="button"
                 onClick={() => navigateToTab('admin')}
                 title="Host Workspace & Portal Penganjur"
                 aria-label="Host Portal"
-                className={'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                className={'flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'admin'
                     ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
@@ -4010,6 +4012,20 @@ export default function App() {
                   <Lock className="w-3.5 h-3.5 text-zinc-500" />
                 )}
                 <span>Host</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateToTab('profile')}
+                title="Profil Akaun & Pengurusan"
+                aria-label="Profile"
+                className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                  activeTab === 'profile'
+                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                )}
+              >
+                <User className="w-4 h-4 text-[#D7FF00]" />
+                <span className="hidden xl:inline">Profile</span>
               </button>
             </nav>
 
@@ -4152,7 +4168,6 @@ export default function App() {
 
         </div>
       </header>
-      )}
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
@@ -4220,44 +4235,47 @@ export default function App() {
           const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
 
           return (
-            <div className="max-w-xl lg:max-w-2xl mx-auto space-y-4 sm:space-y-5 pt-1 pb-6">
+            <div className="max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-6 pt-1 pb-6 md:pb-12">
               
               {/* Subtle Command Center Greeting Header (Zero progress bars or % indicators) */}
-              <div className="flex items-center justify-between px-1.5">
+              <div className="flex items-center justify-between px-1.5 md:px-2">
                 <div>
                   {currentUser ? (
-                    <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                    <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
                       Welcome back, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
                     </h1>
                   ) : (
-                    <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                    <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
                       Hi, <span className="text-[#D7FF00]">new person!</span>
                     </h1>
                   )}
+                  <p className="hidden md:block text-xs md:text-sm text-zinc-400 mt-1">
+                    Pusat Kawalan Esports PUBG Mobile • Leaderboard, Auto-Scoring &amp; Arkib Kejohanan
+                  </p>
                 </div>
                 {currentUser ? (
                   <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(true)}
-                    className="px-3 py-1.5 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
                     <span>{adminHostedScrims.length} Hosted</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="px-3 py-1.5 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group"
+                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group shadow-md"
                   >
-                    <User className="w-3.5 h-3.5 text-[#D7FF00] group-hover:scale-110 transition-transform" />
+                    <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00] group-hover:scale-110 transition-transform" />
                     <span>Log Masuk</span>
                   </button>
                 )}
               </div>
 
                 {/* BENTO GRID LAYOUT */}
-                <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 lg:gap-5">
                   
                   {/* CARD A: Top Full-Width Card (Yellow / Acid Gold Accent) — [Hall of Fame] */}
                   <div
@@ -4270,7 +4288,7 @@ export default function App() {
                         navigateToTab('teams');
                       }
                     }}
-                    className="col-span-2 rounded-[2rem] p-5 sm:p-6 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] active:scale-[0.98] transition-all duration-200 cursor-pointer relative overflow-hidden group select-none"
+                    className="col-span-2 lg:col-span-2 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] active:scale-[0.98] transition-all duration-200 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between"
                   >
                     {/* Ambient decorative glow */}
                     <div className="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/25 blur-2xl pointer-events-none" />
@@ -4336,7 +4354,7 @@ export default function App() {
                         navigateToTab('scrim-data');
                       }
                     }}
-                    className="col-span-1 row-span-2 rounded-[2rem] p-5 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px]"
+                    className="col-span-1 row-span-2 lg:col-span-1 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px]"
                   >
                     <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none" />
 
@@ -4385,7 +4403,7 @@ export default function App() {
                         navigateToTab('scorer');
                       }
                     }}
-                    className="col-span-1 rounded-[2rem] p-4 sm:p-5 bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] text-white shadow-[0_12px_30px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px]"
+                    className="col-span-1 lg:col-span-1 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] text-white shadow-[0_12px_30px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px]"
                   >
                     <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
 
@@ -4419,7 +4437,7 @@ export default function App() {
                         navigateToTab('history');
                       }
                     }}
-                    className="col-span-1 rounded-[2rem] p-4 sm:p-5 bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white shadow-[0_12px_30px_rgba(16,185,129,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px]"
+                    className="col-span-1 lg:col-span-1 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white shadow-[0_12px_30px_rgba(16,185,129,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px]"
                   >
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
 
@@ -4898,7 +4916,7 @@ export default function App() {
           }
 
           return (
-            <div className="max-w-xl lg:max-w-2xl mx-auto space-y-5 pt-1 pb-4 relative">
+            <div className="max-w-xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 sm:space-y-7 pt-1 pb-4 md:pb-12 relative">
               {/* Prestigious Gold Ambient Background Glow */}
               <div 
                 aria-hidden="true" 
@@ -5175,7 +5193,7 @@ export default function App() {
                     Tiada pasukan sepadan dengan tapisan semasa.
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 space-y-0">
                     {displayedRankedTeams.map((team, idx) => {
                       const rankNum = idx + 1;
                       const isSelected = currentSelectedTeam === team.name;
@@ -5320,7 +5338,7 @@ export default function App() {
 
         {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
-          <div className="max-w-xl lg:max-w-3xl mx-auto space-y-5 pt-1 pb-4">
+          <div className="max-w-xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-4 md:pb-12">
             
             {/* 1. TOP NAVIGATION BAR (Exact Position & Size of Search & Info Buttons as Teams / Hall of Fame) */}
             <div className="flex items-center justify-between px-1">
@@ -5527,7 +5545,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 px-1">
                 {filteredScrims.map((s, idx) => {
                   const isFinished = Boolean(s.is_finished);
 
@@ -5536,7 +5554,7 @@ export default function App() {
                       key={s.id}
                       onClick={() => setInspectedScrim(s)}
                       style={{ animationDelay: `${80 + Math.min(idx, 8) * 60}ms` }}
-                      className="bg-[#121214] hover:bg-[#16161a] rounded-3xl p-3.5 sm:p-4 shadow-xl transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
+                      className="bg-[#121214] hover:bg-[#16161a] border border-transparent hover:border-white/10 rounded-3xl p-3.5 sm:p-4 lg:p-5 shadow-xl hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
                     >
                       {/* Left: Scrim Logo / Badge + Info (Nama Scrim, Status, Date) */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -7811,9 +7829,9 @@ export default function App() {
           aria-labelledby="profile-drawer-title"
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-16 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
+          <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
-            <div className="relative h-44 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0">
+            <div className="relative h-44 md:h-56 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0">
               {/* Subtle ambient light effects */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
               <div className="absolute top-2 right-4 w-40 h-40 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
@@ -8235,9 +8253,9 @@ export default function App() {
               </div>
 
               {/* CARDS VIEW MODE (Reference "Notes" Style) */}
-              <div className="flex items-center gap-3 overflow-x-auto pb-1.5 no-scrollbar snap-x overscroll-x-contain">
+              <div className="flex md:grid md:grid-cols-3 items-center md:items-stretch gap-3 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                 {/* Card 1: Official Contact */}
-                <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 md:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-zinc-400">CONTACT</span>
                     <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -8263,7 +8281,7 @@ export default function App() {
                 </div>
 
                 {/* Card 2: Bio & Rules */}
-                <div className="snap-start shrink-0 w-52 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                <div className="snap-start shrink-0 w-52 md:w-auto p-4 md:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-zinc-400">BIO</span>
                     <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
@@ -8277,7 +8295,7 @@ export default function App() {
                 </div>
 
                 {/* Card 3: Clan / Organization */}
-                <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 md:p-5 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-zinc-400">ORGANISASI</span>
                     <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
@@ -8937,7 +8955,7 @@ export default function App() {
       {/* MODAL 5: PUBLIC DETAILS MODAL */}
       {inspectedScrim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
+          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-2xl lg:max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-7 shadow-2xl space-y-4 lg:space-y-5">
             
             <div className="flex items-start justify-between border-b border-white/5 pb-3.5 gap-3">
               <div className="flex items-start gap-3 min-w-0 flex-1">
