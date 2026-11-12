@@ -4485,7 +4485,7 @@ export default function App() {
           const totalScrimsCount = scrims.filter(s => (s.event_type || 'Scrim') !== 'Tour').length;
           const totalToursCount = scrims.filter(s => s.event_type === 'Tour').length;
 
-          const rankedTeamsWithStats = filteredTeamList.map((t) => {
+          const allRankedTeamsWithStats = categoryTeamList.map((t) => {
             const allRes = t.scrimResults || [];
             const scopedRes = teamStatsCategory === 'ALL'
               ? allRes
@@ -4504,12 +4504,24 @@ export default function App() {
             b.scopedPoints - a.scopedPoints ||
             b.scopedWWCD - a.scopedWWCD ||
             b.scopedKills - a.scopedKills
-          ));
+          )).map((t, idx) => ({
+            ...t,
+            globalRank: idx + 1
+          }));
+
+          const query = teamSearchQuery.toLowerCase().trim();
+          const rankedTeamsWithStats = query
+            ? allRankedTeamsWithStats.filter(t =>
+                t.name.toLowerCase().includes(query) ||
+                (t.tag && t.tag.toLowerCase().includes(query))
+              )
+            : allRankedTeamsWithStats;
 
           // DEDICATED FULL-PAGE VIEW FOR TEAM PROFILE & INTERACTIVE STATS (Replaces floating modal card)
           if (selectedTeamProfile && activeTeamData && activeTeamScopedStats) {
-            const rankIndex = rankedTeamsWithStats.findIndex(t => t.name === activeTeamData.name);
-            const overallRank = rankIndex !== -1 ? rankIndex + 1 : '-';
+            const teamInRanked = allRankedTeamsWithStats.find(t => t.name === activeTeamData.name);
+            const globalFallbackIndex = validTeamList.findIndex(t => t.name === activeTeamData.name);
+            const overallRank = teamInRanked?.globalRank ?? (globalFallbackIndex !== -1 ? globalFallbackIndex + 1 : '-');
             const placementPoints = Math.max(0, activeTeamScopedStats.totalPoints - activeTeamScopedStats.totalKills);
             const kpPercent = activeTeamScopedStats.totalPoints > 0
               ? Math.round((activeTeamScopedStats.totalKills / activeTeamScopedStats.totalPoints) * 100)
@@ -4596,7 +4608,7 @@ export default function App() {
                             {activeTeamData.name}
                           </h1>
                           <span className="px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 font-mono text-xs font-black">
-                            #{overallRank} Global
+                            #{overallRank}
                           </span>
                         </div>
                         <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
@@ -5195,7 +5207,7 @@ export default function App() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 space-y-0">
                     {displayedRankedTeams.map((team, idx) => {
-                      const rankNum = idx + 1;
+                      const rankNum = team.globalRank || (idx + 1);
                       const isSelected = currentSelectedTeam === team.name;
                       const badgeBg =
                         rankNum === 1
