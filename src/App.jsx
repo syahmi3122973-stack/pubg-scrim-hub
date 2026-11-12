@@ -1762,6 +1762,18 @@ export default function App() {
     };
   }, [currentUser, profiles]);
 
+  const toggleEditProfileMode = useCallback(() => {
+    setIsEditProfileMode((prev) => {
+      const next = !prev;
+      if (next) {
+        setTimeout(() => {
+          document.getElementById('profile-drawer-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 50);
+      }
+      return next;
+    });
+  }, []);
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -7797,7 +7809,7 @@ export default function App() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-drawer-title"
-          className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
+          id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
           <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-full pb-10 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
@@ -7825,7 +7837,7 @@ export default function App() {
                 {currentUser && (
                   <button
                     type="button"
-                    onClick={() => setIsEditProfileMode(prev => !prev)}
+                    onClick={toggleEditProfileMode}
                     aria-label={isEditProfileMode ? "Tutup Sunting" : "Sunting Profil"}
                     className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition cursor-pointer ${
                       isEditProfileMode
@@ -7912,6 +7924,101 @@ export default function App() {
                 </span>
               </div>
             </div>
+
+            {/* INLINE EDIT MODE FORM (SEGERA DI ATAS SELEPAS AVATAR & BADGES) */}
+            {isEditProfileMode && (
+              <div className="px-5 mb-6 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black">
+                      <Edit3 className="w-4 h-4 stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white tracking-tight">Borang Sunting Profil</h4>
+                      <p className="text-[10px] text-zinc-400">Kemaskini maklumat profil anda di sini</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditProfileMode(false)}
+                    className="text-xs font-bold text-zinc-400 hover:text-white transition px-2.5 py-1 rounded-lg bg-zinc-900 border border-white/10"
+                  >
+                    Tutup
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveProfile} className="space-y-3.5 p-4 sm:p-5 rounded-3xl bg-zinc-900/95 border border-[#D7FF00]/30 shadow-[0_0_30px_rgba(215,255,0,0.08)]">
+                  <div>
+                    <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
+                      Nama Paparan (Display Name)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoComplete="name"
+                      placeholder="cth: RYKHOR Esports Organizer"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
+                      Hubungi Rasmi (WhatsApp / Telegram)
+                    </label>
+                    <input
+                      type="text"
+                      autoComplete="tel"
+                      placeholder="+60123456789 atau @username"
+                      value={profileContact}
+                      onChange={(e) => setProfileContact(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
+                      Bio &amp; Peraturan Penganjur
+                    </label>
+                    <textarea
+                      rows="3"
+                      placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
+                      value={profileBio}
+                      onChange={(e) => setProfileBio(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditProfileMode(false)}
+                      className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer transition active:scale-95"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingProfile}
+                      className="px-4 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs shadow-md cursor-pointer transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                    >
+                      {isSavingProfile ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Menyimpan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Simpan Profil</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             {/* SECTION 1: SESI DIANJURKAN (MY PRACTICES) */}
             <div className="px-5 mb-6">
@@ -8120,144 +8227,70 @@ export default function App() {
                 <h4 className="text-sm font-black text-white tracking-tight">Profil &amp; Maklumat</h4>
                 <button
                   type="button"
-                  onClick={() => setIsEditProfileMode(prev => !prev)}
+                  onClick={toggleEditProfileMode}
                   className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
                 >
-                  <span>{isEditProfileMode ? 'Batal' : 'Sunting'}</span>
+                  <span>{isEditProfileMode ? 'Tutup Sunting' : 'Sunting'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {isEditProfileMode ? (
-                /* INLINE EDIT MODE FORM */
-                <form onSubmit={handleSaveProfile} className="space-y-3.5 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 animate-in fade-in duration-200">
-                  <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                      Nama Paparan (Display Name)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      autoComplete="name"
-                      placeholder="cth: RYKHOR Esports Organizer"
-                      value={profileName}
-                      onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
-                    />
+              {/* CARDS VIEW MODE (Reference "Notes" Style) */}
+              <div className="flex items-center gap-3 overflow-x-auto pb-1.5 no-scrollbar snap-x overscroll-x-contain">
+                {/* Card 1: Official Contact */}
+                <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">HUBUNGI</span>
+                    <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <Phone className="w-3 h-3" />
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                      Hubungi Rasmi (WhatsApp / Telegram)
-                    </label>
-                    <input
-                      type="text"
-                      autoComplete="tel"
-                      placeholder="+60123456789 atau @username"
-                      value={profileContact}
-                      onChange={(e) => setProfileContact(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">
-                      Bio &amp; Peraturan Penganjur
-                    </label>
-                    <textarea
-                      rows="3"
-                      placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
-                      value={profileBio}
-                      onChange={(e) => setProfileBio(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditProfileMode(false)}
-                      className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer transition"
+                  <p className="text-xs font-bold text-white line-clamp-2">
+                    {profileContact || 'Belum ditetapkan'}
+                  </p>
+                  {profileContact ? (
+                    <a
+                      href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-black text-emerald-400 hover:underline flex items-center gap-1"
                     >
-                      Batal
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSavingProfile}
-                      className="px-4 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs shadow-xs cursor-pointer transition flex items-center gap-1.5"
-                    >
-                      {isSavingProfile ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Menyimpan...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Simpan Profil</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                /* CARDS VIEW MODE (Reference "Notes" Style) */
-                <div className="flex items-center gap-3 overflow-x-auto pb-1.5 no-scrollbar snap-x overscroll-x-contain">
-                  {/* Card 1: Official Contact */}
-                  <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-bold text-zinc-400">HUBUNGI</span>
-                      <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                        <Phone className="w-3 h-3" />
-                      </div>
-                    </div>
-                    <p className="text-xs font-bold text-white line-clamp-2">
-                      {profileContact || 'Belum ditetapkan'}
-                    </p>
-                    {profileContact ? (
-                      <a
-                        href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-black text-emerald-400 hover:underline flex items-center gap-1"
-                      >
-                        <span>Buka Chat</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    ) : (
-                      <span className="text-[9px] font-mono text-zinc-500">Tekan sunting</span>
-                    )}
-                  </div>
-
-                  {/* Card 2: Bio & Rules */}
-                  <div className="snap-start shrink-0 w-52 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-bold text-zinc-400">BIO &amp; PERATURAN</span>
-                      <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
-                        <BookOpen className="w-3 h-3" />
-                      </div>
-                    </div>
-                    <p className="text-xs font-medium text-zinc-300 line-clamp-2">
-                      {profileBio || 'Penganjur kejohanan rasmi PUBG Mobile Scrims.'}
-                    </p>
-                    <span className="text-[9px] font-mono text-zinc-500 font-semibold">Terkini</span>
-                  </div>
-
-                  {/* Card 3: Clan / Organization */}
-                  <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-bold text-zinc-400">ORGANISASI</span>
-                      <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
-                        <ShieldCheck className="w-3 h-3" />
-                      </div>
-                    </div>
-                    <p className="text-xs font-bold text-white truncate">
-                      {activeOrganizationName || 'Clan Utama'}
-                    </p>
-                    <span className="text-[9px] font-mono text-sky-400 font-semibold">Akaun Aktif</span>
-                  </div>
+                      <span>Buka Chat</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  ) : (
+                    <span className="text-[9px] font-mono text-zinc-500">Tekan sunting</span>
+                  )}
                 </div>
-              )}
+
+                {/* Card 2: Bio & Rules */}
+                <div className="snap-start shrink-0 w-52 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">BIO &amp; PERATURAN</span>
+                    <div className="w-6 h-6 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
+                      <BookOpen className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <p className="text-xs font-medium text-zinc-300 line-clamp-2">
+                    {profileBio || 'Penganjur kejohanan rasmi PUBG Mobile Scrims.'}
+                  </p>
+                  <span className="text-[9px] font-mono text-zinc-500 font-semibold">Terkini</span>
+                </div>
+
+                {/* Card 3: Clan / Organization */}
+                <div className="snap-start shrink-0 w-48 p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-zinc-400">ORGANISASI</span>
+                    <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                      <ShieldCheck className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <p className="text-xs font-bold text-white truncate">
+                    {activeOrganizationName || 'Clan Utama'}
+                  </p>
+                  <span className="text-[9px] font-mono text-sky-400 font-semibold">Akaun Aktif</span>
+                </div>
+              </div>
             </div>
 
             {/* BOTTOM ACTIONS: LOGOUT */}
