@@ -61,6 +61,7 @@ import {
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
 import LegacyGuestLandingView from './components/LegacyGuestLandingView';
+import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
@@ -2866,9 +2867,9 @@ export default function App() {
       ctx.fillText(clampedScopeTop, 1080 - padX - scopePillW / 2, 99);
 
       // 2. Team Identity Hero Card
-      const heroY = 144;
-      const heroH = 290;
-      drawRoundRect(ctx, padX, heroY, contentW, heroH, 36);
+      const heroY = 128;
+      const heroH = 248;
+      drawRoundRect(ctx, padX, heroY, contentW, heroH, 34);
       const heroBg = ctx.createLinearGradient(padX, heroY, padX + contentW, heroY + heroH);
       heroBg.addColorStop(0, '#141418');
       heroBg.addColorStop(1, '#101013');
@@ -2880,7 +2881,7 @@ export default function App() {
 
       // Subtle lime top-right aura clipped inside hero card
       ctx.save();
-      drawRoundRect(ctx, padX, heroY, contentW, heroH, 36);
+      drawRoundRect(ctx, padX, heroY, contentW, heroH, 34);
       ctx.clip();
       const heroAura = ctx.createRadialGradient(padX + contentW - 80, heroY + 40, 10, padX + contentW - 80, heroY + 40, 320);
       heroAura.addColorStop(0, 'rgba(215, 255, 0, 0.10)');
@@ -2890,14 +2891,14 @@ export default function App() {
       ctx.restore();
 
       // Team Avatar (logo_url or gradient tag box)
-      const avatarX = padX + 40;
-      const avatarY = heroY + 40;
-      const avatarSize = 144;
+      const avatarX = padX + 36;
+      const avatarY = heroY + 28;
+      const avatarSize = 126;
       const teamLogoImg = await loadCorsImage(team.logo_url);
 
       if (teamLogoImg) {
         ctx.save();
-        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 32);
+        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 28);
         ctx.clip();
         ctx.fillStyle = '#09090b';
         ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
@@ -2912,21 +2913,21 @@ export default function App() {
           drawH
         );
         ctx.restore();
-        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 32);
+        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 28);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
         ctx.lineWidth = 2;
         ctx.stroke();
       } else {
-        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 32);
+        drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 28);
         const avatarGrad = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
         avatarGrad.addColorStop(0, '#D7FF00');
         avatarGrad.addColorStop(1, '#10b981');
         ctx.fillStyle = avatarGrad;
         ctx.fill();
         ctx.fillStyle = '#000000';
-        ctx.font = `900 40px ${fontSans}`;
+        ctx.font = `900 36px ${fontSans}`;
         ctx.textAlign = 'center';
-        ctx.fillText(truncateText(ctx, team.tag || 'TM', avatarSize - 20), avatarX + avatarSize / 2, avatarY + 86);
+        ctx.fillText(truncateText(ctx, team.tag || 'TM', avatarSize - 20), avatarX + avatarSize / 2, avatarY + 76);
       }
 
       // Compute overall rank matching Hall of Fame (#rank without 'Global')
@@ -2936,94 +2937,94 @@ export default function App() {
       const overallRank = rankIdx >= 0 ? rankIdx + 1 : null;
 
       // Team Name + #Rank pill
-      const infoX = avatarX + avatarSize + 34;
-      const rightEdgeHero = padX + contentW - 40;
+      const infoX = avatarX + avatarSize + 30;
+      const rightEdgeHero = padX + contentW - 36;
       const sessionCount = stats.results ? stats.results.length : 0;
 
-      ctx.font = `900 46px ${fontSans}`;
+      ctx.font = `900 42px ${fontSans}`;
       const rankText = overallRank ? `#${overallRank}` : '';
       let rankPillW = 0;
       if (rankText) {
-        ctx.font = `900 24px ${fontSans}`;
-        rankPillW = ctx.measureText(rankText).width + 32;
+        ctx.font = `900 22px ${fontSans}`;
+        rankPillW = ctx.measureText(rankText).width + 30;
       }
 
-      ctx.font = `900 46px ${fontSans}`;
+      ctx.font = `900 42px ${fontSans}`;
       const maxNameW = rightEdgeHero - infoX - (rankPillW ? rankPillW + 16 : 0);
       const displayTeamName = truncateText(ctx, team.name || 'UNKNOWN TEAM', maxNameW);
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
-      ctx.fillText(displayTeamName, infoX, avatarY + 58);
+      ctx.fillText(displayTeamName, infoX, avatarY + 52);
 
       if (rankText) {
         const nameW = ctx.measureText(displayTeamName).width;
-        const rPillX = infoX + nameW + 16;
-        const rPillY = avatarY + 24;
-        drawRoundRect(ctx, rPillX, rPillY, rankPillW, 42, 21);
+        const rPillX = infoX + nameW + 14;
+        const rPillY = avatarY + 20;
+        drawRoundRect(ctx, rPillX, rPillY, rankPillW, 38, 19);
         ctx.fillStyle = 'rgba(215, 255, 0, 0.14)';
         ctx.fill();
         ctx.strokeStyle = 'rgba(215, 255, 0, 0.35)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
         ctx.fillStyle = '#D7FF00';
-        ctx.font = `900 24px ${fontSans}`;
+        ctx.font = `900 22px ${fontSans}`;
         ctx.textAlign = 'center';
-        ctx.fillText(rankText, rPillX + rankPillW / 2, rPillY + 29);
+        ctx.fillText(rankText, rPillX + rankPillW / 2, rPillY + 26);
       }
 
       // Team subtitle
       ctx.textAlign = 'left';
       ctx.fillStyle = '#a1a1aa';
-      ctx.font = `600 22px ${fontSans}`;
-      ctx.fillText(`Tag: [${team.tag || '---'}]  •  ${sessionCount} Sesi Berdaftar`, infoX, avatarY + 106);
+      ctx.font = `600 20px ${fontSans}`;
+      ctx.fillText(`Tag: [${team.tag || '---'}]  •  ${sessionCount} Sesi Berdaftar`, infoX, avatarY + 96);
 
       // Divider & Scope Pills inside Hero Card
-      const scopeRowY = heroY + 210;
+      const scopeRowY = heroY + 178;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(padX + 40, scopeRowY);
-      ctx.lineTo(padX + contentW - 40, scopeRowY);
+      ctx.moveTo(padX + 36, scopeRowY);
+      ctx.lineTo(padX + contentW - 36, scopeRowY);
       ctx.stroke();
 
       ctx.fillStyle = '#71717a';
-      ctx.font = `800 18px ${fontSans}`;
+      ctx.font = `800 17px ${fontSans}`;
       ctx.textAlign = 'left';
-      ctx.fillText('SKOP:', padX + 40, scopeRowY + 48);
+      ctx.fillText('SKOP:', padX + 36, scopeRowY + 42);
 
       const activeScopeText = eventTypeLabel === 'Tournament'
         ? 'Tournament Sahaja'
         : (eventTypeLabel === 'Scrim' ? 'Scrim Sahaja' : 'Semua Rekod');
-      ctx.font = `800 19px ${fontSans}`;
-      const activePillW = ctx.measureText(activeScopeText).width + 38;
-      const scopePillStartX = padX + 114;
-      drawRoundRect(ctx, scopePillStartX, scopeRowY + 20, activePillW, 42, 14);
+      ctx.font = `800 18px ${fontSans}`;
+      const activePillW = ctx.measureText(activeScopeText).width + 36;
+      const scopePillStartX = padX + 106;
+      drawRoundRect(ctx, scopePillStartX, scopeRowY + 16, activePillW, 38, 12);
       ctx.fillStyle = '#D7FF00';
       ctx.fill();
       ctx.fillStyle = '#000000';
       ctx.textAlign = 'center';
-      ctx.fillText(activeScopeText, scopePillStartX + activePillW / 2, scopeRowY + 47);
+      ctx.fillText(activeScopeText, scopePillStartX + activePillW / 2, scopeRowY + 41);
 
       if (hostFilterName && hostFilterName !== 'ALL') {
         const hostTagText = truncateText(ctx, `Host: ${hostFilterName}`, 420);
-        ctx.font = `700 18px ${fontSans}`;
-        const hostPillW = ctx.measureText(hostTagText).width + 34;
-        const hostPillX = scopePillStartX + activePillW + 14;
-        drawRoundRect(ctx, hostPillX, scopeRowY + 20, hostPillW, 42, 14);
+        ctx.font = `700 17px ${fontSans}`;
+        const hostPillW = ctx.measureText(hostTagText).width + 32;
+        const hostPillX = scopePillStartX + activePillW + 12;
+        drawRoundRect(ctx, hostPillX, scopeRowY + 16, hostPillW, 38, 12);
         ctx.fillStyle = '#18181b';
         ctx.fill();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
         ctx.fillStyle = '#d4d4d8';
-        ctx.fillText(hostTagText, hostPillX + hostPillW / 2, scopeRowY + 47);
+        ctx.fillText(hostTagText, hostPillX + hostPillW / 2, scopeRowY + 41);
       }
 
       // 3. 4 Bento Stats Cards (2x2 Grid matching Team Profile UI)
-      const gridY = 466;
-      const gridGap = 24;
-      const cardW = (contentW - gridGap) / 2; // 464
-      const cardH = 210;
+      const gridY = 398;
+      const gridGap = 18;
+      const cardW = (contentW - gridGap) / 2; // 467
+      const cardH = 160;
       const matchesCount = stats.matchesCount || 0;
       const avgKillsPerMatch = matchesCount > 0
         ? (Number(stats.totalKills || 0) / matchesCount).toFixed(1)
@@ -3069,7 +3070,7 @@ export default function App() {
       ];
 
       bentoCards.forEach((c) => {
-        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 32);
+        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 28);
         ctx.fillStyle = '#121216';
         ctx.fill();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -3077,9 +3078,9 @@ export default function App() {
         ctx.stroke();
 
         ctx.save();
-        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 32);
+        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 28);
         ctx.clip();
-        const cardAura = ctx.createRadialGradient(c.x + cardW - 30, c.y + 30, 5, c.x + cardW - 30, c.y + 30, 210);
+        const cardAura = ctx.createRadialGradient(c.x + cardW - 30, c.y + 30, 5, c.x + cardW - 30, c.y + 30, 190);
         cardAura.addColorStop(0, c.glow);
         cardAura.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = cardAura;
@@ -3088,28 +3089,28 @@ export default function App() {
 
         ctx.textAlign = 'center';
         ctx.fillStyle = '#a1a1aa';
-        ctx.font = `800 18px ${fontSans}`;
-        ctx.fillText(c.label, c.x + cardW / 2, c.y + 46);
+        ctx.font = `800 16px ${fontSans}`;
+        ctx.fillText(c.label, c.x + cardW / 2, c.y + 38);
 
         ctx.fillStyle = c.valueColor;
-        ctx.font = `900 76px ${fontSans}`;
-        ctx.fillText(c.value, c.x + cardW / 2, c.y + 132);
+        ctx.font = `900 62px ${fontSans}`;
+        ctx.fillText(c.value, c.x + cardW / 2, c.y + 102);
 
         ctx.fillStyle = '#71717a';
-        ctx.font = `600 19px ${fontMono}`;
-        ctx.fillText(c.sub, c.x + cardW / 2, c.y + 178);
+        ctx.font = `600 17px ${fontMono}`;
+        ctx.fillText(c.sub, c.x + cardW / 2, c.y + 138);
       });
 
-      // 4. Profil Gaya Permainan Card (KP vs PP Breakdown — without gimmick labels)
-      const ratioY = gridY + cardH * 2 + gridGap + 28; // 938
-      const ratioH = 224;
+      // 4. Profil Gaya Permainan Card (KP vs PP Split Bar)
+      const ratioY = gridY + cardH * 2 + gridGap + 22; // 758
+      const ratioH = 172;
       const totalPtsNum = Number(stats.totalPts || 0);
       const totalKillsNum = Number(stats.totalKills || 0);
       const placementPtsNum = Math.max(0, totalPtsNum - totalKillsNum);
       const kpPercent = totalPtsNum > 0 ? Math.round((totalKillsNum / totalPtsNum) * 100) : 0;
       const ppPercent = totalPtsNum > 0 ? Math.max(0, 100 - kpPercent) : 0;
 
-      drawRoundRect(ctx, padX, ratioY, contentW, ratioH, 32);
+      drawRoundRect(ctx, padX, ratioY, contentW, ratioH, 28);
       ctx.fillStyle = '#121216';
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -3118,44 +3119,44 @@ export default function App() {
 
       ctx.textAlign = 'left';
       ctx.fillStyle = '#a1a1aa';
-      ctx.font = `800 18px ${fontSans}`;
-      ctx.fillText('PROFIL GAYA PERMAINAN', padX + 40, ratioY + 52);
+      ctx.font = `800 16px ${fontSans}`;
+      ctx.fillText('PROFIL GAYA PERMAINAN', padX + 36, ratioY + 42);
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = `800 26px ${fontSans}`;
-      ctx.fillText('Taburan Mata Pasukan', padX + 40, ratioY + 90);
+      ctx.font = `800 22px ${fontSans}`;
+      ctx.fillText('Taburan Mata Pasukan', padX + 36, ratioY + 72);
 
       // KP / PP percentage readout on right
       const ppText = `PP: ${ppPercent}%`;
       const kpText = `KP: ${kpPercent}%`;
-      ctx.font = `900 24px ${fontMono}`;
+      ctx.font = `900 22px ${fontMono}`;
       const ppW = ctx.measureText(ppText).width;
       const dotSep = '  •  ';
       const sepW = ctx.measureText(dotSep).width;
-      const rightEdgeRatio = padX + contentW - 40;
+      const rightEdgeRatio = padX + contentW - 36;
 
       ctx.textAlign = 'right';
       ctx.fillStyle = '#2dd4bf';
-      ctx.fillText(ppText, rightEdgeRatio, ratioY + 76);
+      ctx.fillText(ppText, rightEdgeRatio, ratioY + 62);
 
       ctx.fillStyle = '#52525b';
-      ctx.fillText(dotSep, rightEdgeRatio - ppW, ratioY + 76);
+      ctx.fillText(dotSep, rightEdgeRatio - ppW, ratioY + 62);
 
       ctx.fillStyle = '#D7FF00';
-      ctx.fillText(kpText, rightEdgeRatio - ppW - sepW, ratioY + 76);
+      ctx.fillText(kpText, rightEdgeRatio - ppW - sepW, ratioY + 62);
 
       // Segmented Progress Bar
-      const barX = padX + 40;
-      const barY = ratioY + 116;
-      const barW = contentW - 80;
-      const barH = 24;
+      const barX = padX + 36;
+      const barY = ratioY + 94;
+      const barW = contentW - 72;
+      const barH = 20;
 
-      drawRoundRect(ctx, barX, barY, barW, barH, 12);
+      drawRoundRect(ctx, barX, barY, barW, barH, 10);
       ctx.fillStyle = '#27272a';
       ctx.fill();
 
       ctx.save();
-      drawRoundRect(ctx, barX, barY, barW, barH, 12);
+      drawRoundRect(ctx, barX, barY, barW, barH, 10);
       ctx.clip();
       const kpFillW = (barW * kpPercent) / 100;
       if (kpFillW > 0) {
@@ -3172,16 +3173,16 @@ export default function App() {
       ctx.restore();
 
       // Legend Row
-      const legendY = ratioY + 182;
+      const legendY = ratioY + 148;
       ctx.fillStyle = '#D7FF00';
       ctx.beginPath();
-      ctx.arc(barX + 8, legendY - 7, 7, 0, Math.PI * 2);
+      ctx.arc(barX + 7, legendY - 6, 6.5, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.textAlign = 'left';
       ctx.fillStyle = '#d4d4d8';
-      ctx.font = `600 20px ${fontSans}`;
-      ctx.fillText(`Kill Points (${totalKillsNum} pts)`, barX + 26, legendY);
+      ctx.font = `600 18px ${fontSans}`;
+      ctx.fillText(`Kill Points (${totalKillsNum} pts)`, barX + 22, legendY);
 
       const rightLegendText = `Placement Points (${placementPtsNum} pts)`;
       ctx.textAlign = 'right';
@@ -3189,20 +3190,263 @@ export default function App() {
       const rightLegendW = ctx.measureText(rightLegendText).width;
       ctx.fillStyle = '#10b981';
       ctx.beginPath();
-      ctx.arc(barX + barW - rightLegendW - 18, legendY - 7, 7, 0, Math.PI * 2);
+      ctx.arc(barX + barW - rightLegendW - 16, legendY - 6, 6.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // 5. Sejarah Perlawanan (Recent Sessions matching accordion summary cards)
-      const histHeaderY = ratioY + ratioH + 46; // 1208
+      // 5. Merged Smooth Dual-Line Chart (Kills vs PP per Scrim)
+      const chartY = ratioY + ratioH + 22; // 952
+      const chartH = 424;
+      const trendSeries = buildScrimTrendSeries(stats.results || [], 8);
+
+      drawRoundRect(ctx, padX, chartY, contentW, chartH, 28);
+      ctx.fillStyle = '#121216';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.save();
+      drawRoundRect(ctx, padX, chartY, contentW, chartH, 28);
+      ctx.clip();
+      const chartAura = ctx.createRadialGradient(padX + contentW - 100, chartY + 60, 10, padX + contentW - 100, chartY + 60, 320);
+      chartAura.addColorStop(0, 'rgba(215, 255, 0, 0.08)');
+      chartAura.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = chartAura;
+      ctx.fillRect(padX, chartY, contentW, chartH);
+      ctx.restore();
+
+      // Chart Header & Dual Legend Pills
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#a1a1aa';
+      ctx.font = `800 16px ${fontSans}`;
+      ctx.fillText('TREN PRESTASI PER SCRIM', padX + 36, chartY + 42);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 24px ${fontSans}`;
+      ctx.fillText('Kills vs Placement Points (PP)', padX + 36, chartY + 74);
+
+      const drawLegendPill = (px, py, label, dotColor, bgTint, borderTint, textColor) => {
+        ctx.font = `800 16px ${fontMono}`;
+        const pw = ctx.measureText(label).width + 46;
+        drawRoundRect(ctx, px, py, pw, 34, 17);
+        ctx.fillStyle = bgTint;
+        ctx.fill();
+        ctx.strokeStyle = borderTint;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.fillStyle = dotColor;
+        ctx.beginPath();
+        ctx.arc(px + 18, py + 17, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'left';
+        ctx.fillText(label, px + 32, py + 23);
+        return pw;
+      };
+
+      const ppPillLabel = 'PP';
+      ctx.font = `800 16px ${fontMono}`;
+      const ppPillW = ctx.measureText(ppPillLabel).width + 46;
+      const killsPillLabel = 'Kills';
+      const killsPillW = ctx.measureText(killsPillLabel).width + 46;
+      const pillRightEdge = padX + contentW - 36;
+      drawLegendPill(pillRightEdge - ppPillW, chartY + 34, ppPillLabel, '#2DD4BF', 'rgba(45, 212, 191, 0.12)', 'rgba(45, 212, 191, 0.35)', '#5eead4');
+      drawLegendPill(pillRightEdge - ppPillW - 12 - killsPillW, chartY + 34, killsPillLabel, '#D7FF00', 'rgba(215, 255, 0, 0.12)', 'rgba(215, 255, 0, 0.35)', '#D7FF00');
+
+      // Chart Insight KPI Strip
+      const stripY = chartY + 96;
+      const stripGap = 14;
+      const stripCardW = (contentW - 72 - stripGap * 2) / 3;
+      const insightCards = [
+        {
+          label: 'PURATA KILLS',
+          val: `${trendSeries.avgKills} / sesi`,
+          color: '#D7FF00'
+        },
+        {
+          label: 'PURATA PP',
+          val: `${trendSeries.avgPp} / sesi`,
+          color: '#2DD4BF'
+        },
+        {
+          label: 'PUNCAK TERBAIK',
+          val: trendSeries.bestScrim ? `${trendSeries.bestScrim.points} PTS` : '-',
+          color: '#ffffff'
+        }
+      ];
+
+      insightCards.forEach((ic, idx) => {
+        const ix = padX + 36 + idx * (stripCardW + stripGap);
+        drawRoundRect(ctx, ix, stripY, stripCardW, 52, 14);
+        ctx.fillStyle = '#0d0d11';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#71717a';
+        ctx.font = `700 12px ${fontMono}`;
+        ctx.fillText(ic.label, ix + 16, stripY + 20);
+
+        ctx.fillStyle = ic.color;
+        ctx.font = `900 19px ${fontMono}`;
+        ctx.fillText(truncateText(ctx, ic.val, stripCardW - 32), ix + 16, stripY + 43);
+      });
+
+      // Plot Area
+      const plotLeft = padX + 42;
+      const plotRight = padX + contentW - 64;
+      const plotW = plotRight - plotLeft;
+      const plotTop = chartY + 186;
+      const plotBottom = chartY + 354;
+      const plotH = plotBottom - plotTop;
+
+      // Gridlines & Y Scale
+      [0, 0.5, 1].forEach((ratio) => {
+        const gy = plotBottom - ratio * plotH;
+        const yVal = Math.round(trendSeries.yMax * ratio);
+        ctx.save();
+        ctx.strokeStyle = ratio === 0 ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 1.2;
+        if (ratio !== 0) ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(plotLeft, gy);
+        ctx.lineTo(plotRight, gy);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#71717a';
+        ctx.font = `700 15px ${fontMono}`;
+        ctx.fillText(String(yVal), plotRight + 12, gy + 5);
+      });
+
+      const tItems = trendSeries.items;
+      if (tItems.length === 0) {
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#71717a';
+        ctx.font = `600 18px ${fontSans}`;
+        ctx.fillText('Tiada data graf scrim dalam skop ini.', padX + contentW / 2, (plotTop + plotBottom) / 2);
+      } else {
+        const nPts = tItems.length;
+        const getChartX = (idx) => (nPts === 1 ? plotLeft + plotW / 2 : plotLeft + (idx / (nPts - 1)) * plotW);
+        const getChartY = (val) => plotBottom - (Math.max(0, val) / trendSeries.yMax) * plotH;
+
+        const killsPts = tItems.map((d, i) => ({ x: getChartX(i), y: getChartY(d.kills), data: d }));
+        const ppPts = tItems.map((d, i) => ({ x: getChartX(i), y: getChartY(d.pp), data: d }));
+        const killsSegs = computeSmoothBezierSegments(killsPts, plotTop, plotBottom, 0.2);
+        const ppSegs = computeSmoothBezierSegments(ppPts, plotTop, plotBottom, 0.2);
+
+        const drawCanvasCurve = (pts, segs, lineColor, areaTopRgba, glowColor) => {
+          if (pts.length === 1) {
+            ctx.save();
+            ctx.strokeStyle = lineColor;
+            ctx.globalAlpha = 0.35;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 8]);
+            ctx.beginPath();
+            ctx.moveTo(plotLeft, pts[0].y);
+            ctx.lineTo(plotRight, pts[0].y);
+            ctx.stroke();
+            ctx.restore();
+            return;
+          }
+
+          // Smooth area fill
+          const areaGrad = ctx.createLinearGradient(0, plotTop, 0, plotBottom);
+          areaGrad.addColorStop(0, areaTopRgba);
+          areaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, plotBottom);
+          ctx.lineTo(pts[0].x, pts[0].y);
+          segs.forEach((s) => ctx.bezierCurveTo(s.cp1x, s.cp1y, s.cp2x, s.cp2y, s.x, s.y));
+          ctx.lineTo(pts[pts.length - 1].x, plotBottom);
+          ctx.closePath();
+          ctx.fillStyle = areaGrad;
+          ctx.fill();
+
+          // Glowing smooth line
+          ctx.save();
+          ctx.shadowColor = glowColor;
+          ctx.shadowBlur = 14;
+          ctx.strokeStyle = lineColor;
+          ctx.lineWidth = 4.5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(pts[0].x, pts[0].y);
+          segs.forEach((s) => ctx.bezierCurveTo(s.cp1x, s.cp1y, s.cp2x, s.cp2y, s.x, s.y));
+          ctx.stroke();
+          ctx.restore();
+        };
+
+        drawCanvasCurve(ppPts, ppSegs, '#2DD4BF', 'rgba(45, 212, 191, 0.20)', 'rgba(45, 212, 191, 0.55)');
+        drawCanvasCurve(killsPts, killsSegs, '#D7FF00', 'rgba(215, 255, 0, 0.24)', 'rgba(215, 255, 0, 0.60)');
+
+        // Nodes, Peak Callouts & Scrim Labels
+        tItems.forEach((d, idx) => {
+          const kp = killsPts[idx];
+          const pp = ppPts[idx];
+          const isPeakK = idx === trendSeries.peakKillsIdx;
+          const isPeakP = idx === trendSeries.peakPpIdx;
+
+          // PP Node
+          ctx.beginPath();
+          ctx.arc(pp.x, pp.y, isPeakP ? 8 : 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#09090b';
+          ctx.fill();
+          ctx.strokeStyle = '#2DD4BF';
+          ctx.lineWidth = isPeakP ? 4 : 3;
+          ctx.stroke();
+
+          // Kills Node
+          ctx.beginPath();
+          ctx.arc(kp.x, kp.y, isPeakK ? 8.5 : 6.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#09090b';
+          ctx.fill();
+          ctx.strokeStyle = '#D7FF00';
+          ctx.lineWidth = isPeakK ? 4 : 3;
+          ctx.stroke();
+
+          // Peak / Key numeric callouts
+          ctx.textAlign = 'center';
+          if (isPeakK || nPts <= 4) {
+            ctx.fillStyle = '#D7FF00';
+            ctx.font = `900 15px ${fontMono}`;
+            ctx.fillText(`${d.kills}K`, kp.x, Math.max(plotTop - 6, kp.y - 14));
+          }
+          if (isPeakP || nPts <= 4) {
+            ctx.fillStyle = '#2DD4BF';
+            ctx.font = `900 15px ${fontMono}`;
+            const labelY = Math.abs(kp.y - pp.y) < 24 && pp.y >= kp.y
+              ? Math.min(plotBottom - 4, pp.y + 22)
+              : Math.max(plotTop - 6, pp.y - 14);
+            ctx.fillText(`${d.pp}PP`, pp.x, labelY);
+          }
+
+          // X-axis label & short date
+          ctx.fillStyle = '#a1a1aa';
+          ctx.font = `700 14px ${fontSans}`;
+          ctx.fillText(d.shortLabel, kp.x, plotBottom + 24);
+          if (d.shortDate) {
+            ctx.fillStyle = '#52525b';
+            ctx.font = `600 13px ${fontMono}`;
+            ctx.fillText(d.shortDate, kp.x, plotBottom + 44);
+          }
+        });
+      }
+
+      // 6. Sejarah Perlawanan (Top 3 Recent Sessions matching accordion summary cards)
+      const histHeaderY = chartY + chartH + 34; // 1410
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
-      ctx.font = `900 22px ${fontSans}`;
+      ctx.font = `900 20px ${fontSans}`;
       ctx.fillText('SEJARAH PERLAWANAN', padX, histHeaderY);
 
       const recBadgeText = `${sessionCount} Rekod`;
-      ctx.font = `700 18px ${fontSans}`;
-      const recBadgeW = ctx.measureText(recBadgeText).width + 32;
-      drawRoundRect(ctx, padX + contentW - recBadgeW, histHeaderY - 26, recBadgeW, 34, 17);
+      ctx.font = `700 16px ${fontSans}`;
+      const recBadgeW = ctx.measureText(recBadgeText).width + 28;
+      drawRoundRect(ctx, padX + contentW - recBadgeW, histHeaderY - 24, recBadgeW, 30, 15);
       ctx.fillStyle = '#141418';
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -3210,27 +3454,27 @@ export default function App() {
       ctx.stroke();
       ctx.fillStyle = '#a1a1aa';
       ctx.textAlign = 'center';
-      ctx.fillText(recBadgeText, padX + contentW - recBadgeW / 2, histHeaderY - 3);
+      ctx.fillText(recBadgeText, padX + contentW - recBadgeW / 2, histHeaderY - 4);
 
-      const recentResults = (stats.results || []).slice(0, 4);
-      const rowStartY = histHeaderY + 24;
-      const rowH = 104;
-      const rowGap = 16;
+      const recentResults = (stats.results || []).slice(0, 3);
+      const rowStartY = histHeaderY + 18; // 1428
+      const rowH = 94;
+      const rowGap = 14;
 
       if (recentResults.length === 0) {
-        drawRoundRect(ctx, padX, rowStartY, contentW, 140, 24);
+        drawRoundRect(ctx, padX, rowStartY, contentW, 130, 22);
         ctx.fillStyle = '#121216';
         ctx.fill();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
         ctx.stroke();
         ctx.fillStyle = '#71717a';
-        ctx.font = `600 22px ${fontSans}`;
+        ctx.font = `600 20px ${fontSans}`;
         ctx.textAlign = 'center';
-        ctx.fillText('Tiada rekod perlawanan dalam skop ini.', 540, rowStartY + 78);
+        ctx.fillText('Tiada rekod perlawanan dalam skop ini.', 540, rowStartY + 72);
       } else {
         recentResults.forEach((res, idx) => {
           const ry = rowStartY + idx * (rowH + rowGap);
-          drawRoundRect(ctx, padX, ry, contentW, rowH, 24);
+          drawRoundRect(ctx, padX, ry, contentW, rowH, 22);
           ctx.fillStyle = '#121216';
           ctx.fill();
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -3238,10 +3482,10 @@ export default function App() {
           ctx.stroke();
 
           // Left Accent Icon Tile
-          const tileX = padX + 22;
-          const tileY = ry + 20;
-          const tileSize = 64;
-          drawRoundRect(ctx, tileX, tileY, tileSize, tileSize, 16);
+          const tileX = padX + 20;
+          const tileY = ry + 18;
+          const tileSize = 58;
+          drawRoundRect(ctx, tileX, tileY, tileSize, tileSize, 15);
           ctx.fillStyle = res.ranking === 1 ? 'rgba(245, 158, 11, 0.14)' : '#18181b';
           ctx.fill();
           ctx.strokeStyle = res.ranking === 1 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(255, 255, 255, 0.08)';
@@ -3249,41 +3493,41 @@ export default function App() {
           ctx.stroke();
 
           ctx.fillStyle = res.ranking === 1 ? '#fbbf24' : '#a1a1aa';
-          ctx.font = `900 22px ${fontMono}`;
+          ctx.font = `900 20px ${fontMono}`;
           ctx.textAlign = 'center';
-          ctx.fillText(`#${res.ranking || '-'}`, tileX + tileSize / 2, tileY + 40);
+          ctx.fillText(`#${res.ranking || '-'}`, tileX + tileSize / 2, tileY + 36);
 
-          // Right Rank Pill + PTS
+          // Right Rank Pill
           const rightRankStr = `#${res.ranking || '-'}`;
-          ctx.font = `900 22px ${fontSans}`;
-          const rightPillW = Math.max(74, ctx.measureText(rightRankStr).width + 32);
-          const rightPillX = padX + contentW - 24 - rightPillW;
-          const rightPillY = ry + 30;
-          drawRoundRect(ctx, rightPillX, rightPillY, rightPillW, 44, 14);
+          ctx.font = `900 20px ${fontSans}`;
+          const rightPillW = Math.max(68, ctx.measureText(rightRankStr).width + 28);
+          const rightPillX = padX + contentW - 22 - rightPillW;
+          const rightPillY = ry + 26;
+          drawRoundRect(ctx, rightPillX, rightPillY, rightPillW, 42, 13);
           ctx.fillStyle = res.ranking <= 3 ? 'rgba(215, 255, 0, 0.14)' : '#18181b';
           ctx.fill();
           ctx.strokeStyle = res.ranking <= 3 ? 'rgba(215, 255, 0, 0.35)' : 'rgba(255, 255, 255, 0.08)';
           ctx.stroke();
           ctx.fillStyle = res.ranking <= 3 ? '#D7FF00' : '#e4e4e7';
           ctx.textAlign = 'center';
-          ctx.fillText(rightRankStr, rightPillX + rightPillW / 2, rightPillY + 30);
+          ctx.fillText(rightRankStr, rightPillX + rightPillW / 2, rightPillY + 28);
 
           // Event Title + Type Pill + Tier Pill
-          const textX = tileX + tileSize + 20;
+          const textX = tileX + tileSize + 18;
           const titleMaxW = rightPillX - textX - 180;
           ctx.textAlign = 'left';
           ctx.fillStyle = '#ffffff';
-          ctx.font = `800 24px ${fontSans}`;
+          ctx.font = `800 22px ${fontSans}`;
           const eventTitle = truncateText(ctx, res.scrimName || 'Scrim Session', Math.max(200, titleMaxW));
-          ctx.fillText(eventTitle, textX, ry + 44);
+          ctx.fillText(eventTitle, textX, ry + 40);
           const titleActualW = ctx.measureText(eventTitle).width;
 
           // Event Type Badge (SCRIM / TOUR)
           const typeLabel = res.eventType === 'Tour' ? 'TOUR' : 'SCRIM';
-          ctx.font = `900 14px ${fontSans}`;
-          const typeBadgeW = ctx.measureText(typeLabel).width + 18;
-          let badgeCursorX = textX + titleActualW + 12;
-          drawRoundRect(ctx, badgeCursorX, ry + 24, typeBadgeW, 24, 6);
+          ctx.font = `900 13px ${fontSans}`;
+          const typeBadgeW = ctx.measureText(typeLabel).width + 16;
+          let badgeCursorX = textX + titleActualW + 10;
+          drawRoundRect(ctx, badgeCursorX, ry + 22, typeBadgeW, 22, 6);
           ctx.fillStyle = res.eventType === 'Tour' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(215, 255, 0, 0.12)';
           ctx.fill();
           ctx.strokeStyle = res.eventType === 'Tour' ? 'rgba(245, 158, 11, 0.35)' : 'rgba(215, 255, 0, 0.30)';
@@ -3291,52 +3535,53 @@ export default function App() {
           ctx.stroke();
           ctx.fillStyle = res.eventType === 'Tour' ? '#fbbf24' : '#D7FF00';
           ctx.textAlign = 'center';
-          ctx.fillText(typeLabel, badgeCursorX + typeBadgeW / 2, ry + 41);
+          ctx.fillText(typeLabel, badgeCursorX + typeBadgeW / 2, ry + 37);
           badgeCursorX += typeBadgeW + 8;
 
-          // Scrim Tier Badge (matching Sejarah Perlawanan in-app feature)
+          // Scrim Tier Badge
           if (res.scrimTier) {
-            const tierLabel = truncateText(ctx, res.scrimTier, Math.max(60, rightPillX - badgeCursorX - 16));
-            ctx.font = `700 14px ${fontSans}`;
-            const tierBadgeW = ctx.measureText(tierLabel).width + 18;
+            const tierLabel = truncateText(ctx, res.scrimTier, Math.max(60, rightPillX - badgeCursorX - 14));
+            ctx.font = `700 13px ${fontSans}`;
+            const tierBadgeW = ctx.measureText(tierLabel).width + 16;
             if (badgeCursorX + tierBadgeW < rightPillX - 10) {
-              drawRoundRect(ctx, badgeCursorX, ry + 24, tierBadgeW, 24, 6);
+              drawRoundRect(ctx, badgeCursorX, ry + 22, tierBadgeW, 22, 6);
               ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
               ctx.fill();
               ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
               ctx.stroke();
               ctx.fillStyle = '#d4d4d8';
               ctx.textAlign = 'center';
-              ctx.fillText(tierLabel, badgeCursorX + tierBadgeW / 2, ry + 41);
+              ctx.fillText(tierLabel, badgeCursorX + tierBadgeW / 2, ry + 37);
             }
           }
 
-          // Bottom metadata line: Date • PTS • Kills • WWCD
+          // Bottom metadata line: Date • PTS • Kills • PP • WWCD
+          const rowPp = Math.max(0, (res.points || 0) - (res.kills || 0));
           ctx.textAlign = 'left';
           ctx.fillStyle = '#71717a';
-          ctx.font = `600 18px ${fontMono}`;
+          ctx.font = `600 16px ${fontMono}`;
           const datePart = res.date ? `${res.date}  •  ` : '';
-          ctx.fillText(datePart, textX, ry + 78);
+          ctx.fillText(datePart, textX, ry + 70);
           const datePartW = datePart ? ctx.measureText(datePart).width : 0;
 
           ctx.fillStyle = '#D7FF00';
-          ctx.font = `800 18px ${fontMono}`;
+          ctx.font = `800 16px ${fontMono}`;
           const ptsPart = `${res.points || 0} PTS`;
-          ctx.fillText(ptsPart, textX + datePartW, ry + 78);
+          ctx.fillText(ptsPart, textX + datePartW, ry + 70);
           const ptsPartW = ctx.measureText(ptsPart).width;
 
           ctx.fillStyle = '#a1a1aa';
-          ctx.font = `600 18px ${fontMono}`;
-          const extraStats = `  •  ${res.kills || 0} Kills${res.wwcd > 0 ? `  •  ${res.wwcd} WWCD` : ''}`;
-          ctx.fillText(extraStats, textX + datePartW + ptsPartW, ry + 78);
+          ctx.font = `600 16px ${fontMono}`;
+          const extraStats = `  •  ${res.kills || 0}K + ${rowPp}PP${res.wwcd > 0 ? `  •  ${res.wwcd} WWCD` : ''}`;
+          ctx.fillText(extraStats, textX + datePartW + ptsPartW, ry + 70);
         });
 
-        if (stats.results.length > 4) {
-          const extraY = rowStartY + 4 * (rowH + rowGap) + 12;
+        if (stats.results.length > 3) {
+          const extraY = rowStartY + 3 * (rowH + rowGap) + 18;
           ctx.textAlign = 'center';
           ctx.fillStyle = '#71717a';
-          ctx.font = `600 18px ${fontSans}`;
-          ctx.fillText(`+ ${stats.results.length - 4} lagi rekod perlawanan di Scrim Hub`, 540, extraY);
+          ctx.font = `600 17px ${fontSans}`;
+          ctx.fillText(`+ ${stats.results.length - 3} lagi rekod perlawanan di Scrim Hub`, 540, extraY);
         }
       }
 
@@ -5104,6 +5349,9 @@ export default function App() {
                     </span>
                   </div>
                 </div>
+
+                {/* 4B. MERGED SMOOTH DUAL-LINE PERFORMANCE CHART (KILLS VS PP PER SCRIM) */}
+                <ScrimDualLineChart results={activeTeamScopedStats.filteredResults} />
 
                 {/* 5. SHARE / STORY GENERATOR CTA BUTTON */}
                 <button
@@ -7538,61 +7786,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="p-4 bg-zinc-900/60 rounded-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-white flex items-center gap-1.5">
-                  <BarChart2 className="w-4 h-4 text-[#D7FF00]"/>
-                  <span>Points & Kills per Session</span>
-                </span>
-                <div className="flex items-center gap-3 text-[10px] font-mono">
-                  <span className="flex items-center gap-1 text-[#D7FF00] font-bold">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-[#D7FF00] inline-block"></span> Points
-                  </span>
-                  <span className="flex items-center gap-1 text-zinc-400 font-bold">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-zinc-500 inline-block"></span> Kills
-                  </span>
-                </div>
-              </div>
-
-              {filteredTeamPerformance.results.length === 0 ? (
-                <div className="py-12 text-center text-zinc-500 text-xs">
-                  No match records found under this filter scope.
-                </div>
-              ) : (
-                <div className="space-y-3 pt-2">
-                  {filteredTeamPerformance.results.map((item, idx) => {
-                    const maxPts = Math.max(...filteredTeamPerformance.results.map(s => s.points), 40);
-                    const ptsPct = Math.min(100, (item.points / maxPts) * 100);
-                    const killsPct = Math.min(100, (item.kills / maxPts) * 100);
-
-                    return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-zinc-200 truncate max-w-[200px] sm:max-w-xs flex items-center gap-1">
-                            <span>{item.scrimName}</span>
-                            <span className="text-[9px] text-zinc-500 font-mono">[{item.eventType?.slice(0, 4) || 'Scri'}]</span>
-                          </span>
-                          <span className="font-mono text-zinc-400 text-[10px]">
-                            {item.points} PTS • {item.kills} K ({item.date})
-                          </span>
-                        </div>
-                        
-                        <div className="h-4 bg-zinc-950 rounded-lg overflow-hidden flex flex-col justify-center gap-0.5 p-0.5 border border-white/5">
-                          <div 
-                            style={{ width: `${Math.max(5, ptsPct)}%` }} 
-                            className="h-1.5 bg-[#D7FF00] rounded-full transition-all"
-                          />
-                          <div 
-                            style={{ width: `${Math.max(5, killsPct)}%` }} 
-                            className="h-1 bg-zinc-500 rounded-full transition-all"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <ScrimDualLineChart results={filteredTeamPerformance.results} compact />
 
             <div className="pt-2 flex items-center justify-between">
               <button
