@@ -1186,6 +1186,9 @@ export default function App() {
   const [profiles, setProfiles] = useState([]);
   const [selectedScrimId, setSelectedScrimId] = useState('');
   const [adminSelectedScrimId, setAdminSelectedScrimId] = useState('');
+  const [isSessionPickerOpen, setIsSessionPickerOpen] = useState(false);
+  const [sessionPickerQuery, setSessionPickerQuery] = useState('');
+  const [sessionPickerFilter, setSessionPickerFilter] = useState('ALL');
   const [toastMessage, setToastMessage] = useState(null);
   
   const [tierFilter, setTierFilter] = useState('All');
@@ -4165,6 +4168,7 @@ export default function App() {
   const navigateToTab = useCallback((tab) => {
     const normalizedNext = tab === 'home' ? 'playground' : tab;
     setIsQuickCreateModalOpen(false);
+    setIsSessionPickerOpen(false);
     setIsOrgPopoverOpen(false);
     setIsNavMenuOpen(false);
     setSelectedTeamProfile('');
@@ -4232,6 +4236,7 @@ export default function App() {
   // --- MOBILE BACK BUTTON, MODAL SAFETY & PAGE HISTORY NAVIGATION ---
   const activeOverlayCount =
     (isImportModalOpen ? 1 : 0) +
+    (isSessionPickerOpen ? 1 : 0) +
     (isQuickCreateModalOpen ? 1 : 0) +
     (isPerformanceModalOpen ? 1 : 0) +
     (inspectedScrim ? 1 : 0) +
@@ -4251,6 +4256,7 @@ export default function App() {
     (activeHeaderInfo ? 1 : 0);
 
   const closeTopmostOverlay = useCallback(() => {
+    if (isSessionPickerOpen) { setIsSessionPickerOpen(false); return true; }
     if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
     if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
     if (isTeamManagerModalOpen) {
@@ -4292,6 +4298,7 @@ export default function App() {
     if (activeHeaderInfo) { setActiveHeaderInfo(null); return true; }
     return false;
   }, [
+    isSessionPickerOpen,
     isImportModalOpen,
     isQuickCreateModalOpen,
     isTeamManagerModalOpen,
@@ -7497,25 +7504,38 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         {adminHostedScrims.length > 0 ? (
                           <div className="relative flex-1 max-w-sm">
-                            <select
-                              value={adminSelectedScrimId}
-                              onChange={(e) => {
-                                if (e.target.value === 'quick_new') {
-                                  handleQuickNewSession();
-                                } else {
-                                  setSelectedMatchIdx(0);
-                                  setAdminSelectedScrimId(e.target.value);
-                                }
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSessionPickerQuery('');
+                                setIsSessionPickerOpen(true);
                               }}
-                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white font-black focus:outline-none focus:border-[#D7FF00] transition truncate cursor-pointer"
+                              aria-haspopup="dialog"
+                              aria-expanded={isSessionPickerOpen}
+                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
+                              title="Tukar atau cari sesi kejohanan / scrim"
                             >
-                              <option value="quick_new" className="bg-zinc-900 text-[#D7FF00] font-black">+ Mulakan Sesi Baru</option>
-                              {adminHostedScrims.map((s) => (
-                                <option key={s.id} value={s.id} className="bg-zinc-950 text-white">
-                                  [{s.event_type === 'Tour' ? 'Tour' : 'Scrim'}] {s.title} {s.is_finished ? '(Locked)' : ''}
-                                </option>
-                              ))}
-                            </select>
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black uppercase shrink-0 ${
+                                    activeAdminScrim?.event_type === 'Tour'
+                                      ? 'bg-amber-500/20 text-amber-300'
+                                      : 'bg-[#D7FF00]/15 text-[#D7FF00]'
+                                  }`}
+                                >
+                                  {activeAdminScrim?.event_type === 'Tour' ? 'Tour' : 'Scrim'}
+                                </span>
+                                <span className="truncate">
+                                  {activeAdminScrim?.title || 'Pilih Sesi'}
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-1.5 shrink-0 text-zinc-400">
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300">
+                                  {adminHostedScrims.length}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${isSessionPickerOpen ? 'rotate-180 text-[#D7FF00]' : ''}`} />
+                              </span>
+                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
@@ -10617,6 +10637,244 @@ export default function App() {
           </button>
         </div>
       )}
+
+      {/* QUICK SCORER SEARCHABLE SESSION PICKER SHEET / PALETTE (Handles 100+ sessions cleanly on Mobile & PC) */}
+      {isSessionPickerOpen && (() => {
+        const q = sessionPickerQuery.trim().toLowerCase();
+        const filteredPickerScrims = adminHostedScrims.filter((s) => {
+          if (sessionPickerFilter === 'ACTIVE' && s.is_finished) return false;
+          if (sessionPickerFilter === 'LOCKED' && !s.is_finished) return false;
+          if (sessionPickerFilter === 'Scrim' && (s.event_type || 'Scrim') !== 'Scrim') return false;
+          if (sessionPickerFilter === 'Tour' && s.event_type !== 'Tour') return false;
+          if (!q) return true;
+          return (
+            (s.title || '').toLowerCase().includes(q) ||
+            (s.date || '').toLowerCase().includes(q) ||
+            (s.tier || '').toLowerCase().includes(q) ||
+            (s.event_type || '').toLowerCase().includes(q)
+          );
+        });
+
+        const activeCount = adminHostedScrims.filter(s => !s.is_finished).length;
+        const lockedCount = adminHostedScrims.filter(s => Boolean(s.is_finished)).length;
+
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="session-picker-title"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                setIsSessionPickerOpen(false);
+              }
+            }}
+            className="fixed inset-0 z-[75] flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md p-0 sm:p-4"
+            onClick={() => setIsSessionPickerOpen(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-lg bg-[#111115] rounded-t-3xl sm:rounded-3xl shadow-[0_24px_70px_rgba(0,0,0,0.85)] flex flex-col max-h-[76dvh] sm:max-h-[74vh] overflow-hidden animate-drawer-up"
+            >
+              {/* Mobile Drag Handle */}
+              <div className="sm:hidden flex justify-center pt-2.5 pb-0.5 shrink-0">
+                <div className="w-10 h-1 rounded-full bg-zinc-700" />
+              </div>
+
+              {/* Sticky Top Header + Quick New CTA + Search + Filter Pills */}
+              <div className="p-4 sm:p-5 pb-3 space-y-3 shrink-0 bg-[#14141A]">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h2 id="session-picker-title" className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                      Pilih Sesi Scorer
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono font-bold text-zinc-300 shrink-0">
+                      {adminHostedScrims.length} Sesi
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSessionPickerOpen(false);
+                        handleQuickNewSession();
+                      }}
+                      className="px-3 py-1.5 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black text-xs font-black flex items-center gap-1 shadow-[0_0_16px_rgba(215,255,0,0.2)] transition active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Sesi Baru</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsSessionPickerOpen(false)}
+                      aria-label="Tutup pemilih sesi"
+                      className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="search"
+                    enterKeyHint="search"
+                    value={sessionPickerQuery}
+                    onChange={(e) => setSessionPickerQuery(e.target.value)}
+                    placeholder="Cari nama sesi, tarikh atau tier..."
+                    className="w-full bg-[#09090D] rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white font-semibold placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#D7FF00]/60 [&::-webkit-search-cancel-button]:hidden"
+                  />
+                  {sessionPickerQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSessionPickerQuery('')}
+                      aria-label="Kosongkan carian"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white p-0.5 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Compact Filter Chips */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  {[
+                    { key: 'ALL', label: `Semua (${adminHostedScrims.length})` },
+                    { key: 'ACTIVE', label: `Aktif (${activeCount})` },
+                    { key: 'LOCKED', label: `Locked (${lockedCount})` },
+                    { key: 'Scrim', label: 'Scrim' },
+                    { key: 'Tour', label: 'Tournament' }
+                  ].map((chip) => {
+                    const isChipActive = sessionPickerFilter === chip.key;
+                    return (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        onClick={() => setSessionPickerFilter(chip.key)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition cursor-pointer ${
+                          isChipActive
+                            ? 'bg-[#D7FF00]/18 text-[#D7FF00]'
+                            : 'bg-zinc-900/90 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Scrollable Bounded Session List (handles 100+ sessions smoothly) */}
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-1.5 [scrollbar-gutter:stable]">
+                {filteredPickerScrims.length > 0 ? (
+                  filteredPickerScrims.map((s) => {
+                    const isSelected = s.id === adminSelectedScrimId;
+                    const isTour = s.event_type === 'Tour';
+                    const isLocked = Boolean(s.is_finished);
+                    const matchCount = s.matches?.length || s.total_matches || 1;
+
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMatchIdx(0);
+                          setAdminSelectedScrimId(s.id);
+                          setIsSessionPickerOpen(false);
+                          setSessionPickerQuery('');
+                        }}
+                        aria-current={isSelected ? 'true' : undefined}
+                        className={`w-full text-left rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-3 transition cursor-pointer group active:scale-[0.99] ${
+                          isSelected
+                            ? 'bg-[#D7FF00]/15 shadow-[0_0_18px_rgba(215,255,0,0.08)]'
+                            : 'bg-[#17171D]/85 hover:bg-[#1E1E26]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {s.logo_url ? (
+                            <img
+                              src={s.logo_url}
+                              alt=""
+                              className="w-9 h-9 rounded-xl object-cover shrink-0 bg-zinc-900"
+                            />
+                          ) : (
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                isTour
+                                  ? 'bg-amber-500/18 text-amber-300'
+                                  : 'bg-[#D7FF00]/14 text-[#D7FF00]'
+                              }`}
+                            >
+                              {isTour ? <Trophy className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span
+                                className={`text-xs sm:text-sm font-black truncate ${
+                                  isSelected ? 'text-[#D7FF00]' : 'text-white group-hover:text-[#D7FF00] transition-colors'
+                                }`}
+                              >
+                                {s.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 mt-0.5 truncate">
+                              <span>{isTour ? 'Tour' : 'Scrim'}</span>
+                              <span>•</span>
+                              <span>{s.date || 'Tanpa tarikh'}</span>
+                              <span>•</span>
+                              <span>{matchCount}M</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                              isLocked
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : 'bg-emerald-500/15 text-emerald-300'
+                            }`}
+                          >
+                            {isLocked && <Lock className="w-2.5 h-2.5" />}
+                            <span>{isLocked ? 'Locked' : 'Aktif'}</span>
+                          </span>
+
+                          {isSelected && (
+                            <span className="w-6 h-6 rounded-full bg-[#D7FF00] text-black flex items-center justify-center shrink-0">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="py-10 text-center space-y-2.5">
+                    <p className="text-xs text-zinc-400">
+                      Tiada sesi padan dengan carian atau tapisan semasa.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSessionPickerQuery('');
+                        setSessionPickerFilter('ALL');
+                      }}
+                      className="px-3.5 py-1.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-[#D7FF00] transition cursor-pointer"
+                    >
+                      Reset Tapisan
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MINIMALIST FLOATING PILL MOBILE NAVBAR (FIXED SLOTS, ZERO JITTER, SLEEK & THIN) */}
       <nav
