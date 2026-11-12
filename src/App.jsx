@@ -171,6 +171,7 @@ const TIER_OPTIONS = ['Tier 1 (Pro)', 'Tier 2 (Semi-Pro)', 'Tier 3 (Amateur)', '
 
 const HALL_OF_FAME_FILTERS = [
   { key: 'ALL', label: 'Semua' },
+  { key: 'SSS', label: 'SSS' },
   { key: 'TIER_1', label: 'Tier 1' },
   { key: 'TIER_2', label: 'Tier 2' },
   { key: 'TIER_3', label: 'Tier 3' },
@@ -181,6 +182,12 @@ const HALL_OF_FAME_FILTERS = [
 
 const matchesStatsFilter = (result, filterKey) => {
   if (!filterKey || filterKey === 'ALL') return true;
+  if (filterKey === 'SSS') {
+    const sourceText = [result?.scrimName, result?.scrimData?.title, result?.hostName]
+      .filter(Boolean)
+      .join(' ');
+    return /(?:^|[^a-z0-9])sss(?=[0-9]|[^a-z0-9]|$)/i.test(sourceText);
+  }
   if (filterKey === 'Scrim' || filterKey === 'Tour') {
     return (result?.eventType || 'Scrim') === filterKey;
   }
@@ -6107,9 +6114,10 @@ export default function App() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                      Top Perform Team
+                      {teamStatsCategory === 'SSS' ? 'Top Perform Team SSS' : 'Top Perform Team'}
                     </h2>
-                    <span className="text-[11px] text-zinc-500">
+                    <span className="text-[11px] text-zinc-400">
+                      {teamStatsCategory === 'SSS' ? 'Data bermula dari Season 4 • ' : ''}
                       {teamSearchQuery.trim()
                         ? `Hasil carian (${displayedRankedTeams.length} pasukan)`
                         : showAllTeams
@@ -6449,12 +6457,20 @@ export default function App() {
 
               {/* 5. DATA SOURCE DISCLAIMER FOOTNOTE */}
               <div className="pt-1 pb-2 px-3 text-center space-y-1">
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Nota: Data statistik dikumpul daripada platform scrim bermula <strong className="text-zinc-300 font-semibold">November 2026</strong>.
-                </p>
-                <p className="text-[10px] font-mono text-zinc-400/90 tracking-wide leading-relaxed">
-                  MEC SCRIMS • BUNNYKUN SCRIMS • BEN ESPORTS SCRIMS • CT SCRIMS • KxLatte SCRIMS
-                </p>
+                {teamStatsCategory === 'SSS' ? (
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Nota: Rekod statistik <strong className="text-[#D7FF00] font-semibold">SSS</strong> ini dikumpul bermula dari <strong className="text-zinc-200 font-semibold">Season 4</strong>.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Nota: Data statistik dikumpul daripada platform scrim bermula <strong className="text-zinc-300 font-semibold">November 2026</strong>.
+                    </p>
+                    <p className="text-[10px] font-mono text-zinc-400/90 tracking-wide leading-relaxed">
+                      MEC SCRIMS • BUNNYKUN SCRIMS • BEN ESPORTS SCRIMS • CT SCRIMS • KxLatte SCRIMS
+                    </p>
+                  </>
+                )}
               </div>
 
             </div>
@@ -8245,6 +8261,7 @@ export default function App() {
                   className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-[#D7FF00]"
                 >
                   <option value="ALL" className="bg-zinc-950 text-white">Semua (Scrim + Tour)</option>
+                  <option value="SSS" className="bg-zinc-950 text-white">SSS (Bermula Season 4)</option>
                   <option value="TIER_1" className="bg-zinc-950 text-white">Tier 1 (Pro)</option>
                   <option value="TIER_2" className="bg-zinc-950 text-white">Tier 2 (Semi-Pro)</option>
                   <option value="TIER_3" className="bg-zinc-950 text-white">Tier 3 (Amateur)</option>
