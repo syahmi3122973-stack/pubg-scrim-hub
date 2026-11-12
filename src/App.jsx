@@ -177,12 +177,18 @@ const HALL_OF_FAME_FILTERS = [
   { key: 'TIER_1', label: 'Tier 1' },
   { key: 'TIER_2', label: 'Tier 2' },
   { key: 'TIER_3', label: 'Tier 3' },
-  { key: 'OPEN', label: 'Open' },
+  { key: 'OPEN', label: 'Open' }
+];
+
+const HALL_OF_FAME_EVENT_TOGGLES = [
   { key: 'Scrim', label: 'Scrim' },
   { key: 'Tour', label: 'Tournament' }
 ];
 
-const matchesStatsFilter = (result, filterKey) => {
+const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL') => {
+  if (eventTypeFilter && eventTypeFilter !== 'ALL') {
+    if ((result?.eventType || 'Scrim') !== eventTypeFilter) return false;
+  }
   if (!filterKey || filterKey === 'ALL') return true;
   if (filterKey === 'SSS') {
     const sourceText = [result?.scrimName, result?.scrimData?.title, result?.hostName]
@@ -1227,6 +1233,7 @@ export default function App() {
   const [searchScrimQuery, setSearchScrimQuery] = useState('');
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
+  const [teamStatsEventType, setTeamStatsEventType] = useState('ALL');
 
   // Auth State
   const [currentUser, setCurrentUser] = useState(null);
@@ -3924,22 +3931,22 @@ export default function App() {
   }, [teamsStats]);
 
   const categoryTeamList = useMemo(() => {
-    if (teamStatsCategory === 'ALL') {
+    if (teamStatsCategory === 'ALL' && teamStatsEventType === 'ALL') {
       return validTeamList;
     }
     return validTeamList
-      .filter(t => (t.scrimResults || []).some(r => matchesStatsFilter(r, teamStatsCategory)))
+      .filter(t => (t.scrimResults || []).some(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType)))
       .sort((a, b) => {
-        const aPts = (a.scrimResults || []).filter(r => matchesStatsFilter(r, teamStatsCategory)).reduce((acc, c) => acc + c.points, 0);
-        const bPts = (b.scrimResults || []).filter(r => matchesStatsFilter(r, teamStatsCategory)).reduce((acc, c) => acc + c.points, 0);
+        const aPts = (a.scrimResults || []).filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType)).reduce((acc, c) => acc + c.points, 0);
+        const bPts = (b.scrimResults || []).filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType)).reduce((acc, c) => acc + c.points, 0);
         return bPts - aPts;
       });
-  }, [validTeamList, teamStatsCategory]);
+  }, [validTeamList, teamStatsCategory, teamStatsEventType]);
 
   const tier3RankedTeams = useMemo(() => {
     return validTeamList
       .map((t) => {
-        const res = (t.scrimResults || []).filter(r => matchesStatsFilter(r, 'TIER_3'));
+        const res = (t.scrimResults || []).filter(r => matchesStatsFilter(r, 'TIER_3', teamStatsEventType));
         if (res.length === 0) return null;
         const tier3Points = res.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
         const tier3Kills = res.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
@@ -3964,7 +3971,7 @@ export default function App() {
         ...t,
         tier3Rank: idx + 1
       }));
-  }, [validTeamList]);
+  }, [validTeamList, teamStatsEventType]);
 
   const tier3RankByTeam = useMemo(() => {
     const map = new Map();
@@ -4174,9 +4181,9 @@ export default function App() {
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
     const all = activeTeamData.scrimResults || [];
-    const filtered = teamStatsCategory === 'ALL'
+    const filtered = (teamStatsCategory === 'ALL' && teamStatsEventType === 'ALL')
       ? all
-      : all.filter(r => matchesStatsFilter(r, teamStatsCategory));
+      : all.filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType));
 
     const totalPoints = filtered.reduce((acc, c) => acc + c.points, 0);
     const totalKills = filtered.reduce((acc, c) => acc + c.kills, 0);
@@ -4191,7 +4198,7 @@ export default function App() {
       eventsCount: filtered.length,
       matchesCount
     };
-  }, [activeTeamData, teamStatsCategory]);
+  }, [activeTeamData, teamStatsCategory, teamStatsEventType]);
 
   const organizersList = useMemo(() => {
     const map = {};
@@ -5148,12 +5155,14 @@ export default function App() {
                     role="button"
                     tabIndex={0}
                     onClick={() => {
+                      setTeamStatsEventType('ALL');
                       setTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
                       navigateToTab('teams');
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
+                        setTeamStatsEventType('ALL');
                         setTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
                         navigateToTab('teams');
                       }
@@ -5614,6 +5623,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => {
+                            setTeamStatsEventType('ALL');
                             setTeamStatsCategory(homeContendersCategory);
                             navigateToTab('teams');
                           }}
@@ -5638,6 +5648,7 @@ export default function App() {
                               key={`${homeContendersCategory}_${team.name}`}
                               type="button"
                               onClick={() => {
+                                setTeamStatsEventType('ALL');
                                 setTeamStatsCategory(homeContendersCategory);
                                 navigateToTab('teams');
                                 setSelectedTeamProfile(team.name);
@@ -5838,9 +5849,9 @@ export default function App() {
 
           const allRankedTeamsWithStats = categoryTeamList.map((t) => {
             const allRes = t.scrimResults || [];
-            const scopedRes = teamStatsCategory === 'ALL'
+            const scopedRes = (teamStatsCategory === 'ALL' && teamStatsEventType === 'ALL')
               ? allRes
-              : allRes.filter(r => matchesStatsFilter(r, teamStatsCategory));
+              : allRes.filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType));
             const scopedPoints = scopedRes.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
             const scopedKills = scopedRes.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
             const scopedWWCD = scopedRes.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
@@ -5919,7 +5930,9 @@ export default function App() {
                     onClick={() => {
                       setPerformanceTeam(activeTeamData);
                       setSelectedPerformanceHost('ALL');
-                      setPerformanceModalCategory(teamStatsCategory);
+                      setPerformanceModalCategory(
+                        teamStatsCategory !== 'ALL' ? teamStatsCategory : (teamStatsEventType !== 'ALL' ? teamStatsEventType : 'ALL')
+                      );
                       setIsPerformanceModalOpen(true);
                     }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] transition cursor-pointer"
@@ -5971,6 +5984,25 @@ export default function App() {
                     <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
                       Skop:
                     </span>
+                    {HALL_OF_FAME_EVENT_TOGGLES.map((ev) => {
+                      const isEvActive = teamStatsEventType === ev.key;
+                      return (
+                        <button
+                          key={ev.key}
+                          type="button"
+                          aria-pressed={isEvActive}
+                          onClick={() => setTeamStatsEventType(prev => (prev === ev.key ? 'ALL' : ev.key))}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                            isEvActive
+                              ? (ev.key === 'Tour' ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.25)]' : 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]')
+                              : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800'
+                          }`}
+                        >
+                          <span>{ev.label}</span>
+                        </button>
+                      );
+                    })}
+                    <span className="w-px h-4 bg-zinc-800 shrink-0 mx-0.5" aria-hidden="true" />
                     {HALL_OF_FAME_FILTERS.map(cat => {
                       const isActive = teamStatsCategory === cat.key;
                       return (
@@ -6090,7 +6122,9 @@ export default function App() {
                   onClick={() => {
                     setPerformanceTeam(activeTeamData);
                     setSelectedPerformanceHost('ALL');
-                    setPerformanceModalCategory(teamStatsCategory);
+                    setPerformanceModalCategory(
+                      teamStatsCategory !== 'ALL' ? teamStatsCategory : (teamStatsEventType !== 'ALL' ? teamStatsEventType : 'ALL')
+                    );
                     setIsPerformanceModalOpen(true);
                   }}
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-[#D7FF00] to-lime-400 hover:from-[#c2e600] hover:to-lime-300 text-black font-black rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-[0.98] cursor-pointer"
@@ -6351,39 +6385,93 @@ export default function App() {
                 </div>
               )}
 
-              {/* 2. HORIZONTAL FILTER PILLS BAR (Semua, Tier 1, Tier 2, Tier 3, Open, Scrim, Tournament) */}
-              <div
-                role="group"
-                aria-label="Tapis Hall of Fame"
-                className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
-                {HALL_OF_FAME_FILTERS.map((cat) => {
-                  const isActive = teamStatsCategory === cat.key;
-                  const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
-                  return (
-                    <button
-                      key={cat.key}
-                      type="button"
-                      aria-pressed={isActive}
-                      onClick={() => setTeamStatsCategory(cat.key)}
-                      className={
-                        'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
-                        (isActive
-                          ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
-                          : isTier3Highlight
-                          ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
-                          : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
-                      }
-                    >
-                      {isActive ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
-                      ) : isTier3Highlight ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                      ) : null}
-                      <span>{cat.label}</span>
-                    </button>
-                  );
-                })}
+              {/* 2. HORIZONTAL FILTER & EVENT TOGGLE BAR */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-1">
+                {/* Event Format Toggle Switch (Combinable with Tier Filters: Scrim / Tournament) */}
+                <div
+                  role="group"
+                  aria-label="Toggle Jenis Acara"
+                  className="inline-flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full self-start shrink-0"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={teamStatsEventType === 'ALL'}
+                    onClick={() => setTeamStatsEventType('ALL')}
+                    className={
+                      'px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ' +
+                      (teamStatsEventType === 'ALL'
+                        ? 'bg-zinc-100 text-black shadow-xs'
+                        : 'text-zinc-400 hover:text-zinc-200')
+                    }
+                  >
+                    Semua Event
+                  </button>
+                  {HALL_OF_FAME_EVENT_TOGGLES.map((ev) => {
+                    const isEvActive = teamStatsEventType === ev.key;
+                    return (
+                      <button
+                        key={ev.key}
+                        type="button"
+                        aria-pressed={isEvActive}
+                        onClick={() => setTeamStatsEventType(prev => (prev === ev.key ? 'ALL' : ev.key))}
+                        className={
+                          'px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ' +
+                          (isEvActive
+                            ? (ev.key === 'Tour'
+                                ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.22)]'
+                                : 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.22)]')
+                            : 'text-zinc-400 hover:text-zinc-200')
+                        }
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            isEvActive
+                              ? 'bg-black'
+                              : ev.key === 'Tour'
+                              ? 'bg-amber-400/70'
+                              : 'bg-[#D7FF00]/70'
+                          }`}
+                        />
+                        <span>{ev.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Tier / Division Pills Row (Semua, SSS, Tier 1, Tier 2, Tier 3, Open) */}
+                <div
+                  role="group"
+                  aria-label="Tapis Tier Hall of Fame"
+                  className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  {HALL_OF_FAME_FILTERS.map((cat) => {
+                    const isActive = teamStatsCategory === cat.key;
+                    const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => setTeamStatsCategory(cat.key)}
+                        className={
+                          'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
+                          (isActive
+                            ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
+                            : isTier3Highlight
+                            ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
+                            : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
+                        }
+                      >
+                        {isActive ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
+                        ) : isTier3Highlight ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                        ) : null}
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Search Bar (Toggled by top-right Search icon) */}
@@ -6446,7 +6534,7 @@ export default function App() {
                   />
 
                   {/* Semi-Circular Radial Tick Marks with Sweep Animation */}
-                  <g key={teamStatsCategory} className="animate-dial-sweep">
+                  <g key={`${teamStatsCategory}_${teamStatsEventType}`} className="animate-dial-sweep">
                     {dialTicks.map((t) => (
                       <line
                         key={t.deg}
@@ -6593,7 +6681,13 @@ export default function App() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                      {teamStatsCategory === 'SSS' ? 'Top Perform Team SSS' : 'Top Perform Team'}
+                      {teamStatsCategory === 'SSS'
+                        ? (teamStatsEventType === 'Tour' ? 'Top Perform Team SSS • Tournament' : teamStatsEventType === 'Scrim' ? 'Top Perform Team SSS • Scrim' : 'Top Perform Team SSS')
+                        : teamStatsEventType === 'Tour'
+                        ? `Top Perform Team • Tournament${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
+                        : teamStatsEventType === 'Scrim'
+                        ? `Top Perform Team • Scrim${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
+                        : 'Top Perform Team'}
                     </h2>
                     <span className="text-[11px] text-zinc-400">
                       {teamStatsCategory === 'SSS' ? 'Data bermula dari Season 4 • ' : ''}
@@ -6632,7 +6726,13 @@ export default function App() {
                     </p>
                   </div>
                 ) : displayedRankedTeams.length === 0 ? (() => {
-                  const activeFilterLabel = HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory;
+                  const tierLabel = teamStatsCategory === 'ALL'
+                    ? ''
+                    : (HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory);
+                  const eventLabel = teamStatsEventType === 'ALL'
+                    ? ''
+                    : (HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType);
+                  const activeFilterLabel = [eventLabel, tierLabel].filter(Boolean).join(' • ') || 'Semua';
                   return (
                     <div className="py-10 px-4 text-center space-y-3 bg-zinc-950/50 rounded-2xl">
                       <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-zinc-400 flex items-center justify-center mx-auto">
@@ -6657,6 +6757,7 @@ export default function App() {
                             setTeamSearchQuery('');
                           } else {
                             setTeamStatsCategory('ALL');
+                            setTeamStatsEventType('ALL');
                           }
                         }}
                         className="px-4 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] transition cursor-pointer"
@@ -8866,7 +8967,10 @@ export default function App() {
                     : (organizersList.find(h => h.id === selectedPerformanceHost || h.name === selectedPerformanceHost)?.name || selectedPerformanceHost),
                   performanceModalCategory === 'ALL'
                     ? 'Official Scrim & Tour'
-                    : (HALL_OF_FAME_FILTERS.find(f => f.key === performanceModalCategory)?.label || performanceModalCategory)
+                    : (
+                        [...HALL_OF_FAME_FILTERS, ...HALL_OF_FAME_EVENT_TOGGLES]
+                          .find(f => f.key === performanceModalCategory)?.label || performanceModalCategory
+                      )
                 )}
                 disabled={isGeneratingStory}
                 className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 transition"
