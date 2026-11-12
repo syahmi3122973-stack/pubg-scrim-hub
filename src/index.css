@@ -297,3 +297,12 @@ body {
     transform: translate3d(280%, 0, 0) skewX(-20deg);
   }
 }
+
+/* Exclusive Monumental Display Typography for Hall of Fame */
+.font-exclusive-hof {
+  font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
+  font-size-adjust: cap-height from-font;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  text-wrap: balance;
+  line-height: 1.12;
+}

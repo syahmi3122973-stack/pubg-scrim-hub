@@ -6066,10 +6066,10 @@ export default function App() {
 
                 {/* Center Text Inside the Dial Arc */}
                 <div
-                  className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-md animate-stagger-card"
+                  className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-stagger-card"
                   style={{ animationDelay: '60ms' }}
                 >
-                  <h1 className="text-3xl sm:text-5xl font-light tracking-[0.14em] uppercase text-white">
+                  <h1 className="font-exclusive-hof text-[clamp(1.75rem,1rem+3.2vw,3.35rem)] font-bold tracking-[0.16em] uppercase bg-gradient-to-b from-white via-zinc-100 to-amber-200/85 bg-clip-text text-transparent drop-shadow-[0_4px_24px_rgba(215,255,0,0.16)]">
                     HALL OF FAME
                   </h1>
 
