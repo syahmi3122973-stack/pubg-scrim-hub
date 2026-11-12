@@ -4569,11 +4569,6 @@ export default function App() {
             const winRatePercent = activeTeamScopedStats.matchesCount > 0
               ? Math.round((activeTeamScopedStats.totalWWCD / activeTeamScopedStats.matchesCount) * 100)
               : 0;
-            const playstyleLabel = kpPercent >= 55
-              ? 'Aggressive Fraggers 🔥'
-              : ppPercent >= 55
-              ? 'Tactical Placement 🛡️'
-              : 'Balanced Hybrid ⚡';
 
             return (
               <div className="max-w-xl lg:max-w-2xl mx-auto space-y-4 pt-1 pb-10 animate-in fade-in duration-200 relative">
@@ -4733,14 +4728,9 @@ export default function App() {
                 {/* 4. TACTICAL PLAYSTYLE COMBAT RATIO */}
                 <div className="bg-[#121216] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider block">
-                        Profil Gaya Permainan
-                      </span>
-                      <span className="text-xs font-bold text-white mt-0.5 inline-block">
-                        {playstyleLabel}
-                      </span>
-                    </div>
+                    <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
+                      Profil Gaya Permainan
+                    </span>
                     <div className="flex items-center gap-3 text-xs font-mono">
                       <span className="text-[#D7FF00] font-bold">KP: {kpPercent}%</span>
                       <span className="text-zinc-600">•</span>
