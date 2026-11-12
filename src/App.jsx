@@ -63,6 +63,7 @@ import ScrimDataHubView from './components/ScrimDataHubView';
 import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
+import { cleanTeamDisplayName, getCanonicalTeamKey, pickPreferredTeamDisplayName } from './utils/teamAlias';
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
   <svg 
@@ -2686,10 +2687,13 @@ export default function App() {
         if (!m) return;
         (m.results || []).forEach(r => {
           if (!r || !r.teamId) return;
-          if (!summaryMap[r.teamId]) {
-            summaryMap[r.teamId] = {
+          const cleanName = cleanTeamDisplayName(r.teamName);
+          const isPlaceholder = !cleanName || /^(?:slot\s+\d+|squad\s+#\d+)$/i.test(cleanName);
+          const summaryKey = (!isPlaceholder && getCanonicalTeamKey(cleanName)) || r.teamId;
+          if (!summaryMap[summaryKey]) {
+            summaryMap[summaryKey] = {
               teamId: r.teamId,
-              teamName: r.teamName,
+              teamName: cleanName || r.teamName,
               tag: r.tag,
               matchesPlayed: 0,
               wwcd: 0,
@@ -2697,14 +2701,16 @@ export default function App() {
               killPts: 0,
               totalPts: 0
             };
+          } else if (cleanName && cleanName.length > (summaryMap[summaryKey].teamName || '').length && /\b(?:esports?|gaming|official)\b/i.test(cleanName)) {
+            summaryMap[summaryKey].teamName = cleanName;
           }
           const hasScore = (r.placement !== '' && r.placement !== null && r.placement !== undefined) || Number(r.kills) > 0 || Number(r.totalPts) > 0;
           if (hasScore) {
-            summaryMap[r.teamId].matchesPlayed += 1;
-            summaryMap[r.teamId].wwcd += (typeof r.wwcd === 'number' ? r.wwcd : (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0)));
-            summaryMap[r.teamId].placePts += (Number(r.placePts) || 0);
-            summaryMap[r.teamId].killPts += (Number(r.kills) || 0);
-            summaryMap[r.teamId].totalPts += (Number(r.totalPts) || 0);
+            summaryMap[summaryKey].matchesPlayed += 1;
+            summaryMap[summaryKey].wwcd += (typeof r.wwcd === 'number' ? r.wwcd : (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0)));
+            summaryMap[summaryKey].placePts += (Number(r.placePts) || 0);
+            summaryMap[summaryKey].killPts += (Number(r.kills) || 0);
+            summaryMap[summaryKey].totalPts += (Number(r.totalPts) || 0);
           }
         });
       });
@@ -2991,8 +2997,9 @@ export default function App() {
       }
 
       // Compute overall rank matching Hall of Fame (#rank without 'Global')
+      const targetTeamKey = getCanonicalTeamKey(team.name);
       const rankIdx = Array.isArray(validTeamList)
-        ? validTeamList.findIndex(t => (t.name || '').trim().toLowerCase() === (team.name || '').trim().toLowerCase())
+        ? validTeamList.findIndex(t => getCanonicalTeamKey(t.name) === targetTeamKey)
         : -1;
       const overallRank = rankIdx >= 0 ? rankIdx + 1 : null;
 
@@ -3715,21 +3722,45 @@ export default function App() {
   };
 
   const teamsStats = useMemo(() => {
-    const stats = {};
+    const registeredByKey = {};
+    const statsByKey = {};
 
-    // Seed registered teams so canonical tags and names are retained
+    // Seed registered teams by canonical key so alias variants share canonical metadata
     teams.forEach(t => {
       if (!t || !t.name) return;
-      stats[t.name] = {
-        name: t.name,
-        tag: t.tag || t.name.slice(0, 4).toUpperCase(),
-        logo_url: t.logo_url || null,
-        scrimResults: [],
-        totalKills: 0,
-        totalPoints: 0,
-        totalWWCD: 0,
-        matchesCount: 0
-      };
+      const cleanName = cleanTeamDisplayName(t.name);
+      const teamKey = getCanonicalTeamKey(cleanName);
+      if (!teamKey) return;
+
+      const existingReg = registeredByKey[teamKey];
+      if (!existingReg || (!existingReg.logo_url && t.logo_url)) {
+        registeredByKey[teamKey] = {
+          ...t,
+          name: cleanName || existingReg?.name || t.name,
+          tag: t.tag || existingReg?.tag || cleanName.slice(0, 4).toUpperCase(),
+          logo_url: t.logo_url || existingReg?.logo_url || null
+        };
+      }
+
+      if (!statsByKey[teamKey]) {
+        statsByKey[teamKey] = {
+          canonicalKey: teamKey,
+          nameCounts: new Map([[cleanName, 1]]),
+          name: cleanName,
+          tag: t.tag || cleanName.slice(0, 4).toUpperCase(),
+          logo_url: t.logo_url || null,
+          scrimResults: [],
+          totalKills: 0,
+          totalPoints: 0,
+          totalWWCD: 0,
+          matchesCount: 0
+        };
+      } else {
+        statsByKey[teamKey].nameCounts.set(cleanName, (statsByKey[teamKey].nameCounts.get(cleanName) || 0) + 1);
+        if (!statsByKey[teamKey].logo_url && t.logo_url) {
+          statsByKey[teamKey].logo_url = t.logo_url;
+        }
+      }
     });
 
     scrims.forEach(scrim => {
@@ -3750,8 +3781,10 @@ export default function App() {
 
         m.results.forEach(r => {
           if (!r || !r.teamName || !r.teamName.trim()) return;
-          // Clean country flag emojis and extra spaces to prevent team duplication
-          const cleanTeamName = r.teamName.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim();
+          // Clean country flag emojis and resolve canonical alias key to merge split suffix names
+          const cleanTeamName = cleanTeamDisplayName(r.teamName);
+          const teamKey = getCanonicalTeamKey(cleanTeamName);
+          if (!cleanTeamName || !teamKey) return;
 
           // Verify this specific team actually played or has recorded points/kills/placement
           const teamHasPlayed =
@@ -3761,10 +3794,12 @@ export default function App() {
             Boolean(r.wwcd);
           if (!teamHasPlayed) return;
 
-          if (!scrimSummary[cleanTeamName]) {
-            const dbTeam = teams.find(t => (t.name || '').replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim().toLowerCase() === cleanTeamName.toLowerCase());
-            scrimSummary[cleanTeamName] = {
-              teamName: cleanTeamName,
+          if (!scrimSummary[teamKey]) {
+            const dbTeam = registeredByKey[teamKey];
+            scrimSummary[teamKey] = {
+              teamKey,
+              nameCounts: new Map(),
+              teamName: dbTeam?.name || cleanTeamName,
               tag: r.tag || dbTeam?.tag || cleanTeamName.slice(0, 4).toUpperCase(),
               logo_url: dbTeam?.logo_url || null,
               totalPts: 0,
@@ -3773,10 +3808,17 @@ export default function App() {
               matches: 0
             };
           }
-          scrimSummary[cleanTeamName].totalPts += (Number(r.totalPts) || 0);
-          scrimSummary[cleanTeamName].totalKills += (Number(r.kills) || 0);
-          scrimSummary[cleanTeamName].matches += 1;
-          scrimSummary[cleanTeamName].wwcd += (typeof r.wwcd === 'number' ? r.wwcd : (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0)));
+          scrimSummary[teamKey].nameCounts.set(
+            cleanTeamName,
+            (scrimSummary[teamKey].nameCounts.get(cleanTeamName) || 0) + 1
+          );
+          if (!scrimSummary[teamKey].tag && r.tag) {
+            scrimSummary[teamKey].tag = r.tag;
+          }
+          scrimSummary[teamKey].totalPts += (Number(r.totalPts) || 0);
+          scrimSummary[teamKey].totalKills += (Number(r.kills) || 0);
+          scrimSummary[teamKey].matches += 1;
+          scrimSummary[teamKey].wwcd += (typeof r.wwcd === 'number' ? r.wwcd : (r.wwcd ? 1 : (Number(r.placement) === 1 ? 1 : 0)));
         });
       });
 
@@ -3785,12 +3827,13 @@ export default function App() {
         .sort((a, b) => b.totalPts - a.totalPts || b.wwcd - a.wwcd);
 
       sortedTeams.forEach((teamRes, idx) => {
-        const tName = teamRes.teamName;
-        const normKey = (tName || '').replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim().toLowerCase();
-        const dbTeam = teams.find(t => (t.name || '').replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim().toLowerCase() === normKey);
-        if (!stats[tName]) {
-          stats[tName] = {
-            name: tName,
+        const teamKey = teamRes.teamKey;
+        const dbTeam = registeredByKey[teamKey];
+        if (!statsByKey[teamKey]) {
+          statsByKey[teamKey] = {
+            canonicalKey: teamKey,
+            nameCounts: new Map(),
+            name: teamRes.teamName,
             tag: teamRes.tag,
             logo_url: dbTeam?.logo_url || null,
             scrimResults: [],
@@ -3799,16 +3842,23 @@ export default function App() {
             totalWWCD: 0,
             matchesCount: 0
           };
-        } else if (!stats[tName].logo_url && dbTeam?.logo_url) {
-          stats[tName].logo_url = dbTeam.logo_url;
+        } else if (!statsByKey[teamKey].logo_url && dbTeam?.logo_url) {
+          statsByKey[teamKey].logo_url = dbTeam.logo_url;
         }
 
-        stats[tName].totalKills += teamRes.totalKills;
-        stats[tName].totalPoints += teamRes.totalPts;
-        stats[tName].totalWWCD += teamRes.wwcd;
-        stats[tName].matchesCount += teamRes.matches;
+        teamRes.nameCounts.forEach((count, rawVariant) => {
+          statsByKey[teamKey].nameCounts.set(
+            rawVariant,
+            (statsByKey[teamKey].nameCounts.get(rawVariant) || 0) + count
+          );
+        });
 
-        stats[tName].scrimResults.push({
+        statsByKey[teamKey].totalKills += teamRes.totalKills;
+        statsByKey[teamKey].totalPoints += teamRes.totalPts;
+        statsByKey[teamKey].totalWWCD += teamRes.wwcd;
+        statsByKey[teamKey].matchesCount += teamRes.matches;
+
+        statsByKey[teamKey].scrimResults.push({
           scrimId: scrim.id,
           scrimData: scrim,
           scrimName: scrim.title,
@@ -3827,11 +3877,24 @@ export default function App() {
       });
     });
 
-    // Only return teams that actually have recorded match data!
+    // Only return teams that actually have recorded match data, using canonical display names!
     const activeStats = {};
-    Object.values(stats).forEach(t => {
+    Object.values(statsByKey).forEach(t => {
       if (t.matchesCount > 0 && t.scrimResults && t.scrimResults.length > 0) {
-        activeStats[t.name] = t;
+        const dbTeam = registeredByKey[t.canonicalKey];
+        const finalName = pickPreferredTeamDisplayName(t.nameCounts, dbTeam?.name || null) || t.name;
+        activeStats[finalName] = {
+          name: finalName,
+          canonicalKey: t.canonicalKey,
+          aliases: Array.from(t.nameCounts.keys()),
+          tag: dbTeam?.tag || t.tag,
+          logo_url: dbTeam?.logo_url || t.logo_url || null,
+          scrimResults: t.scrimResults,
+          totalKills: t.totalKills,
+          totalPoints: t.totalPoints,
+          totalWWCD: t.totalWWCD,
+          matchesCount: t.matchesCount
+        };
       }
     });
 
@@ -3862,7 +3925,8 @@ export default function App() {
     return categoryTeamList.filter(t => 
       !query || 
       t.name.toLowerCase().includes(query) || 
-      (t.tag && t.tag.toLowerCase().includes(query))
+      (t.tag && t.tag.toLowerCase().includes(query)) ||
+      (Array.isArray(t.aliases) && t.aliases.some(alias => alias.toLowerCase().includes(query)))
     );
   }, [categoryTeamList, teamSearchQuery]);
 
@@ -3872,11 +3936,13 @@ export default function App() {
     // 1. Registered teams from state
     teams.forEach(t => {
       if (t && t.name) {
-        const key = t.name.trim().toLowerCase();
+        const cleanName = cleanTeamDisplayName(t.name);
+        const key = getCanonicalTeamKey(cleanName);
+        if (!key) return;
         map.set(key, {
-          id: t.id || ('tm_' + t.name.replace(/\s+/g, '_').toLowerCase()),
-          name: t.name.trim(),
-          tag: (t.tag || t.name.slice(0, 4)).trim().toUpperCase(),
+          id: t.id || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase()),
+          name: cleanName,
+          tag: (t.tag || cleanName.slice(0, 4)).trim().toUpperCase(),
           logo_url: t.logo_url || ''
         });
       }
@@ -3885,12 +3951,14 @@ export default function App() {
     // 2. Teams appearing in scrims/Hall of Fame
     Object.values(teamsStats).forEach(st => {
       if (st && st.name) {
-        const key = st.name.trim().toLowerCase();
+        const cleanName = cleanTeamDisplayName(st.name);
+        const key = getCanonicalTeamKey(cleanName);
+        if (!key) return;
         if (!map.has(key)) {
           map.set(key, {
-            id: 'tm_' + st.name.replace(/\s+/g, '_').toLowerCase(),
-            name: st.name.trim(),
-            tag: (st.tag || st.name.slice(0, 4)).trim().toUpperCase(),
+            id: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase(),
+            name: cleanName,
+            tag: (st.tag || cleanName.slice(0, 4)).trim().toUpperCase(),
             logo_url: st.logo_url || ''
           });
         } else if (!map.get(key).logo_url && st.logo_url) {
@@ -4038,10 +4106,13 @@ export default function App() {
   };
 
   const currentSelectedTeam = useMemo(() => {
-    if (selectedTeamProfile && validTeamList.some(t => t.name === selectedTeamProfile)) {
+    if (!selectedTeamProfile) return '';
+    if (validTeamList.some(t => t.name === selectedTeamProfile)) {
       return selectedTeamProfile;
     }
-    return '';
+    const targetKey = getCanonicalTeamKey(selectedTeamProfile);
+    const matched = validTeamList.find(t => getCanonicalTeamKey(t.name) === targetKey);
+    return matched ? matched.name : '';
   }, [selectedTeamProfile, validTeamList]);
 
   const activeTeamData = currentSelectedTeam ? (teamsStats[currentSelectedTeam] || null) : null;

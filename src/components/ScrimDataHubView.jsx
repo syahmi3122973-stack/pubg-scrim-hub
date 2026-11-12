@@ -21,6 +21,7 @@ import {
   Users,
   Zap
 } from 'lucide-react';
+import { cleanTeamDisplayName, getCanonicalTeamKey } from '../utils/teamAlias';
 
 // Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
 export const MEC_SCRIMS_18_TEAMS = [
@@ -129,19 +130,11 @@ export function parsePosterDate(dateStr) {
 // Normalize team name variations (e.g. "[4KRV] ESPORTS OFFICIAL" -> canonical slug "4krv")
 export function normalizeTeamAlias(rawName) {
   if (!rawName) return { raw: '', canonicalName: '', slug: '', tag: '' };
-  const trimmed = String(rawName).trim();
-
-  // Extract bracketed tag if present e.g. [4KRV]
+  const trimmed = cleanTeamDisplayName(rawName);
   const bracketMatch = trimmed.match(/^\[([^\]]+)\]\s*(.*)$/);
-  const baseText = bracketMatch ? (bracketMatch[2] || bracketMatch[1]) : trimmed;
+  const baseKey = getCanonicalTeamKey(trimmed);
 
-  // Strip common suffix noise words ("OFFICIAL", "ESPORTS", "GAMING", "TEAM", "CLUB", "MY")
-  const stripped = baseText
-    .replace(/\b(official|esports|e-sports|gaming|team|squad|club|pubgm)\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  const finalDisplay = (stripped || baseText).toUpperCase();
+  const finalDisplay = (baseKey || trimmed).toUpperCase();
   const slug = finalDisplay
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
