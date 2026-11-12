@@ -1345,7 +1345,7 @@ export default function App() {
 
       if (teamsData && teamsData.length > 0) {
         setTeams(prevTeams => {
-          const map = new Map(teamsData.map(t => [t.name.toLowerCase(), t]));
+          const map = new Map(teamsData.map(t => [(t.name || '').trim().toLowerCase(), t]));
           try {
             const raw = localStorage.getItem('pubg_hub_custom_teams');
             if (raw) {
@@ -1353,8 +1353,9 @@ export default function App() {
               if (Array.isArray(parsed)) {
                 parsed.forEach(pt => {
                   if (pt && pt.name) {
-                    const existing = map.get(pt.name.toLowerCase());
-                    map.set(pt.name.toLowerCase(), { ...existing, ...pt });
+                    const key = pt.name.trim().toLowerCase();
+                    const existing = map.get(key);
+                    map.set(key, { ...existing, ...pt });
                   }
                 });
               }
@@ -3138,8 +3139,9 @@ export default function App() {
 
       sortedTeams.forEach((teamRes, idx) => {
         const tName = teamRes.teamName;
+        const normKey = (tName || '').trim().toLowerCase();
+        const dbTeam = teams.find(t => (t.name || '').trim().toLowerCase() === normKey);
         if (!stats[tName]) {
-          const dbTeam = teams.find(t => t.name.toLowerCase() === tName.toLowerCase());
           stats[tName] = {
             name: tName,
             tag: teamRes.tag,
@@ -3150,11 +3152,8 @@ export default function App() {
             totalWWCD: 0,
             matchesCount: 0
           };
-        } else if (!stats[tName].logo_url) {
-          const dbTeam = teams.find(t => t.name.toLowerCase() === tName.toLowerCase());
-          if (dbTeam?.logo_url) {
-            stats[tName].logo_url = dbTeam.logo_url;
-          }
+        } else if (!stats[tName].logo_url && dbTeam?.logo_url) {
+          stats[tName].logo_url = dbTeam.logo_url;
         }
 
         stats[tName].totalKills += teamRes.totalKills;
@@ -3226,10 +3225,11 @@ export default function App() {
     // 1. Registered teams from state
     teams.forEach(t => {
       if (t && t.name) {
-        map.set(t.name.toLowerCase(), {
+        const key = t.name.trim().toLowerCase();
+        map.set(key, {
           id: t.id || ('tm_' + t.name.replace(/\s+/g, '_').toLowerCase()),
-          name: t.name,
-          tag: t.tag || t.name.slice(0, 4).toUpperCase(),
+          name: t.name.trim(),
+          tag: (t.tag || t.name.slice(0, 4)).trim().toUpperCase(),
           logo_url: t.logo_url || ''
         });
       }
@@ -3238,14 +3238,16 @@ export default function App() {
     // 2. Teams appearing in scrims/Hall of Fame
     Object.values(teamsStats).forEach(st => {
       if (st && st.name) {
-        const key = st.name.toLowerCase();
+        const key = st.name.trim().toLowerCase();
         if (!map.has(key)) {
           map.set(key, {
             id: 'tm_' + st.name.replace(/\s+/g, '_').toLowerCase(),
-            name: st.name,
-            tag: st.tag || st.name.slice(0, 4).toUpperCase(),
+            name: st.name.trim(),
+            tag: (st.tag || st.name.slice(0, 4)).trim().toUpperCase(),
             logo_url: st.logo_url || ''
           });
+        } else if (!map.get(key).logo_url && st.logo_url) {
+          map.get(key).logo_url = st.logo_url;
         }
       }
     });
@@ -3279,9 +3281,9 @@ export default function App() {
 
       // 1. Update React state & localStorage
       setTeams(prevTeams => {
-        const map = new Map(prevTeams.map(t => [t.name.toLowerCase(), t]));
-        if (updatedTeam._originalName && updatedTeam._originalName.toLowerCase() !== cleanTeam.name.toLowerCase()) {
-          map.delete(updatedTeam._originalName.toLowerCase());
+        const map = new Map(prevTeams.map(t => [t.name.trim().toLowerCase(), t]));
+        if (updatedTeam._originalName && updatedTeam._originalName.trim().toLowerCase() !== cleanTeam.name.toLowerCase()) {
+          map.delete(updatedTeam._originalName.trim().toLowerCase());
         }
         map.set(cleanTeam.name.toLowerCase(), cleanTeam);
         const nextTeams = Array.from(map.values());
@@ -3294,19 +3296,49 @@ export default function App() {
       });
 
       // 2. Persist to Supabase teams table
+      let syncError = null;
       try {
-        await supabase
+        const { data: existingTeams, error: findErr } = await supabase
           .from('teams')
-          .upsert({
-            name: cleanTeam.name,
-            tag: cleanTeam.tag,
-            logo_url: cleanTeam.logo_url
-          }, { onConflict: 'name' });
+          .select('id, name')
+          .ilike('name', cleanTeam.name);
+
+        if (findErr) throw findErr;
+
+        const existingTeam = existingTeams && existingTeams.length > 0 ? existingTeams[0] : null;
+
+        if (existingTeam) {
+          const { error: updErr } = await supabase
+            .from('teams')
+            .update({
+              tag: cleanTeam.tag,
+              logo_url: cleanTeam.logo_url
+            })
+            .eq('id', existingTeam.id);
+          if (updErr) throw updErr;
+        } else {
+          const { error: insErr } = await supabase
+            .from('teams')
+            .insert({
+              id: cleanTeam.id,
+              name: cleanTeam.name,
+              tag: cleanTeam.tag,
+              logo_url: cleanTeam.logo_url
+            });
+          if (insErr) throw insErr;
+        }
       } catch (dbErr) {
-        console.info('Supabase teams sync note:', dbErr);
+        syncError = dbErr;
+        console.warn('Supabase teams sync note:', dbErr);
       }
 
-      showToast(`Pasukan ${cleanTeam.name} berjaya dikemaskini!`);
+      if (syncError && syncError.message?.includes('logo_url')) {
+        showToast(`Pasukan ${cleanTeam.name} disimpan secara lokal! Sila tambah kolum logo_url di Supabase teams.`);
+      } else if (syncError) {
+        showToast(`Pasukan disimpan (Cloud note: ${syncError.message})`);
+      } else {
+        showToast(`Pasukan ${cleanTeam.name} & logo berjaya disimpan ke Cloud!`);
+      }
       setEditingTeam(null);
     } catch (error) {
       showToast('Gagal menyimpan: ' + error.message);
@@ -3328,7 +3360,7 @@ export default function App() {
     try {
       let publicUrl = null;
       try {
-        publicUrl = await uploadImageToStorage(file, 'team-logos');
+        publicUrl = await uploadMediaToSupabase(file, 'team-logos');
       } catch (storageErr) {
         console.warn('Storage upload error, using local data URL fallback:', storageErr);
       }
@@ -3347,7 +3379,7 @@ export default function App() {
         logo_url: publicUrl
       }));
 
-      showToast('Gambar logo dipilih!');
+      showToast('Gambar logo berjaya dimuat naik!');
     } catch (err) {
       showToast('Gagal memuat naik gambar: ' + err.message);
     } finally {
