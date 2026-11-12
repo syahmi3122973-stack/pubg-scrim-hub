@@ -4335,8 +4335,8 @@ export default function App() {
       )}
 
       {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
-      <header className={`bg-[#080808] sticky top-0 z-40 px-4 pt-3 pb-1 md:py-3.5 transition-colors ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+      <header className={`bg-[#080808] sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-1 md:py-3.5 transition-colors ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
           <div className="flex items-center gap-2.5 z-10">
@@ -4789,7 +4789,7 @@ export default function App() {
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
           key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
           className={navDirection === 'backward' ? 'animate-tab-backward' : 'animate-tab-forward'}
@@ -4800,7 +4800,7 @@ export default function App() {
           // 1. LOADING SESSION STATE: Minimalist Dark Skeleton / Spinner
           if (isAuthChecking) {
             return (
-              <div className="max-w-xl mx-auto space-y-4 pt-2 pb-6" aria-busy="true" aria-label="Loading session">
+              <div className="max-w-xl md:max-w-full mx-auto space-y-4 pt-2 pb-6" aria-busy="true" aria-label="Loading session">
                 <div className="flex items-center justify-between px-1">
                   <div className="h-4 w-32 rounded-full bg-zinc-900 animate-pulse" />
                   <div className="h-6 w-24 rounded-full bg-zinc-900 animate-pulse flex items-center justify-center gap-1.5 px-3">
@@ -4808,18 +4808,18 @@ export default function App() {
                     <span className="text-[10px] font-mono text-zinc-400">Syncing...</span>
                   </div>
                 </div>
-                <div className="h-44 rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse p-6 flex flex-col justify-between">
-                  <div className="h-6 w-40 rounded-full bg-zinc-800/80" />
-                  <div className="space-y-2">
-                    <div className="h-4 w-56 rounded-full bg-zinc-800/60" />
-                    <div className="h-3 w-36 rounded-full bg-zinc-800/40" />
+                <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-5">
+                  <div className="col-span-2 lg:col-span-6 h-44 lg:h-96 rounded-[2rem] bg-[#111115] animate-pulse p-6 flex flex-col justify-between">
+                    <div className="h-6 w-40 rounded-full bg-zinc-800/80" />
+                    <div className="space-y-2">
+                      <div className="h-4 w-56 rounded-full bg-zinc-800/60" />
+                      <div className="h-3 w-36 rounded-full bg-zinc-800/40" />
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3.5">
-                  <div className="h-72 rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse" />
-                  <div className="space-y-3.5">
-                    <div className="h-[137px] rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse" />
-                    <div className="h-[137px] rounded-[2rem] bg-[#111115] border border-white/5 animate-pulse" />
+                  <div className="col-span-1 lg:col-span-3 h-72 lg:h-96 rounded-[2rem] bg-[#111115] animate-pulse" />
+                  <div className="col-span-1 lg:col-span-3 space-y-3.5 lg:space-y-5">
+                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] bg-[#111115] animate-pulse" />
+                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] bg-[#111115] animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -4828,6 +4828,11 @@ export default function App() {
 
           // 2. BENTO-GRID COMMAND CENTER (Available for both Guests & Authenticated Users)
           const leadingTeam = validTeamList[0] || null;
+          const topThreePreview = validTeamList.slice(0, 3);
+          const desktopContenders = validTeamList.slice(0, 4);
+          const desktopTopPoints = Math.max(desktopContenders[0]?.totalPoints || 1, 1);
+          const recentSessionsDock = scrims.slice(0, 3);
+
           const highestKillTeam = validTeamList.reduce((best, cur) => {
             const curAvg = cur.scrimResults?.length ? cur.totalKills / cur.scrimResults.length : 0;
             const bestAvg = best?.scrimResults?.length ? best.totalKills / best.scrimResults.length : 0;
@@ -4854,17 +4859,35 @@ export default function App() {
           const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
 
           return (
-            <div className="max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-4 sm:space-y-6 pt-1 pb-6 md:pb-12">
+            <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
+
+              {/* Immersive Esports Ambient Backdrop (Desktop only so mobile stays crisp & fast) */}
+              <div aria-hidden="true" className="hidden md:block pointer-events-none absolute -inset-x-10 -top-10 h-[560px] overflow-hidden -z-10">
+                <div className="absolute -top-10 left-[6%] w-[460px] h-[340px] rounded-full bg-[#D7FF00]/[0.07] blur-[120px] animate-ambient-breathe" />
+                <div
+                  className="absolute top-6 right-[8%] w-[420px] h-[340px] rounded-full bg-pink-500/[0.06] blur-[130px] animate-ambient-breathe"
+                  style={{ animationDelay: '3s' }}
+                />
+                <div
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[540px] h-[240px] rounded-full bg-emerald-500/[0.05] blur-[120px]"
+                />
+                <div
+                  className="absolute inset-0 opacity-[0.16] [background-image:radial-gradient(rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_at_top,black_25%,transparent_75%)]"
+                />
+              </div>
               
-              {/* Subtle Command Center Greeting Header (Zero progress bars or % indicators) */}
-              <div className="flex items-center justify-between px-1.5 md:px-2">
-                <div>
+              {/* TIER 1: Command Center Greeting Header + Desktop Live Telemetry Strip */}
+              <div
+                className="flex items-center justify-between gap-4 px-1.5 md:px-1 animate-home-tier"
+                style={{ '--home-delay': '0ms' }}
+              >
+                <div className="min-w-0">
                   {currentUser ? (
-                    <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
+                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight">
                       Welcome back, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
                     </h1>
                   ) : (
-                    <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight">
+                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight">
                       Hi, <span className="text-[#D7FF00]">new person!</span>
                     </h1>
                   )}
@@ -4872,31 +4895,49 @@ export default function App() {
                     Pusat Kawalan Esports PUBG Mobile • Leaderboard, Auto-Scoring &amp; Arkib Kejohanan
                   </p>
                 </div>
-                {currentUser ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
-                    <span>{adminHostedScrims.length} Hosted</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group shadow-md"
-                  >
-                    <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00] group-hover:scale-110 transition-transform" />
-                    <span>Log Masuk</span>
-                  </button>
-                )}
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {/* Live Season Telemetry Pills (Desktop only) */}
+                  <div className="hidden lg:flex items-center gap-2">
+                    <div className="px-3.5 py-2 rounded-full bg-[#121216]/90 text-xs font-mono font-bold text-zinc-300 flex items-center gap-2 shadow-md">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-status-beacon absolute inline-flex h-full w-full rounded-full bg-[#D7FF00]" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D7FF00]" />
+                      </span>
+                      <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
+                    </div>
+                    <div className="px-3.5 py-2 rounded-full bg-[#121216]/90 text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 shadow-md">
+                      <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                      <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
+                    </div>
+                  </div>
+
+                  {currentUser ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileModalOpen(true)}
+                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
+                      <span>{adminHostedScrims.length} Hosted</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group shadow-md"
+                    >
+                      <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00] group-hover:scale-110 transition-transform" />
+                      <span>Log Masuk</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-                {/* BENTO GRID LAYOUT */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 lg:gap-5">
+                {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
+                <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5">
                   
-                  {/* CARD A: Top Full-Width Card (Yellow / Acid Gold Accent) — [Hall of Fame] */}
+                  {/* CARD A: Focal Hero Card (Acid Lime Accent) — [Hall of Fame] */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -4907,36 +4948,41 @@ export default function App() {
                         navigateToTab('teams');
                       }
                     }}
-                    className="col-span-2 lg:col-span-2 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] active:scale-[0.98] transition-all duration-200 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between"
+                    style={{ '--home-delay': '80ms' }}
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] lg:hover:-translate-y-1 lg:hover:shadow-[0_22px_55px_rgba(215,255,0,0.28)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
-                    {/* Ambient decorative glow */}
-                    <div className="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/25 blur-2xl pointer-events-none" />
+                    {/* Ambient decorative glow & hover light sheen */}
+                    <div className="absolute -right-8 -top-8 w-36 lg:w-52 h-36 lg:h-52 rounded-full bg-white/25 blur-2xl pointer-events-none" />
+                    <div
+                      aria-hidden="true"
+                      className="hidden md:block hero-card-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    />
 
-                    <div className="relative z-10 flex flex-col justify-between gap-4">
+                    <div className="relative z-10 flex flex-col justify-between gap-4 lg:h-full">
                       {/* Top Row: Title + Trophy/Star Icon */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
                           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
                             <span>Current Ranking</span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-black leading-none pt-0.5">
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-black leading-none pt-0.5">
                             Hall of Fame
                           </h2>
                         </div>
 
-                        <div className="w-12 h-12 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
-                          <Trophy className="w-6 h-6 stroke-[2.2]" />
+                        <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
+                          <Trophy className="w-6 h-6 lg:w-7 lg:h-7 stroke-[2.2]" />
                         </div>
                       </div>
 
                       {/* Mini-info: Snapshot of top-performing teams */}
-                      <div className="grid grid-cols-2 gap-2.5 pt-1">
-                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3">
+                      <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
+                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
                           <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
                             #1 Leading Clan
                           </span>
                           <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                            <span className="text-sm sm:text-base font-black text-black truncate">
+                            <span className="text-sm sm:text-base lg:text-lg font-black text-black truncate">
                               {leadingTeam ? leadingTeam.name : 'Geek Fam'}
                             </span>
                             <span className="text-xs font-mono font-black text-black/80 shrink-0">
@@ -4945,12 +4991,12 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3">
+                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 lg:p-3.5">
                           <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
                             Kill Avg • WWCD Streak
                           </span>
                           <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                            <span className="text-sm sm:text-base font-black text-black font-mono">
+                            <span className="text-sm sm:text-base lg:text-lg font-black text-black font-mono">
                               {highestKillAvgVal} Elims
                             </span>
                             <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-black text-[#D7FF00] shrink-0">
@@ -4959,6 +5005,48 @@ export default function App() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Desktop-only Live Top 3 Podium Mini-Strip inside Hero Card */}
+                      {topThreePreview.length > 0 && (
+                        <div className="hidden lg:flex flex-col gap-2 pt-1">
+                          <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-black/65 px-0.5">
+                            <span>Live Podium Top 3</span>
+                            <span className="inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                              <span>Buka Leaderboard</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2.5">
+                            {topThreePreview.map((team, idx) => (
+                              <div
+                                key={team.name}
+                                className="rounded-xl bg-black/12 px-3 py-2 flex items-center gap-2 min-w-0"
+                              >
+                                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
+                                  idx === 0 ? 'bg-black text-[#D7FF00]' : 'bg-black/20 text-black'
+                                }`}>
+                                  #{idx + 1}
+                                </span>
+                                {team.logo_url && (
+                                  <img
+                                    src={team.logo_url}
+                                    alt=""
+                                    className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/20"
+                                  />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-black text-black truncate leading-tight">
+                                    {team.name}
+                                  </div>
+                                  <div className="text-[10px] font-mono font-bold text-black/75 leading-tight">
+                                    {team.totalPoints} PTS • {team.totalWWCD}W
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -4973,13 +5061,14 @@ export default function App() {
                         navigateToTab('scrim-data');
                       }
                     }}
-                    className="col-span-1 row-span-2 lg:col-span-1 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px]"
+                    style={{ '--home-delay': '160ms' }}
+                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[0_22px_50px_rgba(236,72,153,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
                   >
                     <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none" />
 
                     {/* Top Icon & Badge */}
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-md group-hover:scale-105 group-hover:-rotate-3 transition-transform">
                         <Sparkles className="w-5 h-5" />
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md text-[10px] font-mono font-black uppercase tracking-wider">
@@ -4987,9 +5076,13 @@ export default function App() {
                       </span>
                     </div>
 
-                    {/* Middle Visual Graphic */}
+                    {/* Middle Visual Graphic with Animated Laser Scan-Line */}
                     <div className="my-auto py-4 relative z-10 space-y-2">
-                      <div className="p-3 rounded-2xl bg-black/25 backdrop-blur-md space-y-1.5">
+                      <div className="p-3 lg:p-3.5 rounded-2xl bg-black/25 backdrop-blur-md space-y-1.5 relative overflow-hidden">
+                        <div
+                          aria-hidden="true"
+                          className="animate-ocr-scanline pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/80 to-transparent shadow-[0_0_12px_rgba(255,255,255,0.8)]"
+                        />
                         <div className="flex items-center justify-between text-[10px] font-mono text-pink-100">
                           <span>Auto-Audit Math</span>
                           <CheckCircle className="w-3.5 h-3.5 text-white" />
@@ -5022,21 +5115,26 @@ export default function App() {
                         navigateToTab('scorer');
                       }
                     }}
-                    className="col-span-1 lg:col-span-1 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] text-white shadow-[0_12px_30px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px]"
+                    style={{ '--home-delay': '230ms' }}
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] text-white shadow-[0_12px_30px_rgba(59,130,246,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[0_20px_45px_rgba(59,130,246,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
 
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:rotate-3 transition-transform">
                         <Edit3 className="w-4 h-4" />
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-mono font-bold text-blue-100">
-                        Live Entry
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-mono font-bold text-blue-100">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-status-beacon absolute inline-flex h-full w-full rounded-full bg-sky-300" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-200" />
+                        </span>
+                        <span>Live Entry</span>
                       </span>
                     </div>
 
                     <div className="space-y-1 pt-3 relative z-10">
-                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight">
                         Quick Scorer
                       </h2>
                       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/25 text-[10px] font-mono font-semibold text-blue-100 max-w-full">
@@ -5056,12 +5154,13 @@ export default function App() {
                         navigateToTab('history');
                       }
                     }}
-                    className="col-span-1 lg:col-span-1 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white shadow-[0_12px_30px_rgba(16,185,129,0.22)] active:scale-[0.98] transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px]"
+                    style={{ '--home-delay': '300ms' }}
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white shadow-[0_12px_30px_rgba(16,185,129,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[0_20px_45px_rgba(16,185,129,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
 
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:-rotate-3 transition-transform">
                         <Clock className="w-4 h-4" />
                       </div>
 
@@ -5080,7 +5179,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1 pt-3 relative z-10">
-                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight">
                         Rekod / Sessions
                       </h2>
                       <p className="text-[11px] font-medium text-emerald-100 truncate">
@@ -5089,6 +5188,223 @@ export default function App() {
                     </div>
                   </div>
 
+                </div>
+
+                {/* TIER 3: DESKTOP IMMERSIVE LIVE ARENA DOCK (Hidden on mobile so phone view remains compact & identical) */}
+                <div
+                  className="hidden lg:grid lg:grid-cols-12 lg:gap-5 animate-home-tier"
+                  style={{ '--home-delay': '370ms' }}
+                >
+                  {/* Left: Top Contenders Live Standings */}
+                  <div className="lg:col-span-7 bg-[#111115]/95 rounded-[2rem] p-6 shadow-2xl space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/15 text-[#D7FF00] flex items-center justify-center">
+                          <Flame className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-black text-white tracking-tight">
+                            Top Contenders Semasa
+                          </h3>
+                          <p className="text-[11px] text-zinc-400">
+                            Klik mana-mana pasukan untuk terus buka profil analitik &amp; graf scrim
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('teams')}
+                        className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                      >
+                        <span>Hall of Fame</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {desktopContenders.length > 0 ? (
+                      <div className="space-y-2.5">
+                        {desktopContenders.map((team, idx) => {
+                          const pct = Math.max(12, Math.round((team.totalPoints / desktopTopPoints) * 100));
+                          return (
+                            <button
+                              key={team.name}
+                              type="button"
+                              onClick={() => {
+                                navigateToTab('teams');
+                                setSelectedTeamProfile(team.name);
+                              }}
+                              className="w-full text-left rounded-2xl bg-[#16161c] hover:bg-[#1c1c24] px-4 py-3 flex items-center gap-3.5 transition-[transform,background-color] duration-200 hover:translate-x-1 cursor-pointer group"
+                            >
+                              <span
+                                className={`w-8 h-8 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
+                                  idx === 0
+                                    ? 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215,255,0,0.28)]'
+                                    : idx === 1
+                                    ? 'bg-zinc-200 text-black'
+                                    : idx === 2
+                                    ? 'bg-amber-400 text-black'
+                                    : 'bg-zinc-800 text-zinc-300'
+                                }`}
+                              >
+                                #{idx + 1}
+                              </span>
+
+                              {team.logo_url ? (
+                                <img
+                                  src={team.logo_url}
+                                  alt=""
+                                  className="w-9 h-9 rounded-xl object-cover shrink-0 bg-zinc-900"
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-xl bg-zinc-900 text-[#D7FF00] font-black text-xs flex items-center justify-center shrink-0">
+                                  {(team.tag || team.name.slice(0, 3)).toUpperCase()}
+                                </div>
+                              )}
+
+                              <div className="min-w-0 flex-1 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                                      {team.name}
+                                    </span>
+                                    {team.tag && (
+                                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-800/90 text-zinc-400 shrink-0">
+                                        {team.tag}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs font-mono shrink-0">
+                                    <span className="text-zinc-400">{team.totalKills} Kills</span>
+                                    <span className="text-emerald-400 font-bold">{team.totalWWCD} WWCD</span>
+                                    <span className="text-[#D7FF00] font-black">{team.totalPoints} PTS</span>
+                                  </div>
+                                </div>
+
+                                <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                                  <div
+                                    style={{ width: `${pct}%` }}
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      idx === 0
+                                        ? 'bg-gradient-to-r from-[#D7FF00] to-lime-300'
+                                        : 'bg-zinc-600 group-hover:bg-zinc-400'
+                                    }`}
+                                  />
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-10 text-center text-xs text-zinc-500 rounded-2xl bg-[#16161c]/70">
+                        Belum ada data ranking pasukan direkodkan.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Recent Sessions & Quick Portal Actions */}
+                  <div className="lg:col-span-5 bg-[#111115]/95 rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between gap-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                            <Clock className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-black text-white tracking-tight">
+                              Arkib Sesi Terkini
+                            </h3>
+                            <p className="text-[11px] text-zinc-400">
+                              Klik sesi untuk terus semak scoreboard penuh
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => navigateToTab('history')}
+                          className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-emerald-400 flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                        >
+                          <span>Semua Rekod</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {recentSessionsDock.length > 0 ? (
+                        <div className="space-y-2.5">
+                          {recentSessionsDock.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => setInspectedScrim(s)}
+                              className="w-full text-left rounded-2xl bg-[#16161c] hover:bg-[#1c1c24] px-4 py-3 flex items-center justify-between gap-3 transition-[transform,background-color] duration-200 hover:translate-x-1 cursor-pointer group"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                {s.logo_url ? (
+                                  <img
+                                    src={s.logo_url}
+                                    alt=""
+                                    className="w-9 h-9 rounded-xl object-cover shrink-0 bg-zinc-900"
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0">
+                                    {s.event_type === 'Tour' ? (
+                                      <Trophy className="w-4 h-4" />
+                                    ) : (
+                                      <Flame className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <div className="text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                                    {s.title}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono">
+                                    <span>{s.date || 'Tarikh -'}</span>
+                                    <span>•</span>
+                                    <span>{s.matches?.length || s.total_matches || 1} Match</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <span
+                                className={`text-[10px] font-mono font-black px-2.5 py-1 rounded-full shrink-0 ${
+                                  s.is_finished
+                                    ? 'bg-emerald-500/15 text-emerald-300'
+                                    : 'bg-amber-500/15 text-amber-300'
+                                }`}
+                              >
+                                {s.is_finished ? 'Selesai' : 'Live'}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-10 text-center text-xs text-zinc-500 rounded-2xl bg-[#16161c]/70">
+                          Tiada rekod sesi terkini dijumpai.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Desktop Shortcut Footer */}
+                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('scrim-data')}
+                        className="py-2.5 px-3.5 rounded-2xl bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                        <span>Scan Poster AI</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('admin')}
+                        className="py-2.5 px-3.5 rounded-2xl bg-[#D7FF00]/15 hover:bg-[#D7FF00]/25 text-[#D7FF00] text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Portal Host</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -5157,7 +5473,7 @@ export default function App() {
               : 0;
 
             return (
-              <div className="max-w-xl lg:max-w-2xl mx-auto space-y-4 pt-1 pb-10 animate-in fade-in duration-200 relative">
+              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-10 animate-in fade-in duration-200 relative">
                 {/* Prestigious Gold Ambient Background Glow */}
                 <div 
                   aria-hidden="true" 
@@ -5263,7 +5579,10 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 3. INTERACTIVE STATS BENTO GRID (4 CARDS) */}
+                {/* DESKTOP 2-COLUMN ANALYTICS & MATCH LOGS SPLIT (Mobile stays vertical) */}
+                <div className="space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0 lg:items-start">
+                  <div className="space-y-4 lg:col-span-7">
+                    {/* 3. INTERACTIVE STATS BENTO GRID (4 CARDS) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {/* Points */}
                   <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
@@ -5367,9 +5686,10 @@ export default function App() {
                   <Share2 className="w-4 h-4 text-black" />
                   <span>Jana Kad Analitik &amp; IG Story 9:16</span>
                 </button>
+                  </div>
 
                 {/* 6. SEJARAH PERLAWANAN DENGAN ACCORDION DROPDOWN ICON */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-3 pt-2 lg:pt-0 lg:col-span-5">
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black text-white uppercase tracking-wider">
@@ -5515,6 +5835,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
+                </div>
               </div>
             );
           }
@@ -5543,7 +5864,7 @@ export default function App() {
           }
 
           return (
-            <div className="max-w-xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 sm:space-y-7 pt-1 pb-4 md:pb-12 relative">
+            <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-4 md:pb-12 relative">
               {/* Prestigious Gold Ambient Background Glow */}
               <div 
                 aria-hidden="true" 
@@ -5842,7 +6163,7 @@ export default function App() {
                       : top3Teams.map((t, i) => ({ team: t, slotRank: i + 1 }));
 
                   return (
-                    <div className="max-w-4xl mx-auto space-y-2.5 sm:space-y-3">
+                    <div className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-2.5 sm:space-y-3">
                       {/* TOP 3 PODIUM SHOWCASE */}
                       {podiumSlots.length > 0 && (
                         <div
@@ -6126,7 +6447,7 @@ export default function App() {
 
         {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
-          <div className="max-w-xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-4 md:pb-12">
+          <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-4 md:pb-12">
             
             {/* 1. TOP NAVIGATION BAR (Exact Position & Size of Search & Info Buttons as Teams / Hall of Fame) */}
             <div className="flex items-center justify-between px-1">
@@ -6333,7 +6654,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 px-1">
                 {filteredScrims.map((s, idx) => {
                   const isFinished = Boolean(s.is_finished);
 
@@ -8563,7 +8884,7 @@ export default function App() {
           aria-labelledby="profile-drawer-title"
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:shadow-2xl md:px-6 lg:px-8">
+          <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:shadow-2xl md:px-6 lg:px-10 xl:px-12">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
             <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] shrink-0 md:rounded-3xl md:mt-4">
               {/* Subtle ambient light effects */}
