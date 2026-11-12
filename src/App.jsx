@@ -6448,6 +6448,16 @@ export default function App() {
                 )}
               </div>
 
+              {/* 5. DATA SOURCE DISCLAIMER FOOTNOTE */}
+              <div className="pt-1 pb-2 px-3 text-center space-y-1">
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Nota: Data statistik dikumpul daripada platform scrim bermula <strong className="text-zinc-300 font-semibold">November 2026</strong>.
+                </p>
+                <p className="text-[10px] font-mono text-zinc-400/90 tracking-wide leading-relaxed">
+                  MEC SCRIMS • BUNNYKUN SCRIMS • BEN ESPORTS SCRIMS • CT SCRIMS • KxLatte SCRIMS
+                </p>
+              </div>
+
             </div>
           );
         })()}
