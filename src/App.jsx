@@ -8827,14 +8827,14 @@ export default function App() {
                       onClick={() => setEditEventType('Scrim')}
                       className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Scrim' ? 'bg-[#D7FF00] text-black shadow-xs' : 'text-zinc-400 hover:text-white')}
                     >
-                      Scrim (Practice)
+                      Scrim
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditEventType('Tour')}
                       className={'flex-1 py-1.5 rounded-lg font-black transition ' + (editEventType === 'Tour' ? 'bg-amber-500 text-white shadow-xs' : 'text-zinc-400 hover:text-white')}
                     >
-                      Tour (Official Tournament)
+                      Tournament
                     </button>
                   </div>
                 </div>
@@ -8939,39 +8939,60 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
             
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center space-x-3">
-                {inspectedScrim.logo_url && (
-                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-sm" />
+            <div className="flex items-start justify-between border-b border-white/5 pb-3.5 gap-3">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                {inspectedScrim.logo_url ? (
+                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-sm shrink-0 mt-0.5" />
+                ) : (
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                    {inspectedScrim.event_type === 'Tour' ? (
+                      <Trophy className="w-5 h-5 text-[#D7FF00]" />
+                    ) : (
+                      <Flame className="w-5 h-5 text-[#D7FF00]" />
+                    )}
+                  </div>
                 )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={'text-[10px] font-black px-2 py-0.5 rounded-full font-mono ' + (
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-black text-white leading-snug break-words">
+                    {inspectedScrim.title}
+                  </h3>
+
+                  {/* Clean, Non-overlapping Metadata Badges */}
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span className={'text-[10px] font-black px-2.5 py-0.5 rounded-full font-mono shrink-0 ' + (
                       inspectedScrim.event_type === 'Tour'
                         ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
                         : 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30'
                     )}>
                       {(inspectedScrim.event_type || 'Scrim').toUpperCase()}
                     </span>
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-white/10 font-mono">
+
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-white/10 font-mono shrink-0">
                       {inspectedScrim.tier || 'Tier 1'}
                     </span>
-                    <span className="text-[10px] text-zinc-400">{inspectedScrim.date}</span>
+
+                    {inspectedScrim.date && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-400 bg-zinc-900/60 px-2.5 py-0.5 rounded-full border border-white/5 shrink-0">
+                        <Clock className="w-2.5 h-2.5 text-zinc-500" />
+                        <span>{inspectedScrim.date}</span>
+                      </span>
+                    )}
+
                     {inspectedScrim.is_finished && (
-                      <span className="text-[10px] bg-[#D7FF00] text-black font-black px-2 py-0.5 rounded-full uppercase">
-                        Final
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-[#D7FF00] text-black font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm shrink-0">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        <span>Final</span>
                       </span>
                     )}
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
-                    {inspectedScrim.title}
-                  </h3>
                 </div>
               </div>
 
               <button 
+                type="button"
                 onClick={() => setInspectedScrim(null)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition shrink-0 cursor-pointer active:scale-95"
+                aria-label="Tutup"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -9007,9 +9028,6 @@ export default function App() {
                 <span className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse"></span>
                   <span>Live Official Standings</span>
-                </span>
-                <span className="text-[10px] font-mono text-zinc-400 font-bold bg-zinc-900 border border-white/5 px-2 py-0.5 rounded-md">
-                  PMGC Formula (1st=10pts, 1pt/elim)
                 </span>
               </div>
 
