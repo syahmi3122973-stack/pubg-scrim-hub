@@ -212,14 +212,14 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
   if (items.length === 0) {
     return (
-      <div className="bg-[#121216] border border-white/10 rounded-2xl p-5 text-center text-xs text-zinc-500">
+      <div className="bg-[#121216] rounded-2xl p-5 text-center text-xs text-zinc-500">
         Tiada rekod scrim untuk memaparkan graf prestasi Kills &amp; Placement Points.
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden bg-[#121216] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-lg">
+    <div className="relative overflow-hidden bg-[#121216] rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-lg">
       {/* Subtle Ambient Corner Glow */}
       <div
         aria-hidden="true"
@@ -239,11 +239,11 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
         </div>
 
         <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[#D7FF00]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D7FF00]/12 text-[#D7FF00]">
             <span className="w-2 h-2 rounded-full bg-[#D7FF00] shadow-[0_0_6px_#D7FF00]" />
             <span>Kills</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-400/30 text-teal-300">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-500/12 text-teal-300">
             <span className="w-2 h-2 rounded-full bg-teal-400 shadow-[0_0_6px_#2dd4bf]" />
             <span>PP</span>
           </span>
@@ -252,21 +252,21 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
       {/* LEVEL 2: Hierarchy Insight Strip (Averages & Peak Callout) */}
       <div className="grid grid-cols-3 gap-2 relative z-10">
-        <div className="bg-zinc-900/70 border border-white/5 rounded-xl px-2.5 py-2">
+        <div className="bg-zinc-900/75 rounded-xl px-2.5 py-2">
           <span className="text-[9px] font-mono uppercase text-zinc-500 block truncate">Purata Kills</span>
           <span className="text-xs sm:text-sm font-black font-mono text-[#D7FF00]">
             {avgKills} <span className="text-[10px] text-zinc-400 font-semibold">/ scrim</span>
           </span>
         </div>
 
-        <div className="bg-zinc-900/70 border border-white/5 rounded-xl px-2.5 py-2">
+        <div className="bg-zinc-900/75 rounded-xl px-2.5 py-2">
           <span className="text-[9px] font-mono uppercase text-zinc-500 block truncate">Purata PP</span>
           <span className="text-xs sm:text-sm font-black font-mono text-teal-300">
             {avgPp} <span className="text-[10px] text-zinc-400 font-semibold">/ scrim</span>
           </span>
         </div>
 
-        <div className="bg-zinc-900/70 border border-white/5 rounded-xl px-2.5 py-2">
+        <div className="bg-zinc-900/75 rounded-xl px-2.5 py-2">
           <span className="text-[9px] font-mono uppercase text-zinc-500 block truncate">Puncak Terbaik</span>
           <span className="text-xs sm:text-sm font-black font-mono text-white truncate block">
             {bestScrim ? `${bestScrim.points} PTS` : '-'}
@@ -275,7 +275,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       </div>
 
       {/* Interactive Inspector Strip on Hover / Tap */}
-      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-white/5 text-[11px] relative z-10">
+      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 text-[11px] relative z-10">
         {activePoint ? (
           <>
             <span className="font-bold text-white truncate">
@@ -547,7 +547,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       </div>
 
       {/* LEVEL 4: Chronological Footnote */}
-      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono border-t border-white/5 pt-2 relative z-10">
+      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono pt-1.5 relative z-10">
         <span>Kronologi: Lama → Terkini</span>
         <span>{items.length} Sesi Dianalisis</span>
       </div>

@@ -4571,7 +4571,7 @@ export default function App() {
 
           {/* TOP RIGHT: Desktop Navigation & Menu */}
           <div className="flex items-center gap-2 z-10">
-            <nav className="hidden md:flex space-x-1 bg-zinc-900/70 p-1 rounded-2xl border border-white/10 text-xs font-semibold items-center backdrop-blur-md shadow-lg">
+            <nav className="hidden md:flex space-x-1 bg-zinc-900/75 p-1 rounded-2xl text-xs font-semibold items-center backdrop-blur-md shadow-lg">
               <button
                 type="button"
                 onClick={() => navigateToTab('playground')}
@@ -4579,7 +4579,7 @@ export default function App() {
                 aria-label="Home"
                 className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'playground' || activeTab === 'home'
-                    ? 'bg-zinc-800 text-[#D7FF00] font-black shadow-xs ring-1 ring-white/10' 
+                    ? 'bg-zinc-800 text-[#D7FF00] font-black shadow-xs' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
@@ -4593,7 +4593,7 @@ export default function App() {
                 aria-label="Rekod Kejohanan"
                 className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'history' || activeTab === 'leaderboard'
-                    ? 'bg-emerald-500/20 text-emerald-300 font-black border border-emerald-500/30' 
+                    ? 'bg-emerald-500/20 text-emerald-300 font-black' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
@@ -4607,7 +4607,7 @@ export default function App() {
                 aria-label="Hall of Fame"
                 className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'teams'
-                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
+                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
@@ -4621,7 +4621,7 @@ export default function App() {
                 aria-label="Host Portal"
                 className={'flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'admin'
-                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
+                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 font-bold'
                 )}
               >
@@ -4639,7 +4639,7 @@ export default function App() {
                 aria-label="Profile"
                 className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'profile'
-                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black border border-[#D7FF00]/30' 
+                    ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
@@ -4876,7 +4876,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(true)}
-                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
+                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
                     <span>{adminHostedScrims.length} Hosted</span>
@@ -4885,7 +4885,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 border border-white/10 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group shadow-md"
+                    className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group shadow-md"
                   >
                     <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00] group-hover:scale-110 transition-transform" />
                     <span>Log Masuk</span>
@@ -4931,7 +4931,7 @@ export default function App() {
 
                       {/* Mini-info: Snapshot of top-performing teams */}
                       <div className="grid grid-cols-2 gap-2.5 pt-1">
-                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 border border-black/10">
+                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3">
                           <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
                             #1 Leading Clan
                           </span>
@@ -4945,7 +4945,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3 border border-black/10">
+                        <div className="bg-black/10 backdrop-blur-xs rounded-2xl p-3">
                           <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-black/70 block">
                             Kill Avg • WWCD Streak
                           </span>
@@ -4989,7 +4989,7 @@ export default function App() {
 
                     {/* Middle Visual Graphic */}
                     <div className="my-auto py-4 relative z-10 space-y-2">
-                      <div className="p-3 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 space-y-1.5">
+                      <div className="p-3 rounded-2xl bg-black/25 backdrop-blur-md space-y-1.5">
                         <div className="flex items-center justify-between text-[10px] font-mono text-pink-100">
                           <span>Auto-Audit Math</span>
                           <CheckCircle className="w-3.5 h-3.5 text-white" />
@@ -5067,12 +5067,12 @@ export default function App() {
 
                       {/* Status Pill Badge ("Completed" in emerald or "Pending" in amber) */}
                       {latestRekodFinished ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/75 border border-emerald-300/40 text-emerald-200 text-[10px] font-mono font-black">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-200 text-[10px] font-mono font-black">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
                           <span>Completed</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-300/40 text-amber-200 text-[10px] font-mono font-black">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/85 text-amber-200 text-[10px] font-mono font-black">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
                           <span>Pending</span>
                         </span>
@@ -5174,7 +5174,7 @@ export default function App() {
                     className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1"
                     title="Kembali ke Hall of Fame"
                   >
-                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center group-hover:border-[#D7FF00]/40 transition">
+                    <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition">
                       <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] transition" />
                     </div>
                     <span className="text-sm sm:text-base font-bold tracking-tight text-zinc-300 group-hover:text-white transition">
@@ -5190,7 +5190,7 @@ export default function App() {
                       setPerformanceModalCategory(teamStatsCategory);
                       setIsPerformanceModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] border border-white/10 transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] transition cursor-pointer"
                     title="Jana IG Story 9:16"
                   >
                     <Share2 className="w-3.5 h-3.5 text-[#D7FF00]" />
@@ -5199,7 +5199,7 @@ export default function App() {
                 </div>
 
                 {/* 2. TEAM IDENTITY HERO BANNER */}
-                <div className="relative overflow-hidden bg-gradient-to-b from-[#141418] to-[#0c0c0e] border border-white/10 rounded-[2rem] p-5 sm:p-6 shadow-xl">
+                <div className="relative overflow-hidden bg-gradient-to-b from-[#141418] to-[#0c0c0e] rounded-[2rem] p-5 sm:p-6 shadow-xl">
                   {/* Subtle decorative glow */}
                   <div className="absolute top-0 right-0 w-44 h-44 bg-[#D7FF00]/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -5209,7 +5209,7 @@ export default function App() {
                         <img
                           src={activeTeamData.logo_url}
                           alt={activeTeamData.name}
-                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover border-2 border-[#D7FF00]/40 shadow-[0_0_25px_rgba(215,255,0,0.25)] shrink-0"
+                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover shadow-[0_0_25px_rgba(215,255,0,0.22)] shrink-0"
                         />
                       ) : (
                         <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-gradient-to-tr from-[#D7FF00] via-lime-300 to-emerald-400 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_25px_rgba(215,255,0,0.25)] shrink-0">
@@ -5221,7 +5221,7 @@ export default function App() {
                           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
                             {activeTeamData.name}
                           </h1>
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 font-mono text-xs font-black">
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] font-mono text-xs font-black">
                             #{overallRank}
                           </span>
                         </div>
@@ -5235,7 +5235,7 @@ export default function App() {
                   </div>
 
                   {/* Interactive Category Filter Scope Tabs */}
-                  <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <div className="mt-4 pt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                     <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
                       Skop:
                     </span>
@@ -5253,7 +5253,7 @@ export default function App() {
                           className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                             isActive
                               ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]'
-                              : 'bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5'
+                              : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800/80'
                           }`}
                         >
                           {cat.label}
@@ -5266,7 +5266,7 @@ export default function App() {
                 {/* 3. INTERACTIVE STATS BENTO GRID (4 CARDS) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {/* Points */}
-                  <div className="bg-[#121216] border border-white/10 rounded-2xl p-3.5 text-center flex flex-col justify-between hover:border-[#D7FF00]/40 transition group">
+                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Total Points</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1">
                       {activeTeamScopedStats.totalPoints}
@@ -5277,7 +5277,7 @@ export default function App() {
                   </div>
 
                   {/* Elims */}
-                  <div className="bg-[#121216] border border-white/10 rounded-2xl p-3.5 text-center flex flex-col justify-between hover:border-white/30 transition group">
+                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Elims (Kills)</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-white my-1">
                       {activeTeamScopedStats.totalKills}
@@ -5288,7 +5288,7 @@ export default function App() {
                   </div>
 
                   {/* WWCD */}
-                  <div className="bg-[#121216] border border-white/10 rounded-2xl p-3.5 text-center flex flex-col justify-between hover:border-[#D7FF00]/40 transition group">
+                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">WWCD Dinners</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1 flex items-center justify-center gap-1">
                       <Trophy className="w-5 h-5 text-[#D7FF00]" />
@@ -5300,7 +5300,7 @@ export default function App() {
                   </div>
 
                   {/* Matches / Sesi */}
-                  <div className="bg-[#121216] border border-white/10 rounded-2xl p-3.5 text-center flex flex-col justify-between hover:border-white/30 transition group">
+                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Sesi / Match</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-200 my-1">
                       {activeTeamScopedStats.eventsCount}
@@ -5312,7 +5312,7 @@ export default function App() {
                 </div>
 
                 {/* 4. TACTICAL PLAYSTYLE COMBAT RATIO */}
-                <div className="bg-[#121216] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="bg-[#121216] rounded-2xl p-4 sm:p-5 space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
                       Profil Gaya Permainan
@@ -5325,7 +5325,7 @@ export default function App() {
                   </div>
 
                   {/* Dual-color Segmented Bar */}
-                  <div className="w-full h-3 bg-zinc-900 rounded-full overflow-hidden flex p-0.5 border border-white/5">
+                  <div className="w-full h-3 bg-zinc-900 rounded-full overflow-hidden flex p-0.5">
                     <div
                       style={{ width: `${Math.max(kpPercent, 4)}%` }}
                       className="h-full bg-gradient-to-r from-yellow-400 to-[#D7FF00] rounded-l-full transition-all duration-500"
@@ -5375,7 +5375,7 @@ export default function App() {
                       <span className="text-xs font-black text-white uppercase tracking-wider">
                         Sejarah Perlawanan
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 border border-white/10 text-zinc-300 font-mono font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-mono font-bold">
                         {activeTeamScopedStats.filteredResults.length} Rekod
                       </span>
                     </div>
@@ -5395,10 +5395,10 @@ export default function App() {
                         return (
                           <div
                             key={itemKey}
-                            className={`rounded-2xl border transition-all overflow-hidden ${
+                            className={`rounded-2xl transition-all overflow-hidden ${
                               isFirst
-                                ? 'bg-[#141418] border-[#D7FF00]/30 shadow-[0_0_15px_rgba(215,255,0,0.08)]'
-                                : 'bg-[#101014] border-white/10 hover:border-white/20'
+                                ? 'bg-[#16161b] shadow-[0_0_16px_rgba(215,255,0,0.08)]'
+                                : 'bg-[#101014] hover:bg-[#14141a]'
                             }`}
                           >
                             {/* Summary Row */}
@@ -5411,7 +5411,7 @@ export default function App() {
                                   <img
                                     src={item.scrimData.logo_url}
                                     alt=""
-                                    className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10"
+                                    className="w-10 h-10 rounded-xl object-cover shrink-0"
                                   />
                                 ) : (
                                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
@@ -5427,13 +5427,13 @@ export default function App() {
                                     <span
                                       className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ${
                                         (item.eventType || 'Scrim') === 'Tour'
-                                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                          : 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30'
+                                          ? 'bg-amber-500/20 text-amber-300'
+                                          : 'bg-[#D7FF00]/15 text-[#D7FF00]'
                                       }`}
                                     >
                                       {(item.eventType || 'Scrim').toUpperCase()}
                                     </span>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 bg-zinc-800/90 text-zinc-300 border border-white/10">
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 bg-zinc-800/90 text-zinc-300">
                                       {item.scrimTier || item.scrimData?.tier || 'Tier 1 (Pro)'}
                                     </span>
                                   </div>
@@ -5465,7 +5465,7 @@ export default function App() {
                                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                                     isExpanded
                                       ? 'bg-[#D7FF00] text-black'
-                                      : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/10'
+                                      : 'bg-zinc-900 text-zinc-400 hover:text-white'
                                   }`}
                                 >
                                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -5475,21 +5475,21 @@ export default function App() {
 
                             {/* Dropdown Content - Expanded only on click */}
                             {isExpanded && (
-                              <div className="px-3.5 pb-3.5 pt-2 border-t border-white/5 space-y-3 bg-zinc-950/40 animate-in fade-in duration-150">
+                              <div className="px-3.5 pb-3.5 pt-2 space-y-3 bg-zinc-950/50 animate-in fade-in duration-150">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                                  <div className="bg-zinc-900/60 p-2 rounded-xl border border-white/5">
+                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
                                     <span className="text-[9px] uppercase font-bold text-zinc-500 block">Kills</span>
                                     <span className="font-mono font-bold text-white">{item.kills} K</span>
                                   </div>
-                                  <div className="bg-zinc-900/60 p-2 rounded-xl border border-white/5">
+                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
                                     <span className="text-[9px] uppercase font-bold text-zinc-500 block">Placement</span>
                                     <span className="font-mono font-bold text-emerald-400">{itemPP} PP</span>
                                   </div>
-                                  <div className="bg-zinc-900/60 p-2 rounded-xl border border-white/5">
+                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
                                     <span className="text-[9px] uppercase font-bold text-zinc-500 block">Tier</span>
                                     <span className="font-mono font-bold text-[#D7FF00] truncate block">{item.scrimTier || 'Umum'}</span>
                                   </div>
-                                  <div className="bg-zinc-900/60 p-2 rounded-xl border border-white/5">
+                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
                                     <span className="text-[9px] uppercase font-bold text-zinc-500 block">Host</span>
                                     <span className="font-mono font-bold text-zinc-300 truncate block">{item.hostName || 'Admin'}</span>
                                   </div>
@@ -5498,7 +5498,7 @@ export default function App() {
                                 <button
                                   type="button"
                                   onClick={() => setInspectedScrim(item.scrimData)}
-                                  className="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[#D7FF00] hover:text-white border border-white/10 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                  className="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[#D7FF00] hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                   <span>Lihat Papan Markah Penuh Sesi Ini</span>
@@ -5510,7 +5510,7 @@ export default function App() {
                       })}
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-zinc-500 text-xs bg-zinc-950/40 border border-white/5 rounded-2xl">
+                    <div className="p-8 text-center text-zinc-500 text-xs bg-zinc-950/40 rounded-2xl">
                       Tiada rekod bagi kategori ini.
                     </div>
                   )}
@@ -5634,8 +5634,8 @@ export default function App() {
                       className={
                         'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
                         (isActive
-                          ? 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/50 shadow-[0_0_12px_rgba(215,255,0,0.15)]'
-                          : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border border-white/10')
+                          ? 'bg-[#D7FF00]/18 text-[#D7FF00] shadow-[0_0_12px_rgba(215,255,0,0.15)]'
+                          : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
                       }
                     >
                       {cat.label}
@@ -5653,8 +5653,8 @@ export default function App() {
                       className={
                         'px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ' +
                         (isSelected
-                          ? 'bg-zinc-800 text-white border border-white/25'
-                          : 'bg-zinc-900/40 text-zinc-500 hover:text-zinc-300 border border-white/5')
+                          ? 'bg-zinc-800 text-white'
+                          : 'bg-zinc-900/55 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/80')
                       }
                     >
                       {t.logo_url && (
@@ -5682,7 +5682,7 @@ export default function App() {
                         e.currentTarget.blur();
                       }
                     }}
-                    className="w-full bg-[#121214] border border-white/10 rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00] transition font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
+                    className="w-full bg-[#121214] rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none transition font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
                   />
                   {teamSearchQuery && (
                     <button
@@ -5774,7 +5774,7 @@ export default function App() {
 
               {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
-                className="bg-[#121214] border border-white/8 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
+                className="bg-[#121214] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
                 style={{ animationDelay: '140ms' }}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -5860,11 +5860,11 @@ export default function App() {
                             const isFirst = slotRank === 1;
                             const isSecond = slotRank === 2;
 
-                            const cardBorderClass = isFirst
-                              ? 'border-[#D7FF00]/75 shadow-[0_0_32px_rgba(215,255,0,0.24)] hover:border-[#D7FF00]'
+                            const cardGlowClass = isFirst
+                              ? 'shadow-[0_0_32px_rgba(215,255,0,0.22)] hover:shadow-[0_0_38px_rgba(215,255,0,0.34)]'
                               : isSecond
-                              ? 'border-zinc-300/45 shadow-[0_0_24px_rgba(228,228,231,0.14)] hover:border-zinc-200/75'
-                              : 'border-amber-400/55 shadow-[0_0_24px_rgba(245,158,11,0.18)] hover:border-amber-300/85';
+                              ? 'shadow-[0_0_24px_rgba(228,228,231,0.12)] hover:shadow-[0_0_28px_rgba(228,228,231,0.22)]'
+                              : 'shadow-[0_0_24px_rgba(245,158,11,0.16)] hover:shadow-[0_0_28px_rgba(245,158,11,0.28)]';
 
                             const heroBgClass = isFirst
                               ? 'bg-gradient-to-b from-[#D7FF00]/50 via-lime-500/25 to-[#12160c]'
@@ -5902,8 +5902,8 @@ export default function App() {
                                     setSelectedTeamProfile(team.name);
                                   }
                                 }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden bg-[#101015] border transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardBorderClass} ${
-                                  isSelected ? 'ring-2 ring-[#D7FF00]/70' : ''
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden bg-[#101015] transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardGlowClass} ${
+                                  isSelected ? 'brightness-110' : ''
                                 }`}
                               >
                                 {/* Upper Visual Hero Area */}
@@ -5949,7 +5949,7 @@ export default function App() {
                                       e.stopPropagation();
                                       setSelectedTeamProfile(team.name);
                                     }}
-                                    className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/50 backdrop-blur-md border border-white/25 flex items-center justify-center text-white/90 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/60 transition cursor-pointer"
+                                    className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/55 backdrop-blur-md flex items-center justify-center text-white/90 group-hover:text-[#D7FF00] group-hover:bg-black/75 transition cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
                                     aria-label={`Lihat maklumat ${team.name}`}
                                   >
@@ -5958,11 +5958,7 @@ export default function App() {
 
                                   {/* Immersive Centered Team Logo Pedestal */}
                                   {team.logo_url ? (
-                                    <div
-                                      className={`relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#0c0c10]/70 backdrop-blur-md border p-1.5 sm:p-2 shadow-2xl group-hover:scale-105 transition-transform duration-300 flex items-center justify-center ${
-                                        isFirst ? 'border-[#D7FF00]/50' : 'border-white/25'
-                                      }`}
-                                    >
+                                    <div className="relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#0c0c10]/70 backdrop-blur-md p-1.5 sm:p-2 shadow-2xl group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
                                       <img
                                         src={team.logo_url}
                                         alt={team.name}
@@ -5999,7 +5995,7 @@ export default function App() {
                                 </div>
 
                                 {/* Lower Dark Name Caption Block */}
-                                <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-[#09090b] border-t border-white/5 text-left space-y-0.5">
+                                <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-[#09090b] text-left space-y-0.5">
                                   <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 truncate">
                                     {team.scopedKills}K • {team.scopedWWCD} WWCD
                                   </div>
@@ -6034,10 +6030,10 @@ export default function App() {
                                   }
                                 }}
                                 style={{ animationDelay: `${160 + Math.min(idx, 10) * 40}ms` }}
-                                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#09090b] hover:bg-[#15151b] border transition-all flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-stagger-card select-none ${
+                                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-stagger-card select-none ${
                                   isSelected
-                                    ? 'border-[#D7FF00]/50 bg-[#141418]'
-                                    : 'border-white/8 hover:border-[#D7FF00]/30'
+                                    ? 'bg-[#1a1a22]'
+                                    : 'bg-[#09090b] hover:bg-[#16161d]'
                                 }`}
                               >
                                 {/* Left: Rank # + Compact Tag Pill + Uppercase Team Name */}
@@ -6056,7 +6052,7 @@ export default function App() {
                                     {rankNum}
                                   </span>
 
-                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 text-[#D7FF00] border border-[#D7FF00]/25">
+                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 text-[#D7FF00]">
                                     {tagText}
                                   </span>
 
@@ -6075,7 +6071,7 @@ export default function App() {
                                     <img
                                       src={team.logo_url}
                                       alt=""
-                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-contain bg-zinc-950 p-0.5 border border-white/10 shrink-0"
+                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-contain bg-zinc-950 p-0.5 shrink-0"
                                     />
                                   )}
 
@@ -6094,7 +6090,7 @@ export default function App() {
                                       e.stopPropagation();
                                       setSelectedTeamProfile(team.name);
                                     }}
-                                    className="w-7 h-7 rounded-lg bg-zinc-900/90 border border-white/10 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:border-[#D7FF00]/40 transition shrink-0 cursor-pointer"
+                                    className="w-7 h-7 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] transition shrink-0 cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
                                     aria-label={`Lihat maklumat ${team.name}`}
                                   >
@@ -8567,9 +8563,9 @@ export default function App() {
           aria-labelledby="profile-drawer-title"
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:border-x sm:border-white/5 sm:shadow-2xl md:px-6 lg:px-8">
+          <div className="w-full max-w-md md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:shadow-2xl md:px-6 lg:px-8">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
-            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] border-b border-white/5 shrink-0 md:rounded-3xl md:mt-4">
+            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] shrink-0 md:rounded-3xl md:mt-4">
               {/* Subtle ambient light effects */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
               <div className="absolute top-2 right-4 w-40 h-40 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
@@ -8585,7 +8581,7 @@ export default function App() {
                     }
                   }}
                   aria-label="Kembali"
-                  className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/70 active:scale-95 transition cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/70 active:scale-95 transition cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -8595,10 +8591,10 @@ export default function App() {
                     type="button"
                     onClick={toggleEditProfileMode}
                     aria-label={isEditProfileMode ? "Tutup Edit" : "Edit Profile"}
-                    className={`w-10 h-10 md:w-auto md:px-4 rounded-full backdrop-blur-md border flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer ${
+                    className={`w-10 h-10 md:w-auto md:px-4 rounded-full backdrop-blur-md flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer ${
                       isEditProfileMode
-                        ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-black'
-                        : 'bg-black/50 text-zinc-300 border-white/10 hover:text-white hover:bg-black/70'
+                        ? 'bg-[#D7FF00] text-black font-black'
+                        : 'bg-black/50 text-zinc-300 hover:text-white hover:bg-black/70'
                     }`}
                   >
                     <Edit3 className="w-4 h-4 stroke-[2.2]" />
@@ -8610,7 +8606,7 @@ export default function App() {
 
             {!currentUser ? (
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 my-auto">
-                <div className="w-20 h-20 rounded-3xl bg-zinc-900 border border-white/10 flex items-center justify-center text-[#D7FF00] shadow-xl">
+                <div className="w-20 h-20 rounded-3xl bg-zinc-900 flex items-center justify-center text-[#D7FF00] shadow-xl">
                   <User className="w-10 h-10" />
                 </div>
                 <div className="space-y-1.5 max-w-xs">
@@ -8635,7 +8631,7 @@ export default function App() {
               <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 text-center md:text-left">
                 <div className="relative">
                   <div className="w-28 h-28 md:w-36 md:h-36 rounded-full p-1 bg-[#080808] shadow-2xl">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 border-[#D7FF00]/60 flex items-center justify-center">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 flex items-center justify-center">
                       {avatarDisplaySrc ? (
                         <img
                           src={avatarDisplaySrc}
@@ -8653,7 +8649,7 @@ export default function App() {
                   {/* Camera / Upload Badge */}
                   <label
                     title="Tukar foto profil"
-                    className="absolute bottom-1 right-1 w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg border-2 border-[#080808] active:scale-90 transition hover:scale-105"
+                    className="absolute bottom-1 right-1 w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center cursor-pointer shadow-lg active:scale-90 transition hover:scale-105"
                   >
                     <Camera className="w-4 h-4 stroke-[2.5]" />
                     <input
@@ -8673,11 +8669,11 @@ export default function App() {
 
                   {/* Badges: Verified Host & Joined Date */}
                   <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-black bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 shadow-xs">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-black bg-[#D7FF00]/15 text-[#D7FF00] shadow-xs">
                       <Crown className="w-3.5 h-3.5 stroke-[2.5]" />
                       <span>Verified Host</span>
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold bg-zinc-800/80 text-zinc-300 border border-white/10">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold bg-zinc-800/80 text-zinc-300">
                       <Clock className="w-3 h-3 text-zinc-400" />
                       <span>{formattedDateJoined}</span>
                     </span>
@@ -8701,7 +8697,7 @@ export default function App() {
             {/* INLINE EDIT MODE FORM (SEGERA DI ATAS SELEPAS AVATAR & BADGES) */}
             {isEditProfileMode && (
               <div className="px-5 mb-6 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                <div className="flex items-center justify-between mb-3 pb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black">
                       <Edit3 className="w-4 h-4 stroke-[2.5]" />
@@ -8713,13 +8709,13 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsEditProfileMode(false)}
-                    className="text-xs font-bold text-zinc-400 hover:text-white transition px-2.5 py-1 rounded-lg bg-zinc-900 border border-white/10"
+                    className="text-xs font-bold text-zinc-400 hover:text-white transition px-2.5 py-1 rounded-lg bg-zinc-900"
                   >
                     Tutup
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveProfile} className="space-y-4 p-4 sm:p-6 rounded-3xl bg-zinc-900/95 border border-[#D7FF00]/30 shadow-[0_0_30px_rgba(215,255,0,0.08)]">
+                <form onSubmit={handleSaveProfile} className="space-y-4 p-4 sm:p-6 rounded-3xl bg-zinc-900/95 shadow-[0_0_30px_rgba(215,255,0,0.08)]">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                     <div className="md:col-span-1">
                       <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
@@ -8732,7 +8728,7 @@ export default function App() {
                         placeholder="cth: RYKHOR Esports Organizer"
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] font-semibold"
+                        className="w-full bg-zinc-950 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none font-semibold"
                       />
                     </div>
 
@@ -8746,7 +8742,7 @@ export default function App() {
                         placeholder="+60123456789 atau @username"
                         value={profileContact}
                         onChange={(e) => setProfileContact(e.target.value)}
-                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                        className="w-full bg-zinc-950 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none"
                       />
                     </div>
 
@@ -8759,12 +8755,12 @@ export default function App() {
                         placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
                         value={profileBio}
                         onChange={(e) => setProfileBio(e.target.value)}
-                        className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                        className="w-full bg-zinc-950 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none"
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-end gap-2 pt-2">
                     <button
                       type="button"
                       onClick={() => setIsEditProfileMode(false)}
@@ -8822,9 +8818,9 @@ export default function App() {
                         setIsProfileModalOpen(false);
                         navigateToTab('admin');
                       }}
-                      className="snap-start shrink-0 w-64 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-white/10 hover:border-[#D7FF00]/40 flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98] shadow-md"
+                      className="snap-start shrink-0 w-64 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98] shadow-md"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="w-12 h-12 rounded-xl bg-zinc-950 overflow-hidden flex items-center justify-center shrink-0">
                         {s.poster_url ? (
                           <img src={s.poster_url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -8840,8 +8836,8 @@ export default function App() {
                         </span>
                         <span className={`inline-flex items-center gap-1 text-[9px] font-bold mt-1 px-2 py-0.5 rounded-full ${
                           s.is_finished
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-300'
                         }`}>
                           <Clock className="w-2.5 h-2.5" />
                           <span>{s.is_finished ? 'Selesai' : 'Sedang Berlangsung'}</span>
@@ -8850,7 +8846,7 @@ export default function App() {
                     </div>
                   ))
                 ) : (
-                  <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center gap-3 text-zinc-400 text-xs">
+                  <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/50 flex items-center gap-3 text-zinc-400 text-xs">
                     <Trophy className="w-4 h-4 text-[#D7FF00]/50" />
                     <span>Belum ada sesi dianjurkan</span>
                   </div>
@@ -8863,7 +8859,7 @@ export default function App() {
                     setIsProfileModalOpen(false);
                     handleQuickNewSession();
                   }}
-                  className="snap-start shrink-0 w-36 md:w-auto h-[76px] md:h-auto md:min-h-[76px] p-2.5 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-dashed border-white/15 hover:border-[#D7FF00]/40 flex flex-col md:flex-row items-center justify-center gap-2 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
+                  className="snap-start shrink-0 w-36 md:w-auto h-[76px] md:h-auto md:min-h-[76px] p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 flex flex-col md:flex-row items-center justify-center gap-2 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
                 >
                   <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
                     <Plus className="w-4 h-4" />
@@ -8877,14 +8873,14 @@ export default function App() {
             <div className="px-5 md:px-6 lg:px-8 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-black text-white tracking-tight">Statistik Penganjur</h4>
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 border border-white/10 text-[10px] font-bold text-zinc-300">
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 text-[10px] font-bold text-zinc-300">
                   <span>Musim Ini</span>
                   <ChevronDown className="w-3 h-3 text-zinc-400" />
                 </div>
               </div>
 
               {/* 3 Circular SVG Progress Gauges Card */}
-              <div className="p-4 sm:p-6 lg:p-7 rounded-2xl bg-zinc-900/60 border border-white/10 grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
+              <div className="p-4 sm:p-6 lg:p-7 rounded-2xl bg-zinc-900/65 grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
                 {/* Gauge 1: Selesai (#D7FF00) */}
                 <div className="flex flex-col items-center text-center">
                   <span className="text-[11px] sm:text-xs font-bold mb-2 tracking-wide text-[#D7FF00]">
@@ -9012,7 +9008,7 @@ export default function App() {
               {/* CARDS VIEW MODE (Reference "Notes" Style) */}
               <div className="flex md:grid md:grid-cols-3 items-center md:items-stretch gap-3 md:gap-4 lg:gap-6 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                 {/* Card 1: Official Contact */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-3 shadow-md">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 flex flex-col justify-between space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">CONTACT</span>
                     <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -9038,7 +9034,7 @@ export default function App() {
                 </div>
 
                 {/* Card 2: Bio & Rules */}
-                <div className="snap-start shrink-0 w-52 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-3 shadow-md">
+                <div className="snap-start shrink-0 w-52 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 flex flex-col justify-between space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">BIO</span>
                     <div className="w-7 h-7 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
@@ -9052,7 +9048,7 @@ export default function App() {
                 </div>
 
                 {/* Card 3: Clan / Organization */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 border border-white/10 flex flex-col justify-between space-y-3 shadow-md">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 flex flex-col justify-between space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">ORGANISASI</span>
                     <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
@@ -9068,12 +9064,12 @@ export default function App() {
             </div>
 
             {/* BOTTOM ACTIONS: LOGOUT */}
-            <div className="mt-auto px-5 md:px-6 lg:px-8 pt-4 pb-6 border-t border-white/10 flex justify-center">
+            <div className="mt-auto px-5 md:px-6 lg:px-8 pt-4 pb-6 flex justify-center">
               {currentUser && (
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full md:max-w-md py-3.5 px-6 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer shadow-md"
+                  className="w-full md:max-w-md py-3.5 px-6 rounded-2xl bg-rose-500/12 hover:bg-rose-500/22 text-rose-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer shadow-md"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Keluar Akaun</span>
@@ -10306,7 +10302,7 @@ export default function App() {
         aria-label="Mobile Navigation"
         className={'md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
       >
-        <div className="bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-full px-2 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),0_0_1px_1px_rgba(255,255,255,0.06)] flex items-center justify-between">
+        <div className="bg-zinc-950/90 backdrop-blur-2xl rounded-full px-2 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.75)] flex items-center justify-between">
           
           {/* Tab 1: Home */}
           <button
@@ -10351,9 +10347,9 @@ export default function App() {
               onClick={() => setIsQuickCreateModalOpen(prev => !prev)}
               title="Pilih: 1. Quick Score, 2. Admin Scorer, 3. Scrim Data"
               aria-label="Open Action Menu"
-              className={'relative w-11 h-11 rounded-full flex items-center justify-center select-none -translate-y-2 transition-all duration-200 ease-out active:scale-90 border-2 border-zinc-950 cursor-pointer ' + (
+              className={'relative w-11 h-11 rounded-full flex items-center justify-center select-none -translate-y-2 transition-all duration-200 ease-out active:scale-90 cursor-pointer ' + (
                 isQuickCreateModalOpen || activeTab === 'scorer' || activeTab === 'scrim-data'
-                  ? 'bg-[#D7FF00] text-black ring-2 ring-[#D7FF00] ring-offset-2 ring-offset-zinc-950 shadow-[0_0_22px_rgba(215, 255, 0,0.6)] scale-105'
+                  ? 'bg-[#D7FF00] text-black shadow-[0_0_22px_rgba(215, 255, 0,0.6)] scale-105'
                   : 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215, 255, 0,0.3)] hover:scale-105'
               )}
             >
