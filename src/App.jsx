@@ -3104,7 +3104,8 @@ export default function App() {
 
         m.results.forEach(r => {
           if (!r || !r.teamName || !r.teamName.trim()) return;
-          const cleanTeamName = r.teamName.trim();
+          // Clean country flag emojis and extra spaces to prevent team duplication
+          const cleanTeamName = r.teamName.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim();
 
           // Verify this specific team actually played or has recorded points/kills/placement
           const teamHasPlayed =
@@ -3115,7 +3116,7 @@ export default function App() {
           if (!teamHasPlayed) return;
 
           if (!scrimSummary[cleanTeamName]) {
-            const dbTeam = teams.find(t => t.name.toLowerCase() === cleanTeamName.toLowerCase());
+            const dbTeam = teams.find(t => (t.name || '').replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim().toLowerCase() === cleanTeamName.toLowerCase());
             scrimSummary[cleanTeamName] = {
               teamName: cleanTeamName,
               tag: r.tag || dbTeam?.tag || cleanTeamName.slice(0, 4).toUpperCase(),
@@ -3139,8 +3140,8 @@ export default function App() {
 
       sortedTeams.forEach((teamRes, idx) => {
         const tName = teamRes.teamName;
-        const normKey = (tName || '').trim().toLowerCase();
-        const dbTeam = teams.find(t => (t.name || '').trim().toLowerCase() === normKey);
+        const normKey = (tName || '').replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim().toLowerCase();
+        const dbTeam = teams.find(t => (t.name || '').replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').trim().toLowerCase() === normKey);
         if (!stats[tName]) {
           stats[tName] = {
             name: tName,
