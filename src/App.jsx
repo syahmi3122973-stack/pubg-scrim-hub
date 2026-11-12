@@ -3703,9 +3703,10 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER & TOP NAVIGATION BAR */}
-      <header className="border-b border-white/5 bg-[#080808]/85 backdrop-blur-xl sticky top-0 z-40 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+      {/* HEADER & TOP NAVIGATION BAR (ONLY ON HOME PAGE, SEAMLESS BACKGROUND, NO SEPARATING LINE) */}
+      {(activeTab === 'playground' || activeTab === 'home') && (
+        <header className="bg-[#080808] sticky top-0 z-40 px-4 pt-3 pb-1">
+          <div className="max-w-7xl mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
           <div className="flex items-center gap-2.5 z-10">
@@ -4139,6 +4140,7 @@ export default function App() {
 
         </div>
       </header>
+      )}
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-8">
