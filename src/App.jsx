@@ -7204,7 +7204,7 @@ export default function App() {
                                 style={{ '--blur-delay': `${105 + Math.min(idx, 6) * 24}ms` }}
                                 className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
-                                    ? 'bg-white/[0.11] border border-[#D7FF00]/45 backdrop-blur-md shadow-[0_0_20px_rgba(215,255,0,0.08)]'
+                                    ? 'bg-white/[0.11] border border-[#D7FF00]/45 shadow-[0_0_20px_rgba(215,255,0,0.08)]'
                                     : 'glass-tile glass-tile-hover'
                                 }`}
                               >

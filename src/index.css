@@ -63,12 +63,10 @@ body {
 @keyframes dialSweepIn {
   0% {
     opacity: 0;
-    filter: blur(4px);
     transform: rotate(-30deg) scale(0.94);
   }
   100% {
     opacity: 1;
-    filter: blur(0px);
     transform: rotate(0deg) scale(1);
   }
 }
@@ -77,7 +75,6 @@ body {
   .animate-dial-sweep {
     transform-origin: 200px 190px;
     animation: dialSweepIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
-    will-change: transform, opacity, filter;
   }
 }
 
@@ -205,16 +202,14 @@ body {
   will-change: transform, opacity;
 }
 
-/* Interactive Teams Tab Blur-In & Blur-Out Choreography (< 400ms) */
+/* Interactive Teams Tab Entry & Scope Transition Choreography (Compositor-Only, < 400ms) */
 @keyframes teamsBlurIn {
   0% {
     opacity: 0;
-    filter: blur(10px);
     transform: scale(0.982);
   }
   100% {
     opacity: 1;
-    filter: blur(0px);
     transform: scale(1);
   }
 }
@@ -222,55 +217,46 @@ body {
 @keyframes teamsBlurItem {
   0% {
     opacity: 0;
-    filter: blur(8px);
     transform: scale(0.975);
   }
   100% {
     opacity: 1;
-    filter: blur(0px);
     transform: scale(1);
   }
 }
 
 @keyframes teamsScopeBlurIn {
   0% {
-    opacity: 0.2;
-    filter: blur(7px);
+    opacity: 0.25;
     transform: scale(0.986);
   }
   100% {
     opacity: 1;
-    filter: blur(0px);
     transform: scale(1);
   }
 }
 
 .tab-blur-stage {
-  transition: opacity 0.12s ease, filter 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .tab-blur-exiting {
     opacity: 0.08;
-    filter: blur(10px);
     transform: scale(0.982);
-    transition: opacity 0.12s cubic-bezier(0.22, 1, 0.36, 1), filter 0.12s cubic-bezier(0.22, 1, 0.36, 1), transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: opacity, filter, transform;
+    transition: opacity 0.12s cubic-bezier(0.22, 1, 0.36, 1), transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .animate-teams-enter {
     animation: teamsBlurIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-    will-change: opacity, filter, transform;
   }
 
   .animate-teams-blur {
     animation: teamsBlurItem 0.28s cubic-bezier(0.22, 1, 0.36, 1) var(--blur-delay, 0ms) both;
-    will-change: opacity, filter, transform;
   }
 
   .animate-teams-scope {
     animation: teamsScopeBlurIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
-    will-change: opacity, filter, transform;
   }
 }
 
@@ -370,29 +356,23 @@ body {
   .hof-slide-panel {
     transform: scale(0.975);
     opacity: 0.12;
-    filter: blur(5px);
-    transition: opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1), filter 0.48s cubic-bezier(0.22, 1, 0.36, 1), transform 0.68s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity, filter;
+    transition: opacity 0.44s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .hof-slide-panel[data-active='true'] {
     transform: scale(1);
     opacity: 1;
-    filter: blur(0px);
   }
 
   .hof-stat-tile {
     transform: scale(0.985);
     opacity: 0.35;
-    filter: blur(4px);
-    transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.46s cubic-bezier(0.22, 1, 0.36, 1), filter 0.48s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity, filter;
+    transition: transform 0.52s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .hof-slide-panel[data-active='true'] .hof-stat-tile {
     transform: scale(1);
     opacity: 1;
-    filter: blur(0px);
   }
 
   .hof-slide-panel[data-active='true'] .hof-stat-tile:nth-child(2) {
@@ -404,21 +384,17 @@ body {
   }
 
   .hof-toggle-thumb {
-    transition: transform 0.44s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.3s ease;
-    will-change: transform;
+    transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.3s ease;
   }
 
   .hof-crossfade-item {
     opacity: 0;
-    filter: blur(6px);
     transform: scale(0.985);
-    transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), filter 0.44s cubic-bezier(0.22, 1, 0.36, 1), transform 0.44s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: opacity, filter, transform;
+    transition: opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .hof-crossfade-item[data-active='true'] {
     opacity: 1;
-    filter: blur(0px);
     transform: scale(1);
   }
 
@@ -479,8 +455,6 @@ body {
 
 .sss-brand-select {
   background-color: rgba(255, 255, 255, 0.06);
-  -webkit-backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
-  backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
   color: #D7FF00;
   border: 1px solid rgba(215, 255, 0, 0.24);
   box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.58), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 8px 24px rgba(0, 0, 0, 0.36);
@@ -568,9 +542,9 @@ body {
 /* Global Frosted Glass Surface System (Top-Highlighted Rim, Darkened Bottom Edge, No Gradients) */
 @layer components {
   .glass-header {
-    background-color: rgba(18, 22, 30, 0.38);
-    -webkit-backdrop-filter: blur(26px) saturate(180%) brightness(1.06);
-    backdrop-filter: blur(26px) saturate(180%) brightness(1.06);
+    background-color: rgba(18, 22, 30, 0.42);
+    -webkit-backdrop-filter: blur(18px) saturate(165%);
+    backdrop-filter: blur(18px) saturate(165%);
     border-top: 1px solid rgba(255, 255, 255, 0.16);
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.42);
@@ -578,8 +552,6 @@ body {
 
   .glass-panel {
     background-color: rgba(255, 255, 255, 0.055);
-    -webkit-backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
-    backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1.5px 0 rgba(0, 0, 0, 0.58), 0 20px 50px rgba(0, 0, 0, 0.46);
   }
@@ -592,8 +564,6 @@ body {
 
   .glass-tile {
     background-color: rgba(255, 255, 255, 0.048);
-    -webkit-backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
-    backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
     border: 1px solid rgba(255, 255, 255, 0.09);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1.5px 0 rgba(0, 0, 0, 0.54), 0 8px 24px rgba(0, 0, 0, 0.26);
   }
@@ -606,40 +576,34 @@ body {
 
   .glass-pill {
     background-color: rgba(255, 255, 255, 0.075);
-    -webkit-backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
-    backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1.5px 0 rgba(0, 0, 0, 0.54), 0 8px 24px rgba(0, 0, 0, 0.34);
   }
 
   .glass-dock {
-    background-color: rgba(28, 32, 42, 0.36);
-    -webkit-backdrop-filter: blur(28px) saturate(185%) brightness(1.08);
-    backdrop-filter: blur(28px) saturate(185%) brightness(1.08);
+    background-color: rgba(28, 32, 42, 0.4);
+    -webkit-backdrop-filter: blur(22px) saturate(175%);
+    backdrop-filter: blur(22px) saturate(175%);
     border: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), inset 0 -1.5px 0 rgba(0, 0, 0, 0.52), 0 14px 38px rgba(0, 0, 0, 0.65);
   }
 
   .glass-modal {
-    background-color: rgba(18, 21, 30, 0.68);
-    -webkit-backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
-    backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
+    background-color: rgba(18, 21, 30, 0.72);
+    -webkit-backdrop-filter: blur(20px) saturate(165%);
+    backdrop-filter: blur(20px) saturate(165%);
     border: 1px solid rgba(255, 255, 255, 0.11);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1.5px 0 rgba(0, 0, 0, 0.65), 0 24px 64px rgba(0, 0, 0, 0.8);
   }
 
   .glass-amber {
     background-color: rgba(245, 158, 11, 0.14);
-    -webkit-backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
-    backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
     border: 1px solid rgba(251, 191, 36, 0.22);
     box-shadow: inset 0 1px 0 rgba(253, 224, 71, 0.48), inset 0 -1.5px 0 rgba(0, 0, 0, 0.6), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-lime {
     background-color: rgba(215, 255, 0, 0.13);
-    -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(215, 255, 0, 0.24);
     box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.56), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -652,8 +616,6 @@ body {
 
   .glass-pink {
     background-color: rgba(236, 72, 153, 0.18);
-    -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(244, 114, 182, 0.24);
     box-shadow: inset 0 1px 0 rgba(249, 168, 212, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -666,8 +628,6 @@ body {
 
   .glass-blue {
     background-color: rgba(59, 130, 246, 0.18);
-    -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(96, 165, 250, 0.24);
     box-shadow: inset 0 1px 0 rgba(147, 197, 253, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -680,8 +640,6 @@ body {
 
   .glass-emerald {
     background-color: rgba(16, 185, 129, 0.18);
-    -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(52, 211, 153, 0.24);
     box-shadow: inset 0 1px 0 rgba(110, 231, 183, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -694,16 +652,12 @@ body {
 
   .glass-silver {
     background-color: rgba(228, 228, 231, 0.12);
-    -webkit-backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
-    backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
     border: 1px solid rgba(255, 255, 255, 0.16);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), inset 0 -1.5px 0 rgba(0, 0, 0, 0.6), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-sticky-cell {
-    background-color: rgba(15, 18, 26, 0.72);
-    -webkit-backdrop-filter: blur(22px) saturate(155%);
-    backdrop-filter: blur(22px) saturate(155%);
+    background-color: rgba(15, 18, 26, 0.88);
   }
 }
 
