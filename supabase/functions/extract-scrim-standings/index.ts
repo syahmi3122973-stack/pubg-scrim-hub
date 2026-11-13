@@ -152,13 +152,14 @@ const extractionSchema = {
 
 interface ModelCandidate {
   name: string;
-  supportsThinkingBudget: boolean;
+  thinkingConfig?: { thinkingLevel?: "MINIMAL" | "LOW"; thinkingBudget?: number };
 }
 
 const MODEL_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-2.5-flash", supportsThinkingBudget: true },
-  { name: "gemini-2.0-flash", supportsThinkingBudget: false },
-  { name: "gemini-2.5-flash-lite", supportsThinkingBudget: true },
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.5-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-flash-latest" },
 ];
 
 Deno.serve(async (req: Request) => {
@@ -229,6 +230,7 @@ Extract every single row accurately from this tournament standings poster:
 
     let rawResponseText: string | null = null;
     let lastError = "";
+    const modelErrors: string[] = [];
 
     for (const candidate of MODEL_CANDIDATES) {
       try {
@@ -237,15 +239,15 @@ Extract every single row accurately from this tournament standings poster:
           responseSchema: extractionSchema,
           temperature: 0.1,
         };
-        if (candidate.supportsThinkingBudget) {
-          generationConfig.thinkingConfig = { thinkingBudget: 0 };
+        if (candidate.thinkingConfig) {
+          generationConfig.thinkingConfig = candidate.thinkingConfig;
         }
 
         const restRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(20000),
+            signal: AbortSignal.timeout(22000),
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
@@ -277,9 +279,11 @@ Extract every single row accurately from this tournament standings poster:
             break;
           }
           lastError = `Empty response from ${candidate.name}`;
+          modelErrors.push(`${candidate.name}: empty`);
         } else {
           const errJson = await restRes.json().catch(() => ({}));
           lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
+          modelErrors.push(`${candidate.name}: ${restRes.status} ${lastError}`);
           if (
             restRes.status === 401 ||
             restRes.status === 403 ||
@@ -291,6 +295,7 @@ Extract every single row accurately from this tournament standings poster:
         }
       } catch (fetchErr) {
         lastError = (fetchErr as any)?.message || String(fetchErr);
+        modelErrors.push(`${candidate.name}: ${lastError}`);
       }
     }
 
@@ -323,7 +328,10 @@ Extract every single row accurately from this tournament standings poster:
       }
 
       return new Response(
-        JSON.stringify({ error: "Gemini extraction failed", details: lastError }),
+        JSON.stringify({
+          error: "Gemini extraction failed",
+          details: modelErrors.join(" | ") || lastError,
+        }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
