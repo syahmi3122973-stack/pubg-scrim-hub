@@ -4645,7 +4645,7 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden isolate">
+    <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip isolate">
       <BackButtonHandler
         activeTab={activeTab}
         tabHistory={tabHistory}
@@ -11813,7 +11813,7 @@ export default function App() {
         aria-label="Mobile Navigation"
         className={'md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
       >
-        <div className="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between">
+        <div className="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between [text-shadow:0_1px_4px_rgba(0,0,0,0.65)]">
           
           {/* Tab 1: Home */}
           <button
@@ -11824,7 +11824,7 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'playground' || activeTab === 'home'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-200 hover:text-white'
             )}
           >
             <Home className={'w-5 h-5 ' + (activeTab === 'playground' || activeTab === 'home' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
@@ -11842,7 +11842,7 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-300 hover:text-white'
+                : 'text-zinc-200 hover:text-white'
             )}
           >
             <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
@@ -11879,7 +11879,7 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'teams' || activeTab === 'database'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-300 hover:text-white'
+                : 'text-zinc-200 hover:text-white'
             )}
           >
             <Users className={'w-5 h-5 ' + (activeTab === 'teams' || activeTab === 'database' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
@@ -11897,7 +11897,7 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 relative ' + (
               activeTab === 'profile'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-300 hover:text-white'
+                : 'text-zinc-200 hover:text-white'
             )}
           >
             <div className="relative">
