@@ -6962,25 +6962,23 @@ export default function App() {
                             const isFirst = slotRank === 1;
                             const isSecond = slotRank === 2;
 
-                            const cardGlowClass = '';
-
-                            const heroBgClass = isFirst
+                            const podiumSurfaceClass = isFirst
                               ? 'glass-lime'
                               : isSecond
                               ? 'glass-silver'
                               : 'glass-amber';
 
-                            const watermarkColor = isFirst
-                              ? 'text-[#D7FF00]/55'
+                            const rankPillClass = isFirst
+                              ? 'bg-[#D7FF00] text-black'
                               : isSecond
-                              ? 'text-white/40'
-                              : 'text-amber-300/45';
-
-                            const tagBadgeStyle = isFirst
-                              ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.35)]'
-                              : isSecond
-                              ? 'bg-zinc-100 text-black'
+                              ? 'bg-zinc-200 text-black'
                               : 'bg-amber-400 text-black';
+
+                            const ptsColorClass = isFirst
+                              ? 'text-[#D7FF00]'
+                              : isSecond
+                              ? 'text-zinc-200'
+                              : 'text-amber-300';
 
                             const fallbackPedestalBg = isFirst
                               ? 'bg-[#D7FF00] text-black'
@@ -7000,88 +6998,78 @@ export default function App() {
                                     setSelectedTeamProfile(team.name);
                                   }
                                 }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden glass-tile transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardGlowClass} ${
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-200 cursor-pointer group flex flex-col justify-between select-none px-2 sm:px-3.5 ${
+                                  isFirst
+                                    ? 'pt-2.5 pb-3 sm:pt-4 sm:pb-4 min-h-[186px] sm:min-h-[252px]'
+                                    : 'pt-2 pb-2.5 sm:pt-3.5 sm:pb-3.5 min-h-[168px] sm:min-h-[228px]'
+                                } ${podiumSurfaceClass} ${
                                   isSelected ? 'brightness-110' : ''
                                 }`}
                               >
-                                {/* Upper Visual Hero Area */}
-                                <div
-                                  className={`relative overflow-hidden flex items-center justify-center ${
-                                    isFirst ? 'h-36 sm:h-52' : 'h-28 sm:h-44'
-                                  } ${heroBgClass}`}
-                                >
-                                  {/* Giant Background Rank Watermark */}
+                                {/* Top Row: Rank Badge + Optional T3 Rank */}
+                                <div className="flex items-center justify-between gap-1 w-full">
                                   <span
-                                    aria-hidden="true"
-                                    className={`absolute -top-1 left-1.5 sm:left-2.5 text-[4.8rem] sm:text-[8rem] font-black leading-none tracking-tighter select-none pointer-events-none ${watermarkColor}`}
+                                    className={`inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 rounded-full font-mono font-black text-[10px] sm:text-xs leading-none ${rankPillClass}`}
                                   >
-                                    {rankNum}
+                                    #{rankNum}
                                   </span>
+                                  {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) ? (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200 font-mono font-bold text-[9px] sm:text-[10px] leading-none shrink-0">
+                                      T3 #{tier3RankByTeam.get(team.name).tier3Rank}
+                                    </span>
+                                  ) : (
+                                    <Eye className="hidden sm:block w-3.5 h-3.5 text-white/35 group-hover:text-white/80 transition-colors" />
+                                  )}
+                                </div>
 
-                                  {/* Small Clean Eye View Button Top-Right */}
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTeamProfile(team.name);
-                                    }}
-                                    className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/55 backdrop-blur-md flex items-center justify-center text-white/90 group-hover:text-[#D7FF00] group-hover:bg-black/75 transition cursor-pointer"
-                                    title={`Lihat maklumat ${team.name}`}
-                                    aria-label={`Lihat maklumat ${team.name}`}
-                                  >
-                                    <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                  </button>
-
-                                  {/* Immersive Centered Team Logo Pedestal */}
+                                {/* Centered Logo */}
+                                <div className="flex items-center justify-center my-2 sm:my-3">
                                   {team.logo_url ? (
-                                    <div className="relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#0c0c10]/70 backdrop-blur-md p-1.5 sm:p-2 shadow-2xl group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+                                    <div
+                                      className={`rounded-xl sm:rounded-2xl bg-black/45 border border-white/10 p-1.5 sm:p-2 shadow-lg group-hover:scale-105 transition-transform duration-300 flex items-center justify-center ${
+                                        isFirst ? 'w-14 h-14 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-16 sm:h-16'
+                                      }`}
+                                    >
                                       <img
                                         src={team.logo_url}
                                         alt={team.name}
-                                        className="w-full h-full object-contain rounded-xl sm:rounded-2xl"
+                                        className="w-full h-full object-contain rounded-lg sm:rounded-xl"
                                       />
                                     </div>
                                   ) : (
                                     <div
-                                      className={`relative z-10 mb-3 sm:mb-4 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black shadow-2xl group-hover:scale-105 transition-transform duration-300 ${fallbackPedestalBg}`}
+                                      className={`rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-lg group-hover:scale-105 transition-transform duration-300 ${
+                                        isFirst ? 'w-14 h-14 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-16 sm:h-16'
+                                      } ${fallbackPedestalBg}`}
                                     >
-                                      <span className="text-xs sm:text-xl tracking-tight">
+                                      <span className="text-xs sm:text-lg tracking-tight">
                                         {team.tag || team.name.slice(0, 3).toUpperCase()}
                                       </span>
                                     </div>
                                   )}
-
-                                  {/* Bottom Overlay Strip: [TAG] Pill + Points */}
-                                  <div className="absolute inset-x-0 bottom-0 z-20 bg-[#09090b]/90 border-t border-white/10 pt-2 pb-1.5 px-2 sm:px-3 flex items-end justify-between gap-1">
-                                    <span
-                                      className={`px-1.5 sm:px-2 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-xs uppercase leading-tight truncate max-w-[48%] ${tagBadgeStyle}`}
-                                    >
-                                      {team.tag || team.name.slice(0, 3).toUpperCase()}
-                                    </span>
-
-                                    <div className="flex items-baseline gap-0.5 font-mono font-black shrink-0">
-                                      <span className="text-sm sm:text-2xl leading-none text-white">
-                                        {team.scopedPoints}
-                                      </span>
-                                      <span className="text-[8px] sm:text-[10px] text-[#D7FF00] font-bold">
-                                        PTS
-                                      </span>
-                                    </div>
-                                  </div>
                                 </div>
 
-                                {/* Lower Frosted Dark Name Caption Block */}
-                                <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-white/[0.04] backdrop-blur-md border-t border-white/10 text-left space-y-0.5">
-                                  <div className="flex items-center justify-between gap-1 text-[9px] sm:text-[10px] font-mono text-zinc-400">
-                                    <span className="truncate">{team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M</span>
-                                    {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
-                                      <span className="px-1.5 py-0.2 rounded bg-amber-400/15 text-amber-300 font-black shrink-0">
-                                        T3 #{tier3RankByTeam.get(team.name).tier3Rank}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[11px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight line-clamp-2 min-h-[2.1em] sm:min-h-[2.3em]">
+                                {/* Bottom Identity & Points Summary */}
+                                <div className="text-center space-y-1 w-full">
+                                  <div className="text-[11px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight line-clamp-2 min-h-[2.2em] flex items-center justify-center">
                                     {team.name}
+                                  </div>
+
+                                  <div className="flex items-baseline justify-center gap-1 font-mono font-black tabular-nums">
+                                    <span className={`leading-none text-white ${isFirst ? 'text-base sm:text-2xl' : 'text-sm sm:text-xl'}`}>
+                                      {team.scopedPoints}
+                                    </span>
+                                    <span className={`text-[9px] sm:text-[11px] font-bold ${ptsColorClass}`}>
+                                      PTS
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[9px] sm:text-[11px] font-mono text-zinc-300/90 tabular-nums tracking-tight whitespace-nowrap pt-0.5">
+                                    <span>{team.scopedKills}K</span>
+                                    <span className="text-white/25">·</span>
+                                    <span>{team.scopedWWCD}W</span>
+                                    <span className="text-white/25">·</span>
+                                    <span>{team.scopedMatches}M</span>
                                   </div>
                                 </div>
                               </div>
