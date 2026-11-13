@@ -7000,7 +7000,7 @@ export default function App() {
                                     setSelectedTeamProfile(team.name);
                                   }
                                 }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden glass-tile border-white/15 transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardGlowClass} ${
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden glass-tile transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardGlowClass} ${
                                   isSelected ? 'brightness-110' : ''
                                 }`}
                               >
