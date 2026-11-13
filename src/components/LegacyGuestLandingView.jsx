@@ -428,30 +428,30 @@ export default function LegacyGuestLandingView({
                         ? 'transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] '
                         : 'transition-none ') +
                       (isActive
-                        ? 'bg-[#121214] scale-100 opacity-100 shadow-2xl origin-center'
+                        ? 'glass-panel scale-100 opacity-100 origin-center'
                         : isPast
-                        ? 'bg-[#121214]/70 scale-[0.86] opacity-35 shadow-md origin-right'
-                        : 'bg-[#121214]/80 scale-[0.88] opacity-60 hover:opacity-85 shadow-lg origin-left')
+                        ? 'glass-tile scale-[0.86] opacity-40 origin-right'
+                        : 'glass-tile scale-[0.88] opacity-65 hover:opacity-90 origin-left')
                     }
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-full glass-tile text-[#D7FF00] flex items-center justify-center shrink-0">
                             <CardIcon className="w-3.5 h-3.5" />
                           </div>
                           <h2 className="text-xs sm:text-sm font-bold text-white truncate">
                             {card.title}
                           </h2>
                         </div>
-                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 shrink-0">
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full glass-tile text-zinc-300 shrink-0">
                           {card.badge}
                         </span>
                       </div>
 
                       {card.renderVisual(isActive)}
 
-                      <p className="text-xs text-zinc-400 leading-relaxed">
+                      <p className="text-xs text-zinc-300 leading-relaxed">
                         {card.description}
                       </p>
 
@@ -462,7 +462,7 @@ export default function LegacyGuestLandingView({
                               key={pIdx}
                               style={{ animationDelay: `${120 + pIdx * 80}ms` }}
                               className={
-                                'px-2.5 py-1 rounded-lg bg-zinc-900 text-[10px] font-mono font-bold text-[#D7FF00] ' +
+                                'px-2.5 py-1 rounded-lg glass-tile text-[10px] font-mono font-bold text-[#D7FF00] ' +
                                 (isActive ? 'animate-visual-pop' : '')
                               }
                             >
@@ -473,8 +473,8 @@ export default function LegacyGuestLandingView({
                       )}
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-white/5">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 text-[11px] font-semibold text-zinc-200 w-full">
+                    <div className="mt-4 pt-3 border-t border-white/10">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-pill text-[11px] font-semibold text-zinc-100 w-full">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover/card:translate-x-0.5 transition-transform">
                           <ArrowRight className="w-3 h-3 stroke-[2.5]" />
                         </span>
@@ -522,7 +522,7 @@ export default function LegacyGuestLandingView({
         <button
           type="button"
           onClick={handleStartScoringSession}
-          className="w-full p-2 pl-6 rounded-full bg-[#161619] hover:bg-[#1c1c20] active:scale-[0.99] text-white transition-all flex items-center justify-between shadow-2xl cursor-pointer group"
+          className="w-full p-2 pl-6 rounded-full glass-pill glass-tile-hover active:scale-[0.99] text-white transition-all flex items-center justify-between cursor-pointer group"
           title="Mula kira markah sekarang di Quick Scorer tanpa login"
         >
           <span className="text-sm sm:text-base font-bold tracking-tight text-white mx-auto pr-4">
@@ -552,7 +552,7 @@ export default function LegacyGuestLandingView({
             setSelectedScrimId(scrims[0].id);
             navigateToTab('history');
           }}
-          className="p-3.5 bg-[#121214] hover:bg-[#161619] rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group shadow-md mx-1"
+          className="p-3.5 glass-panel glass-panel-hover rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group mx-1"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />

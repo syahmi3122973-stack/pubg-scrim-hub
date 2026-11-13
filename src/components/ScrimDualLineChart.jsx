@@ -212,14 +212,14 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
   if (items.length === 0) {
     return (
-      <div className="bg-[#121216] rounded-2xl p-5 text-center text-xs text-zinc-500">
+      <div className="glass-panel rounded-2xl p-5 text-center text-xs text-zinc-400">
         Tiada rekod scrim untuk memaparkan graf prestasi Kills &amp; Placement Points.
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden bg-[#121216] rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-lg">
+    <div className="relative overflow-hidden glass-panel rounded-2xl p-4 sm:p-5 space-y-3.5">
       {/* Subtle Ambient Corner Glow */}
       <div
         aria-hidden="true"

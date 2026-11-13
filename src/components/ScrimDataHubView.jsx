@@ -686,10 +686,10 @@ export default function ScrimDataHubView({
 
       {/* Expandable Header Info */}
       {isHeaderInfoOpen && (
-        <div className="p-3.5 bg-[#121214] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
+        <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-200 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
           <Sparkles className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
           <p className="leading-relaxed flex-1">
-            <strong className="text-white">Results Scanner</strong> mengekstrak poster keputusan kejohanan secara automatik (`gemini-2.5-flash`), menyemak ketepatan matematik (`PP + KP = Total`), dan menyediakan paparan responsif mudah alih untuk semua pasukan.
+            <strong className="text-white">Results Scanner</strong> mengekstrak poster keputusan kejohanan secara automatik (`gemini-3.5-flash`), menyemak ketepatan matematik (`PP + KP = Total`), dan menyediakan paparan responsif mudah alih untuk semua pasukan.
           </p>
           <button
             type="button"
@@ -727,7 +727,7 @@ export default function ScrimDataHubView({
         {/* Upload / Dropzone Card */}
         <div
           style={{ animationDelay: '120ms' }}
-          className="bg-[#121214] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
+          className="glass-panel rounded-3xl p-5 sm:p-6 space-y-4 animate-stagger-card"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -736,7 +736,7 @@ export default function ScrimDataHubView({
                 <span>Muat Naik Poster Keputusan (AI OCR)</span>
               </h2>
               <p className="text-xs text-zinc-400">
-                Dikuasakan oleh Gemini 2.5 Flash untuk membaca sebarang format poster kejohanan PUBG Mobile.
+                Dikuasakan oleh Gemini AI untuk membaca sebarang format poster kejohanan PUBG Mobile.
               </p>
             </div>
           </div>
@@ -759,10 +759,10 @@ export default function ScrimDataHubView({
               }}
               onClick={() => fileInputRef.current?.click()}
               className={
-                'rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[170px] ' +
+                'rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[170px] border-dashed ' +
                 (isDragging
-                  ? 'bg-[#D7FF00]/10 scale-[0.99]'
-                  : 'bg-[#18181C] hover:bg-zinc-900/90')
+                  ? 'bg-[#D7FF00]/12 border border-[#D7FF00]/50 scale-[0.99]'
+                  : 'glass-tile glass-tile-hover')
               }
             >
               <input
@@ -831,19 +831,19 @@ export default function ScrimDataHubView({
           {/* Extracted Header Details (Title, Date, Tier & Lobby Metrics) */}
           <div
             style={{ animationDelay: '150ms' }}
-            className="bg-[#121214] rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5 animate-stagger-card"
+            className="glass-panel rounded-3xl p-4 sm:p-5 space-y-3.5 animate-stagger-card"
           >
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-[#D7FF00]" />
                 <span className="text-sm font-bold text-white">Maklumat Sesi Hasil OCR</span>
               </div>
               <div className="flex items-center gap-2 text-xs font-mono">
-                <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300">
+                <span className="px-2.5 py-0.5 rounded-full glass-tile text-zinc-200">
                   <strong className="text-white">{standings.length}</strong> Pasukan
                 </span>
                 {totalWWCDCount > 0 && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 text-[#D7FF00]">
+                  <span className="px-2.5 py-0.5 rounded-full glass-tile text-[#D7FF00]">
                     <strong>{totalWWCDCount}</strong> WWCD
                   </span>
                 )}
@@ -859,7 +859,7 @@ export default function ScrimDataHubView({
                   type="text"
                   value={scrimName}
                   onChange={(e) => setScrimName(e.target.value)}
-                  className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
+                  className="w-full glass-tile rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
                   placeholder="cth: MEC SCRIMS atau CT SCRIMS"
                 />
               </div>
@@ -873,7 +873,7 @@ export default function ScrimDataHubView({
                   type="text"
                   value={hostUsername}
                   onChange={(e) => setHostUsername(e.target.value)}
-                  className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
+                  className="w-full glass-tile rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
                   placeholder="cth: rykhor, penganjur scrim"
                 />
               </div>
@@ -887,7 +887,7 @@ export default function ScrimDataHubView({
                   type="date"
                   value={scrimDate}
                   onChange={(e) => setScrimDate(e.target.value)}
-                  className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
+                  className="w-full glass-tile rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
                 />
               </div>
 
@@ -898,12 +898,12 @@ export default function ScrimDataHubView({
                 <select
                   value={scrimTier}
                   onChange={(e) => setScrimTier(e.target.value)}
-                  className="w-full bg-[#18181C] rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] cursor-pointer"
+                  className="w-full glass-tile rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] cursor-pointer"
                 >
-                  <option value="Tier 1 (Pro)">Tier 1 (Pro)</option>
-                  <option value="Tier 2 (Semi-Pro)">Tier 2 (Semi-Pro)</option>
-                  <option value="Tier 3 (Amateur)">Tier 3 (Amateur)</option>
-                  <option value="Open Community">Open Community</option>
+                  <option value="Tier 1 (Pro)" className="bg-[#111218]">Tier 1 (Pro)</option>
+                  <option value="Tier 2 (Semi-Pro)" className="bg-[#111218]">Tier 2 (Semi-Pro)</option>
+                  <option value="Tier 3 (Amateur)" className="bg-[#111218]">Tier 3 (Amateur)</option>
+                  <option value="Open Community" className="bg-[#111218]">Open Community</option>
                 </select>
               </div>
             </div>
@@ -913,10 +913,10 @@ export default function ScrimDataHubView({
           <div
             ref={standingsSectionRef}
             style={{ animationDelay: '180ms' }}
-            className="bg-[#121214] rounded-3xl overflow-hidden shadow-2xl animate-stagger-card"
+            className="glass-panel rounded-3xl overflow-hidden animate-stagger-card"
           >
             {/* Header Control Strip */}
-            <div className="p-4 sm:p-5 bg-[#18181C] space-y-3">
+            <div className="p-4 sm:p-5 bg-white/[0.03] border-b border-white/10 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1004,7 +1004,7 @@ export default function ScrimDataHubView({
                   placeholder="Cari nama pasukan dalam senarai (cth: VOLTRA, 4KRV, DIY)..."
                   value={teamSearchQuery}
                   onChange={(e) => setTeamSearchQuery(e.target.value)}
-                  className="w-full bg-[#121214] rounded-2xl pl-10 pr-9 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] font-semibold placeholder:text-zinc-500"
+                  className="w-full glass-tile rounded-2xl pl-10 pr-9 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] font-semibold placeholder:text-zinc-500"
                 />
                 {teamSearchQuery && (
                   <button
@@ -1088,10 +1088,10 @@ export default function ScrimDataHubView({
                       <div
                         key={row.tempId}
                         className={
-                          'bg-[#18181C] rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all ' +
+                          'glass-tile rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all ' +
                           (isMismatch
-                            ? 'bg-rose-500/10'
-                            : 'hover:bg-zinc-800/80')
+                            ? '!bg-rose-500/12 !border-rose-400/30'
+                            : 'glass-tile-hover')
                         }
                       >
                         {/* Top Line: Rank Badge + Team Name Input + Total PTS Badge */}
@@ -1258,11 +1258,11 @@ export default function ScrimDataHubView({
                 <div className="overflow-x-auto no-scrollbar">
                   <table className="w-full text-left text-xs border-collapse min-w-[580px]">
                     <thead>
-                      <tr className="text-zinc-400 font-mono text-[11px] uppercase border-b border-white/5">
-                        <th className="py-2.5 px-2 w-12 text-center sticky left-0 bg-[#121214] z-10">
+                      <tr className="text-zinc-400 font-mono text-[11px] uppercase border-b border-white/10">
+                        <th className="py-2.5 px-2 w-12 text-center sticky left-0 glass-sticky-cell z-10">
                           #
                         </th>
-                        <th className="py-2.5 px-3 min-w-[170px] sticky left-12 bg-[#121214] z-10">
+                        <th className="py-2.5 px-3 min-w-[170px] sticky left-12 glass-sticky-cell z-10">
                           Team Name
                         </th>
                         <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
@@ -1285,14 +1285,14 @@ export default function ScrimDataHubView({
                             key={row.tempId}
                             className={
                               'transition-colors ' +
-                              (isMismatch ? 'bg-rose-500/10' : 'hover:bg-zinc-900/60')
+                              (isMismatch ? 'bg-rose-500/10' : 'hover:bg-white/[0.04]')
                             }
                           >
-                            <td className="py-2 px-2 text-center sticky left-0 bg-[#121214] z-10 font-bold text-zinc-400">
+                            <td className="py-2 px-2 text-center sticky left-0 glass-sticky-cell z-10 font-bold text-zinc-400">
                               #{row.rank}
                             </td>
 
-                            <td className="py-2 px-3 font-sans sticky left-12 bg-[#121214] z-10">
+                            <td className="py-2 px-3 font-sans sticky left-12 glass-sticky-cell z-10">
                               <input
                                 type="text"
                                 value={row.team_name}
@@ -1407,7 +1407,7 @@ export default function ScrimDataHubView({
                 <button
                   type="button"
                   onClick={handleAddRow}
-                  className="w-full py-2.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="w-full py-2.5 rounded-2xl glass-tile glass-tile-hover text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#D7FF00]" />
                   <span>Tambah Pasukan Baru</span>
@@ -1416,7 +1416,7 @@ export default function ScrimDataHubView({
             </div>
 
             {/* Footer Commit Bar */}
-            <div className="bg-[#18181C] px-4 sm:px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/5">
+            <div className="bg-white/[0.04] backdrop-blur-md px-4 sm:px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/10">
               <div className="text-xs text-zinc-400 font-mono">
                 Jumlah Pasukan: <strong className="text-white">{standings.length}</strong> •{' '}
                 {mismatchCount > 0 ? (

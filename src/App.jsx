@@ -4650,7 +4650,15 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#080808] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden isolate">
+      {/* Persistent Global Ambient Lighting Backdrop for Dark Glassmorphism */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-32 -left-24 w-[28rem] h-[28rem] md:w-[38rem] md:h-[38rem] bg-[#D7FF00]/[0.09] rounded-full blur-[120px] md:blur-[150px]" />
+        <div className="absolute top-[12%] -right-24 w-[24rem] h-[24rem] md:w-[34rem] md:h-[34rem] bg-blue-500/[0.08] rounded-full blur-[120px] md:blur-[150px]" />
+        <div className="absolute top-[48%] -left-28 w-[22rem] h-[22rem] md:w-[30rem] md:h-[30rem] bg-pink-500/[0.06] rounded-full blur-[120px] md:blur-[140px]" />
+        <div className="absolute -bottom-32 right-[10%] w-[26rem] h-[26rem] md:w-[34rem] md:h-[34rem] bg-emerald-500/[0.07] rounded-full blur-[120px] md:blur-[150px]" />
+      </div>
+
       <BackButtonHandler
         activeTab={activeTab}
         tabHistory={tabHistory}
@@ -4661,14 +4669,14 @@ export default function App() {
       
       {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
       {toastMessage && (
-        <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] bg-zinc-950/95 backdrop-blur-md text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_0_25px_rgba(215, 255, 0,0.2)] font-black text-xs flex items-center space-x-2 border border-[#D7FF00]/40 animate-card-entrance max-w-[90vw] text-center">
+        <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] glass-pill text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_25px_rgba(215,255,0,0.2)] font-black text-xs flex items-center space-x-2 border-[#D7FF00]/45 animate-card-entrance max-w-[90vw] text-center">
           <CheckCircle className="w-4 h-4 text-[#D7FF00] shrink-0"/>
           <span className="truncate">{toastMessage}</span>
         </div>
       )}
 
       {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
-      <header className={`bg-[#080808] sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-1 md:py-3.5 transition-colors ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+      <header className={`glass-header sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 transition-colors ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -4749,7 +4757,7 @@ export default function App() {
                 onClick={() => setIsOrgPopoverOpen(prev => !prev)}
                 aria-expanded={isOrgPopoverOpen}
                 aria-haspopup="dialog"
-                className="px-3.5 py-1.5 rounded-full bg-[#121216] hover:bg-[#19191F] border border-white/10 hover:border-white/20 flex items-center gap-2 text-xs font-bold text-white shadow-lg transition-all active:scale-95 cursor-pointer max-w-[190px] sm:max-w-[240px]"
+                className="px-3.5 py-1.5 rounded-full glass-pill glass-tile-hover flex items-center gap-2 text-xs font-bold text-white transition-all active:scale-95 cursor-pointer max-w-[190px] sm:max-w-[240px]"
                 title="Akaun Aktif Semasa"
               >
                 <span className="w-2 h-2 rounded-full bg-[#D7FF00] shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
@@ -4772,7 +4780,7 @@ export default function App() {
                   <div
                     role="dialog"
                     aria-label="Active User Account"
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 bg-[#121216]/95 backdrop-blur-2xl border border-white/15 rounded-[1.5rem] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.85)] z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 glass-modal rounded-[1.5rem] p-3 z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
                   >
                     <div className="flex items-center justify-between px-1.5 pt-0.5">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
@@ -4904,7 +4912,7 @@ export default function App() {
 
           {/* TOP RIGHT: Desktop Navigation & Menu */}
           <div className="flex items-center gap-2 z-10">
-            <nav className="hidden md:flex space-x-1 bg-zinc-900/75 p-1 rounded-2xl text-xs font-semibold items-center backdrop-blur-md shadow-lg">
+            <nav className="hidden md:flex space-x-1 glass-pill p-1 rounded-2xl text-xs font-semibold items-center">
               <button
                 type="button"
                 onClick={() => navigateToTab('playground')}
@@ -5001,10 +5009,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-                className={'p-2 rounded-full transition border flex items-center justify-center cursor-pointer ' + (
+                className={'p-2 rounded-full transition flex items-center justify-center cursor-pointer ' + (
                   isNavMenuOpen 
-                    ? 'bg-zinc-800 text-[#D7FF00] border-[#D7FF00]/40' 
-                    : 'bg-[#121216] hover:bg-zinc-800 text-zinc-300 border-white/10'
+                    ? 'bg-white/[0.14] text-[#D7FF00] border border-[#D7FF00]/40 backdrop-blur-md' 
+                    : 'glass-pill glass-tile-hover text-zinc-300'
                 )}
                 title="Menu"
                 aria-label="Navigation Menu"
@@ -5018,7 +5026,7 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 py-1.5 divide-y divide-white/5 text-xs">
+                  <div className="absolute right-0 mt-2 w-56 glass-modal rounded-2xl z-50 py-1.5 divide-y divide-white/10 text-xs">
                     {isMasterAdmin && (
                       <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
                         <button
@@ -5211,16 +5219,8 @@ export default function App() {
           return (
             <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
 
-              {/* Immersive Esports Ambient Backdrop (Desktop only so mobile stays crisp & fast) */}
-              <div aria-hidden="true" className="hidden md:block pointer-events-none absolute -inset-x-10 -top-10 h-[560px] overflow-hidden -z-10">
-                <div className="absolute -top-10 left-[6%] w-[460px] h-[340px] rounded-full bg-[#D7FF00]/[0.07] blur-[120px] animate-ambient-breathe" />
-                <div
-                  className="absolute top-6 right-[8%] w-[420px] h-[340px] rounded-full bg-pink-500/[0.06] blur-[130px] animate-ambient-breathe"
-                  style={{ animationDelay: '3s' }}
-                />
-                <div
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[540px] h-[240px] rounded-full bg-emerald-500/[0.05] blur-[120px]"
-                />
+              {/* Subtle Top Architectural Dot Matrix Grid (Ambient Orbs now live globally) */}
+              <div aria-hidden="true" className="hidden md:block pointer-events-none absolute -inset-x-10 -top-10 h-[520px] overflow-hidden -z-10">
                 <div
                   className="absolute inset-0 opacity-[0.16] [background-image:radial-gradient(rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_at_top,black_25%,transparent_75%)]"
                 />
@@ -5249,14 +5249,14 @@ export default function App() {
                 <div className="flex items-center gap-2.5 shrink-0">
                   {/* Live Season Telemetry Pills (Desktop only) */}
                   <div className="hidden lg:flex items-center gap-2">
-                    <div className="px-3.5 py-2 rounded-full bg-[#121216]/90 text-xs font-mono font-bold text-zinc-300 flex items-center gap-2 shadow-md">
+                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-300 flex items-center gap-2">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-status-beacon absolute inline-flex h-full w-full rounded-full bg-[#D7FF00]" />
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D7FF00]" />
                       </span>
                       <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
                     </div>
-                    <div className="px-3.5 py-2 rounded-full bg-[#121216]/90 text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 shadow-md">
+                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5">
                       <Trophy className="w-3.5 h-3.5 text-emerald-400" />
                       <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
                     </div>
@@ -5266,7 +5266,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsProfileModalOpen(true)}
-                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
+                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
                       <span>{adminHostedScrims.length} Hosted</span>
@@ -5275,7 +5275,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsAuthModalOpen(true)}
-                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#121216] hover:bg-zinc-800 text-[11px] md:text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group shadow-md"
+                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group"
                     >
                       <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00] group-hover:scale-110 transition-transform" />
                       <span>Log Masuk</span>
@@ -5309,7 +5309,7 @@ export default function App() {
                     onFocus={() => setIsHomeHofInteracting(true)}
                     onBlur={() => setIsHomeHofInteracting(false)}
                     style={{ '--home-delay': '80ms' }}
-                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00] via-[#C8F000] to-[#9ABB00] text-black shadow-[0_14px_40px_rgba(215,255,0,0.18)] lg:hover:-translate-y-1 lg:hover:shadow-[0_22px_55px_rgba(215,255,0,0.28)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00]/95 via-[#C8F000]/92 to-[#9ABB00]/95 backdrop-blur-xl border border-white/35 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_14px_40px_rgba(215,255,0,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_22px_55px_rgba(215,255,0,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
                     {/* Ambient decorative glow & hover light sheen */}
                     <div className="absolute -right-8 -top-8 w-36 lg:w-52 h-36 lg:h-52 rounded-full bg-white/25 blur-2xl pointer-events-none" />
@@ -5581,23 +5581,23 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '160ms' }}
-                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93] via-[#EC4899] to-[#BE185D] text-white shadow-[0_14px_35px_rgba(236,72,153,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[0_22px_50px_rgba(236,72,153,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
+                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93]/90 via-[#EC4899]/85 to-[#BE185D]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_14px_35px_rgba(236,72,153,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_22px_50px_rgba(236,72,153,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
                   >
                     <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none" />
 
                     {/* Top Icon & Badge */}
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-md group-hover:scale-105 group-hover:-rotate-3 transition-transform">
+                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-md group-hover:scale-105 group-hover:-rotate-3 transition-transform">
                         <Sparkles className="w-5 h-5" />
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md text-[10px] font-mono font-black uppercase tracking-wider">
+                      <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md border border-white/15 text-[10px] font-mono font-black uppercase tracking-wider">
                         AI OCR
                       </span>
                     </div>
 
                     {/* Middle Visual Graphic with Animated Laser Scan-Line */}
                     <div className="my-auto py-4 relative z-10 space-y-2">
-                      <div className="p-3 lg:p-3.5 rounded-2xl bg-black/25 backdrop-blur-md space-y-1.5 relative overflow-hidden">
+                      <div className="p-3 lg:p-3.5 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 space-y-1.5 relative overflow-hidden">
                         <div
                           aria-hidden="true"
                           className="animate-ocr-scanline pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/80 to-transparent shadow-[0_0_12px_rgba(255,255,255,0.8)]"
@@ -5635,15 +5635,15 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '230ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] text-white shadow-[0_12px_30px_rgba(59,130,246,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[0_20px_45px_rgba(59,130,246,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6]/90 via-[#2563EB]/85 to-[#1D4ED8]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_12px_30px_rgba(59,130,246,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_20px_45px_rgba(59,130,246,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
 
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:rotate-3 transition-transform">
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:rotate-3 transition-transform">
                         <Edit3 className="w-4 h-4" />
                       </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-mono font-bold text-blue-100">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 backdrop-blur-md border border-white/15 text-[10px] font-mono font-bold text-blue-100">
                         <span className="relative flex h-1.5 w-1.5">
                           <span className="animate-status-beacon absolute inline-flex h-full w-full rounded-full bg-sky-300" />
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-200" />
@@ -5656,7 +5656,7 @@ export default function App() {
                       <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight">
                         Quick Scorer
                       </h2>
-                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/25 text-[10px] font-mono font-semibold text-blue-100 max-w-full">
+                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/25 backdrop-blur-md border border-white/10 text-[10px] font-mono font-semibold text-blue-100 max-w-full">
                         <span className="truncate">Last Session: {quickScorerPreviewTitle}</span>
                       </div>
                     </div>
@@ -5674,23 +5674,23 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '300ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white shadow-[0_12px_30px_rgba(16,185,129,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[0_20px_45px_rgba(16,185,129,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981]/90 via-[#059669]/85 to-[#047857]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_12px_30px_rgba(16,185,129,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_20px_45px_rgba(16,185,129,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
 
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:-rotate-3 transition-transform">
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:-rotate-3 transition-transform">
                         <Clock className="w-4 h-4" />
                       </div>
 
                       {/* Status Pill Badge ("Completed" in emerald or "Pending" in amber) */}
                       {latestRekodFinished ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-200 text-[10px] font-mono font-black">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/65 backdrop-blur-md border border-emerald-300/25 text-emerald-100 text-[10px] font-mono font-black">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
                           <span>Completed</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/85 text-amber-200 text-[10px] font-mono font-black">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/70 backdrop-blur-md border border-amber-300/25 text-amber-100 text-[10px] font-mono font-black">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
                           <span>Pending</span>
                         </span>
@@ -5715,10 +5715,10 @@ export default function App() {
                   style={{ '--home-delay': '370ms' }}
                 >
                   {/* Left: Top Contenders Live Standings */}
-                  <div className="lg:col-span-7 bg-[#111115]/95 rounded-[2rem] p-6 shadow-2xl space-y-4">
+                  <div className="lg:col-span-7 glass-panel rounded-[2rem] p-6 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/15 text-[#D7FF00] flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/15 border border-[#D7FF00]/25 text-[#D7FF00] flex items-center justify-center">
                           <Flame className="w-4 h-4" />
                         </div>
                         <div>
@@ -5732,7 +5732,7 @@ export default function App() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center bg-zinc-900 rounded-full p-0.5">
+                        <div className="flex items-center glass-pill rounded-full p-0.5">
                           <button
                             type="button"
                             onClick={() => setHomeContendersCategory('ALL')}
@@ -5791,7 +5791,7 @@ export default function App() {
                                 navigateToTab('teams');
                                 setSelectedTeamProfile(team.name);
                               }}
-                              className="w-full text-left rounded-2xl bg-[#16161c] hover:bg-[#1c1c24] px-4 py-3 flex items-center gap-3.5 transition-[transform,background-color] duration-200 hover:translate-x-1 cursor-pointer group"
+                              className="w-full text-left rounded-2xl glass-tile glass-tile-hover px-4 py-3 flex items-center gap-3.5 transition-[transform,background-color,border-color] duration-200 hover:translate-x-1 cursor-pointer group"
                             >
                               <span
                                 className={`w-8 h-8 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
@@ -5859,7 +5859,7 @@ export default function App() {
                         })}
                       </div>
                     ) : (
-                      <div className="py-10 text-center text-xs text-zinc-500 rounded-2xl bg-[#16161c]/70">
+                      <div className="py-10 text-center text-xs text-zinc-400 rounded-2xl glass-tile">
                         {homeContendersCategory === 'TIER_3'
                           ? 'Belum ada rekod kejohanan Tier 3 direkodkan lagi.'
                           : 'Belum ada data ranking pasukan direkodkan.'}
@@ -5868,7 +5868,7 @@ export default function App() {
                   </div>
 
                   {/* Right: Recent Sessions & Quick Portal Actions */}
-                  <div className="lg:col-span-5 bg-[#111115]/95 rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between gap-4">
+                  <div className="lg:col-span-5 glass-panel rounded-[2rem] p-6 flex flex-col justify-between gap-4">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2.5">
@@ -5901,7 +5901,7 @@ export default function App() {
                               key={s.id}
                               type="button"
                               onClick={() => setInspectedScrim(s)}
-                              className="w-full text-left rounded-2xl bg-[#16161c] hover:bg-[#1c1c24] px-4 py-3 flex items-center justify-between gap-3 transition-[transform,background-color] duration-200 hover:translate-x-1 cursor-pointer group"
+                              className="w-full text-left rounded-2xl glass-tile glass-tile-hover px-4 py-3 flex items-center justify-between gap-3 transition-[transform,background-color,border-color] duration-200 hover:translate-x-1 cursor-pointer group"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 {s.logo_url ? (
@@ -5944,7 +5944,7 @@ export default function App() {
                           ))}
                         </div>
                       ) : (
-                        <div className="py-10 text-center text-xs text-zinc-500 rounded-2xl bg-[#16161c]/70">
+                        <div className="py-10 text-center text-xs text-zinc-400 rounded-2xl glass-tile">
                           Tiada rekod sesi terkini dijumpai.
                         </div>
                       )}
@@ -6077,7 +6077,7 @@ export default function App() {
                       );
                       setIsPerformanceModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-pill glass-tile-hover text-xs font-bold text-zinc-200 hover:text-[#D7FF00] transition cursor-pointer"
                     title="Jana IG Story 9:16"
                   >
                     <Share2 className="w-3.5 h-3.5 text-[#D7FF00]" />
@@ -6086,7 +6086,7 @@ export default function App() {
                 </div>
 
                 {/* 2. TEAM IDENTITY HERO BANNER */}
-                <div className="relative overflow-hidden bg-gradient-to-b from-[#141418] to-[#0c0c0e] rounded-[2rem] p-5 sm:p-6 shadow-xl">
+                <div className="relative overflow-hidden glass-panel rounded-[2rem] p-5 sm:p-6">
                   {/* Subtle decorative glow */}
                   <div className="absolute top-0 right-0 w-44 h-44 bg-[#D7FF00]/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -6208,7 +6208,7 @@ export default function App() {
                     {/* 3. INTERACTIVE STATS BENTO GRID (4 CARDS) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {/* Points */}
-                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
+                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Total Points</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1">
                       {activeTeamScopedStats.totalPoints}
@@ -6219,7 +6219,7 @@ export default function App() {
                   </div>
 
                   {/* Elims */}
-                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
+                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Elims (Kills)</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-white my-1">
                       {activeTeamScopedStats.totalKills}
@@ -6230,7 +6230,7 @@ export default function App() {
                   </div>
 
                   {/* WWCD */}
-                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
+                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">WWCD Dinners</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1 flex items-center justify-center gap-1">
                       <Trophy className="w-5 h-5 text-[#D7FF00]" />
@@ -6242,7 +6242,7 @@ export default function App() {
                   </div>
 
                   {/* Matches / Sesi */}
-                  <div className="bg-[#121216] hover:bg-[#17171d] rounded-2xl p-3.5 text-center flex flex-col justify-between transition shadow-md group">
+                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Sesi / Match</span>
                     <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-200 my-1">
                       {activeTeamScopedStats.eventsCount}
@@ -6254,7 +6254,7 @@ export default function App() {
                 </div>
 
                 {/* 4. TACTICAL PLAYSTYLE COMBAT RATIO */}
-                <div className="bg-[#121216] rounded-2xl p-4 sm:p-5 space-y-3 shadow-md">
+                <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
                       Profil Gaya Permainan
@@ -6342,8 +6342,8 @@ export default function App() {
                             key={itemKey}
                             className={`rounded-2xl transition-all overflow-hidden ${
                               isFirst
-                                ? 'bg-[#16161b] shadow-[0_0_16px_rgba(215,255,0,0.08)]'
-                                : 'bg-[#101014] hover:bg-[#14141a]'
+                                ? 'glass-tile border-[#D7FF00]/30 shadow-[0_0_20px_rgba(215,255,0,0.1)]'
+                                : 'glass-tile glass-tile-hover'
                             }`}
                           >
                             {/* Summary Row */}
@@ -6549,7 +6549,7 @@ export default function App() {
 
               {/* Expandable Info Card (if toggled) */}
               {activeHeaderInfo === 'teams' && (
-                <div className="p-3.5 bg-[#121214] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
+                <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
                     Pangkalan data statistik ranking pasukan, analitik konsistensi seluruh kejohanan Malaysia, metrik win-rate dan penjana kad Story 9:16.
@@ -6570,7 +6570,7 @@ export default function App() {
                 <div
                   role="group"
                   aria-label="Toggle Jenis Acara"
-                  className="inline-flex items-center gap-1 bg-zinc-900/90 p-1 rounded-full self-start shrink-0"
+                  className="inline-flex items-center gap-1 glass-pill p-1 rounded-full self-start shrink-0"
                 >
                   <button
                     type="button"
@@ -6717,7 +6717,7 @@ export default function App() {
                         e.currentTarget.blur();
                       }
                     }}
-                    className="w-full bg-[#121214] rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none transition font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
+                    className="w-full glass-tile rounded-2xl pl-10 pr-9 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00]/50 transition font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
                   />
                   {teamSearchQuery && (
                     <button
@@ -6815,7 +6815,7 @@ export default function App() {
               {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Visible on "Semua" so Tier 3 stays prominent) */}
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
-                  className="bg-gradient-to-br from-[#19150c] via-[#121216] to-[#111114] rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5 animate-stagger-card relative overflow-hidden"
+                  className="glass-amber rounded-3xl p-4 sm:p-5 space-y-3.5 animate-stagger-card relative overflow-hidden"
                   style={{ animationDelay: '105ms' }}
                 >
                   <div aria-hidden="true" className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-amber-400/10 blur-2xl pointer-events-none" />
@@ -6907,7 +6907,7 @@ export default function App() {
 
               {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
-                className="bg-[#121214] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 animate-stagger-card"
+                className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 animate-stagger-card"
                 style={{ animationDelay: '140ms' }}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -6946,7 +6946,7 @@ export default function App() {
                         'h-9 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition cursor-pointer shrink-0 ' +
                         (isHallOfFameFullView
                           ? 'bg-[#D7FF00] text-black shadow-sm'
-                          : 'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200')
+                          : 'glass-pill glass-tile-hover text-zinc-200')
                       }
                       title={isHallOfFameFullView ? 'Tutup senarai penuh' : 'Lihat senarai penuh semua pasukan'}
                     >
@@ -6974,8 +6974,8 @@ export default function App() {
                     : (HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType);
                   const activeFilterLabel = [eventLabel, tierLabel].filter(Boolean).join(' • ') || 'Semua';
                   return (
-                    <div className="py-10 px-4 text-center space-y-3 bg-zinc-950/50 rounded-2xl">
-                      <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-zinc-400 flex items-center justify-center mx-auto">
+                    <div className="py-10 px-4 text-center space-y-3 glass-tile rounded-2xl">
+                      <div className="w-11 h-11 rounded-2xl glass-pill text-zinc-400 flex items-center justify-center mx-auto">
                         {teamSearchQuery.trim() ? <Search className="w-5 h-5" /> : <Trophy className="w-5 h-5 text-[#D7FF00]/80" />}
                       </div>
                       <div className="space-y-1 max-w-xs mx-auto">
@@ -7000,7 +7000,7 @@ export default function App() {
                             setTeamStatsEventType('ALL');
                           }
                         }}
-                        className="px-4 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] transition cursor-pointer"
+                        className="px-4 py-1.5 rounded-full glass-pill glass-tile-hover text-xs font-bold text-[#D7FF00] transition cursor-pointer"
                       >
                         {teamSearchQuery.trim() ? 'Reset Carian' : 'Lihat Semua Data'}
                       </button>
@@ -7087,7 +7087,7 @@ export default function App() {
                                     setSelectedTeamProfile(team.name);
                                   }
                                 }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden bg-[#101015] transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardGlowClass} ${
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden glass-tile border-white/15 transition-all duration-200 cursor-pointer group flex flex-col select-none ${cardGlowClass} ${
                                   isSelected ? 'brightness-110' : ''
                                 }`}
                               >
@@ -7179,8 +7179,8 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                {/* Lower Dark Name Caption Block */}
-                                <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-[#09090b] text-left space-y-0.5">
+                                {/* Lower Frosted Dark Name Caption Block */}
+                                <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-white/[0.04] backdrop-blur-md border-t border-white/10 text-left space-y-0.5">
                                   <div className="flex items-center justify-between gap-1 text-[9px] sm:text-[10px] font-mono text-zinc-400">
                                     <span className="truncate">{team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M</span>
                                     {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
@@ -7222,8 +7222,8 @@ export default function App() {
                                 style={{ animationDelay: `${160 + Math.min(idx, 10) * 40}ms` }}
                                 className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-stagger-card select-none ${
                                   isSelected
-                                    ? 'bg-[#1a1a22]'
-                                    : 'bg-[#09090b] hover:bg-[#16161d]'
+                                    ? 'bg-white/[0.11] border border-[#D7FF00]/45 backdrop-blur-md shadow-[0_0_20px_rgba(215,255,0,0.08)]'
+                                    : 'glass-tile glass-tile-hover'
                                 }`}
                               >
                                 {/* Left: Rank # + Compact Tag Pill + Uppercase Team Name */}
@@ -7307,7 +7307,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsHallOfFameFullView(prev => !prev)}
-                    className="w-full py-2.5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-[#D7FF00] transition cursor-pointer"
+                    className="w-full py-2.5 rounded-2xl glass-tile glass-tile-hover text-xs font-bold text-zinc-200 hover:text-[#D7FF00] transition cursor-pointer"
                   >
                     {isHallOfFameFullView
                       ? 'Tunjukkan Top 10 Sahaja ↑'
@@ -7509,7 +7509,7 @@ export default function App() {
                           e.currentTarget.blur();
                         }
                       }}
-                      className="w-full bg-[#121214] rounded-2xl pl-10 pr-8 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
+                      className="w-full glass-tile rounded-2xl pl-10 pr-8 py-2.5 text-xs text-white focus:outline-none focus:border-[#D7FF00]/50 font-semibold placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
                     />
                     {searchScrimQuery && (
                       <button
@@ -7526,7 +7526,7 @@ export default function App() {
                     value={tierFilter}
                     onChange={(e) => setTierFilter(e.target.value)}
                     aria-label="Tapis mengikut Tier"
-                    className="bg-[#121214] text-zinc-200 text-xs font-bold rounded-2xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#D7FF00] cursor-pointer shrink-0"
+                    className="glass-tile text-zinc-100 text-xs font-bold rounded-2xl px-3.5 py-2.5 focus:outline-none focus:border-[#D7FF00]/50 cursor-pointer shrink-0 [color-scheme:dark]"
                   >
                     <option value="All">Semua Tier</option>
                     <option value="Tier 1 (Pro)">Tier 1 (Pro)</option>
@@ -7540,7 +7540,7 @@ export default function App() {
 
             {/* 3. SESSION CARDS LIST (Following Reference Card Hierarchy & Two-Tone Footer) */}
             {filteredScrims.length === 0 ? (
-              <div className="p-12 text-center bg-[#121214] rounded-3xl shadow-2xl space-y-3 mx-1">
+              <div className="p-12 text-center glass-panel rounded-3xl space-y-3 mx-1">
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Sesi Dijumpai</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto">
@@ -7564,7 +7564,7 @@ export default function App() {
                       key={s.id}
                       onClick={() => setInspectedScrim(s)}
                       style={{ animationDelay: `${80 + Math.min(idx, 8) * 60}ms` }}
-                      className="bg-[#121214] hover:bg-[#16161a] border border-transparent hover:border-white/10 rounded-3xl p-3.5 sm:p-4 lg:p-5 shadow-xl hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
+                      className="glass-panel glass-panel-hover rounded-3xl p-3.5 sm:p-4 lg:p-5 transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
                     >
                       {/* Left: Scrim Logo / Badge + Info (Nama Scrim, Status, Date) */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -7647,7 +7647,7 @@ export default function App() {
         {activeTab === 'hosts' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
+            <div className="glass-panel rounded-3xl p-4 sm:p-5 space-y-3">
               <div>
                 <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
                   <Award className="w-5 h-5 text-[#D7FF00]"/>
@@ -7670,14 +7670,14 @@ export default function App() {
                       e.currentTarget.blur();
                     }
                   }}
-                  className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full glass-tile rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00]/50 placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {organizersList.map((host, idx) => (
-                <div key={idx} className="bg-zinc-900/60 hover:bg-zinc-900/90 backdrop-blur-md rounded-3xl p-5 shadow-2xl space-y-3 flex flex-col justify-between transition">
+                <div key={idx} className="glass-panel glass-panel-hover rounded-3xl p-5 space-y-3 flex flex-col justify-between transition">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
@@ -7753,7 +7753,7 @@ export default function App() {
         {activeTab === 'showcase' && (
           <div className="space-y-4">
             
-            <div className="bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="glass-panel rounded-3xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-black text-white flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-[#D7FF00]"/>
@@ -7801,7 +7801,7 @@ export default function App() {
                 const isMyPost = currentUser && (post.created_by === currentUser.id || post.author === currentUser.email?.split('@')[0]);
 
                 return (
-                  <div key={post.id} className="bg-zinc-900/60 backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between">
+                  <div key={post.id} className="glass-panel rounded-3xl overflow-hidden flex flex-col justify-between">
                     <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
                       {post.media_type === 'video' ? (
                         <video src={post.media_url} controls className="w-full h-full object-cover" />
@@ -8325,7 +8325,7 @@ export default function App() {
               <div className="space-y-4 sm:space-y-6">
                 
                 {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
-                <div className="bg-[#121214] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden space-y-3">
+                <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                     <div className="space-y-2.5 flex-1 min-w-0">
                       {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -8333,7 +8333,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => navigateToTab('playground')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-medium transition active:scale-95 border border-zinc-800"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl glass-pill glass-tile-hover text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95"
                           title="Kembali ke Laman Utama"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
@@ -8343,10 +8343,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => toggleHeaderInfo('admin')}
-                          className={'p-1.5 sm:p-2 rounded-xl border transition cursor-pointer shrink-0 ' + (
+                          className={'p-1.5 sm:p-2 rounded-xl transition cursor-pointer shrink-0 ' + (
                             activeHeaderInfo === 'admin'
-                              ? 'bg-[#D7FF00] text-black border-[#D7FF00] shadow-sm'
-                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                              ? 'bg-[#D7FF00] text-black border border-[#D7FF00] shadow-sm'
+                              : 'glass-tile glass-tile-hover text-zinc-400 hover:text-white'
                           )}
                           title="Info portal penganjur"
                           aria-label="Info portal penganjur"
@@ -8539,7 +8539,7 @@ export default function App() {
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    <div className="bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
+                    <div className="glass-panel rounded-3xl p-4 sm:p-5 space-y-4">
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
@@ -9107,8 +9107,8 @@ export default function App() {
 
       {/* MODAL 1: TEAM PERFORMANCE & IG STORY EXPORT */}
       {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-modal rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-4">
             
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center space-x-3">
@@ -9241,8 +9241,8 @@ export default function App() {
 
       {/* MODAL 0: SLIDE PRESENTATION PANDUAN APLIKASI (QUICK SCORER & ADMIN FOCUS) */}
       {isGuideModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-2xl sm:rounded-3xl max-w-2xl w-full p-3.5 sm:p-6 shadow-2xl space-y-3 sm:space-y-4 relative overflow-hidden flex flex-col h-[94vh] sm:h-auto sm:max-h-[88vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
+          <div className="glass-modal rounded-2xl sm:rounded-3xl max-w-2xl w-full p-3.5 sm:p-6 space-y-3 sm:space-y-4 relative overflow-hidden flex flex-col h-[94vh] sm:h-auto sm:max-h-[88vh]">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-2.5 sm:pb-3 flex-shrink-0 gap-2">
@@ -9616,8 +9616,8 @@ export default function App() {
 
       {/* AUTH MODAL (LOGIN / SIGN UP FOR GUEST-PLAYGROUND & DASHBOARD) */}
       {isAuthModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
+          <div className="glass-modal rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 relative">
             <button
               onClick={() => {
                 setIsAuthModalOpen(false);
@@ -9736,8 +9736,8 @@ export default function App() {
 
       {/* MODAL 2: DEVELOPER FEEDBACK MODAL */}
       {isFeedbackModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-modal rounded-3xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center">
@@ -9822,11 +9822,11 @@ export default function App() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-drawer-title"
-          id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#080808] w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
+          id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#06070b]/92 backdrop-blur-2xl w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 bg-[#080808] sm:shadow-2xl md:px-6 lg:px-10 xl:px-12">
+          <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 md:px-6 lg:px-10 xl:px-12">
             {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
-            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-zinc-800 via-[#16161e] to-[#080808] shrink-0 md:rounded-3xl md:mt-4">
+            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-white/[0.08] via-[#12161f]/80 to-transparent backdrop-blur-xl border-b md:border border-white/10 shrink-0 md:rounded-3xl md:mt-4">
               {/* Subtle ambient light effects */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
               <div className="absolute top-2 right-4 w-40 h-40 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
@@ -9976,7 +9976,7 @@ export default function App() {
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveProfile} className="space-y-4 p-4 sm:p-6 rounded-3xl bg-zinc-900/95 shadow-[0_0_30px_rgba(215,255,0,0.08)]">
+                <form onSubmit={handleSaveProfile} className="space-y-4 p-4 sm:p-6 rounded-3xl glass-panel">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                     <div className="md:col-span-1">
                       <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
@@ -10079,7 +10079,7 @@ export default function App() {
                         setIsProfileModalOpen(false);
                         navigateToTab('admin');
                       }}
-                      className="snap-start shrink-0 w-64 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800/90 flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98] shadow-md"
+                      className="snap-start shrink-0 w-64 md:w-auto p-3.5 sm:p-4 rounded-2xl glass-tile glass-tile-hover flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98]"
                     >
                       <div className="w-12 h-12 rounded-xl bg-zinc-950 overflow-hidden flex items-center justify-center shrink-0">
                         {s.poster_url ? (
@@ -10107,7 +10107,7 @@ export default function App() {
                     </div>
                   ))
                 ) : (
-                  <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl bg-zinc-900/50 flex items-center gap-3 text-zinc-400 text-xs">
+                  <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl glass-tile flex items-center gap-3 text-zinc-400 text-xs">
                     <Trophy className="w-4 h-4 text-[#D7FF00]/50" />
                     <span>Belum ada sesi dianjurkan</span>
                   </div>
@@ -10120,7 +10120,7 @@ export default function App() {
                     setIsProfileModalOpen(false);
                     handleQuickNewSession();
                   }}
-                  className="snap-start shrink-0 w-36 md:w-auto h-[76px] md:h-auto md:min-h-[76px] p-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 flex flex-col md:flex-row items-center justify-center gap-2 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
+                  className="snap-start shrink-0 w-36 md:w-auto h-[76px] md:h-auto md:min-h-[76px] p-2.5 rounded-2xl glass-tile glass-tile-hover border-dashed flex flex-col md:flex-row items-center justify-center gap-2 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
                 >
                   <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
                     <Plus className="w-4 h-4" />
@@ -10141,7 +10141,7 @@ export default function App() {
               </div>
 
               {/* 3 Circular SVG Progress Gauges Card */}
-              <div className="p-4 sm:p-6 lg:p-7 rounded-2xl bg-zinc-900/65 grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
+              <div className="p-4 sm:p-6 lg:p-7 rounded-2xl glass-panel grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
                 {/* Gauge 1: Selesai (#D7FF00) */}
                 <div className="flex flex-col items-center text-center">
                   <span className="text-[11px] sm:text-xs font-bold mb-2 tracking-wide text-[#D7FF00]">
@@ -10269,7 +10269,7 @@ export default function App() {
               {/* CARDS VIEW MODE (Reference "Notes" Style) */}
               <div className="flex md:grid md:grid-cols-3 items-center md:items-stretch gap-3 md:gap-4 lg:gap-6 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
                 {/* Card 1: Official Contact */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 flex flex-col justify-between space-y-3 shadow-md">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl glass-tile flex flex-col justify-between space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">CONTACT</span>
                     <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -10295,7 +10295,7 @@ export default function App() {
                 </div>
 
                 {/* Card 2: Bio & Rules */}
-                <div className="snap-start shrink-0 w-52 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 flex flex-col justify-between space-y-3 shadow-md">
+                <div className="snap-start shrink-0 w-52 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl glass-tile flex flex-col justify-between space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">BIO</span>
                     <div className="w-7 h-7 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
@@ -10309,7 +10309,7 @@ export default function App() {
                 </div>
 
                 {/* Card 3: Clan / Organization */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl bg-zinc-900/80 flex flex-col justify-between space-y-3 shadow-md">
+                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl glass-tile flex flex-col justify-between space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">ORGANISASI</span>
                     <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
@@ -10357,7 +10357,7 @@ export default function App() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-[#121216] border border-white/10 rounded-[2rem] p-5 sm:p-6 shadow-2xl space-y-4 max-h-[88vh] flex flex-col relative animate-in zoom-in-95 duration-150 overflow-hidden"
+            className="w-full max-w-lg glass-modal rounded-[2rem] p-5 sm:p-6 space-y-4 max-h-[88vh] flex flex-col relative animate-in zoom-in-95 duration-150 overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
@@ -10668,9 +10668,9 @@ export default function App() {
         </div>
       )}
       {isCreateScrimOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
           <div className="fixed inset-0" onClick={() => setIsCreateScrimOpen(false)} />
-          <div className="relative w-full max-w-lg bg-zinc-950 border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 z-10 animate-card-entrance max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg glass-modal rounded-3xl p-5 sm:p-6 space-y-4 z-10 animate-card-entrance max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black">
@@ -10816,8 +10816,8 @@ export default function App() {
 
       {/* MODAL 4: EDIT EVENT SETTINGS */}
       {isEditScrimModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden">
-          <div className="bg-zinc-950 border border-white/10 rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[88dvh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-2 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden">
+          <div className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[88dvh] sm:max-h-[90vh] flex flex-col overflow-hidden relative z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5 pb-3 shrink-0">
               <h3 id="edit-scrim-modal-title" className="font-black text-sm text-white flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-[#D7FF00]"/>
@@ -11011,8 +11011,8 @@ export default function App() {
 
       {/* MODAL 5: PUBLIC DETAILS MODAL */}
       {inspectedScrim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-2xl lg:max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-7 shadow-2xl space-y-4 lg:space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-modal rounded-3xl max-w-2xl lg:max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-4 lg:space-y-5">
             
             <div className="flex items-start justify-between border-b border-white/5 pb-3.5 gap-3">
               <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -11204,8 +11204,8 @@ export default function App() {
 
       {/* MODAL 6: SHOWCASE POST DETAIL MODAL */}
       {inspectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-modal rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#D7FF00] text-black font-mono">
@@ -11289,8 +11289,8 @@ export default function App() {
 
       {/* MODAL 7: PUBLISH CONTENT WITH SOCIAL MEDIA / FILE OPTIONS */}
       {isShowcaseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-zinc-950/95 border border-white/10 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-modal rounded-3xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="font-black text-sm text-white flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-[#D7FF00]"/>
@@ -11428,12 +11428,12 @@ export default function App() {
 
       {/* QUICK CREATE ACTION SHEET MODAL (+ NAVBAR 3-SELECTION MENU) */}
       {isQuickCreateModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
           <div 
             className="fixed inset-0"
             onClick={() => setIsQuickCreateModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm bg-[#121214] rounded-3xl p-5 shadow-2xl space-y-4 z-10 animate-card-entrance">
+          <div className="relative w-full max-w-sm glass-modal rounded-3xl p-5 space-y-4 z-10 animate-card-entrance">
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black shadow-sm">
@@ -11461,7 +11461,7 @@ export default function App() {
                   setIsQuickCreateModalOpen(false);
                   navigateToTab('scorer');
                 }}
-                className="w-full p-3.5 rounded-2xl bg-[#18181C] hover:bg-zinc-800/90 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
+                className="w-full p-3.5 rounded-2xl glass-tile glass-tile-hover transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
                   <Zap className="w-5 h-5 fill-black" />
@@ -11506,12 +11506,12 @@ export default function App() {
 
       {/* QUICK IMPORT DARI WHATSAPP / DISCORD MODAL */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
           <div 
             className="fixed inset-0"
             onClick={() => setIsImportModalOpen(false)}
           />
-          <div className="relative w-full max-w-lg bg-zinc-950/95 rounded-3xl p-5 sm:p-6 shadow-2xl border border-white/10 space-y-4 z-10 animate-card-entrance">
+          <div className="relative w-full max-w-lg glass-modal rounded-3xl p-5 sm:p-6 space-y-4 z-10 animate-card-entrance">
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-black flex items-center justify-center font-black shadow-sm">
@@ -11665,15 +11665,15 @@ export default function App() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg bg-[#111115] rounded-t-3xl sm:rounded-3xl shadow-[0_24px_70px_rgba(0,0,0,0.85)] flex flex-col max-h-[76dvh] sm:max-h-[74vh] overflow-hidden animate-drawer-up"
+              className="w-full sm:max-w-lg glass-modal rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[76dvh] sm:max-h-[74vh] overflow-hidden animate-drawer-up"
             >
               {/* Mobile Drag Handle */}
               <div className="sm:hidden flex justify-center pt-2.5 pb-0.5 shrink-0">
-                <div className="w-10 h-1 rounded-full bg-zinc-700" />
+                <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
 
               {/* Sticky Top Header + Quick New CTA + Search + Filter Pills */}
-              <div className="p-4 sm:p-5 pb-3 space-y-3 shrink-0 bg-[#14141A]">
+              <div className="p-4 sm:p-5 pb-3 space-y-3 shrink-0 bg-white/[0.04] border-b border-white/10">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <h2 id="session-picker-title" className="text-base sm:text-lg font-black text-white tracking-tight truncate">
@@ -11872,7 +11872,7 @@ export default function App() {
         aria-label="Mobile Navigation"
         className={'md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
       >
-        <div className="bg-zinc-950/90 backdrop-blur-2xl rounded-full px-2 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.75)] flex items-center justify-between">
+        <div className="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between">
           
           {/* Tab 1: Home */}
           <button
