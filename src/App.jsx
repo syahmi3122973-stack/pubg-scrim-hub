@@ -1428,11 +1428,11 @@ export default function App() {
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
-    const timer = window.setInterval(() => {
+    const timer = window.setTimeout(() => {
       setHomeHofSlide((prev) => (prev === 0 ? 1 : 0));
     }, 5500);
-    return () => window.clearInterval(timer);
-  }, [activeTab, isHomeHofPaused, isHomeHofInteracting]);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, isHomeHofPaused, isHomeHofInteracting, homeHofSlide]);
 
   // User Profile States
   const [profileName, setProfileName] = useState('');
@@ -5220,6 +5220,7 @@ export default function App() {
                   <div
                     role="button"
                     tabIndex={0}
+                    data-hof-slide={homeHofSlide}
                     onClick={() => {
                       setTeamStatsEventType('ALL');
                       handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
@@ -5238,27 +5239,46 @@ export default function App() {
                     onFocus={() => setIsHomeHofInteracting(true)}
                     onBlur={() => setIsHomeHofInteracting(false)}
                     style={{ '--home-delay': '80ms' }}
-                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 glass-lime text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 glass-lime hof-hero-card text-white lg:hover:-translate-y-1 active:scale-[0.985] [&:has([data-hof-controls]:active)]:scale-100 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
                     <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
-                      {/* Top Row: Specific Section Label, Title & Trophy Icon */}
+                      {/* Top Row: Smooth Crossfading Section Label, Title & Reactive Trophy Icon */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0">
-                          <span className="text-[11px] font-mono font-bold text-[#D7FF00] block leading-none">
-                            {homeHofSlide === 0 ? 'Kedudukan Keseluruhan' : 'Sorotan Tier 3'}
-                          </span>
+                          <div className="hof-crossfade-stack text-[11px] font-mono font-bold text-[#D7FF00] leading-none h-3.5 overflow-hidden">
+                            <span
+                              aria-hidden={homeHofSlide !== 0}
+                              className={`hof-crossfade-item block ${
+                                homeHofSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1.5 pointer-events-none'
+                              }`}
+                            >
+                              Kedudukan Keseluruhan
+                            </span>
+                            <span
+                              aria-hidden={homeHofSlide !== 1}
+                              className={`hof-crossfade-item block ${
+                                homeHofSlide === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'
+                              }`}
+                            >
+                              Sorotan Tier 3
+                            </span>
+                          </div>
                           <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-none pt-0.5 flex items-baseline gap-1.5">
                             <span className="font-team-matrix font-bold uppercase">Team</span>
                             <span className="font-jetbrains font-extrabold uppercase text-[0.88em] text-[#D7FF00] translate-y-[0.5px]">Matrix</span>
                           </h2>
                         </div>
 
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
+                        <div
+                          className={`hof-trophy-badge w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-lg group-hover:scale-105 shrink-0 ${
+                            homeHofSlide === 1 ? '-rotate-6 scale-105' : 'rotate-0 scale-100'
+                          }`}
+                        >
                           <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 stroke-[2]" />
                         </div>
                       </div>
 
-                      {/* Slide Carousel Viewport (Composited Translate3d Slide Animation) */}
+                      {/* Slide Carousel Viewport (Composited Slide + Soft Depth Breath) */}
                       <div
                         role="region"
                         aria-roledescription="carousel"
@@ -5274,11 +5294,12 @@ export default function App() {
                             role="group"
                             aria-roledescription="slide"
                             aria-label="1 of 2"
+                            data-active={homeHofSlide === 0}
                             inert={homeHofSlide !== 0 ? true : undefined}
-                            className="w-full shrink-0 space-y-3"
+                            className="hof-slide-panel space-y-3"
                           >
                             <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
-                              <div className="glass-tile rounded-2xl p-3 lg:p-3.5">
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
                                 <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
                                   #1 Leading Clan
                                 </span>
@@ -5292,7 +5313,7 @@ export default function App() {
                                 </div>
                               </div>
 
-                              <div className="glass-tile rounded-2xl p-3 lg:p-3.5">
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
                                 <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
                                   Kill Avg • WWCD Streak
                                 </span>
@@ -5308,7 +5329,7 @@ export default function App() {
                             </div>
 
                             {topThreePreview.length > 0 && (
-                              <div className="hidden lg:flex flex-col gap-2 pt-0.5">
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex flex-col gap-2 pt-0.5">
                                 <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-300 px-0.5">
                                   <span>Live Podium Top 3 • Semua</span>
                                   <span className="inline-flex items-center gap-1 text-[#D7FF00] group-hover:translate-x-1 transition-transform">
@@ -5354,11 +5375,12 @@ export default function App() {
                             role="group"
                             aria-roledescription="slide"
                             aria-label="2 of 2"
+                            data-active={homeHofSlide === 1}
                             inert={homeHofSlide !== 1 ? true : undefined}
-                            className="w-full shrink-0 space-y-3"
+                            className="hof-slide-panel space-y-3"
                           >
                             <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
-                              <div className="glass-tile rounded-2xl p-3 lg:p-3.5">
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
                                 <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
                                   #1 Tier 3 Leader
                                 </span>
@@ -5372,7 +5394,7 @@ export default function App() {
                                 </div>
                               </div>
 
-                              <div className="glass-tile rounded-2xl p-3 lg:p-3.5">
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
                                 <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
                                   Tier 3 Kill Avg • Aktif
                                 </span>
@@ -5388,7 +5410,7 @@ export default function App() {
                             </div>
 
                             {tier3TopThree.length > 0 ? (
-                              <div className="hidden lg:flex flex-col gap-2 pt-0.5">
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex flex-col gap-2 pt-0.5">
                                 <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-300 px-0.5">
                                   <span>Podium Top 3 • Tier 3 (Amateur)</span>
                                   <span className="inline-flex items-center gap-1 text-[#D7FF00] group-hover:translate-x-1 transition-transform">
@@ -5427,7 +5449,7 @@ export default function App() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="hidden lg:flex items-center justify-between rounded-xl glass-tile px-3.5 py-2.5 text-xs font-bold text-zinc-200">
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex items-center justify-between rounded-xl glass-tile px-3.5 py-2.5 text-xs font-bold text-zinc-200">
                                 <span>Rekod kejohanan Tier 3 akan terpapar di sini secara automatik.</span>
                                 <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase text-[#D7FF00] shrink-0">
                                   <span>Buka Tier 3</span>
@@ -5439,50 +5461,71 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Bottom Slide Switcher Bar + Tier 3 Teaser + Pause Control (WCAG 2.2.2) */}
+                      {/* Bottom Slide Switcher Bar + Crossfading Teaser + Sliding Toggle Control */}
                       <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-                        <span className="text-[10px] font-mono font-bold text-zinc-200 truncate min-w-0 flex-1">
-                          {homeHofSlide === 0
-                            ? (tier3Leader
-                                ? `Tier 3 #1: ${tier3Leader.name} (${tier3Leader.tier3Points} PTS)`
-                                : 'Ketik untuk buka Leaderboard penuh')
-                            : (tier3TopThree.length > 1
-                                ? `#2 ${tier3TopThree[1].name} • #3 ${tier3TopThree[2]?.name || '-'}`
-                                : 'Ketik untuk buka Ranking Tier 3')}
-                        </span>
+                        <div className="hof-crossfade-stack text-[10px] font-mono font-bold text-zinc-200 min-w-0 flex-1 overflow-hidden">
+                          <span
+                            aria-hidden={homeHofSlide !== 0}
+                            className={`hof-crossfade-item truncate block ${
+                              homeHofSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1.5 pointer-events-none'
+                            }`}
+                          >
+                            {tier3Leader
+                              ? `Tier 3 #1: ${tier3Leader.name} (${tier3Leader.tier3Points} PTS)`
+                              : 'Ketik untuk buka Leaderboard penuh'}
+                          </span>
+                          <span
+                            aria-hidden={homeHofSlide !== 1}
+                            className={`hof-crossfade-item truncate block ${
+                              homeHofSlide === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'
+                            }`}
+                          >
+                            {tier3TopThree.length > 1
+                              ? `#2 ${tier3TopThree[1].name} • #3 ${tier3TopThree[2]?.name || '-'}`
+                              : 'Ketik untuk buka Ranking Tier 3'}
+                          </span>
+                        </div>
 
                         <div
+                          data-hof-controls
                           className="flex items-center gap-1 glass-pill rounded-full p-0.5 touch-manipulation shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button
-                            type="button"
-                            onClick={() => setHomeHofSlide(0)}
-                            aria-label="Paparan Semua Ranking"
-                            aria-current={homeHofSlide === 0 ? 'true' : undefined}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] touch-manipulation ${
-                              homeHofSlide === 0 ? 'bg-[#D7FF00] text-black' : 'text-zinc-300 hover:text-white'
-                            }`}
-                          >
-                            Semua
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setHomeHofSlide(1)}
-                            aria-label="Paparan Ranking Tier 3"
-                            aria-current={homeHofSlide === 1 ? 'true' : undefined}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] touch-manipulation ${
-                              homeHofSlide === 1 ? 'bg-[#D7FF00] text-black' : 'text-zinc-300 hover:text-white'
-                            }`}
-                          >
-                            Tier 3
-                          </button>
+                          <div className="relative grid grid-cols-2 items-center rounded-full">
+                            <span
+                              aria-hidden="true"
+                              className="hof-toggle-thumb pointer-events-none absolute inset-y-0 left-0 w-1/2 rounded-full bg-[#D7FF00] shadow-[0_2px_10px_rgba(215,255,0,0.3)]"
+                              style={{ transform: `translate3d(${homeHofSlide * 100}%, 0, 0)` }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setHomeHofSlide(0)}
+                              aria-label="Paparan Semua Ranking"
+                              aria-current={homeHofSlide === 0 ? 'true' : undefined}
+                              className={`relative z-10 px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition-colors duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-95 touch-manipulation text-center ${
+                                homeHofSlide === 0 ? 'text-black' : 'text-zinc-300 hover:text-white'
+                              }`}
+                            >
+                              Semua
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setHomeHofSlide(1)}
+                              aria-label="Paparan Ranking Tier 3"
+                              aria-current={homeHofSlide === 1 ? 'true' : undefined}
+                              className={`relative z-10 px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition-colors duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-95 touch-manipulation text-center ${
+                                homeHofSlide === 1 ? 'text-black' : 'text-zinc-300 hover:text-white'
+                              }`}
+                            >
+                              Tier 3
+                            </button>
+                          </div>
                           <button
                             type="button"
                             onClick={() => setIsHomeHofPaused((prev) => !prev)}
                             aria-label={isHomeHofPaused ? 'Mainkan slaid' : 'Jeda slaid'}
                             title={isHomeHofPaused ? 'Mainkan slaid automatik' : 'Jeda slaid automatik'}
-                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#D7FF00] hover:text-black text-white flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] touch-manipulation"
+                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#D7FF00] hover:text-black text-white flex items-center justify-center transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-90 touch-manipulation"
                           >
                             {isHomeHofPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
                           </button>

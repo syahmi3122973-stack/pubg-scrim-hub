@@ -245,9 +245,90 @@ body {
   will-change: transform;
 }
 
+.hof-slide-panel {
+  width: 100%;
+  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hof-slide-panel[data-active='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hof-toggle-thumb {
+  transition: background-color 0.25s ease;
+}
+
+.hof-crossfade-stack {
+  display: grid;
+}
+
+.hof-crossfade-stack > * {
+  grid-area: 1 / 1;
+}
+
+.hof-hero-card[data-hof-slide='1'] {
+  background-color: rgba(163, 230, 53, 0.16);
+  border-color: rgba(215, 255, 0, 0.32);
+  box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.68), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.5);
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .hof-hero-card {
+    transition: background-color 0.52s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.52s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.52s cubic-bezier(0.22, 1, 0.36, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   .hof-slide-track {
-    transition: transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.68s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hof-slide-panel {
+    transform: translate3d(0, 4px, 0) scale(0.955);
+    opacity: 0.14;
+    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.68s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
+  }
+
+  .hof-slide-panel[data-active='true'] {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+
+  .hof-stat-tile {
+    transform: translate3d(0, 8px, 0) scale(0.98);
+    opacity: 0.45;
+    transition: transform 0.64s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
+  }
+
+  .hof-slide-panel[data-active='true'] .hof-stat-tile {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+
+  .hof-slide-panel[data-active='true'] .hof-stat-tile:nth-child(2) {
+    transition-delay: 55ms;
+  }
+
+  .hof-slide-panel[data-active='true'] .hof-podium-strip {
+    transition-delay: 95ms;
+  }
+
+  .hof-toggle-thumb {
+    transition: transform 0.44s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.3s ease;
+    will-change: transform;
+  }
+
+  .hof-crossfade-item {
+    transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
+  }
+
+  .hof-trophy-badge {
+    transition: transform 0.56s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
   }
 }
 
