@@ -339,3 +339,104 @@ body {
     line-height: 1.14;
   }
 }
+
+/* Conditional Tier 2 SSS Season Filter Reveal & Branded Select Styling */
+@keyframes sssDropdownRevealIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(-10px, 0, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.sss-tier2-reveal {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sss-tier2-reveal {
+    animation: sssDropdownRevealIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity;
+  }
+}
+
+.sss-brand-select {
+  background-color: #16161c;
+  color: #D7FF00;
+  border: 1px solid rgba(215, 255, 0, 0.32);
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.sss-brand-select:hover {
+  background-color: #1d1d26;
+  border-color: rgba(215, 255, 0, 0.6);
+}
+
+.sss-brand-select:focus-visible {
+  outline: 2px solid #D7FF00;
+  outline-offset: 2px;
+}
+
+.sss-brand-select option {
+  background-color: #111115;
+  color: #F4F4F5;
+  font-weight: 600;
+}
+
+@supports (appearance: base-select) {
+  .sss-brand-select,
+  .sss-brand-select::picker(select) {
+    appearance: base-select;
+  }
+
+  .sss-brand-select::picker(select) {
+    background-color: #121216;
+    color: #F4F4F5;
+    border: 1px solid rgba(215, 255, 0, 0.28);
+    border-radius: 1rem;
+    padding: 0.375rem;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65);
+    margin-top: 0.35rem;
+  }
+
+  .sss-brand-select::picker-icon {
+    color: #D7FF00;
+    margin-inline-start: 0.45rem;
+  }
+
+  .sss-brand-select option {
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.65rem;
+    color: #E4E4E7;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .sss-brand-select option:hover,
+  .sss-brand-select option:focus-visible {
+    background-color: rgba(215, 255, 0, 0.12);
+    color: #FFFFFF;
+  }
+
+  .sss-brand-select option:checked {
+    background-color: rgba(215, 255, 0, 0.16);
+    color: #D7FF00;
+    font-weight: 800;
+  }
+
+  .sss-brand-select option::checkmark {
+    color: #D7FF00;
+    margin-inline-end: 0.4rem;
+  }
+}

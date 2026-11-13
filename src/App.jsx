@@ -185,16 +185,115 @@ const HALL_OF_FAME_EVENT_TOGGLES = [
   { key: 'Tour', label: 'Tournament' }
 ];
 
-const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL') => {
+// Scalable SSS Tier-2 stage & season architecture:
+// Enable 'SEMI_FINAL_A' / 'SEMI_FINAL_B' here once Semi Final stage records are tracked in Supabase.
+const SSS_DEFAULT_SELECTION = { season: 'ALL', stage: 'ALL' };
+
+const SSS_STAGE_DEFINITIONS = [
+  { key: 'GRAND_FINAL', label: 'Grand Final', enabled: true },
+  { key: 'SEMI_FINAL_A', label: 'Semi Final Group A', enabled: false },
+  { key: 'SEMI_FINAL_B', label: 'Semi Final Group B', enabled: false }
+];
+
+const SSS_SEASONS_DESC = [12, 11, 10, 9, 8, 7, 6, 5, 4];
+
+const SSS_ALL_OPTION = {
+  id: 'ALL',
+  season: 'ALL',
+  stage: 'ALL',
+  label: 'All SSS Seasons (S4 - S12)'
+};
+
+const SSS_DROPDOWN_OPTIONS = [
+  SSS_ALL_OPTION,
+  ...SSS_SEASONS_DESC.flatMap((seasonNum) =>
+    SSS_STAGE_DEFINITIONS
+      .filter((stageDef) => stageDef.enabled)
+      .map((stageDef) => ({
+        id: `S${seasonNum}__${stageDef.key}`,
+        season: seasonNum,
+        stage: stageDef.key,
+        stageLabel: stageDef.label,
+        label: `SSS Season ${seasonNum} — ${stageDef.label}`
+      }))
+  )
+];
+
+const getSssOptionId = (selection = SSS_DEFAULT_SELECTION) => {
+  if (!selection || selection.season === 'ALL' || !selection.stage || selection.stage === 'ALL') {
+    return 'ALL';
+  }
+  return `S${selection.season}__${selection.stage}`;
+};
+
+const resolveSssSelectionById = (optionId) => {
+  if (!optionId || optionId === 'ALL') return { ...SSS_DEFAULT_SELECTION };
+  const found = SSS_DROPDOWN_OPTIONS.find((opt) => opt.id === optionId);
+  return found
+    ? { season: found.season, stage: found.stage }
+    : { ...SSS_DEFAULT_SELECTION };
+};
+
+const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL', sssSelection = SSS_DEFAULT_SELECTION) => {
   if (eventTypeFilter && eventTypeFilter !== 'ALL') {
     if ((result?.eventType || 'Scrim') !== eventTypeFilter) return false;
   }
   if (!filterKey || filterKey === 'ALL') return true;
   if (filterKey === 'SSS') {
-    const sourceText = [result?.scrimName, result?.scrimData?.title, result?.hostName]
+    const titleHostText = [result?.scrimName, result?.scrimData?.title, result?.hostName]
       .filter(Boolean)
       .join(' ');
-    return /(?:^|[^a-z0-9])sss(?=[0-9]|[^a-z0-9]|$)/i.test(sourceText);
+    if (!/(?:^|[^a-z0-9])sss(?=[0-9]|[^a-z0-9]|$)/i.test(titleHostText)) {
+      return false;
+    }
+
+    const activeSeason = sssSelection?.season;
+    const activeStage = sssSelection?.stage;
+    if (!activeSeason || activeSeason === 'ALL') {
+      return true;
+    }
+
+    const fullSssText = [
+      result?.scrimName,
+      result?.scrimData?.title,
+      result?.scrimData?.description,
+      result?.scrimData?.sssStage,
+      result?.hostName
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const seasonNum = Number(activeSeason);
+    const metaSeason = result?.scrimData?.sssSeason ?? result?.sssSeason;
+    const seasonRegex = new RegExp(
+      `(?:sss\\s*[-_#]?\\s*s?0?${seasonNum}(?!\\d)|\\bseason\\s*0?${seasonNum}(?!\\d)|\\bs0?${seasonNum}(?!\\d))`,
+      'i'
+    );
+    const matchesSeason = metaSeason !== undefined && metaSeason !== null
+      ? Number(metaSeason) === seasonNum
+      : seasonRegex.test(fullSssText);
+
+    if (!matchesSeason) return false;
+
+    if (!activeStage || activeStage === 'ALL') return true;
+
+    const metaStage = String(result?.scrimData?.sssStage || result?.sssStage || '').toUpperCase();
+    if (metaStage) {
+      return metaStage === activeStage;
+    }
+
+    if (activeStage === 'SEMI_FINAL_A') {
+      return /(?:semi\s*-?\s*final.*(?:group\s*a|\bgrp\s*a\b|\ba\b)|group\s*a.*semi)/i.test(fullSssText);
+    }
+    if (activeStage === 'SEMI_FINAL_B') {
+      return /(?:semi\s*-?\s*final.*(?:group\s*b|\bgrp\s*b\b|\bb\b)|group\s*b.*semi)/i.test(fullSssText);
+    }
+    if (activeStage === 'GRAND_FINAL') {
+      // Existing SSS S4-S12 records without explicit stage labels represent Grand Final sessions.
+      const isExplicitSemi = /semi\s*-?\s*final/i.test(fullSssText);
+      return !isExplicitSemi || /grand\s*-?\s*final|\bgf\b/i.test(fullSssText);
+    }
+    return true;
   }
   if (filterKey === 'Scrim' || filterKey === 'Tour') {
     return (result?.eventType || 'Scrim') === filterKey;
@@ -1234,6 +1333,40 @@ export default function App() {
   const [leaderboardEventTypeFilter, setLeaderboardEventTypeFilter] = useState('All');
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
   const [teamStatsEventType, setTeamStatsEventType] = useState('ALL');
+  const [sssFilterSelection, setSssFilterSelection] = useState(() => ({ ...SSS_DEFAULT_SELECTION }));
+
+  const activeSssOptionId = useMemo(
+    () => getSssOptionId(sssFilterSelection),
+    [sssFilterSelection]
+  );
+
+  const activeSssOption = useMemo(
+    () => SSS_DROPDOWN_OPTIONS.find((opt) => opt.id === activeSssOptionId) || SSS_ALL_OPTION,
+    [activeSssOptionId]
+  );
+
+  // Combined filter state object connected to Team Matrix Supabase aggregation
+  const teamMatrixFilterState = useMemo(() => ({
+    category: teamStatsCategory,
+    eventType: teamStatsEventType,
+    season: teamStatsCategory === 'SSS' ? sssFilterSelection.season : 'ALL',
+    stage: teamStatsCategory === 'SSS' ? sssFilterSelection.stage : 'ALL'
+  }), [teamStatsCategory, teamStatsEventType, sssFilterSelection]);
+
+  const handleSelectTeamStatsCategory = (nextCategory) => {
+    setTeamStatsCategory(nextCategory);
+    if (nextCategory === 'SSS') {
+      if (teamStatsCategory !== 'SSS') {
+        setSssFilterSelection({ ...SSS_DEFAULT_SELECTION });
+      }
+    } else {
+      setSssFilterSelection({ ...SSS_DEFAULT_SELECTION });
+    }
+  };
+
+  const handleSelectSssOption = (optionId) => {
+    setSssFilterSelection(resolveSssSelectionById(optionId));
+  };
 
   // Auth State
   const [currentUser, setCurrentUser] = useState(null);
@@ -3931,17 +4064,25 @@ export default function App() {
   }, [teamsStats]);
 
   const categoryTeamList = useMemo(() => {
-    if (teamStatsCategory === 'ALL' && teamStatsEventType === 'ALL') {
+    const { category, eventType, season, stage } = teamMatrixFilterState;
+    const sssScope = { season, stage };
+    if (category === 'ALL' && eventType === 'ALL') {
       return validTeamList;
     }
     return validTeamList
-      .filter(t => (t.scrimResults || []).some(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType)))
+      .filter(t => (t.scrimResults || []).some(r => matchesStatsFilter(r, category, eventType, sssScope)))
       .sort((a, b) => {
-        const aPts = (a.scrimResults || []).filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType)).reduce((acc, c) => acc + c.points, 0);
-        const bPts = (b.scrimResults || []).filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType)).reduce((acc, c) => acc + c.points, 0);
-        return bPts - aPts;
+        const aRes = (a.scrimResults || []).filter(r => matchesStatsFilter(r, category, eventType, sssScope));
+        const bRes = (b.scrimResults || []).filter(r => matchesStatsFilter(r, category, eventType, sssScope));
+        const aPts = aRes.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
+        const bPts = bRes.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
+        const aWwcd = aRes.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
+        const bWwcd = bRes.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
+        const aKills = aRes.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
+        const bKills = bRes.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
+        return bPts - aPts || bWwcd - aWwcd || bKills - aKills;
       });
-  }, [validTeamList, teamStatsCategory, teamStatsEventType]);
+  }, [validTeamList, teamMatrixFilterState]);
 
   const tier3RankedTeams = useMemo(() => {
     return validTeamList
@@ -4180,15 +4321,17 @@ export default function App() {
 
   const activeTeamScopedStats = useMemo(() => {
     if (!activeTeamData) return null;
+    const { category, eventType, season, stage } = teamMatrixFilterState;
+    const sssScope = { season, stage };
     const all = activeTeamData.scrimResults || [];
-    const filtered = (teamStatsCategory === 'ALL' && teamStatsEventType === 'ALL')
+    const filtered = (category === 'ALL' && eventType === 'ALL')
       ? all
-      : all.filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType));
+      : all.filter(r => matchesStatsFilter(r, category, eventType, sssScope));
 
-    const totalPoints = filtered.reduce((acc, c) => acc + c.points, 0);
-    const totalKills = filtered.reduce((acc, c) => acc + c.kills, 0);
-    const totalWWCD = filtered.reduce((acc, c) => acc + (c.wwcd || 0), 0);
-    const matchesCount = filtered.reduce((acc, c) => acc + (c.matches || 1), 0);
+    const totalPoints = filtered.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
+    const totalKills = filtered.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
+    const totalWWCD = filtered.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
+    const matchesCount = filtered.reduce((acc, c) => acc + (Number(c.matches) || 1), 0);
 
     return {
       filteredResults: filtered,
@@ -4198,7 +4341,7 @@ export default function App() {
       eventsCount: filtered.length,
       matchesCount
     };
-  }, [activeTeamData, teamStatsCategory, teamStatsEventType]);
+  }, [activeTeamData, teamMatrixFilterState]);
 
   const organizersList = useMemo(() => {
     const map = {};
@@ -5156,14 +5299,14 @@ export default function App() {
                     tabIndex={0}
                     onClick={() => {
                       setTeamStatsEventType('ALL');
-                      setTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
+                      handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
                       navigateToTab('teams');
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         setTeamStatsEventType('ALL');
-                        setTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
+                        handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
                         navigateToTab('teams');
                       }
                     }}
@@ -5625,7 +5768,7 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             setTeamStatsEventType('ALL');
-                            setTeamStatsCategory(homeContendersCategory);
+                            handleSelectTeamStatsCategory(homeContendersCategory);
                             navigateToTab('teams');
                           }}
                           className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] flex items-center gap-1.5 transition cursor-pointer shrink-0"
@@ -5650,7 +5793,7 @@ export default function App() {
                               type="button"
                               onClick={() => {
                                 setTeamStatsEventType('ALL');
-                                setTeamStatsCategory(homeContendersCategory);
+                                handleSelectTeamStatsCategory(homeContendersCategory);
                                 navigateToTab('teams');
                                 setSelectedTeamProfile(team.name);
                               }}
@@ -5850,17 +5993,21 @@ export default function App() {
 
           const allRankedTeamsWithStats = categoryTeamList.map((t) => {
             const allRes = t.scrimResults || [];
-            const scopedRes = (teamStatsCategory === 'ALL' && teamStatsEventType === 'ALL')
+            const { category, eventType, season, stage } = teamMatrixFilterState;
+            const sssScope = { season, stage };
+            const scopedRes = (category === 'ALL' && eventType === 'ALL')
               ? allRes
-              : allRes.filter(r => matchesStatsFilter(r, teamStatsCategory, teamStatsEventType));
+              : allRes.filter(r => matchesStatsFilter(r, category, eventType, sssScope));
             const scopedPoints = scopedRes.reduce((acc, c) => acc + (Number(c.points) || 0), 0);
             const scopedKills = scopedRes.reduce((acc, c) => acc + (Number(c.kills) || 0), 0);
             const scopedWWCD = scopedRes.reduce((acc, c) => acc + (Number(c.wwcd) || 0), 0);
+            const scopedMatches = scopedRes.reduce((acc, c) => acc + (Number(c.matches) || 1), 0);
             return {
               ...t,
               scopedPoints,
               scopedKills,
               scopedWWCD,
+              scopedMatches,
               scopedEvents: scopedRes.length
             };
           }).sort((a, b) => (
@@ -6010,7 +6157,7 @@ export default function App() {
                         <button
                           key={cat.key}
                           type="button"
-                          onClick={() => setTeamStatsCategory(cat.key)}
+                          onClick={() => handleSelectTeamStatsCategory(cat.key)}
                           className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                             isActive
                               ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]'
@@ -6021,6 +6168,26 @@ export default function App() {
                         </button>
                       );
                     })}
+                    {teamStatsCategory === 'SSS' && (
+                      <div className="sss-tier2-reveal shrink-0 flex items-center pl-1">
+                        <label htmlFor="profile-sss-season-select" className="sr-only">
+                          Pilih Musim SSS
+                        </label>
+                        <select
+                          id="profile-sss-season-select"
+                          name="profileSssSeasonStage"
+                          value={activeSssOptionId}
+                          onChange={(e) => handleSelectSssOption(e.target.value)}
+                          className="sss-brand-select"
+                        >
+                          {SSS_DROPDOWN_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -6386,8 +6553,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* 2. HORIZONTAL FILTER & EVENT TOGGLE BAR */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-1">
+              {/* 2. TWO-TIER HORIZONTAL FILTER & EVENT TOGGLE BAR */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 px-1">
                 {/* Event Format Toggle Switch (Combinable with Tier Filters: Scrim / Tournament) */}
                 <div
                   role="group"
@@ -6439,39 +6606,66 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Tier / Division Pills Row (Semua, SSS, Tier 1, Tier 2, Tier 3, Open) */}
-                <div
-                  role="group"
-                  aria-label="Tapis Tier Team Matrix"
-                  className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                >
-                  {HALL_OF_FAME_FILTERS.map((cat) => {
-                    const isActive = teamStatsCategory === cat.key;
-                    const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
-                    return (
-                      <button
-                        key={cat.key}
-                        type="button"
-                        aria-pressed={isActive}
-                        onClick={() => setTeamStatsCategory(cat.key)}
-                        className={
-                          'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
-                          (isActive
-                            ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
-                            : isTier3Highlight
-                            ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
-                            : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
-                        }
+                {/* Tier 1 (Category Pills) + Tier 2 (Conditional SSS Season Dropdown) */}
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 min-w-0">
+                  <div
+                    role="group"
+                    aria-label="Tapis Tier Team Matrix"
+                    className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  >
+                    {HALL_OF_FAME_FILTERS.map((cat) => {
+                      const isActive = teamStatsCategory === cat.key;
+                      const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
+                      return (
+                        <button
+                          key={cat.key}
+                          type="button"
+                          aria-pressed={isActive}
+                          onClick={() => handleSelectTeamStatsCategory(cat.key)}
+                          className={
+                            'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
+                            (isActive
+                              ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
+                              : isTier3Highlight
+                              ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
+                              : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
+                          }
+                        >
+                          {isActive ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
+                          ) : isTier3Highlight ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                          ) : null}
+                          <span>{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tier 2 Conditional Selector: Revealed ONLY when "SSS" is active */}
+                  {teamStatsCategory === 'SSS' && (
+                    <div
+                      key="sss-tier2-selector"
+                      className="sss-tier2-reveal flex items-center shrink-0 w-full sm:w-auto"
+                    >
+                      <label htmlFor="team-matrix-sss-select" className="sr-only">
+                        Pilih Musim SSS
+                      </label>
+                      <select
+                        id="team-matrix-sss-select"
+                        name="sssSeasonStage"
+                        value={activeSssOptionId}
+                        onChange={(e) => handleSelectSssOption(e.target.value)}
+                        className="sss-brand-select w-full sm:w-auto sm:min-w-[235px]"
                       >
-                        {isActive ? (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
-                        ) : isTier3Highlight ? (
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                        ) : null}
-                        <span>{cat.label}</span>
-                      </button>
-                    );
-                  })}
+                        {SSS_DROPDOWN_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -6535,7 +6729,7 @@ export default function App() {
                   />
 
                   {/* Semi-Circular Radial Tick Marks with Sweep Animation */}
-                  <g key={`${teamStatsCategory}_${teamStatsEventType}`} className="animate-dial-sweep">
+                  <g key={`${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`} className="animate-dial-sweep">
                     {dialTicks.map((t) => (
                       <line
                         key={t.deg}
@@ -6616,7 +6810,7 @@ export default function App() {
 
                     <button
                       type="button"
-                      onClick={() => setTeamStatsCategory('TIER_3')}
+                      onClick={() => handleSelectTeamStatsCategory('TIER_3')}
                       className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
                     >
                       <span>Rank Tier 3</span>
@@ -6688,7 +6882,9 @@ export default function App() {
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                       {teamStatsCategory === 'SSS'
-                        ? (teamStatsEventType === 'Tour' ? 'Top Perform Team SSS • Tournament' : teamStatsEventType === 'Scrim' ? 'Top Perform Team SSS • Scrim' : 'Top Perform Team SSS')
+                        ? (sssFilterSelection.season !== 'ALL'
+                            ? `Top Perform Team SSS • S${sssFilterSelection.season} ${activeSssOption.stageLabel || 'Grand Final'}${teamStatsEventType !== 'ALL' ? ` (${HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType})` : ''}`
+                            : (teamStatsEventType === 'Tour' ? 'Top Perform Team SSS • Tournament' : teamStatsEventType === 'Scrim' ? 'Top Perform Team SSS • Scrim' : 'Top Perform Team SSS'))
                         : teamStatsEventType === 'Tour'
                         ? `Top Perform Team • Tournament${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
                         : teamStatsEventType === 'Scrim'
@@ -6696,7 +6892,11 @@ export default function App() {
                         : 'Top Perform Team'}
                     </h2>
                     <span className="text-[11px] text-zinc-400">
-                      {teamStatsCategory === 'SSS' ? 'Data bermula dari Season 4 • ' : ''}
+                      {teamStatsCategory === 'SSS'
+                        ? (sssFilterSelection.season === 'ALL'
+                            ? 'Data bermula dari Season 4 (S4 - S12) • '
+                            : `${activeSssOption.label} • `)
+                        : ''}
                       {teamSearchQuery.trim()
                         ? `Hasil carian (${displayedRankedTeams.length} pasukan)`
                         : showAllTeams
@@ -6734,6 +6934,8 @@ export default function App() {
                 ) : displayedRankedTeams.length === 0 ? (() => {
                   const tierLabel = teamStatsCategory === 'ALL'
                     ? ''
+                    : teamStatsCategory === 'SSS' && sssFilterSelection.season !== 'ALL'
+                    ? activeSssOption.label
                     : (HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory);
                   const eventLabel = teamStatsEventType === 'ALL'
                     ? ''
@@ -6762,7 +6964,7 @@ export default function App() {
                           if (teamSearchQuery.trim()) {
                             setTeamSearchQuery('');
                           } else {
-                            setTeamStatsCategory('ALL');
+                            handleSelectTeamStatsCategory('ALL');
                             setTeamStatsEventType('ALL');
                           }
                         }}
@@ -6948,7 +7150,7 @@ export default function App() {
                                 {/* Lower Dark Name Caption Block */}
                                 <div className="px-2 py-2 sm:px-3 sm:py-2.5 bg-[#09090b] text-left space-y-0.5">
                                   <div className="flex items-center justify-between gap-1 text-[9px] sm:text-[10px] font-mono text-zinc-400">
-                                    <span className="truncate">{team.scopedKills}K • {team.scopedWWCD} WWCD</span>
+                                    <span className="truncate">{team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M</span>
                                     {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
                                       <span className="px-1.5 py-0.2 rounded bg-amber-400/15 text-amber-300 font-black shrink-0">
                                         T3 #{tier3RankByTeam.get(team.name).tier3Rank}
@@ -7026,7 +7228,7 @@ export default function App() {
                                 {/* Right: Mini Logo + Stats + Points + Small Eye View Button */}
                                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                   <span className="hidden sm:inline font-mono text-[11px] text-zinc-500">
-                                    {team.scopedKills}K • {team.scopedWWCD}W
+                                    {team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M
                                   </span>
 
                                   {team.logo_url && (
@@ -7086,7 +7288,15 @@ export default function App() {
               <div className="pt-1 pb-2 px-3 text-center space-y-1">
                 {teamStatsCategory === 'SSS' ? (
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Nota: Rekod statistik <strong className="text-[#D7FF00] font-semibold">SSS</strong> ini dikumpul bermula dari <strong className="text-zinc-200 font-semibold">Season 4</strong>.
+                    {sssFilterSelection.season === 'ALL' ? (
+                      <>
+                        Nota: Rekod statistik <strong className="text-[#D7FF00] font-semibold">SSS</strong> ini dikumpul bermula dari <strong className="text-zinc-200 font-semibold">Season 4 (S4 - S12)</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Nota: Memaparkan statistik khas untuk <strong className="text-[#D7FF00] font-semibold">{activeSssOption.label}</strong>.
+                      </>
+                    )}
                   </p>
                 ) : (
                   <>
