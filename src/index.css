@@ -63,10 +63,12 @@ body {
 @keyframes dialSweepIn {
   0% {
     opacity: 0;
-    transform: rotate(-34deg) scale(0.92);
+    filter: blur(4px);
+    transform: rotate(-30deg) scale(0.94);
   }
   100% {
     opacity: 1;
+    filter: blur(0px);
     transform: rotate(0deg) scale(1);
   }
 }
@@ -74,8 +76,8 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   .animate-dial-sweep {
     transform-origin: 200px 190px;
-    animation: dialSweepIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-    will-change: transform, opacity;
+    animation: dialSweepIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
   }
 }
 
@@ -201,6 +203,75 @@ body {
 .animate-tab-backward {
   animation: tabSlideInBackward 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity;
+}
+
+/* Interactive Teams Tab Blur-In & Blur-Out Choreography (< 400ms) */
+@keyframes teamsBlurIn {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(0.982);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+}
+
+@keyframes teamsBlurItem {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(0.975);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+}
+
+@keyframes teamsScopeBlurIn {
+  0% {
+    opacity: 0.2;
+    filter: blur(7px);
+    transform: scale(0.986);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+}
+
+.tab-blur-stage {
+  transition: opacity 0.12s ease, filter 0.12s ease, transform 0.12s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab-blur-exiting {
+    opacity: 0.08;
+    filter: blur(10px);
+    transform: scale(0.982);
+    transition: opacity 0.12s cubic-bezier(0.22, 1, 0.36, 1), filter 0.12s cubic-bezier(0.22, 1, 0.36, 1), transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, filter, transform;
+  }
+
+  .animate-teams-enter {
+    animation: teamsBlurIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, filter, transform;
+  }
+
+  .animate-teams-blur {
+    animation: teamsBlurItem 0.28s cubic-bezier(0.22, 1, 0.36, 1) var(--blur-delay, 0ms) both;
+    will-change: opacity, filter, transform;
+  }
+
+  .animate-teams-scope {
+    animation: teamsScopeBlurIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, filter, transform;
+  }
 }
 
 /* Profile Bottom-Drawer Slide Up Animation */

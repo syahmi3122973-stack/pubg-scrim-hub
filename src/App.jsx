@@ -479,8 +479,23 @@ export default function App() {
   // Page / Tab History Stack & OCR Inner Overlay State for Mobile Back-Button Navigation
   const [tabHistory, setTabHistory] = useState([]);
   const [navDirection, setNavDirection] = useState('forward');
+  const [tabBlurStage, setTabBlurStage] = useState('idle');
+  const tabTransitionTimerRef = useRef(null);
+  const activeTabRef = useRef(activeTab);
   const [ocrOverlayCount, setOcrOverlayCount] = useState(0);
   const closeOcrOverlayRef = useRef(null);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    return () => {
+      if (tabTransitionTimerRef.current) {
+        window.clearTimeout(tabTransitionTimerRef.current);
+      }
+    };
+  }, []);
 
   // Top Right Hamburger 3-Line Menu State
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
@@ -4437,54 +4452,88 @@ export default function App() {
     }
   };
 
+  const runBlurSwap = useCallback((shouldBlurOut, applyUpdate) => {
+    if (tabTransitionTimerRef.current) {
+      window.clearTimeout(tabTransitionTimerRef.current);
+      tabTransitionTimerRef.current = null;
+    }
+    const reducedMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (shouldBlurOut && !reducedMotion) {
+      setTabBlurStage('out');
+      tabTransitionTimerRef.current = window.setTimeout(() => {
+        applyUpdate();
+        setTabBlurStage('idle');
+        tabTransitionTimerRef.current = null;
+      }, 110);
+    } else {
+      setTabBlurStage('idle');
+      applyUpdate();
+    }
+  }, []);
+
   const navigateToTab = useCallback((tab) => {
     const normalizedNext = tab === 'home' ? 'playground' : tab;
+    const normalizedCurrent = activeTabRef.current === 'home' ? 'playground' : activeTabRef.current;
     setIsQuickCreateModalOpen(false);
     setIsSessionPickerOpen(false);
     setIsOrgPopoverOpen(false);
     setIsNavMenuOpen(false);
-    setSelectedTeamProfile('');
     setActiveHeaderInfo(null);
-    setNavDirection('forward');
 
-    setActiveTab((prevTab) => {
-      const normalizedPrev = prevTab === 'home' ? 'playground' : prevTab;
-      if (normalizedNext === 'playground') {
-        setTabHistory([]);
-      } else if (normalizedNext !== normalizedPrev) {
-        setTabHistory((prevStack) => [...prevStack, normalizedPrev]);
-      }
-      return normalizedNext;
-    });
-
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    setTimeout(() => {
+    const applyTabNavigation = () => {
+      setSelectedTeamProfile('');
+      setNavDirection('forward');
+      setActiveTab((prevTab) => {
+        const normalizedPrev = prevTab === 'home' ? 'playground' : prevTab;
+        if (normalizedNext === 'playground') {
+          setTabHistory([]);
+        } else if (normalizedNext !== normalizedPrev) {
+          setTabHistory((prevStack) => [...prevStack, normalizedPrev]);
+        }
+        return normalizedNext;
+      });
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }, 15);
-  }, []);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }, 15);
+    };
+
+    const involvesTeams =
+      normalizedNext !== normalizedCurrent &&
+      (normalizedNext === 'teams' || normalizedCurrent === 'teams');
+    runBlurSwap(involvesTeams, applyTabNavigation);
+  }, [runBlurSwap]);
 
   const handleNavigateBackTab = useCallback(() => {
-    setSelectedTeamProfile('');
     setActiveHeaderInfo(null);
     setIsNavMenuOpen(false);
-    setNavDirection('backward');
 
     if (tabHistory.length > 0) {
       const previousTab = tabHistory[tabHistory.length - 1] || 'playground';
-      setTabHistory((prev) => prev.slice(0, -1));
-      setActiveTab(previousTab);
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      const involvesTeams = activeTab === 'teams' || previousTab === 'teams';
+      runBlurSwap(involvesTeams, () => {
+        setSelectedTeamProfile('');
+        setNavDirection('backward');
+        setTabHistory((prev) => prev.slice(0, -1));
+        setActiveTab(previousTab);
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      });
       return true;
     }
 
     if (activeTab !== 'playground' && activeTab !== 'home') {
-      setActiveTab('playground');
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      runBlurSwap(activeTab === 'teams', () => {
+        setSelectedTeamProfile('');
+        setNavDirection('backward');
+        setActiveTab('playground');
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      });
       return true;
     }
 
     return false;
-  }, [tabHistory, activeTab]);
+  }, [tabHistory, activeTab, runBlurSwap]);
 
   const handleStartScoringSession = () => {
     navigateToTab('scorer');
@@ -5070,7 +5119,15 @@ export default function App() {
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
           key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
-          className={navDirection === 'backward' ? 'animate-tab-backward' : 'animate-tab-forward'}
+          className={`tab-blur-stage ${
+            tabBlurStage === 'out'
+              ? 'tab-blur-exiting'
+              : activeTab === 'teams'
+              ? 'animate-teams-enter'
+              : navDirection === 'backward'
+              ? 'animate-tab-backward'
+              : 'animate-tab-forward'
+          }`}
         >
 
         {/* VIEW 0: AUTHENTICATION GUARD & BENTO-GRID COMMAND CENTER (ROOT ROUTE /) */}
@@ -6005,16 +6062,18 @@ export default function App() {
               : 0;
 
             return (
-              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-10 animate-in fade-in duration-200 relative">
+              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-10 animate-teams-enter relative">
                 {/* 1. TOP NAVIGATION BAR */}
                 <div className="flex items-center justify-between px-1">
                   <button
                     type="button"
                     onClick={() => {
-                      setNavDirection('backward');
-                      setSelectedTeamProfile('');
+                      runBlurSwap(true, () => {
+                        setNavDirection('backward');
+                        setSelectedTeamProfile('');
+                      });
                     }}
-                    className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1"
+                    className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1 active:scale-95"
                     title="Kembali ke Team Matrix"
                   >
                     <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition">
@@ -6721,8 +6780,8 @@ export default function App() {
 
                 {/* Center Text Inside the Dial Arc */}
                 <div
-                  className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-stagger-card"
-                  style={{ animationDelay: '60ms' }}
+                  className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-teams-blur"
+                  style={{ '--blur-delay': '40ms' }}
                 >
                   <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-bold uppercase flex items-center justify-center gap-2.5 sm:gap-3.5">
                     <span className="font-team-matrix tracking-[0.1em] text-white">
@@ -6756,8 +6815,8 @@ export default function App() {
               {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Visible on "Semua" so Tier 3 stays prominent) */}
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
-                  className="glass-amber rounded-3xl p-4 sm:p-5 space-y-3.5 animate-stagger-card relative overflow-hidden"
-                  style={{ animationDelay: '105ms' }}
+                  className="glass-amber rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
+                  style={{ '--blur-delay': '75ms' }}
                 >
                   <div className="flex items-center justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -6846,8 +6905,8 @@ export default function App() {
 
               {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
-                className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 animate-stagger-card"
-                style={{ animationDelay: '140ms' }}
+                className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 animate-teams-blur"
+                style={{ '--blur-delay': '105ms' }}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -6983,7 +7042,10 @@ export default function App() {
                       : top3Teams.map((t, i) => ({ team: t, slotRank: i + 1 }));
 
                   return (
-                    <div className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-2.5 sm:space-y-3">
+                    <div
+                      key={`teams_scope_${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`}
+                      className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-2.5 sm:space-y-3 animate-teams-scope"
+                    >
                       {/* TOP 3 PODIUM SHOWCASE */}
                       {podiumSlots.length > 0 && (
                         <div
@@ -7000,6 +7062,7 @@ export default function App() {
                             const isSelected = currentSelectedTeam === team.name;
                             const isFirst = slotRank === 1;
                             const isSecond = slotRank === 2;
+                            const podiumDelay = isFirst ? '70ms' : isSecond ? '115ms' : '155ms';
 
                             const podiumSurfaceClass = isFirst
                               ? 'glass-lime'
@@ -7030,14 +7093,15 @@ export default function App() {
                                 key={team.name}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => setSelectedTeamProfile(team.name)}
+                                onClick={() => runBlurSwap(true, () => setSelectedTeamProfile(team.name))}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    setSelectedTeamProfile(team.name);
+                                    runBlurSwap(true, () => setSelectedTeamProfile(team.name));
                                   }
                                 }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-200 cursor-pointer group flex flex-col justify-between select-none px-2 sm:px-3.5 ${
+                                style={{ '--blur-delay': podiumDelay }}
+                                className={`rounded-2xl sm:rounded-3xl overflow-hidden transition-[transform,filter,background-color] duration-200 hover:-translate-y-0.5 active:scale-[0.97] cursor-pointer group flex flex-col justify-between select-none px-2 sm:px-3.5 animate-teams-blur ${
                                   isFirst
                                     ? 'pt-2.5 pb-3 sm:pt-4 sm:pb-4 min-h-[186px] sm:min-h-[252px]'
                                     : 'pt-2 pb-2.5 sm:pt-3.5 sm:pb-3.5 min-h-[168px] sm:min-h-[228px]'
@@ -7130,15 +7194,15 @@ export default function App() {
                                 key={team.name}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => setSelectedTeamProfile(team.name)}
+                                onClick={() => runBlurSwap(true, () => setSelectedTeamProfile(team.name))}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    setSelectedTeamProfile(team.name);
+                                    runBlurSwap(true, () => setSelectedTeamProfile(team.name));
                                   }
                                 }}
-                                style={{ animationDelay: `${160 + Math.min(idx, 10) * 40}ms` }}
-                                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-stagger-card select-none ${
+                                style={{ '--blur-delay': `${105 + Math.min(idx, 6) * 24}ms` }}
+                                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
                                     ? 'bg-white/[0.11] border border-[#D7FF00]/45 backdrop-blur-md shadow-[0_0_20px_rgba(215,255,0,0.08)]'
                                     : 'glass-tile glass-tile-hover'
