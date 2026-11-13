@@ -30,6 +30,7 @@ import {
   Upload, 
   X, 
   Eye, 
+  EyeOff,
   Trash2, 
   Edit3, 
   LockKeyhole, 
@@ -1369,6 +1370,7 @@ export default function App() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -8213,143 +8215,108 @@ export default function App() {
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="max-w-3xl mx-auto my-4 sm:my-6 bg-zinc-900/60 backdrop-blur-xl rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden">
-                <div className="absolute -top-16 -right-16 w-56 h-56 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
-                  
-                  {/* LEFT COLUMN: Ringkasan Nilai Admin */}
-                  <div className="md:col-span-6 space-y-4 md:border-r border-white/5 md:pr-6">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 rounded-full text-[11px] font-black uppercase tracking-wider">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#D7FF00]" />
-                      <span>Ruang Khas Penganjur &amp; Host</span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                        Tournament Operations Portal
-                      </h2>
-                      <p className="text-xs text-zinc-400 leading-relaxed">
-                        Log masuk untuk anjurkan kejohanan rasmi dengan simpanan kekal di cloud database.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60">
-                        <div className="w-7 h-7 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-bold shrink-0">
-                          <Cloud className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="text-xs font-bold text-zinc-300">
-                          Simpan Cloud &amp; Akses Multi-Device
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60">
-                        <div className="w-7 h-7 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-bold shrink-0">
-                          <Trophy className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="text-xs font-bold text-zinc-300">
-                          Multi-Day Scrim &amp; Grand Finals
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-zinc-950/60">
-                        <div className="w-7 h-7 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-bold shrink-0">
-                          <Users className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="text-xs font-bold text-zinc-300">
-                          Jemput Co-Host &amp; Marshall Semak Skor
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* RIGHT COLUMN: Form Login / Register */}
-                  <div className="md:col-span-6 space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-base font-black text-white">
-                        {isRegisterMode ? 'Daftar Akaun Host' : 'Log Masuk Akaun Host'}
-                      </h3>
-                      <p className="text-xs text-zinc-400">
-                        {isRegisterMode 
-                          ? 'Cipta akaun host untuk mula anjurkan kejohanan rasmi anda.'
-                          : 'Sila masukkan emel & kata laluan akaun anda.'}
-                      </p>
-                    </div>
-
-                    <form onSubmit={handleAuthSubmit} className="space-y-3 text-xs">
-                      <div>
-                        <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">Emel Penganjur</label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3"/>
-                          <input
-                            type="email"
-                            required
-                            autoComplete="email"
-                            placeholder="admin@esports.com"
-                            value={authEmail}
-                            onChange={(e) => setAuthEmail(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-white focus:outline-none focus:border-[#D7FF00] font-semibold placeholder:text-zinc-600"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-zinc-400 uppercase font-bold mb-1 text-[10px]">Kata Laluan</label>
-                        <div className="relative">
-                          <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3"/>
-                          <input
-                            type="password"
-                            required
-                            autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
-                            placeholder="••••••••"
-                            value={authPassword}
-                            onChange={(e) => setAuthPassword(e.target.value)}
-                            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-white focus:outline-none focus:border-[#D7FF00] font-semibold placeholder:text-zinc-600"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={authLoading}
-                        className="w-full py-2.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition shadow-[0_0_20px_rgba(215, 255, 0,0.18)] text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-98"
-                      >
-                        {authLoading ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin"/>
-                            <span>Sedang Memproses...</span>
-                          </>
-                        ) : (
-                          <span>{isRegisterMode ? 'Daftar Akaun Host' : 'Log Masuk Host'}</span>
-                        )}
-                      </button>
-
-                      <div className="text-center pt-0.5">
-                        <button
-                          type="button"
-                          onClick={() => setIsRegisterMode(!isRegisterMode)}
-                          className="text-xs text-[#D7FF00] hover:underline font-semibold"
-                        >
-                          {isRegisterMode ? 'Sudah ada akaun? Log Masuk di sini' : "Belum ada akaun host? Daftar di sini"}
-                        </button>
-                      </div>
-
-                      <div className="pt-2 border-t border-white/5 flex flex-col items-center justify-center gap-1.5 text-center">
-                        <span className="text-[11px] text-zinc-400">Hanya mahu kira markah perlawanan pantas?</span>
-                        <button
-                          type="button"
-                          onClick={() => navigateToTab('scorer')}
-                          className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 font-black text-xs transition flex items-center gap-1 active:scale-95"
-                        >
-                          <Zap className="w-3.5 h-3.5 text-[#D7FF00]" />
-                          <span>Gunakan Quick Scorer (Tanpa Akaun) →</span>
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-
+              <div className="glass-modal rounded-3xl max-w-md mx-auto my-6 sm:my-10 p-6 sm:p-7 space-y-5">
+                <div className="space-y-1.5 text-center">
+                  <h2 id="admin-login-heading" className="text-xl font-black tracking-tight text-white text-balance">
+                    {isRegisterMode ? 'Create Host Account' : 'Host Account Portal'}
+                  </h2>
+                  <p className="text-xs text-zinc-400 text-pretty">
+                    {isRegisterMode
+                      ? 'Cipta akaun host untuk simpan dan urus rekod kejohanan anda.'
+                      : 'Log masuk untuk mengurus kejohanan dan rekod cloud anda.'}
+                  </p>
                 </div>
+
+                <form onSubmit={handleAuthSubmit} aria-labelledby="admin-login-heading" className="space-y-4">
+                  <div>
+                    <label htmlFor="admin-auth-email" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                      Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="admin-auth-email"
+                        name="email"
+                        type="email"
+                        required
+                        autoComplete="username"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        enterKeyHint="next"
+                        placeholder="host@esports.com"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="admin-auth-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="admin-auth-password"
+                        name="password"
+                        type={showAuthPassword ? 'text' : 'password'}
+                        required
+                        autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+                        enterKeyHint="done"
+                        placeholder="••••••••"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-12 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAuthPassword(prev => !prev)}
+                        aria-pressed={showAuthPassword}
+                        aria-label={showAuthPassword ? 'Hide password' : 'Show password'}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-[#D7FF00] transition cursor-pointer"
+                      >
+                        {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full min-h-[48px] py-3 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition text-sm flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer disabled:opacity-60"
+                  >
+                    {authLoading ? (
+                      <>
+                        <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <span>{isRegisterMode ? 'Create Account' : 'Sign In'}</span>
+                    )}
+                  </button>
+
+                  <div className="text-center pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsRegisterMode(!isRegisterMode)}
+                      className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
+                    >
+                      {isRegisterMode ? 'Already have an account? Sign In' : "Don't have a host account? Register here"}
+                    </button>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/10 text-center">
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('scorer')}
+                      className="text-xs text-zinc-400 hover:text-white font-semibold transition cursor-pointer"
+                    >
+                      Atau guna Quick Scorer tanpa akaun →
+                    </button>
+                  </div>
+                </form>
               </div>
             ) : (
               <div className="space-y-4 sm:space-y-6">
@@ -9640,107 +9607,118 @@ export default function App() {
 
       {/* AUTH MODAL (LOGIN / SIGN UP FOR GUEST-PLAYGROUND & DASHBOARD) */}
       {isAuthModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
-          <div className="glass-modal rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 relative">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsAuthModalOpen(false);
+              setPendingCloudSync(false);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-modal-title"
+            className="glass-modal rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 relative"
+          >
             <button
+              type="button"
               onClick={() => {
                 setIsAuthModalOpen(false);
                 setPendingCloudSync(false);
               }}
-              className="absolute top-5 right-5 text-zinc-400 hover:text-white rounded-full p-1.5 hover:bg-zinc-900 transition"
-              title="Close modal"
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
+              aria-label="Close modal"
             >
-              <X className="w-5 h-5"/>
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="text-center space-y-1.5 pt-1">
-              <div className="w-12 h-12 bg-[#D7FF00]/10 border border-[#D7FF00]/20 text-[#D7FF00] rounded-2xl flex items-center justify-center mx-auto shadow-sm">
-                <Lock className="w-6 h-6"/>
-              </div>
-              <h3 className="text-lg font-black text-white">
+            <div className="text-center space-y-1.5 pr-6 pl-6">
+              <h2 id="auth-modal-title" className="text-xl font-black tracking-tight text-white text-balance">
                 {isRegisterMode ? 'Create Host Account' : 'Host Account Portal'}
-              </h3>
-              <p className="text-xs text-zinc-400">
-                {isRegisterMode 
-                  ? 'Sign up to organize tournaments, track team analytics, and save match fixtures.' 
-                  : 'Sign in to access your tournament dashboard and save match fixtures.'}
+              </h2>
+              <p className="text-xs text-zinc-400 text-pretty">
+                {isRegisterMode
+                  ? 'Sign up to manage tournaments and save match fixtures.'
+                  : 'Sign in to access your tournament dashboard.'}
               </p>
             </div>
 
             {pendingCloudSync && (
               <div className="p-3 bg-[#D7FF00]/10 border border-[#D7FF00]/20 rounded-2xl text-xs text-[#D7FF00] font-semibold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#D7FF00] flex-shrink-0"/>
-                <span>Your active match data is ready to be saved directly to your cloud tournament history upon signing in!</span>
+                <Cloud className="w-4 h-4 text-[#D7FF00] flex-shrink-0" />
+                <span>Data perlawanan sedia disimpan ke cloud selepas log masuk.</span>
               </div>
             )}
 
-            {/* Kelebihan Akaun Host */}
-            <div className="p-3 bg-zinc-900/60 rounded-2xl space-y-1.5 text-xs text-zinc-300">
-              <span className="font-bold text-white flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#D7FF00]" />
-                <span>Kelebihan Akaun Host:</span>
-              </span>
-              <ul className="grid grid-cols-1 gap-1 text-[11px] text-zinc-400">
-                <li className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#D7FF00] flex-shrink-0" />
-                  <span>Simpan rekod perlawanan ke Cloud selamanya</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#D7FF00] flex-shrink-0" />
-                  <span>Pusingan tanpa had &amp; format multi-day kejohanan</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#D7FF00] flex-shrink-0" />
-                  <span>Jemput co-host isi mata &amp; database sejarah pasukan</span>
-                </li>
-              </ul>
-            </div>
-
-            <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleAuthSubmit} aria-labelledby="auth-modal-title" className="space-y-4">
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Official Email</label>
+                <label htmlFor="auth-modal-email" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Email
+                </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3"/>
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="auth-modal-email"
+                    name="email"
                     type="email"
                     required
-                    autoComplete="email"
+                    autoComplete="username"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    enterKeyHint="next"
                     placeholder="host@esports.com"
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
-                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-zinc-400 uppercase font-bold mb-1">Password</label>
+                <label htmlFor="auth-modal-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Password
+                </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3"/>
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
-                    type="password"
+                    id="auth-modal-password"
+                    name="password"
+                    type={showAuthPassword ? 'text' : 'password'}
                     required
                     autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+                    enterKeyHint="done"
                     placeholder="••••••••"
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
+                    className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-12 py-2.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword(prev => !prev)}
+                    aria-pressed={showAuthPassword}
+                    aria-label={showAuthPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-[#D7FF00] transition cursor-pointer"
+                  >
+                    {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-3 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition shadow-[0_0_20px_rgba(215, 255, 0,0.18)] text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                className="w-full min-h-[48px] py-3 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {authLoading ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin"/>
+                    <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
                     <span>Processing...</span>
                   </>
                 ) : (
-                  <span>{isRegisterMode ? 'Register Host Account' : 'Sign In as Host'}</span>
+                  <span>{isRegisterMode ? 'Create Account' : 'Sign In'}</span>
                 )}
               </button>
 
@@ -9748,7 +9726,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsRegisterMode(!isRegisterMode)}
-                  className="text-xs text-[#D7FF00] hover:underline font-semibold"
+                  className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
                 >
                   {isRegisterMode ? 'Already have an account? Sign In' : "Don't have a host account? Register here"}
                 </button>
