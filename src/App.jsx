@@ -17,6 +17,7 @@ import {
   Sparkles, 
   Download, 
   Filter, 
+  LogIn,
   LogOut, 
   User, 
   ArrowRight, 
@@ -1365,6 +1366,7 @@ export default function App() {
   // Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -1523,85 +1525,89 @@ export default function App() {
         }
       });
 
-      const { data: teamsData } = await supabase
-        .from('teams')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (teamsData && teamsData.length > 0) {
-        setTeams(prevTeams => {
-          const map = new Map(teamsData.map(t => [(t.name || '').trim().toLowerCase(), t]));
-          try {
-            const raw = localStorage.getItem('pubg_hub_custom_teams');
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed)) {
-                parsed.forEach(pt => {
-                  if (pt && pt.name) {
-                    const key = pt.name.trim().toLowerCase();
-                    const existing = map.get(key);
-                    map.set(key, { ...existing, ...pt });
-                  }
-                });
-              }
-            }
-          } catch {}
-          return Array.from(map.values());
-        });
-      }
-
-      const { data: scrimData } = await supabase
-        .from('scrims')
-        .select('*')
-        .order('date', { ascending: false });
-
-      let localSavedScrims = [];
       try {
-        const rawLocal = localStorage.getItem('pubg_hub_saved_scrims');
-        if (rawLocal) {
-          const parsedLocal = JSON.parse(rawLocal);
-          if (Array.isArray(parsedLocal)) {
-            localSavedScrims = parsedLocal;
-          }
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (teamsData && teamsData.length > 0) {
+          setTeams(prevTeams => {
+            const map = new Map(teamsData.map(t => [(t.name || '').trim().toLowerCase(), t]));
+            try {
+              const raw = localStorage.getItem('pubg_hub_custom_teams');
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach(pt => {
+                    if (pt && pt.name) {
+                      const key = pt.name.trim().toLowerCase();
+                      const existing = map.get(key);
+                      map.set(key, { ...existing, ...pt });
+                    }
+                  });
+                }
+              }
+            } catch {}
+            return Array.from(map.values());
+          });
         }
-      } catch (e) {
-        console.warn('Failed to read local saved scrims:', e);
-      }
 
-      const dbList = Array.isArray(scrimData) ? scrimData : [];
-      const dbIds = new Set(dbList.map((s) => s.id));
-      const mergedScrims = [
-        ...dbList,
-        ...localSavedScrims.filter((s) => s && s.id && !dbIds.has(s.id))
-      ];
+        const { data: scrimData } = await supabase
+          .from('scrims')
+          .select('*')
+          .order('date', { ascending: false });
 
-      if (mergedScrims.length > 0) {
-        const sorted = [...mergedScrims].sort((a, b) => {
-          const timeA = parseInt(String(a.id).replace(/\D+/g, ''), 10) || 0;
-          const timeB = parseInt(String(b.id).replace(/\D+/g, ''), 10) || 0;
-          return timeB - timeA;
-        });
+        let localSavedScrims = [];
+        try {
+          const rawLocal = localStorage.getItem('pubg_hub_saved_scrims');
+          if (rawLocal) {
+            const parsedLocal = JSON.parse(rawLocal);
+            if (Array.isArray(parsedLocal)) {
+              localSavedScrims = parsedLocal;
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to read local saved scrims:', e);
+        }
 
-        setScrims(sorted);
-        setSelectedScrimId(sorted[0].id);
-        setAdminSelectedScrimId(sorted[0].id);
-      }
+        const dbList = Array.isArray(scrimData) ? scrimData : [];
+        const dbIds = new Set(dbList.map((s) => s.id));
+        const mergedScrims = [
+          ...dbList,
+          ...localSavedScrims.filter((s) => s && s.id && !dbIds.has(s.id))
+        ];
 
-      const { data: postData } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        if (mergedScrims.length > 0) {
+          const sorted = [...mergedScrims].sort((a, b) => {
+            const timeA = parseInt(String(a.id).replace(/\D+/g, ''), 10) || 0;
+            const timeB = parseInt(String(b.id).replace(/\D+/g, ''), 10) || 0;
+            return timeB - timeA;
+          });
 
-      if (postData && postData.length > 0) {
-        setPosts(postData);
-      }
+          setScrims(sorted);
+          setSelectedScrimId(sorted[0].id);
+          setAdminSelectedScrimId(sorted[0].id);
+        }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*');
+        const { data: postData } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (profileData) {
-        setProfiles(profileData);
+        if (postData && postData.length > 0) {
+          setPosts(postData);
+        }
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (profileData) {
+          setProfiles(profileData);
+        }
+      } finally {
+        setIsDataLoading(false);
       }
 
       return () => subscription.unsubscribe();
@@ -4669,8 +4675,12 @@ export default function App() {
       
       {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
       {toastMessage && (
-        <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] glass-pill text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_25px_rgba(215,255,0,0.2)] font-black text-xs flex items-center space-x-2 border-[#D7FF00]/45 animate-card-entrance max-w-[90vw] text-center">
-          <CheckCircle className="w-4 h-4 text-[#D7FF00] shrink-0"/>
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] glass-pill text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_25px_rgba(215,255,0,0.2)] font-bold text-xs flex items-center gap-2 border-[#D7FF00]/45 animate-feedback-pop max-w-[90vw] text-center"
+        >
+          <CheckCircle className="w-4 h-4 text-[#D7FF00] shrink-0" />
           <span className="truncate">{toastMessage}</span>
         </div>
       )}
@@ -4711,39 +4721,34 @@ export default function App() {
                   type="button"
                   onClick={() => navigateToTab('playground')}
                   className="hidden sm:flex flex-col text-left cursor-pointer group"
-                  title="Kembali ke Command Center"
+                  title="Kembali ke Laman Utama"
                 >
-                  <span className="text-xs font-black tracking-wider text-white group-hover:text-[#D7FF00] transition-colors leading-none">
+                  <span className="text-sm font-black tracking-wide text-white group-hover:text-[#D7FF00] transition-colors leading-none">
                     RYKHOR
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-mono tracking-tight lowercase mt-0.5">
-                    command center
+                  <span className="text-[11px] text-zinc-300 font-mono mt-1 leading-none">
+                    Scrim Hub
                   </span>
                 </button>
               </div>
             ) : (
               <div 
                 onClick={() => navigateToTab('playground')}
-                className="flex items-center space-x-2.5 cursor-pointer select-none group"
+                className="flex items-center gap-2.5 cursor-pointer select-none group"
                 title="Kembali ke Laman Utama"
               >
-                <div className="relative">
-                  <img 
-                    src="/logo.png" 
-                    alt="RYKHOR Scrim Hub Logo" 
-                    className="w-9 h-9 rounded-full object-cover shadow-md shadow-[#D7FF00]/10 border border-[#D7FF00]/30 group-hover:scale-105 transition-transform" 
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#D7FF00] border-2 border-zinc-950 animate-pulse" title="Sistem Aktif"></span>
-                </div>
-                <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-base font-black tracking-wider text-white group-hover:text-[#D7FF00] transition-colors">
-                      RYKHOR
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-mono tracking-tight lowercase">
-                      scrim hub
-                    </span>
-                  </div>
+                <img 
+                  src="/logo.png" 
+                  alt="RYKHOR Scrim Hub" 
+                  className="w-9 h-9 rounded-full object-cover border border-[#D7FF00]/35 group-hover:scale-105 transition-transform" 
+                />
+                <div className="flex flex-col leading-none">
+                  <span className="text-sm font-black tracking-wide text-white group-hover:text-[#D7FF00] transition-colors">
+                    RYKHOR
+                  </span>
+                  <span className="text-[11px] text-zinc-300 font-mono mt-0.5">
+                    Scrim Hub
+                  </span>
                 </div>
               </div>
             )}
@@ -4969,7 +4974,7 @@ export default function App() {
                 {currentUser ? (
                   <ShieldCheck className="w-4 h-4 text-[#D7FF00]" />
                 ) : (
-                  <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                  <Lock className="w-3.5 h-3.5 text-zinc-300" />
                 )}
                 <span>Host</span>
               </button>
@@ -4981,7 +4986,7 @@ export default function App() {
                 className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'profile'
                     ? 'bg-[#D7FF00]/20 text-[#D7FF00] font-black' 
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                    : 'text-zinc-300 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
                 <User className="w-4 h-4 text-[#D7FF00]" />
@@ -4991,16 +4996,17 @@ export default function App() {
 
             {!currentUser && (
               <button
+                type="button"
                 onClick={() => {
                   setIsRegisterMode(false);
                   setPendingCloudSync(false);
                   setIsAuthModalOpen(true);
                 }}
-                className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center gap-1.5 shadow-[0_0_16px_rgba(215,255,0,0.25)] active:scale-95 cursor-pointer"
-                title="Sign in to unlock Command Center"
+                className="px-4 py-1.5 rounded-full text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.3)] active:scale-95 cursor-pointer"
+                title="Log masuk akaun penganjur"
               >
-                <Lock className="w-3.5 h-3.5 text-black" />
-                <span>Login</span>
+                <LogIn className="w-3.5 h-3.5 text-black stroke-[2.4]" />
+                <span>Log Masuk</span>
               </button>
             )}
 
@@ -5040,7 +5046,6 @@ export default function App() {
                           <Crown className="w-4 h-4 text-[#D7FF00] shrink-0" />
                           <div className="min-w-0">
                             <span className="block leading-tight">Urus Pasukan &amp; Logo</span>
-                            <span className="text-[9px] text-[#D7FF00]/70 font-mono font-normal">Kuasa Mutlak</span>
                           </div>
                         </button>
                       </div>
@@ -5138,29 +5143,29 @@ export default function App() {
 
         {/* VIEW 0: AUTHENTICATION GUARD & BENTO-GRID COMMAND CENTER (ROOT ROUTE /) */}
         {(activeTab === 'playground' || activeTab === 'home') && (() => {
-          // 1. LOADING SESSION STATE: Minimalist Dark Skeleton / Spinner
+          // 1. LOADING SESSION STATE: Semantic Spinner & Frosted Glass Skeleton
           if (isAuthChecking) {
             return (
-              <div className="max-w-xl md:max-w-full mx-auto space-y-4 pt-2 pb-6" aria-busy="true" aria-label="Loading session">
+              <div className="max-w-xl md:max-w-full mx-auto space-y-4 pt-2 pb-6" aria-busy="true" aria-label="Memuatkan sesi">
                 <div className="flex items-center justify-between px-1">
-                  <div className="h-4 w-32 rounded-full bg-zinc-900 animate-pulse" />
-                  <div className="h-6 w-24 rounded-full bg-zinc-900 animate-pulse flex items-center justify-center gap-1.5 px-3">
-                    <RefreshCw className="w-3 h-3 text-[#D7FF00] animate-spin" />
-                    <span className="text-[10px] font-mono text-zinc-400">Syncing...</span>
+                  <div className="h-5 w-48 rounded-full bg-white/[0.06] animate-pulse" />
+                  <div className="h-7 rounded-full glass-pill flex items-center gap-2 px-3">
+                    <progress aria-label="Menyemak sesi" className="loading-spinner" style={{ '--size': '14px', '--thickness': '2px' }} />
+                    <span className="text-[11px] font-mono text-zinc-300">Menyemak sesi...</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-5">
-                  <div className="col-span-2 lg:col-span-6 h-44 lg:h-96 rounded-[2rem] bg-[#111115] animate-pulse p-6 flex flex-col justify-between">
-                    <div className="h-6 w-40 rounded-full bg-zinc-800/80" />
+                  <div className="col-span-2 lg:col-span-6 h-44 lg:h-96 rounded-[2rem] glass-panel animate-pulse p-6 flex flex-col justify-between">
+                    <div className="h-6 w-40 rounded-full bg-white/[0.08]" />
                     <div className="space-y-2">
-                      <div className="h-4 w-56 rounded-full bg-zinc-800/60" />
-                      <div className="h-3 w-36 rounded-full bg-zinc-800/40" />
+                      <div className="h-4 w-56 rounded-full bg-white/[0.06]" />
+                      <div className="h-3 w-36 rounded-full bg-white/[0.04]" />
                     </div>
                   </div>
-                  <div className="col-span-1 lg:col-span-3 h-72 lg:h-96 rounded-[2rem] bg-[#111115] animate-pulse" />
+                  <div className="col-span-1 lg:col-span-3 h-72 lg:h-96 rounded-[2rem] glass-panel animate-pulse" />
                   <div className="col-span-1 lg:col-span-3 space-y-3.5 lg:space-y-5">
-                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] bg-[#111115] animate-pulse" />
-                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] bg-[#111115] animate-pulse" />
+                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] glass-panel animate-pulse" />
+                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] glass-panel animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -5226,37 +5231,36 @@ export default function App() {
                 />
               </div>
               
-              {/* TIER 1: Command Center Greeting Header + Desktop Live Telemetry Strip */}
+              {/* TIER 1: Specific Headline + Live Counters */}
               <div
                 className="flex items-center justify-between gap-4 px-1.5 md:px-1 animate-home-tier"
                 style={{ '--home-delay': '0ms' }}
               >
                 <div className="min-w-0">
                   {currentUser ? (
-                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight">
-                      Welcome back, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
+                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
+                      Selamat kembali, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
                     </h1>
                   ) : (
-                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight">
-                      Hi, <span className="text-[#D7FF00]">new person!</span>
+                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
+                      Kedudukan Scrim &amp; <span className="text-[#D7FF00]">Kejohanan PUBG Mobile</span>
                     </h1>
                   )}
-                  <p className="hidden md:block text-xs md:text-sm text-zinc-400 mt-1">
-                    Pusat Kawalan Esports PUBG Mobile • Leaderboard, Auto-Scoring &amp; Arkib Kejohanan
+                  <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
+                    {currentUser
+                      ? 'Urus rekod scrim, semak prestasi pasukan & imbas keputusan poster.'
+                      : 'Semak ranking pasukan rasmi, kira markah PMGC dan imbas poster keputusan.'}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2.5 shrink-0">
-                  {/* Live Season Telemetry Pills (Desktop only) */}
+                  {/* Data Counters (Desktop only) */}
                   <div className="hidden lg:flex items-center gap-2">
-                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-300 flex items-center gap-2">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-status-beacon absolute inline-flex h-full w-full rounded-full bg-[#D7FF00]" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D7FF00]" />
-                      </span>
+                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
                       <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
                     </div>
-                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5">
+                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
                       <Trophy className="w-3.5 h-3.5 text-emerald-400" />
                       <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
                     </div>
@@ -5275,10 +5279,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsAuthModalOpen(true)}
-                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer group"
+                      className="px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-[11px] md:text-xs font-black text-black flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(215,255,0,0.25)]"
                     >
-                      <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00] group-hover:scale-110 transition-transform" />
-                      <span>Log Masuk</span>
+                      <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-black stroke-[2.2]" />
+                      <span>Log Masuk Host</span>
                     </button>
                   )}
                 </div>
@@ -5311,28 +5315,21 @@ export default function App() {
                     style={{ '--home-delay': '80ms' }}
                     className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00]/95 via-[#C8F000]/92 to-[#9ABB00]/95 backdrop-blur-xl border border-white/35 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_14px_40px_rgba(215,255,0,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_22px_55px_rgba(215,255,0,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
-                    {/* Ambient decorative glow & hover light sheen */}
-                    <div className="absolute -right-8 -top-8 w-36 lg:w-52 h-36 lg:h-52 rounded-full bg-white/25 blur-2xl pointer-events-none" />
-                    <div
-                      aria-hidden="true"
-                      className="hidden md:block hero-card-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                    />
-
                     <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
-                      {/* Top Row: Slide Status Pill, Title & Trophy Icon (spacious on narrow mobile) */}
+                      {/* Top Row: Specific Section Label, Title & Trophy Icon */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0">
-                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-black/15 text-black text-[10px] font-mono font-black uppercase tracking-wider">
-                            <span>{homeHofSlide === 0 ? 'Current Ranking • Semua' : 'Division Spotlight • Tier 3'}</span>
-                          </div>
+                          <span className="text-[11px] font-mono font-bold text-black/75 block leading-none">
+                            {homeHofSlide === 0 ? 'Kedudukan Keseluruhan' : 'Sorotan Tier 3'}
+                          </span>
                           <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-black leading-none pt-0.5 flex items-baseline gap-1.5">
                             <span className="font-team-matrix font-bold uppercase">Team</span>
-                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em]">Matrix</span>
+                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em] translate-y-[0.5px]">Matrix</span>
                           </h2>
                         </div>
 
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:rotate-3 transition-transform shrink-0">
-                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 stroke-[2.2]" />
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-black text-[#D7FF00] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
+                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 stroke-[2]" />
                         </div>
                       </div>
 
@@ -5583,42 +5580,28 @@ export default function App() {
                     style={{ '--home-delay': '160ms' }}
                     className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93]/90 via-[#EC4899]/85 to-[#BE185D]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_14px_35px_rgba(236,72,153,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_22px_50px_rgba(236,72,153,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
                   >
-                    <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none" />
-
-                    {/* Top Icon & Badge */}
+                    {/* Top Icon */}
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-md group-hover:scale-105 group-hover:-rotate-3 transition-transform">
-                        <Sparkles className="w-5 h-5" />
+                      <div className="w-11 h-11 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                        <Upload className="w-5 h-5 stroke-[2]" />
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md border border-white/15 text-[10px] font-mono font-black uppercase tracking-wider">
-                        AI OCR
-                      </span>
+                      <ArrowRight className="w-4 h-4 text-pink-100 group-hover:translate-x-0.5 transition-transform" />
                     </div>
 
-                    {/* Middle Visual Graphic with Animated Laser Scan-Line */}
-                    <div className="my-auto py-4 relative z-10 space-y-2">
-                      <div className="p-3 lg:p-3.5 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 space-y-1.5 relative overflow-hidden">
-                        <div
-                          aria-hidden="true"
-                          className="animate-ocr-scanline pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/80 to-transparent shadow-[0_0_12px_rgba(255,255,255,0.8)]"
-                        />
-                        <div className="flex items-center justify-between text-[10px] font-mono text-pink-100">
-                          <span>Auto-Audit Math</span>
-                          <CheckCircle className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <div className="text-xs font-mono font-black text-white tracking-tight">
-                          PP + KP = TOTAL
-                        </div>
-                      </div>
+                    {/* Specific Capability Summary */}
+                    <div className="my-auto py-4 relative z-10">
+                      <p className="text-xs font-medium text-pink-50 leading-relaxed text-pretty">
+                        Muat naik gambar poster kejohanan untuk ekstrak markah &amp; audit PP + KP secara automatik.
+                      </p>
                     </div>
 
-                    {/* Bottom Title & Dynamic Last Scanned History */}
+                    {/* Bottom Title & Last Scanned History */}
                     <div className="space-y-1.5 relative z-10">
-                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">
-                        Results Scanner
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight text-balance">
+                        Imbas Keputusan
                       </h2>
-                      <p className="text-[11px] font-medium text-pink-100/90 leading-snug line-clamp-2">
-                        Last Scanned: <strong className="text-white font-bold">{lastScannedLabel}</strong>
+                      <p className="text-[11px] font-medium text-pink-50/95 leading-snug line-clamp-2">
+                        Terkini: <strong className="text-white font-bold">{lastScannedLabel}</strong>
                       </p>
                     </div>
                   </div>
@@ -5637,28 +5620,20 @@ export default function App() {
                     style={{ '--home-delay': '230ms' }}
                     className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6]/90 via-[#2563EB]/85 to-[#1D4ED8]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_12px_30px_rgba(59,130,246,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_20px_45px_rgba(59,130,246,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
-                    <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
-
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:rotate-3 transition-transform">
-                        <Edit3 className="w-4 h-4" />
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Edit3 className="w-4 h-4 stroke-[2]" />
                       </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 backdrop-blur-md border border-white/15 text-[10px] font-mono font-bold text-blue-100">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-status-beacon absolute inline-flex h-full w-full rounded-full bg-sky-300" />
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-200" />
-                        </span>
-                        <span>Live Entry</span>
-                      </span>
+                      <ArrowRight className="w-4 h-4 text-blue-100 group-hover:translate-x-0.5 transition-transform" />
                     </div>
 
                     <div className="space-y-1 pt-3 relative z-10">
-                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight text-balance">
                         Quick Scorer
                       </h2>
-                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-black/25 backdrop-blur-md border border-white/10 text-[10px] font-mono font-semibold text-blue-100 max-w-full">
-                        <span className="truncate">Last Session: {quickScorerPreviewTitle}</span>
-                      </div>
+                      <p className="text-[11px] font-medium text-blue-50 truncate">
+                        {quickScorerPreviewTitle}
+                      </p>
                     </div>
                   </div>
 
@@ -5676,32 +5651,31 @@ export default function App() {
                     style={{ '--home-delay': '300ms' }}
                     className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981]/90 via-[#059669]/85 to-[#047857]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_12px_30px_rgba(16,185,129,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_20px_45px_rgba(16,185,129,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
-                    <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/15 blur-xl pointer-events-none" />
-
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 group-hover:-rotate-3 transition-transform">
-                        <Clock className="w-4 h-4" />
+                      <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Clock className="w-4 h-4 stroke-[2]" />
                       </div>
 
-                      {/* Status Pill Badge ("Completed" in emerald or "Pending" in amber) */}
-                      {latestRekodFinished ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/65 backdrop-blur-md border border-emerald-300/25 text-emerald-100 text-[10px] font-mono font-black">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
-                          <span>Completed</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/70 backdrop-blur-md border border-amber-300/25 text-amber-100 text-[10px] font-mono font-black">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
-                          <span>Pending</span>
-                        </span>
+                      {latestRekodSession && (
+                        latestRekodFinished ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 backdrop-blur-md border border-emerald-300/25 text-emerald-100 text-[10px] font-mono font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+                            <span>Selesai</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/75 backdrop-blur-md border border-amber-300/25 text-amber-100 text-[10px] font-mono font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+                            <span>Live</span>
+                          </span>
+                        )
                       )}
                     </div>
 
                     <div className="space-y-1 pt-3 relative z-10">
-                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight">
-                        Rekod / Sessions
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight text-balance">
+                        Rekod Kejohanan
                       </h2>
-                      <p className="text-[11px] font-medium text-emerald-100 truncate">
+                      <p className="text-[11px] font-medium text-emerald-50 truncate">
                         {latestRekodTitle}
                       </p>
                     </div>
@@ -5773,7 +5747,20 @@ export default function App() {
                       </div>
                     </div>
 
-                    {desktopContenders.length > 0 ? (
+                    {isDataLoading && desktopContenders.length === 0 ? (
+                      <div className="space-y-2.5" aria-busy="true" aria-label="Memuatkan kedudukan pasukan">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div key={i} className="w-full rounded-2xl glass-tile px-4 py-3 flex items-center gap-3.5 animate-pulse">
+                            <div className="w-8 h-8 rounded-xl bg-white/[0.08] shrink-0" />
+                            <div className="w-9 h-9 rounded-xl bg-white/[0.06] shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 w-36 rounded-full bg-white/[0.08]" />
+                              <div className="h-2 w-48 rounded-full bg-white/[0.05]" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : desktopContenders.length > 0 ? (
                       <div className="space-y-2.5">
                         {desktopContenders.map((team, idx) => {
                           const pts = homeContendersCategory === 'TIER_3' ? team.tier3Points : team.totalPoints;
@@ -5894,7 +5881,19 @@ export default function App() {
                         </button>
                       </div>
 
-                      {recentSessionsDock.length > 0 ? (
+                      {isDataLoading && recentSessionsDock.length === 0 ? (
+                        <div className="space-y-2.5" aria-busy="true" aria-label="Memuatkan arkib sesi">
+                          {[0, 1, 2].map((i) => (
+                            <div key={i} className="w-full rounded-2xl glass-tile px-4 py-3 flex items-center gap-3 animate-pulse">
+                              <div className="w-9 h-9 rounded-xl bg-white/[0.07] shrink-0" />
+                              <div className="flex-1 space-y-1.5">
+                                <div className="h-3.5 w-40 rounded-full bg-white/[0.08]" />
+                                <div className="h-2.5 w-24 rounded-full bg-white/[0.05]" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : recentSessionsDock.length > 0 ? (
                         <div className="space-y-2.5">
                           {recentSessionsDock.map((s) => (
                             <button
@@ -6213,7 +6212,7 @@ export default function App() {
                     <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1">
                       {activeTeamScopedStats.totalPoints}
                     </span>
-                    <span className="text-[10px] text-zinc-500 font-mono font-medium">
+                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
                       ~{avgPtsPerEvent} pts / sesi
                     </span>
                   </div>
@@ -6224,7 +6223,7 @@ export default function App() {
                     <span className="text-2xl sm:text-3xl font-black font-mono text-white my-1">
                       {activeTeamScopedStats.totalKills}
                     </span>
-                    <span className="text-[10px] text-zinc-500 font-mono font-medium">
+                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
                       ~{avgKillsPerMatch} kills / match
                     </span>
                   </div>
@@ -6236,7 +6235,7 @@ export default function App() {
                       <Trophy className="w-5 h-5 text-[#D7FF00]" />
                       {activeTeamScopedStats.totalWWCD}
                     </span>
-                    <span className="text-[10px] text-zinc-500 font-mono font-medium">
+                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
                       {winRatePercent}% Win Rate
                     </span>
                   </div>
@@ -6247,7 +6246,7 @@ export default function App() {
                     <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-200 my-1">
                       {activeTeamScopedStats.eventsCount}
                     </span>
-                    <span className="text-[10px] text-zinc-500 font-mono font-medium">
+                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
                       {activeTeamScopedStats.matchesCount} match beraksi
                     </span>
                   </div>
@@ -6313,20 +6312,17 @@ export default function App() {
                 </button>
                   </div>
 
-                {/* 6. SEJARAH PERLAWANAN DENGAN ACCORDION DROPDOWN ICON */}
+                {/* 6. SEJARAH PERLAWANAN */}
                 <div className="space-y-3 pt-2 lg:pt-0 lg:col-span-5">
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black text-white uppercase tracking-wider">
                         Sejarah Perlawanan
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-mono font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full glass-pill text-zinc-200 font-mono font-bold">
                         {activeTeamScopedStats.filteredResults.length} Rekod
                       </span>
                     </div>
-                    <span className="text-[10px] text-zinc-500">
-                      Tekan icon dropdown untuk info penuh
-                    </span>
                   </div>
 
                   {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
@@ -6422,21 +6418,21 @@ export default function App() {
                             {isExpanded && (
                               <div className="px-3.5 pb-3.5 pt-2 space-y-3 bg-zinc-950/50 animate-in fade-in duration-150">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
-                                    <span className="text-[9px] uppercase font-bold text-zinc-500 block">Kills</span>
+                                  <div className="glass-tile p-2 rounded-xl">
+                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Kills</span>
                                     <span className="font-mono font-bold text-white">{item.kills} K</span>
                                   </div>
-                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
-                                    <span className="text-[9px] uppercase font-bold text-zinc-500 block">Placement</span>
+                                  <div className="glass-tile p-2 rounded-xl">
+                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Placement</span>
                                     <span className="font-mono font-bold text-emerald-400">{itemPP} PP</span>
                                   </div>
-                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
-                                    <span className="text-[9px] uppercase font-bold text-zinc-500 block">Tier</span>
+                                  <div className="glass-tile p-2 rounded-xl">
+                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Tier</span>
                                     <span className="font-mono font-bold text-[#D7FF00] truncate block">{item.scrimTier || 'Umum'}</span>
                                   </div>
-                                  <div className="bg-zinc-900/75 p-2 rounded-xl">
-                                    <span className="text-[9px] uppercase font-bold text-zinc-500 block">Host</span>
-                                    <span className="font-mono font-bold text-zinc-300 truncate block">{item.hostName || 'Admin'}</span>
+                                  <div className="glass-tile p-2 rounded-xl">
+                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Host</span>
+                                    <span className="font-mono font-bold text-zinc-200 truncate block">{item.hostName || 'Admin'}</span>
                                   </div>
                                 </div>
 
@@ -6738,7 +6734,7 @@ export default function App() {
                   className="w-full max-w-[380px] sm:max-w-[430px] h-auto overflow-visible pointer-events-none"
                   aria-hidden="true"
                 >
-                  {/* Top & Bottom Center Indicator Pointers (Exact Reference Dial Marker) */}
+                  {/* Top & Bottom Center Indicator Pointers */}
                   <line
                     x1="200"
                     y1="10"
@@ -6747,7 +6743,6 @@ export default function App() {
                     stroke="#D7FF00"
                     strokeWidth="2"
                     strokeLinecap="round"
-                    className="animate-dial-pointer"
                   />
                   <line
                     x1="200"
@@ -6806,8 +6801,8 @@ export default function App() {
                   </div>
 
                   {/* Description Paragraph */}
-                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xs sm:max-w-sm mx-auto pt-0.5">
-                    Ranking prestasi pasukan, rekod WWCD &amp; jana kad Instagram Story 9:16.
+                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-xs sm:max-w-sm mx-auto pt-0.5 text-pretty">
+                    Kedudukan rasmi pasukan, rekod WWCD &amp; jana kad Story 9:16.
                   </p>
                 </div>
               </div>
@@ -6956,7 +6951,24 @@ export default function App() {
                   )}
                 </div>
 
-                {validTeamList.length === 0 ? (
+                {isDataLoading && validTeamList.length === 0 ? (
+                  <div className="space-y-2.5 py-2" aria-busy="true" aria-label="Memuatkan ranking pasukan">
+                    <div className="flex items-center justify-center gap-2 pb-2">
+                      <progress aria-label="Memuatkan Team Matrix" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
+                      <span className="text-xs font-mono text-zinc-300">Memuatkan ranking pasukan...</span>
+                    </div>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className="glass-tile rounded-xl px-4 py-3 flex items-center justify-between gap-3 animate-pulse">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-4 rounded bg-white/[0.08]" />
+                          <div className="w-12 h-5 rounded bg-white/[0.07]" />
+                          <div className="w-32 h-4 rounded bg-white/[0.08]" />
+                        </div>
+                        <div className="w-14 h-4 rounded bg-white/[0.07]" />
+                      </div>
+                    ))}
+                  </div>
+                ) : validTeamList.length === 0 ? (
                   <div className="py-8 text-center space-y-2">
                     <Users className="w-7 h-7 text-zinc-500 mx-auto" />
                     <p className="text-xs text-zinc-400 max-w-xs mx-auto">
@@ -7418,17 +7430,17 @@ export default function App() {
             {/* 2. HEADING + CONNECTED FILTER PILLS BAR (Following Reference "Find Jobs" + Connected Pills) */}
             <div className="space-y-3.5 px-1">
               <div className="flex items-center justify-between gap-3">
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-                  Rekod &amp; Arkib
+                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white text-balance">
+                  Rekod Kejohanan &amp; Scrim
                 </h1>
 
                 <button
                   type="button"
                   onClick={() => navigateToTab('admin')}
-                  className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_18px_rgba(215,255,0,0.18)] active:scale-95 cursor-pointer shrink-0"
+                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
                   title="Cipta atau urus sesi kejohanan baru di Portal Host"
                 >
-                  <Plus className="w-3.5 h-3.5 text-black stroke-[3]" />
+                  <Plus className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                   <span>Sesi Baru</span>
                 </button>
               </div>
@@ -7538,8 +7550,26 @@ export default function App() {
               )}
             </div>
 
-            {/* 3. SESSION CARDS LIST (Following Reference Card Hierarchy & Two-Tone Footer) */}
-            {filteredScrims.length === 0 ? (
+            {/* 3. SESSION CARDS LIST */}
+            {isDataLoading && filteredScrims.length === 0 ? (
+              <div className="space-y-4 px-1" aria-busy="true" aria-label="Memuatkan rekod sesi">
+                <div className="flex items-center gap-2 text-xs font-mono text-zinc-300">
+                  <progress aria-label="Memuatkan arkib sesi" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
+                  <span>Memuatkan arkib sesi...</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className="glass-panel rounded-3xl p-4 flex items-center gap-3 animate-pulse">
+                      <div className="w-12 h-12 rounded-2xl bg-white/[0.08] shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-36 rounded-full bg-white/[0.08]" />
+                        <div className="h-3 w-24 rounded-full bg-white/[0.05]" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : filteredScrims.length === 0 ? (
               <div className="p-12 text-center glass-panel rounded-3xl space-y-3 mx-1">
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Sesi Dijumpai</h3>
@@ -7719,13 +7749,13 @@ export default function App() {
                       )}
                     </div>
 
-                    <p className="text-xs text-zinc-300 leading-relaxed italic bg-zinc-950/60 p-2.5 rounded-xl">
-                      "{host.bio}"
+                    <p className="text-xs text-zinc-200 leading-relaxed bg-zinc-950/60 p-2.5 rounded-xl text-pretty">
+                      {host.bio}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-white/5 space-y-1.5">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                  <div className="pt-3 border-t border-white/10 space-y-1.5">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                       Sesi Kejohanan:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -7733,11 +7763,11 @@ export default function App() {
                         <button
                           key={s.id}
                           onClick={() => setInspectedScrim(s)}
-                          className="px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/5 text-[11px] font-semibold text-zinc-300 hover:border-[#D7FF00]/40 hover:text-white flex items-center gap-1 transition"
+                          className="px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/10 text-[11px] font-semibold text-zinc-200 hover:border-[#D7FF00]/40 hover:text-white flex items-center gap-1 transition"
                         >
                           <span>{s.title}</span>
-                          <span className="text-[9px] text-zinc-500 font-mono">({s.event_type || 'Scrim'})</span>
-                          <ExternalLink className="w-3 h-3 text-zinc-500"/>
+                          <span className="text-[10px] text-zinc-400 font-mono">({s.event_type || 'Scrim'})</span>
+                          <ExternalLink className="w-3 h-3 text-zinc-400"/>
                         </button>
                       ))}
                     </div>
@@ -9116,13 +9146,10 @@ export default function App() {
                   {performanceTeam.tag}
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-white flex items-center gap-1.5">
+                  <h3 className="font-black text-base text-white">
                     <span>{performanceTeam.name}</span>
-                    <span className="text-[10px] bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 px-2 py-0.5 rounded-full font-mono">
-                      Career Analytics
-                    </span>
                   </h3>
-                  <span className="text-[11px] text-zinc-400">Visual performance & organizer metrics</span>
+                  <span className="text-[11px] text-zinc-300">Statistik prestasi &amp; eksport Story 9:16</span>
                 </div>
               </div>
 
@@ -9251,13 +9278,10 @@ export default function App() {
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-black text-xs sm:text-sm text-white truncate">
-                      Slide Panduan SCRIM HUB
-                    </h3>
-                    <span className="text-[9px] font-mono font-bold bg-zinc-900 text-zinc-400 px-1.5 py-0.2 rounded border border-white/10">v2.7.0</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 block truncate">Panduan Penggunaan Quick Scorer &amp; Host</span>
+                  <h3 className="font-black text-xs sm:text-sm text-white truncate">
+                    Slide Panduan SCRIM HUB
+                  </h3>
+                  <span className="text-[10px] text-zinc-300 block truncate">Panduan Penggunaan Quick Scorer &amp; Host</span>
                 </div>
               </div>
 
@@ -10366,15 +10390,10 @@ export default function App() {
                   <Crown className="w-5 h-5 text-black" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-black text-sm sm:text-base text-white truncate">
-                      Pengurusan Pasukan &amp; Logo
-                    </h3>
-                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 font-mono font-bold">
-                      Kuasa Mutlak
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                  <h3 className="font-black text-sm sm:text-base text-white truncate">
+                    Pengurusan Pasukan &amp; Logo
+                  </h3>
+                  <p className="text-[11px] text-zinc-300 truncate mt-0.5">
                     {currentUser?.email}
                   </p>
                 </div>
@@ -11440,14 +11459,13 @@ export default function App() {
                   <Plus className="w-5 h-5 stroke-[3]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-white">Pilih Tindakan (+)</h3>
-                  <p className="text-[11px] text-zinc-400">Pilih salah satu daripada 2 fungsi utama</p>
+                  <h3 className="text-sm font-black text-white">Cipta atau Imbas</h3>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsQuickCreateModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+                className="w-7 h-7 rounded-full glass-tile glass-tile-hover flex items-center justify-center text-zinc-300 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -11463,16 +11481,13 @@ export default function App() {
                 }}
                 className="w-full p-3.5 rounded-2xl glass-tile glass-tile-hover transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-                  <Zap className="w-5 h-5 fill-black" />
+                <div className="w-10 h-10 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Edit3 className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">1. Quick Scorer</span>
-                    <span className="text-[9px] font-black text-black bg-[#D7FF00] px-1.5 py-0.5 rounded">PMGC Engine</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400 leading-snug mt-0.5">
-                    Pusat kira markah kejohanan rasmi, simpanan Cloud &amp; poster HD.
+                  <span className="text-xs font-black text-white block">1. Quick Scorer</span>
+                  <p className="text-[11px] text-zinc-300 leading-snug mt-0.5">
+                    Kira markah PMGC, simpan Cloud &amp; eksport poster HD.
                   </p>
                 </div>
               </button>
@@ -11484,18 +11499,15 @@ export default function App() {
                   setIsQuickCreateModalOpen(false);
                   navigateToTab('scrim-data');
                 }}
-                className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
+                className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15 border border-[#D7FF00]/25 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-                  <Database className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl glass-tile text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Upload className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">2. Results Scanner</span>
-                    <span className="text-[9px] font-black text-[#D7FF00] bg-[#D7FF00]/15 px-1.5 py-0.5 rounded">AI OCR</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-300 leading-snug mt-0.5">
-                    AI Poster OCR Scanner, audit matematik &amp; simpan kedudukan kejohanan secara automatik.
+                  <span className="text-xs font-black text-white block">2. Imbas Keputusan</span>
+                  <p className="text-[11px] text-zinc-200 leading-snug mt-0.5">
+                    Imbas poster keputusan &amp; audit matematik automatik.
                   </p>
                 </div>
               </button>
@@ -11886,8 +11898,8 @@ export default function App() {
                 : 'text-zinc-400 hover:text-zinc-200'
             )}
           >
-            <Home className={'w-5 h-5 ' + (activeTab === 'playground' || activeTab === 'home' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
-            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'playground' || activeTab === 'home' ? 'font-black' : 'font-medium')}>
+            <Home className={'w-5 h-5 ' + (activeTab === 'playground' || activeTab === 'home' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
+            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'playground' || activeTab === 'home' ? 'font-bold' : 'font-medium')}>
               Home
             </span>
           </button>
@@ -11901,38 +11913,29 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-300 hover:text-white'
             )}
           >
-            <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
-            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'font-black' : 'font-medium')}>
+            <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
+            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'font-bold' : 'font-medium')}>
               Rekod
             </span>
           </button>
 
-          {/* CENTER HERO: [+] 3-Selection Action Menu (1 Quick Score, 2 Admin Scorer, 3 Scrim Data) */}
+          {/* CENTER HERO: [+] Action Menu */}
           <div className="shrink-0 px-1">
             <button
               type="button"
               onClick={() => setIsQuickCreateModalOpen(prev => !prev)}
-              title="Pilih: 1. Quick Score, 2. Admin Scorer, 3. Scrim Data"
+              title="Cipta atau imbas keputusan"
               aria-label="Open Action Menu"
-              className={'relative w-11 h-11 rounded-full flex items-center justify-center select-none -translate-y-2 transition-all duration-200 ease-out active:scale-90 cursor-pointer ' + (
+              className={'relative w-11 h-11 rounded-full flex items-center justify-center select-none -translate-y-2 transition-all duration-200 ease-out active:scale-90 cursor-pointer bg-[#D7FF00] text-black ' + (
                 isQuickCreateModalOpen || activeTab === 'scorer' || activeTab === 'scrim-data'
-                  ? 'bg-[#D7FF00] text-black shadow-[0_0_22px_rgba(215, 255, 0,0.6)] scale-105'
-                  : 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215, 255, 0,0.3)] hover:scale-105'
+                  ? 'shadow-[0_0_24px_rgba(215,255,0,0.45)] scale-105'
+                  : 'shadow-[0_4px_16px_rgba(215,255,0,0.28)] hover:scale-105'
               )}
             >
-              {/* Soft ambient breathing halo */}
-              <span
-                className={'absolute -inset-1 rounded-full bg-[#D7FF00] pointer-events-none -z-10 transition-opacity duration-300 ' + (
-                  isQuickCreateModalOpen || activeTab === 'scorer' || activeTab === 'scrim-data'
-                    ? 'opacity-35 blur-sm animate-pulse'
-                    : 'opacity-15 blur-[2px] animate-pulse [animation-duration:3s]'
-                )}
-              />
-
-              <Plus className={'w-5 h-5 text-black stroke-[3] transition-transform duration-200 ' + (
+              <Plus className={'w-5 h-5 text-black stroke-[2.5] transition-transform duration-200 ' + (
                 isQuickCreateModalOpen ? 'rotate-45' : 'rotate-0'
               )} />
             </button>
@@ -11947,11 +11950,11 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'teams' || activeTab === 'database'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-300 hover:text-white'
             )}
           >
-            <Users className={'w-5 h-5 ' + (activeTab === 'teams' || activeTab === 'database' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
-            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'teams' || activeTab === 'database' ? 'font-black' : 'font-medium')}>
+            <Users className={'w-5 h-5 ' + (activeTab === 'teams' || activeTab === 'database' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
+            <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'teams' || activeTab === 'database' ? 'font-bold' : 'font-medium')}>
               Teams
             </span>
           </button>
@@ -11965,11 +11968,11 @@ export default function App() {
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 relative ' + (
               activeTab === 'profile'
                 ? 'text-[#D7FF00]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-300 hover:text-white'
             )}
           >
             <div className="relative">
-              <User className={'w-5 h-5 ' + (activeTab === 'profile' ? 'stroke-[2.5] drop-shadow-[0_0_8px_rgba(215, 255, 0,0.4)]' : 'stroke-[1.8]')} />
+              <User className={'w-5 h-5 ' + (activeTab === 'profile' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
               {currentUser && activeTab !== 'profile' && (
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#D7FF00] border border-zinc-950"></span>
               )}

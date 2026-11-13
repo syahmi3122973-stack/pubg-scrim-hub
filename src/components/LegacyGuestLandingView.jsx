@@ -7,7 +7,6 @@ import {
   CheckCircle,
   Database,
   Crosshair,
-  Trophy,
   ChevronRight,
   ArrowRight
 } from 'lucide-react';
@@ -313,52 +312,16 @@ export default function LegacyGuestLandingView({
         className="relative px-1 animate-stagger-card"
         style={{ animationDelay: '70ms' }}
       >
-        <div
-          aria-hidden="true"
-          className="absolute right-1 top-0 w-24 h-24 sm:w-32 sm:h-32 pointer-events-none select-none opacity-90 animate-hero-float"
-        >
-          <svg viewBox="0 0 120 120" className="w-full h-full">
-            <path
-              d="M 22 18 A 38 38 0 0 0 98 18"
-              fill="none"
-              stroke="#D7FF00"
-              strokeOpacity="0.22"
-              strokeWidth="16"
-              strokeLinecap="square"
-            />
-            <path
-              d="M 22 102 A 38 38 0 0 1 98 102"
-              fill="none"
-              stroke="#D7FF00"
-              strokeOpacity="0.22"
-              strokeWidth="16"
-              strokeLinecap="square"
-            />
-          </svg>
-        </div>
-
-        <div className="relative z-10 space-y-3 max-w-lg">
-          <h1 className="text-[30px] sm:text-5xl font-black tracking-tight text-white leading-[1.12]">
-            <span className="inline-flex items-center gap-2 sm:gap-2.5">
-              <span>Kira</span>
-              <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00] text-black shadow-[0_0_16px_rgba(215,255,0,0.35)] animate-hero-float">
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-black text-black" />
-              </span>
-              <span
-                className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D7FF00]/20 text-[#D7FF00] animate-hero-float"
-                style={{ animationDelay: '400ms' }}
-              >
-                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#D7FF00]" />
-              </span>
-            </span>
-            <span className="block mt-1">Markah Scrim &amp;</span>
-            <span className="block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#D7FF00]">
+        <div className="relative z-10 space-y-3 max-w-xl">
+          <h1 className="text-[30px] sm:text-5xl font-black tracking-tight text-white leading-[1.12] text-balance">
+            <span>Kira Markah Scrim &amp; </span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#D7FF00]">
               Poster Sepantas Saat
             </span>
           </h1>
 
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-md">
-            Susun kedudukan &amp; tiebreaker automatik supaya anda tak perlu lagi baiki formula spreadsheet atau lukis poster manual.
+          <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-md text-pretty">
+            Susun kedudukan &amp; tiebreaker PMGC automatik tanpa formula spreadsheet atau rekaan poster manual.
           </p>
         </div>
       </div>
@@ -508,7 +471,7 @@ export default function LegacyGuestLandingView({
             })}
           </div>
 
-          <span className="text-[10px] font-mono text-zinc-500">
+          <span className="text-[10px] font-mono text-zinc-300">
             {activeHomeSlide + 1} / {HOME_SLIDER_TOTAL} • Geser atau tekan kad
           </span>
         </div>
@@ -522,14 +485,14 @@ export default function LegacyGuestLandingView({
         <button
           type="button"
           onClick={handleStartScoringSession}
-          className="w-full p-2 pl-6 rounded-full glass-pill glass-tile-hover active:scale-[0.99] text-white transition-all flex items-center justify-between cursor-pointer group"
+          className="w-full p-2 pl-6 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] active:scale-[0.99] text-black shadow-[0_0_28px_rgba(215,255,0,0.28)] transition-all flex items-center justify-between cursor-pointer group"
           title="Mula kira markah sekarang di Quick Scorer tanpa login"
         >
-          <span className="text-sm sm:text-base font-bold tracking-tight text-white mx-auto pr-4">
-            Mula Kira Sekarang!
+          <span className="text-sm sm:text-base font-black tracking-tight text-black mx-auto pr-4">
+            Mula Kira Markah Sekarang
           </span>
-          <span className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#D7FF00] group-hover:bg-[#c2e600] text-black flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(215,255,0,0.3)] group-hover:translate-x-0.5 transition-all">
-            <ChevronRight className="w-5 h-5 stroke-[2.5] text-black" />
+          <span className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:translate-x-0.5 transition-all">
+            <ChevronRight className="w-5 h-5 stroke-[2.5]" />
           </span>
         </button>
 
@@ -555,15 +518,15 @@ export default function LegacyGuestLandingView({
           className="p-3.5 glass-panel glass-panel-hover rounded-2xl flex items-center justify-between gap-3 transition cursor-pointer group mx-1"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
+            <span className="w-2 h-2 rounded-full bg-[#D7FF00] shrink-0" />
             <div className="min-w-0">
-              <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block">Sesi Terkini Diarkib</span>
+              <span className="text-[10px] uppercase font-mono font-bold text-zinc-400 block">Sesi Terkini</span>
               <span className="text-xs sm:text-sm font-bold text-white truncate block">
                 {scrims[0].title || 'PUBG Mobile Scrim'}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-[#D7FF00] transition-colors shrink-0">
+          <div className="flex items-center gap-1 text-xs font-bold text-zinc-300 group-hover:text-[#D7FF00] transition-colors shrink-0">
             <span className="hidden sm:inline">Lihat Keputusan</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </div>

@@ -252,22 +252,22 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
       {/* LEVEL 2: Hierarchy Insight Strip (Averages & Peak Callout) */}
       <div className="grid grid-cols-3 gap-2 relative z-10">
-        <div className="bg-zinc-900/75 rounded-xl px-2.5 py-2">
-          <span className="text-[9px] font-mono uppercase text-zinc-500 block truncate">Purata Kills</span>
+        <div className="glass-tile rounded-xl px-2.5 py-2">
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Purata Kills</span>
           <span className="text-xs sm:text-sm font-black font-mono text-[#D7FF00]">
-            {avgKills} <span className="text-[10px] text-zinc-400 font-semibold">/ scrim</span>
+            {avgKills} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
           </span>
         </div>
 
-        <div className="bg-zinc-900/75 rounded-xl px-2.5 py-2">
-          <span className="text-[9px] font-mono uppercase text-zinc-500 block truncate">Purata PP</span>
+        <div className="glass-tile rounded-xl px-2.5 py-2">
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Purata PP</span>
           <span className="text-xs sm:text-sm font-black font-mono text-teal-300">
-            {avgPp} <span className="text-[10px] text-zinc-400 font-semibold">/ scrim</span>
+            {avgPp} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
           </span>
         </div>
 
-        <div className="bg-zinc-900/75 rounded-xl px-2.5 py-2">
-          <span className="text-[9px] font-mono uppercase text-zinc-500 block truncate">Puncak Terbaik</span>
+        <div className="glass-tile rounded-xl px-2.5 py-2">
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Puncak Terbaik</span>
           <span className="text-xs sm:text-sm font-black font-mono text-white truncate block">
             {bestScrim ? `${bestScrim.points} PTS` : '-'}
           </span>
@@ -275,12 +275,12 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       </div>
 
       {/* Interactive Inspector Strip on Hover / Tap */}
-      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/80 text-[11px] relative z-10">
+      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-black/35 border border-white/10 text-[11px] relative z-10">
         {activePoint ? (
           <>
             <span className="font-bold text-white truncate">
               {activePoint.scrimName}{' '}
-              <span className="text-zinc-500 font-mono text-[10px]">(#{activePoint.ranking})</span>
+              <span className="text-zinc-400 font-mono text-[10px]">(#{activePoint.ranking})</span>
             </span>
             <div className="flex items-center gap-2.5 font-mono font-bold shrink-0">
               <span className="text-[#D7FF00]">{activePoint.kills} K</span>
@@ -547,7 +547,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       </div>
 
       {/* LEVEL 4: Chronological Footnote */}
-      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono pt-1.5 relative z-10">
+      <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono pt-1.5 relative z-10">
         <span>Kronologi: Lama → Terkini</span>
         <span>{items.length} Sesi Dianalisis</span>
       </div>

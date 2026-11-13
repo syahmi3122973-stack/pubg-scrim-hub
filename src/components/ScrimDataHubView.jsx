@@ -6,7 +6,6 @@ import {
   UploadCloud,
   CheckCircle,
   AlertTriangle,
-  RefreshCw,
   Trash2,
   Plus,
   Sparkles,
@@ -707,17 +706,11 @@ export default function ScrimDataHubView({
         style={{ animationDelay: '60ms' }}
       >
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[10px] font-mono font-bold uppercase tracking-wider mb-1.5">
-              <Sparkles className="w-3 h-3" />
-              <span>AI RESULTS SCANNER</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-              Results Scanner
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-400 max-w-sm">
-            Imbas poster keputusan harian ke pangkalan data &amp; semak senarai pasukan dalam paparan mesra telefon bimbit.
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white text-balance">
+            Imbas Keputusan Poster
+          </h1>
+          <p className="text-xs text-zinc-300 max-w-sm text-pretty">
+            Ekstrak kedudukan pasukan dan audit mata automatik daripada gambar poster kejohanan.
           </p>
         </div>
       </div>
@@ -731,12 +724,12 @@ export default function ScrimDataHubView({
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <UploadCloud className="w-5 h-5 text-[#D7FF00]" />
-                <span>Muat Naik Poster Keputusan (AI OCR)</span>
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 text-balance">
+                <UploadCloud className="w-5 h-5 text-[#D7FF00] shrink-0" />
+                <span>Muat Naik Poster Keputusan</span>
               </h2>
-              <p className="text-xs text-zinc-400">
-                Dikuasakan oleh Gemini AI untuk membaca sebarang format poster kejohanan PUBG Mobile.
+              <p className="text-xs text-zinc-300 text-pretty">
+                Menyokong pelbagai susun atur jadual kejohanan PUBG Mobile (1 hingga 25 pasukan).
               </p>
             </div>
           </div>
@@ -777,16 +770,16 @@ export default function ScrimDataHubView({
               />
 
               {isProcessing ? (
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center">
-                    <RefreshCw className="w-6 h-6 text-[#D7FF00] animate-spin" />
+                <div className="flex flex-col items-center space-y-3" aria-busy="true">
+                  <div className="w-12 h-12 rounded-2xl glass-tile flex items-center justify-center">
+                    <progress aria-label="Mengimbas poster keputusan" className="loading-spinner" />
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <p className="text-sm font-bold text-white">
                       Menganalisis Poster &amp; Ekstrak Jadual...
                     </p>
-                    <p className="text-[11px] text-zinc-400 font-mono">
-                      Mengesan Nama Scrim, Tarikh, WWCD, Placement &amp; Elims (Gemini AI OCR)
+                    <p className="text-[11px] text-zinc-300 font-mono">
+                      Mengesan Nama Scrim, Tarikh, WWCD, Placement &amp; Elims
                     </p>
                   </div>
                 </div>
@@ -798,20 +791,17 @@ export default function ScrimDataHubView({
                     className="w-24 h-24 rounded-2xl object-cover bg-zinc-900 shadow-lg"
                   />
                   <div className="text-center sm:text-left space-y-1.5">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[10px] font-mono font-bold">
-                      Poster Aktif
-                    </span>
                     <p className="text-sm font-bold text-white truncate max-w-xs">
                       {file?.name || 'Poster Standings'}
                     </p>
-                    <p className="text-xs text-zinc-400">
-                      Klik di sini untuk menukar gambar poster lain
+                    <p className="text-xs text-zinc-300">
+                      Klik untuk menukar gambar poster lain
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center space-y-2.5 pointer-events-none">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center text-[#D7FF00] animate-hero-float">
+                  <div className="w-12 h-12 rounded-2xl glass-tile flex items-center justify-center text-[#D7FF00]">
                     <UploadCloud className="w-6 h-6" />
                   </div>
                   <div className="space-y-0.5">
@@ -819,7 +809,7 @@ export default function ScrimDataHubView({
                       Seret &amp; lepas poster keputusan atau{' '}
                       <span className="text-[#D7FF00] underline">pilih fail</span>
                     </p>
-                    <p className="text-[11px] text-zinc-500 font-mono">
+                    <p className="text-[11px] text-zinc-300 font-mono">
                       Auto-Audit Matematik (PP + KP = Total)
                     </p>
                   </div>
@@ -1436,7 +1426,7 @@ export default function ScrimDataHubView({
               >
                 {isSaving ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <progress aria-label="Menyimpan ke pangkalan data" className="loading-spinner loading-spinner-dark" style={{ '--size': '14px', '--thickness': '2px' }} />
                     <span>Menyimpan...</span>
                   </>
                 ) : (
