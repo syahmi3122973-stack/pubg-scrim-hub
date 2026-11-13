@@ -104,7 +104,7 @@ function TikTokPreviewCard({ post }) {
         alt={post.title}
         className="absolute inset-0 w-full h-full object-cover opacity-60 scale-100 group-hover:scale-105 transition-transform duration-500 ease-out"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-slate-950/95" />
+      <div className="absolute inset-0 bg-black/55" />
 
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-[11px] font-bold">
@@ -3030,28 +3030,9 @@ export default function App() {
       const fontSans = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       const fontMono = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
-      // 1. Matte dark background matching in-app Team Profile mood
+      // 1. Matte dark solid background matching in-app Team Profile mood
       ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, 1080, 1920);
-
-      // Subtle ambient radial glows (gold top-left, electric lime top-right, emerald bottom)
-      const topLimeGlow = ctx.createRadialGradient(900, 180, 20, 900, 180, 620);
-      topLimeGlow.addColorStop(0, 'rgba(215, 255, 0, 0.11)');
-      topLimeGlow.addColorStop(1, 'rgba(215, 255, 0, 0)');
-      ctx.fillStyle = topLimeGlow;
-      ctx.fillRect(0, 0, 1080, 900);
-
-      const goldGlow = ctx.createRadialGradient(160, 160, 10, 160, 160, 520);
-      goldGlow.addColorStop(0, 'rgba(245, 158, 11, 0.08)');
-      goldGlow.addColorStop(1, 'rgba(245, 158, 11, 0)');
-      ctx.fillStyle = goldGlow;
-      ctx.fillRect(0, 0, 1080, 800);
-
-      const bottomEmeraldGlow = ctx.createRadialGradient(540, 1780, 20, 540, 1780, 650);
-      bottomEmeraldGlow.addColorStop(0, 'rgba(16, 185, 129, 0.08)');
-      bottomEmeraldGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
-      ctx.fillStyle = bottomEmeraldGlow;
-      ctx.fillRect(0, 1100, 1080, 820);
 
       // Subtle hairline grid overlay
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
@@ -3094,27 +3075,13 @@ export default function App() {
       const heroY = 128;
       const heroH = 248;
       drawRoundRect(ctx, padX, heroY, contentW, heroH, 34);
-      const heroBg = ctx.createLinearGradient(padX, heroY, padX + contentW, heroY + heroH);
-      heroBg.addColorStop(0, '#141418');
-      heroBg.addColorStop(1, '#101013');
-      ctx.fillStyle = heroBg;
+      ctx.fillStyle = '#141418';
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Subtle lime top-right aura clipped inside hero card
-      ctx.save();
-      drawRoundRect(ctx, padX, heroY, contentW, heroH, 34);
-      ctx.clip();
-      const heroAura = ctx.createRadialGradient(padX + contentW - 80, heroY + 40, 10, padX + contentW - 80, heroY + 40, 320);
-      heroAura.addColorStop(0, 'rgba(215, 255, 0, 0.10)');
-      heroAura.addColorStop(1, 'rgba(215, 255, 0, 0)');
-      ctx.fillStyle = heroAura;
-      ctx.fillRect(padX, heroY, contentW, heroH);
-      ctx.restore();
-
-      // Team Avatar (logo_url or gradient tag box)
+      // Team Avatar (logo_url or solid lime tag box)
       const avatarX = padX + 36;
       const avatarY = heroY + 28;
       const avatarSize = 126;
@@ -3143,10 +3110,7 @@ export default function App() {
         ctx.stroke();
       } else {
         drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 28);
-        const avatarGrad = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
-        avatarGrad.addColorStop(0, '#D7FF00');
-        avatarGrad.addColorStop(1, '#10b981');
-        ctx.fillStyle = avatarGrad;
+        ctx.fillStyle = '#D7FF00';
         ctx.fill();
         ctx.fillStyle = '#000000';
         ctx.font = `900 36px ${fontSans}`;
@@ -3302,16 +3266,6 @@ export default function App() {
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ctx.save();
-        drawRoundRect(ctx, c.x, c.y, cardW, cardH, 28);
-        ctx.clip();
-        const cardAura = ctx.createRadialGradient(c.x + cardW - 30, c.y + 30, 5, c.x + cardW - 30, c.y + 30, 190);
-        cardAura.addColorStop(0, c.glow);
-        cardAura.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = cardAura;
-        ctx.fillRect(c.x, c.y, cardW, cardH);
-        ctx.restore();
-
         ctx.textAlign = 'center';
         ctx.fillStyle = '#a1a1aa';
         ctx.font = `800 16px ${fontSans}`;
@@ -3389,10 +3343,7 @@ export default function App() {
         ctx.fillRect(barX, barY, kpFillW, barH);
       }
       if (barW - kpFillW > 0) {
-        const ppGrad = ctx.createLinearGradient(barX + kpFillW, barY, barX + barW, barY);
-        ppGrad.addColorStop(0, '#10b981');
-        ppGrad.addColorStop(1, '#2dd4bf');
-        ctx.fillStyle = ppGrad;
+        ctx.fillStyle = '#10b981';
         ctx.fillRect(barX + kpFillW, barY, barW - kpFillW, barH);
       }
       ctx.restore();
@@ -3429,16 +3380,6 @@ export default function App() {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
-
-      ctx.save();
-      drawRoundRect(ctx, padX, chartY, contentW, chartH, 28);
-      ctx.clip();
-      const chartAura = ctx.createRadialGradient(padX + contentW - 100, chartY + 60, 10, padX + contentW - 100, chartY + 60, 320);
-      chartAura.addColorStop(0, 'rgba(215, 255, 0, 0.08)');
-      chartAura.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = chartAura;
-      ctx.fillRect(padX, chartY, contentW, chartH);
-      ctx.restore();
 
       // Chart Header & Dual Legend Pills
       ctx.textAlign = 'left';
@@ -3578,17 +3519,14 @@ export default function App() {
             return;
           }
 
-          // Smooth area fill
-          const areaGrad = ctx.createLinearGradient(0, plotTop, 0, plotBottom);
-          areaGrad.addColorStop(0, areaTopRgba);
-          areaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          // Solid translucent area fill
           ctx.beginPath();
           ctx.moveTo(pts[0].x, plotBottom);
           ctx.lineTo(pts[0].x, pts[0].y);
           segs.forEach((s) => ctx.bezierCurveTo(s.cp1x, s.cp1y, s.cp2x, s.cp2y, s.x, s.y));
           ctx.lineTo(pts[pts.length - 1].x, plotBottom);
           ctx.closePath();
-          ctx.fillStyle = areaGrad;
+          ctx.fillStyle = areaTopRgba;
           ctx.fill();
 
           // Glowing smooth line
@@ -3605,8 +3543,8 @@ export default function App() {
           ctx.restore();
         };
 
-        drawCanvasCurve(ppPts, ppSegs, '#2DD4BF', 'rgba(45, 212, 191, 0.20)', 'rgba(45, 212, 191, 0.55)');
-        drawCanvasCurve(killsPts, killsSegs, '#D7FF00', 'rgba(215, 255, 0, 0.24)', 'rgba(215, 255, 0, 0.60)');
+        drawCanvasCurve(ppPts, ppSegs, '#2DD4BF', 'rgba(45, 212, 191, 0.10)', 'rgba(45, 212, 191, 0.55)');
+        drawCanvasCurve(killsPts, killsSegs, '#D7FF00', 'rgba(215, 255, 0, 0.12)', 'rgba(215, 255, 0, 0.60)');
 
         // Nodes, Peak Callouts & Scrim Labels
         tItems.forEach((d, idx) => {
@@ -4659,14 +4597,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-hidden isolate">
-      {/* Persistent Global Ambient Lighting Backdrop for Dark Glassmorphism */}
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 -left-24 w-[28rem] h-[28rem] md:w-[38rem] md:h-[38rem] bg-[#D7FF00]/[0.09] rounded-full blur-[120px] md:blur-[150px]" />
-        <div className="absolute top-[12%] -right-24 w-[24rem] h-[24rem] md:w-[34rem] md:h-[34rem] bg-blue-500/[0.08] rounded-full blur-[120px] md:blur-[150px]" />
-        <div className="absolute top-[48%] -left-28 w-[22rem] h-[22rem] md:w-[30rem] md:h-[30rem] bg-pink-500/[0.06] rounded-full blur-[120px] md:blur-[140px]" />
-        <div className="absolute -bottom-32 right-[10%] w-[26rem] h-[26rem] md:w-[34rem] md:h-[34rem] bg-emerald-500/[0.07] rounded-full blur-[120px] md:blur-[150px]" />
-      </div>
-
       <BackButtonHandler
         activeTab={activeTab}
         tabHistory={tabHistory}
@@ -5225,13 +5155,6 @@ export default function App() {
 
           return (
             <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
-
-              {/* Subtle Top Architectural Dot Matrix Grid (Ambient Orbs now live globally) */}
-              <div aria-hidden="true" className="hidden md:block pointer-events-none absolute -inset-x-10 -top-10 h-[520px] overflow-hidden -z-10">
-                <div
-                  className="absolute inset-0 opacity-[0.16] [background-image:radial-gradient(rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_at_top,black_25%,transparent_75%)]"
-                />
-              </div>
               
               {/* TIER 1: Specific Headline + Live Counters */}
               <div
@@ -5315,7 +5238,7 @@ export default function App() {
                     onFocus={() => setIsHomeHofInteracting(true)}
                     onBlur={() => setIsHomeHofInteracting(false)}
                     style={{ '--home-delay': '80ms' }}
-                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-gradient-to-br from-[#D7FF00]/95 via-[#C8F000]/92 to-[#9ABB00]/95 backdrop-blur-xl border border-white/35 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_14px_40px_rgba(215,255,0,0.22)] lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_22px_55px_rgba(215,255,0,0.32)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 bg-[#D7FF00] hover:bg-[#c8f000] border border-black/15 text-black shadow-[0_14px_40px_rgba(0,0,0,0.45)] lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
                     <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
                       {/* Top Row: Specific Section Label, Title & Trophy Icon */}
@@ -5580,7 +5503,7 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '160ms' }}
-                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-gradient-to-b from-[#FF2E93]/90 via-[#EC4899]/85 to-[#BE185D]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_14px_35px_rgba(236,72,153,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_22px_50px_rgba(236,72,153,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
+                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 bg-[#BE185D] hover:bg-[#9D174D] border border-white/20 shadow-[0_14px_35px_rgba(0,0,0,0.45)] text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
                   >
                     {/* Top Icon */}
                     <div className="flex items-center justify-between gap-2 relative z-10">
@@ -5620,7 +5543,7 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '230ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#3B82F6]/90 via-[#2563EB]/85 to-[#1D4ED8]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_12px_30px_rgba(59,130,246,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_20px_45px_rgba(59,130,246,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-[#1D4ED8] hover:bg-[#1E40AF] border border-white/20 shadow-[0_12px_30px_rgba(0,0,0,0.4)] text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="flex items-center justify-between gap-2 relative z-10">
                       <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -5651,7 +5574,7 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '300ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-[#10B981]/90 via-[#059669]/85 to-[#047857]/90 backdrop-blur-xl border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_12px_30px_rgba(16,185,129,0.24)] text-white lg:hover:-translate-y-1 lg:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_20px_45px_rgba(16,185,129,0.34)] active:scale-[0.98] transition-[transform,box-shadow] duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 bg-[#047857] hover:bg-[#065F46] border border-white/20 shadow-[0_12px_30px_rgba(0,0,0,0.4)] text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="flex items-center justify-between gap-2 relative z-10">
                       <div className="w-10 h-10 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -5837,7 +5760,7 @@ export default function App() {
                                     style={{ width: `${pct}%` }}
                                     className={`h-full rounded-full transition-all duration-500 ${
                                       idx === 0
-                                        ? (homeContendersCategory === 'TIER_3' ? 'bg-gradient-to-r from-amber-400 to-orange-300' : 'bg-gradient-to-r from-[#D7FF00] to-lime-300')
+                                        ? (homeContendersCategory === 'TIER_3' ? 'bg-amber-400' : 'bg-[#D7FF00]')
                                         : 'bg-zinc-600 group-hover:bg-zinc-400'
                                     }`}
                                   />
@@ -6044,11 +5967,6 @@ export default function App() {
 
             return (
               <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-10 animate-in fade-in duration-200 relative">
-                {/* Prestigious Gold Ambient Background Glow */}
-                <div 
-                  aria-hidden="true" 
-                  className="absolute -top-12 left-1/2 -translate-x-1/2 w-80 sm:w-[30rem] h-60 bg-amber-500/15 rounded-full blur-[85px] pointer-events-none -z-10" 
-                />
                 {/* 1. TOP NAVIGATION BAR */}
                 <div className="flex items-center justify-between px-1">
                   <button
@@ -6088,9 +6006,6 @@ export default function App() {
 
                 {/* 2. TEAM IDENTITY HERO BANNER */}
                 <div className="relative overflow-hidden glass-panel rounded-[2rem] p-5 sm:p-6">
-                  {/* Subtle decorative glow */}
-                  <div className="absolute top-0 right-0 w-44 h-44 bg-[#D7FF00]/5 rounded-full blur-3xl pointer-events-none" />
-
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-4 min-w-0">
                       {activeTeamData.logo_url ? (
@@ -6100,7 +6015,7 @@ export default function App() {
                           className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover shadow-[0_0_25px_rgba(215,255,0,0.22)] shrink-0"
                         />
                       ) : (
-                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-gradient-to-tr from-[#D7FF00] via-lime-300 to-emerald-400 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_25px_rgba(215,255,0,0.25)] shrink-0">
+                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-[#D7FF00] flex items-center justify-center text-black font-black text-2xl shadow-lg shrink-0">
                           {activeTeamData.tag || activeTeamData.name.slice(0, 3).toUpperCase()}
                         </div>
                       )}
@@ -6271,12 +6186,12 @@ export default function App() {
                   <div className="w-full h-3 bg-zinc-900 rounded-full overflow-hidden flex p-0.5">
                     <div
                       style={{ width: `${Math.max(kpPercent, 4)}%` }}
-                      className="h-full bg-gradient-to-r from-yellow-400 to-[#D7FF00] rounded-l-full transition-all duration-500"
+                      className="h-full bg-[#D7FF00] rounded-l-full transition-all duration-500"
                       title={`Kill Points: ${activeTeamScopedStats.totalKills} PTS (${kpPercent}%)`}
                     />
                     <div
                       style={{ width: `${Math.max(ppPercent, 4)}%` }}
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-r-full transition-all duration-500"
+                      className="h-full bg-emerald-500 rounded-r-full transition-all duration-500"
                       title={`Placement Points: ${placementPoints} PTS (${ppPercent}%)`}
                     />
                   </div>
@@ -6307,7 +6222,7 @@ export default function App() {
                     );
                     setIsPerformanceModalOpen(true);
                   }}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-[#D7FF00] to-lime-400 hover:from-[#c2e600] hover:to-lime-300 text-black font-black rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-[0.98] cursor-pointer"
+                  className="w-full py-3.5 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md active:scale-[0.98] cursor-pointer"
                 >
                   <Share2 className="w-4 h-4 text-black" />
                   <span>Jana Kad Analitik &amp; IG Story 9:16</span>
@@ -6488,16 +6403,6 @@ export default function App() {
 
           return (
             <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-4 md:pb-12 relative">
-              {/* Prestigious Gold Ambient Background Glow */}
-              <div 
-                aria-hidden="true" 
-                className="absolute -top-16 left-1/2 -translate-x-1/2 w-80 sm:w-[32rem] h-64 bg-amber-500/15 rounded-full blur-[90px] pointer-events-none -z-10" 
-              />
-              <div 
-                aria-hidden="true" 
-                className="absolute top-48 right-0 w-64 h-64 bg-[#D7FF00]/10 rounded-full blur-[100px] pointer-events-none -z-10" 
-              />
-              
               {/* 1. TOP NAVIGATION BAR (Following Reference: "< My Personality" + Search Right) */}
               <div className="flex items-center justify-between px-1">
                 <button
@@ -6780,11 +6685,11 @@ export default function App() {
                   className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-stagger-card"
                   style={{ animationDelay: '60ms' }}
                 >
-                  <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-bold uppercase flex items-center justify-center gap-2.5 sm:gap-3.5 drop-shadow-[0_4px_24px_rgba(215,255,0,0.16)]">
-                    <span className="font-team-matrix tracking-[0.1em] bg-gradient-to-b from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">
+                  <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-bold uppercase flex items-center justify-center gap-2.5 sm:gap-3.5">
+                    <span className="font-team-matrix tracking-[0.1em] text-white">
                       TEAM
                     </span>
-                    <span className="font-jetbrains font-extrabold tracking-[0.06em] text-[#D7FF00] drop-shadow-[0_0_24px_rgba(215,255,0,0.28)]">
+                    <span className="font-jetbrains font-extrabold tracking-[0.06em] text-[#D7FF00]">
                       MATRIX
                     </span>
                   </h1>
@@ -6815,8 +6720,6 @@ export default function App() {
                   className="glass-amber rounded-3xl p-4 sm:p-5 space-y-3.5 animate-stagger-card relative overflow-hidden"
                   style={{ animationDelay: '105ms' }}
                 >
-                  <div aria-hidden="true" className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-amber-400/10 blur-2xl pointer-events-none" />
-
                   <div className="flex items-center justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-9 h-9 rounded-2xl bg-amber-400/15 text-amber-300 flex items-center justify-center shrink-0">
@@ -7066,10 +6969,10 @@ export default function App() {
                               : 'shadow-[0_0_24px_rgba(245,158,11,0.16)] hover:shadow-[0_0_28px_rgba(245,158,11,0.28)]';
 
                             const heroBgClass = isFirst
-                              ? 'bg-gradient-to-b from-[#D7FF00]/50 via-lime-500/25 to-[#12160c]'
+                              ? 'bg-[#19200b]'
                               : isSecond
-                              ? 'bg-gradient-to-b from-slate-200/40 via-zinc-400/20 to-[#15171d]'
-                              : 'bg-gradient-to-b from-amber-400/45 via-orange-500/22 to-[#1a130b]';
+                              ? 'bg-[#181a22]'
+                              : 'bg-[#22180c]';
 
                             const watermarkColor = isFirst
                               ? 'text-[#D7FF00]/55'
@@ -7084,10 +6987,10 @@ export default function App() {
                               : 'bg-amber-400 text-black';
 
                             const fallbackPedestalBg = isFirst
-                              ? 'bg-gradient-to-br from-[#D7FF00] via-lime-300 to-emerald-400 text-black'
+                              ? 'bg-[#D7FF00] text-black'
                               : isSecond
-                              ? 'bg-gradient-to-br from-zinc-100 via-zinc-300 to-zinc-400 text-black'
-                              : 'bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-black';
+                              ? 'bg-zinc-200 text-black'
+                              : 'bg-amber-400 text-black';
 
                             return (
                               <div
@@ -7111,28 +7014,6 @@ export default function App() {
                                     isFirst ? 'h-36 sm:h-52' : 'h-28 sm:h-44'
                                   } ${heroBgClass}`}
                                 >
-                                  {/* Ambient Blurred Logo Glow Layer */}
-                                  {team.logo_url && (
-                                    <img
-                                      src={team.logo_url}
-                                      alt=""
-                                      aria-hidden="true"
-                                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-45 scale-125 pointer-events-none"
-                                    />
-                                  )}
-
-                                  {/* Luminous Top Spotlight Glow */}
-                                  <div
-                                    aria-hidden="true"
-                                    className={`absolute -top-8 left-1/2 -translate-x-1/2 rounded-full blur-2xl pointer-events-none ${
-                                      isFirst
-                                        ? 'w-32 h-32 bg-[#D7FF00]/45'
-                                        : isSecond
-                                        ? 'w-28 h-28 bg-white/30'
-                                        : 'w-28 h-28 bg-amber-400/35'
-                                    }`}
-                                  />
-
                                   {/* Giant Background Rank Watermark */}
                                   <span
                                     aria-hidden="true"
@@ -7175,7 +7056,7 @@ export default function App() {
                                   )}
 
                                   {/* Bottom Overlay Strip: [TAG] Pill + Points */}
-                                  <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#09090b]/95 via-[#09090b]/60 to-transparent pt-5 pb-1.5 px-2 sm:px-3 flex items-end justify-between gap-1">
+                                  <div className="absolute inset-x-0 bottom-0 z-20 bg-[#09090b]/90 border-t border-white/10 pt-2 pb-1.5 px-2 sm:px-3 flex items-end justify-between gap-1">
                                     <span
                                       className={`px-1.5 sm:px-2 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-xs uppercase leading-tight truncate max-w-[48%] ${tagBadgeStyle}`}
                                     >
@@ -7908,9 +7789,7 @@ export default function App() {
           <div className="space-y-6">
             
             {/* Hero Card */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
-              <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none"></div>
-              
+            <div className="bg-zinc-900/75 backdrop-blur-xl text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl border border-white/10">
               <div className="max-w-2xl space-y-3 relative z-10">
                 <div className="inline-flex items-center gap-2 bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[#D7FF00] px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
                   <Swords className="w-3.5 h-3.5"/>
@@ -8174,7 +8053,7 @@ export default function App() {
                       href="https://instagram.com/ry.khor"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
+                      className="px-3 py-1.5 bg-[#BE185D] hover:bg-[#9D174D] text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
                     >
                       <InstagramIcon className="w-3.5 h-3.5" />
                       <span>Instagram</span>
@@ -8591,10 +8470,8 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Match Navigation Selector Bar with Edge Fades & Dynamic + / - Match (Exact Quick Scorer Style) */}
+                      {/* Match Navigation Selector Bar & Dynamic + / - Match */}
                       <div className="relative group">
-                        <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
-
                         <div className="p-1 bg-zinc-950/70 rounded-2xl flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           {adminMatchesList.map((m, mIdx) => {
                             const isSelected = selectedMatchIdx === mIdx;
@@ -8650,8 +8527,6 @@ export default function App() {
                             </div>
                           )}
                         </div>
-
-                        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
                       </div>
 
                       {/* Clean Single Row: Map Selector + Session Title + Inline Team Slot Stepper (Exact Quick Scorer Style) */}
@@ -8926,9 +8801,6 @@ export default function App() {
                       className="bg-[#0D0D0D] text-white rounded-3xl p-4 sm:p-5 shadow-2xl relative font-sans select-none overflow-hidden"
                       style={{ backgroundColor: '#0D0D0D' }}
                     >
-                      <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none"></div>
-                      <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
                       {/* Poster Header */}
                       <div className="relative pb-3 mb-3 border-b border-white/10">
                         <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -9215,7 +9087,7 @@ export default function App() {
                       )
                 )}
                 disabled={isGeneratingStory}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 transition"
+                className="px-4 py-2.5 bg-[#BE185D] hover:bg-[#9D174D] active:scale-95 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md transition"
               >
                 <Share className="w-4 h-4"/>
                 <span>{isGeneratingStory ? 'Menjana...' : 'Export Story'}</span>
@@ -9274,10 +9146,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick Jump Category Pills with Edge Fades & Modern Rounded Pills */}
+            {/* Quick Jump Category Pills */}
             <div className="relative group flex-shrink-0">
-              <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-l-2xl"></div>
-
               <div className="flex items-center gap-2 overflow-x-auto scroll-smooth no-scrollbar pb-1 px-1 flex-shrink-0 touch-pan-x [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {[
                   { label: '1. Overview', idx: 0 },
@@ -9302,8 +9172,6 @@ export default function App() {
                   );
                 })}
               </div>
-
-              <div className="absolute right-0 top-0 bottom-0 w-5 bg-gradient-to-l from-zinc-950 via-zinc-950/70 to-transparent pointer-events-none z-10 rounded-r-2xl"></div>
             </div>
 
             {/* Slide Body (Scrollable with mobile touch momentum) */}
@@ -9539,7 +9407,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-2.5 sm:p-3 bg-gradient-to-r from-purple-900/40 via-pink-900/30 to-amber-900/40 border border-pink-500/20 rounded-xl sm:rounded-2xl flex items-center justify-between gap-2.5">
+                  <div className="p-2.5 sm:p-3 bg-pink-950/50 border border-pink-500/25 rounded-xl sm:rounded-2xl flex items-center justify-between gap-2.5">
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-black uppercase text-pink-400">Kongsi ke Instagram Story</span>
                       <p className="text-[11px] text-zinc-300 leading-snug">
@@ -9827,12 +9695,8 @@ export default function App() {
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#06070b]/92 backdrop-blur-2xl w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
           <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 md:px-6 lg:px-10 xl:px-12">
-            {/* Top Atmospheric Cover Banner (Full Width, Dusk Esports Glow) */}
-            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-gradient-to-b from-white/[0.08] via-[#12161f]/80 to-transparent backdrop-blur-xl border-b md:border border-white/10 shrink-0 md:rounded-3xl md:mt-4">
-              {/* Subtle ambient light effects */}
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D7FF00]/15 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute top-2 right-4 w-40 h-40 bg-[#D7FF00]/10 rounded-full blur-3xl pointer-events-none" />
-
+            {/* Top Solid Cover Banner */}
+            <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden bg-[#12151e] border-b md:border border-white/10 shrink-0 md:rounded-3xl md:mt-4">
               {/* Header Navigation: Back / Close & Quick Edit */}
               <div className="relative z-10 flex items-center justify-between px-5 pt-6 sm:pt-5">
                 <button
@@ -9902,7 +9766,7 @@ export default function App() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-2xl md:text-3xl text-[#D7FF00]">
+                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center font-black text-2xl md:text-3xl text-[#D7FF00]">
                           {(profileName || activeOrganizationName || 'H').slice(0, 2).toUpperCase()}
                         </div>
                       )}
@@ -10364,7 +10228,7 @@ export default function App() {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#D7FF00] to-lime-400 flex items-center justify-center text-black font-black shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-[#D7FF00] flex items-center justify-center text-black font-black shrink-0 shadow-sm">
                   <Crown className="w-5 h-5 text-black" />
                 </div>
                 <div className="min-w-0">

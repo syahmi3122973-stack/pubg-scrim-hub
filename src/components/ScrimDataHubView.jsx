@@ -1090,7 +1090,7 @@ export default function ScrimDataHubView({
                             className={
                               'w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ' +
                               (row.rank === 1
-                                ? 'bg-gradient-to-br from-[#D7FF00] to-lime-400 text-black shadow-sm'
+                                ? 'bg-[#D7FF00] text-black shadow-sm'
                                 : row.rank === 2
                                 ? 'bg-zinc-300 text-black'
                                 : row.rank === 3

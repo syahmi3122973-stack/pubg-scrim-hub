@@ -315,14 +315,6 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
           onMouseLeave={() => setHoveredIdx(null)}
         >
           <defs>
-            <linearGradient id="scrimKillsArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#D7FF00" stopOpacity="0.24" />
-              <stop offset="100%" stopColor="#D7FF00" stopOpacity="0.0" />
-            </linearGradient>
-            <linearGradient id="scrimPpArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2DD4BF" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
-            </linearGradient>
             <filter id="glowLime" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#D7FF00" floodOpacity="0.45" />
             </filter>
@@ -385,16 +377,18 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
             </g>
           )}
 
-          {/* Smooth Gradient Area Fills (PP first, Kills on top) */}
+          {/* Solid Translucent Area Fills (PP first, Kills on top) */}
           {items.length >= 2 && (
             <>
               <path
                 d={buildSvgAreaPath(coords.ppPts, ppSegs, plotBottom)}
-                fill="url(#scrimPpArea)"
+                fill="#2DD4BF"
+                fillOpacity="0.1"
               />
               <path
                 d={buildSvgAreaPath(coords.killsPts, killsSegs, plotBottom)}
-                fill="url(#scrimKillsArea)"
+                fill="#D7FF00"
+                fillOpacity="0.12"
               />
             </>
           )}

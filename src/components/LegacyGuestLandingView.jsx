@@ -315,7 +315,7 @@ export default function LegacyGuestLandingView({
         <div className="relative z-10 space-y-3 max-w-xl">
           <h1 className="text-[30px] sm:text-5xl font-black tracking-tight text-white leading-[1.12] text-balance">
             <span>Kira Markah Scrim &amp; </span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-[#D7FF00]">
+            <span className="text-[#D7FF00]">
               Poster Sepantas Saat
             </span>
           </h1>
