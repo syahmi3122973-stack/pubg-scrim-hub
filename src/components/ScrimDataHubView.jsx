@@ -1131,7 +1131,7 @@ export default function ScrimDataHubView({
 
                         {/* Metrics Grid (4 compact columns - 100% visible on any phone) */}
                         <div className="grid grid-cols-4 gap-2 text-center text-xs font-mono">
-                          <div className="bg-zinc-900/90 p-2 rounded-xl">
+                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               WWCD
                             </span>
@@ -1150,7 +1150,7 @@ export default function ScrimDataHubView({
                             />
                           </div>
 
-                          <div className="bg-zinc-900/90 p-2 rounded-xl">
+                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               PP
                             </span>
@@ -1169,7 +1169,7 @@ export default function ScrimDataHubView({
                             />
                           </div>
 
-                          <div className="bg-zinc-900/90 p-2 rounded-xl">
+                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               KP
                             </span>
@@ -1188,7 +1188,7 @@ export default function ScrimDataHubView({
                             />
                           </div>
 
-                          <div className="bg-zinc-900/90 p-2 rounded-xl flex flex-col justify-center items-center">
+                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl flex flex-col justify-center items-center">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               Semak
                             </span>
