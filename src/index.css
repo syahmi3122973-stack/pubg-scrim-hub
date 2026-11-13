@@ -305,10 +305,8 @@ body {
   backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
   -webkit-backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
   color: #D7FF00;
-  border: 1px solid rgba(215, 255, 0, 0.16);
-  border-top-color: rgba(215, 255, 0, 0.56);
-  border-bottom-color: rgba(0, 0, 0, 0.65);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.42), 0 8px 24px rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(215, 255, 0, 0.24);
+  box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.58), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 8px 24px rgba(0, 0, 0, 0.36);
   border-radius: 9999px;
   padding: 0.375rem 0.75rem;
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -317,14 +315,13 @@ body {
   line-height: 1.25;
   min-width: 0;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
 
 .sss-brand-select:hover {
   background-color: rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(215, 255, 0, 0.78);
-  border-inline-color: rgba(215, 255, 0, 0.32);
-  border-bottom-color: rgba(0, 0, 0, 0.75);
+  border-color: rgba(215, 255, 0, 0.38);
+  box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.75), inset 0 -1.5px 0 rgba(0, 0, 0, 0.7), 0 10px 28px rgba(0, 0, 0, 0.44);
 }
 
 .sss-brand-select:focus-visible {
@@ -349,12 +346,10 @@ body {
     backdrop-filter: blur(36px) saturate(175%) brightness(1.06);
     -webkit-backdrop-filter: blur(36px) saturate(175%) brightness(1.06);
     color: #F4F4F5;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-top-color: rgba(215, 255, 0, 0.5);
-    border-bottom-color: rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 0.9rem;
     padding: 0.3rem;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 18px 45px rgba(0, 0, 0, 0.75);
+    box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.45), inset 0 -1.5px 0 rgba(0, 0, 0, 0.65), 0 18px 45px rgba(0, 0, 0, 0.75);
     margin-top: 0.3rem;
     max-height: min(40vh, 236px);
     overflow-y: auto;
@@ -408,153 +403,124 @@ body {
     background-color: rgba(255, 255, 255, 0.055);
     backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
     -webkit-backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-top-color: rgba(255, 255, 255, 0.3);
-    border-bottom-color: rgba(0, 0, 0, 0.65);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.48), 0 20px 50px rgba(0, 0, 0, 0.46);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1.5px 0 rgba(0, 0, 0, 0.58), 0 20px 50px rgba(0, 0, 0, 0.46);
   }
 
   .glass-panel-hover:hover {
     background-color: rgba(255, 255, 255, 0.085);
-    border-top-color: rgba(255, 255, 255, 0.4);
-    border-inline-color: rgba(255, 255, 255, 0.14);
-    border-bottom-color: rgba(0, 0, 0, 0.72);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 0 rgba(0, 0, 0, 0.52), 0 22px 54px rgba(0, 0, 0, 0.54);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1.5px 0 rgba(0, 0, 0, 0.65), 0 22px 54px rgba(0, 0, 0, 0.54);
   }
 
   .glass-tile {
     background-color: rgba(255, 255, 255, 0.048);
     backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
     -webkit-backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-top-color: rgba(255, 255, 255, 0.24);
-    border-bottom-color: rgba(0, 0, 0, 0.6);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.42), 0 8px 24px rgba(0, 0, 0, 0.26);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1.5px 0 rgba(0, 0, 0, 0.54), 0 8px 24px rgba(0, 0, 0, 0.26);
   }
 
   .glass-tile-hover:hover {
     background-color: rgba(255, 255, 255, 0.085);
-    border-top-color: rgba(255, 255, 255, 0.34);
-    border-inline-color: rgba(255, 255, 255, 0.13);
-    border-bottom-color: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 10px 28px rgba(0, 0, 0, 0.32);
   }
 
   .glass-pill {
     background-color: rgba(255, 255, 255, 0.075);
     backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
     -webkit-backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-top-color: rgba(255, 255, 255, 0.28);
-    border-bottom-color: rgba(0, 0, 0, 0.62);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.42), 0 8px 24px rgba(0, 0, 0, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1.5px 0 rgba(0, 0, 0, 0.54), 0 8px 24px rgba(0, 0, 0, 0.34);
   }
 
   .glass-dock {
     background-color: rgba(18, 21, 30, 0.62);
     backdrop-filter: blur(38px) saturate(185%) brightness(1.08);
     -webkit-backdrop-filter: blur(38px) saturate(185%) brightness(1.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-top-color: rgba(255, 255, 255, 0.34);
-    border-bottom-color: rgba(0, 0, 0, 0.72);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), inset 0 -1px 0 rgba(0, 0, 0, 0.54), 0 16px 44px rgba(0, 0, 0, 0.74);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 -1.5px 0 rgba(0, 0, 0, 0.65), 0 16px 44px rgba(0, 0, 0, 0.74);
   }
 
   .glass-modal {
     background-color: rgba(18, 21, 30, 0.68);
     backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
     -webkit-backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-top-color: rgba(255, 255, 255, 0.32);
-    border-bottom-color: rgba(0, 0, 0, 0.72);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.52), 0 24px 64px rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1.5px 0 rgba(0, 0, 0, 0.65), 0 24px 64px rgba(0, 0, 0, 0.8);
   }
 
   .glass-amber {
     background-color: rgba(245, 158, 11, 0.14);
     backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
     -webkit-backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
-    border: 1px solid rgba(251, 191, 36, 0.16);
-    border-top-color: rgba(253, 224, 71, 0.52);
-    border-bottom-color: rgba(0, 0, 0, 0.68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.48), 0 18px 46px rgba(0, 0, 0, 0.48);
+    border: 1px solid rgba(251, 191, 36, 0.22);
+    box-shadow: inset 0 1px 0 rgba(253, 224, 71, 0.48), inset 0 -1.5px 0 rgba(0, 0, 0, 0.6), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-lime {
     background-color: rgba(215, 255, 0, 0.13);
     backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    border: 1px solid rgba(215, 255, 0, 0.18);
-    border-top-color: rgba(215, 255, 0, 0.62);
-    border-bottom-color: rgba(0, 0, 0, 0.68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 18px 46px rgba(0, 0, 0, 0.48);
+    border: 1px solid rgba(215, 255, 0, 0.24);
+    box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.56), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-lime:hover {
     background-color: rgba(215, 255, 0, 0.18);
-    border-top-color: rgba(215, 255, 0, 0.8);
-    border-inline-color: rgba(215, 255, 0, 0.28);
-    border-bottom-color: rgba(0, 0, 0, 0.74);
+    border-color: rgba(215, 255, 0, 0.34);
+    box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.72), inset 0 -1.5px 0 rgba(0, 0, 0, 0.68), 0 20px 50px rgba(0, 0, 0, 0.54);
   }
 
   .glass-pink {
     background-color: rgba(236, 72, 153, 0.18);
     backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    border: 1px solid rgba(244, 114, 182, 0.18);
-    border-top-color: rgba(249, 168, 212, 0.56);
-    border-bottom-color: rgba(0, 0, 0, 0.68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 18px 46px rgba(0, 0, 0, 0.48);
+    border: 1px solid rgba(244, 114, 182, 0.24);
+    box-shadow: inset 0 1px 0 rgba(249, 168, 212, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-pink:hover {
     background-color: rgba(236, 72, 153, 0.24);
-    border-top-color: rgba(249, 168, 212, 0.72);
-    border-inline-color: rgba(244, 114, 182, 0.28);
-    border-bottom-color: rgba(0, 0, 0, 0.74);
+    border-color: rgba(244, 114, 182, 0.34);
+    box-shadow: inset 0 1px 0 rgba(249, 168, 212, 0.68), inset 0 -1.5px 0 rgba(0, 0, 0, 0.68), 0 20px 50px rgba(0, 0, 0, 0.54);
   }
 
   .glass-blue {
     background-color: rgba(59, 130, 246, 0.18);
     backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    border: 1px solid rgba(96, 165, 250, 0.18);
-    border-top-color: rgba(147, 197, 253, 0.56);
-    border-bottom-color: rgba(0, 0, 0, 0.68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 18px 46px rgba(0, 0, 0, 0.48);
+    border: 1px solid rgba(96, 165, 250, 0.24);
+    box-shadow: inset 0 1px 0 rgba(147, 197, 253, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-blue:hover {
     background-color: rgba(59, 130, 246, 0.24);
-    border-top-color: rgba(147, 197, 253, 0.72);
-    border-inline-color: rgba(96, 165, 250, 0.28);
-    border-bottom-color: rgba(0, 0, 0, 0.74);
+    border-color: rgba(96, 165, 250, 0.34);
+    box-shadow: inset 0 1px 0 rgba(147, 197, 253, 0.68), inset 0 -1.5px 0 rgba(0, 0, 0, 0.68), 0 20px 50px rgba(0, 0, 0, 0.54);
   }
 
   .glass-emerald {
     background-color: rgba(16, 185, 129, 0.18);
     backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
-    border: 1px solid rgba(52, 211, 153, 0.18);
-    border-top-color: rgba(110, 231, 183, 0.56);
-    border-bottom-color: rgba(0, 0, 0, 0.68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 18px 46px rgba(0, 0, 0, 0.48);
+    border: 1px solid rgba(52, 211, 153, 0.24);
+    box-shadow: inset 0 1px 0 rgba(110, 231, 183, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-emerald:hover {
     background-color: rgba(16, 185, 129, 0.24);
-    border-top-color: rgba(110, 231, 183, 0.72);
-    border-inline-color: rgba(52, 211, 153, 0.28);
-    border-bottom-color: rgba(0, 0, 0, 0.74);
+    border-color: rgba(52, 211, 153, 0.34);
+    box-shadow: inset 0 1px 0 rgba(110, 231, 183, 0.68), inset 0 -1.5px 0 rgba(0, 0, 0, 0.68), 0 20px 50px rgba(0, 0, 0, 0.54);
   }
 
   .glass-silver {
     background-color: rgba(228, 228, 231, 0.12);
     backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
     -webkit-backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-top-color: rgba(255, 255, 255, 0.42);
-    border-bottom-color: rgba(0, 0, 0, 0.68);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), inset 0 -1px 0 rgba(0, 0, 0, 0.48), 0 18px 46px rgba(0, 0, 0, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), inset 0 -1.5px 0 rgba(0, 0, 0, 0.6), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-sticky-cell {
