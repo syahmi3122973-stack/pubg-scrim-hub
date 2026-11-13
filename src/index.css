@@ -263,10 +263,22 @@ body {
 
 .hof-crossfade-stack {
   display: grid;
+  align-items: center;
 }
 
 .hof-crossfade-stack > * {
   grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.hof-crossfade-item {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hof-crossfade-item[data-active='true'] {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .hof-hero-card[data-hof-slide='1'] {
@@ -285,27 +297,31 @@ body {
   }
 
   .hof-slide-panel {
-    transform: translate3d(0, 4px, 0) scale(0.955);
-    opacity: 0.14;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.68s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity;
+    transform: scale(0.975);
+    opacity: 0.12;
+    filter: blur(5px);
+    transition: opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1), filter 0.48s cubic-bezier(0.22, 1, 0.36, 1), transform 0.68s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity, filter;
   }
 
   .hof-slide-panel[data-active='true'] {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
     opacity: 1;
+    filter: blur(0px);
   }
 
   .hof-stat-tile {
-    transform: translate3d(0, 8px, 0) scale(0.98);
-    opacity: 0.45;
-    transition: transform 0.64s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity;
+    transform: scale(0.985);
+    opacity: 0.35;
+    filter: blur(4px);
+    transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.46s cubic-bezier(0.22, 1, 0.36, 1), filter 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity, filter;
   }
 
   .hof-slide-panel[data-active='true'] .hof-stat-tile {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
     opacity: 1;
+    filter: blur(0px);
   }
 
   .hof-slide-panel[data-active='true'] .hof-stat-tile:nth-child(2) {
@@ -322,8 +338,17 @@ body {
   }
 
   .hof-crossfade-item {
-    transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity;
+    opacity: 0;
+    filter: blur(6px);
+    transform: scale(0.985);
+    transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), filter 0.44s cubic-bezier(0.22, 1, 0.36, 1), transform 0.44s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, filter, transform;
+  }
+
+  .hof-crossfade-item[data-active='true'] {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
   }
 
   .hof-trophy-badge {

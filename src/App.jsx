@@ -5245,20 +5245,18 @@ export default function App() {
                       {/* Top Row: Smooth Crossfading Section Label, Title & Reactive Trophy Icon */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0">
-                          <div className="hof-crossfade-stack text-[11px] font-mono font-bold text-[#D7FF00] leading-none h-3.5 overflow-hidden">
+                          <div className="hof-crossfade-stack text-[11px] font-mono font-bold text-[#D7FF00] leading-tight">
                             <span
+                              data-active={homeHofSlide === 0}
                               aria-hidden={homeHofSlide !== 0}
-                              className={`hof-crossfade-item block ${
-                                homeHofSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1.5 pointer-events-none'
-                              }`}
+                              className="hof-crossfade-item block"
                             >
                               Kedudukan Keseluruhan
                             </span>
                             <span
+                              data-active={homeHofSlide === 1}
                               aria-hidden={homeHofSlide !== 1}
-                              className={`hof-crossfade-item block ${
-                                homeHofSlide === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'
-                              }`}
+                              className="hof-crossfade-item block"
                             >
                               Sorotan Tier 3
                             </span>
@@ -5463,22 +5461,20 @@ export default function App() {
 
                       {/* Bottom Slide Switcher Bar + Crossfading Teaser + Sliding Toggle Control */}
                       <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-                        <div className="hof-crossfade-stack text-[10px] font-mono font-bold text-zinc-200 min-w-0 flex-1 overflow-hidden">
+                        <div className="hof-crossfade-stack text-[10px] font-mono font-bold text-zinc-200 min-w-0 flex-1">
                           <span
+                            data-active={homeHofSlide === 0}
                             aria-hidden={homeHofSlide !== 0}
-                            className={`hof-crossfade-item truncate block ${
-                              homeHofSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1.5 pointer-events-none'
-                            }`}
+                            className="hof-crossfade-item truncate block"
                           >
                             {tier3Leader
                               ? `Tier 3 #1: ${tier3Leader.name} (${tier3Leader.tier3Points} PTS)`
                               : 'Ketik untuk buka Leaderboard penuh'}
                           </span>
                           <span
+                            data-active={homeHofSlide === 1}
                             aria-hidden={homeHofSlide !== 1}
-                            className={`hof-crossfade-item truncate block ${
-                              homeHofSlide === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'
-                            }`}
+                            className="hof-crossfade-item truncate block"
                           >
                             {tier3TopThree.length > 1
                               ? `#2 ${tier3TopThree[1].name} • #3 ${tier3TopThree[2]?.name || '-'}`
