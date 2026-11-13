@@ -4645,7 +4645,7 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip isolate">
+    <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
       <BackButtonHandler
         activeTab={activeTab}
         tabHistory={tabHistory}
@@ -11811,7 +11811,7 @@ export default function App() {
       {/* MINIMALIST FLOATING PILL MOBILE NAVBAR (FIXED SLOTS, ZERO JITTER, SLEEK & THIN) */}
       <nav
         aria-label="Mobile Navigation"
-        className={'md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
+        className={'md:hidden fixed bottom-3 sm:bottom-4 inset-x-0 mx-auto z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
       >
         <div className="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between [text-shadow:0_1px_4px_rgba(0,0,0,0.65)]">
           

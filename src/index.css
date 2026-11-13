@@ -479,8 +479,8 @@ body {
 
 .sss-brand-select {
   background-color: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
   -webkit-backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
+  backdrop-filter: blur(24px) saturate(165%) brightness(1.05);
   color: #D7FF00;
   border: 1px solid rgba(215, 255, 0, 0.24);
   box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.58), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 8px 24px rgba(0, 0, 0, 0.36);
@@ -520,8 +520,8 @@ body {
 
   .sss-brand-select::picker(select) {
     background-color: rgba(20, 23, 33, 0.72);
-    backdrop-filter: blur(36px) saturate(175%) brightness(1.06);
     -webkit-backdrop-filter: blur(36px) saturate(175%) brightness(1.06);
+    backdrop-filter: blur(36px) saturate(175%) brightness(1.06);
     color: #F4F4F5;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 0.9rem;
@@ -568,18 +568,18 @@ body {
 /* Global Frosted Glass Surface System (Top-Highlighted Rim, Darkened Bottom Edge, No Gradients) */
 @layer components {
   .glass-header {
-    background-color: rgba(16, 20, 30, 0.28);
-    backdrop-filter: blur(24px) saturate(185%) brightness(1.08);
-    -webkit-backdrop-filter: blur(24px) saturate(185%) brightness(1.08);
+    background-color: rgba(18, 22, 30, 0.38);
+    -webkit-backdrop-filter: blur(26px) saturate(180%) brightness(1.06);
+    backdrop-filter: blur(26px) saturate(180%) brightness(1.06);
     border-top: 1px solid rgba(255, 255, 255, 0.16);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.42);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.42);
   }
 
   .glass-panel {
     background-color: rgba(255, 255, 255, 0.055);
-    backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
     -webkit-backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
+    backdrop-filter: blur(32px) saturate(165%) brightness(1.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1.5px 0 rgba(0, 0, 0, 0.58), 0 20px 50px rgba(0, 0, 0, 0.46);
   }
@@ -592,8 +592,8 @@ body {
 
   .glass-tile {
     background-color: rgba(255, 255, 255, 0.048);
-    backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
     -webkit-backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
+    backdrop-filter: blur(22px) saturate(155%) brightness(1.04);
     border: 1px solid rgba(255, 255, 255, 0.09);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1.5px 0 rgba(0, 0, 0, 0.54), 0 8px 24px rgba(0, 0, 0, 0.26);
   }
@@ -606,40 +606,40 @@ body {
 
   .glass-pill {
     background-color: rgba(255, 255, 255, 0.075);
-    backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
     -webkit-backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
+    backdrop-filter: blur(20px) saturate(160%) brightness(1.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1.5px 0 rgba(0, 0, 0, 0.54), 0 8px 24px rgba(0, 0, 0, 0.34);
   }
 
   .glass-dock {
-    background-color: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px) saturate(190%) brightness(1.1);
-    -webkit-backdrop-filter: blur(24px) saturate(190%) brightness(1.1);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background-color: rgba(28, 32, 42, 0.36);
+    -webkit-backdrop-filter: blur(28px) saturate(185%) brightness(1.08);
+    backdrop-filter: blur(28px) saturate(185%) brightness(1.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), inset 0 -1.5px 0 rgba(0, 0, 0, 0.52), 0 14px 38px rgba(0, 0, 0, 0.65);
   }
 
   .glass-modal {
     background-color: rgba(18, 21, 30, 0.68);
-    backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
     -webkit-backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
+    backdrop-filter: blur(40px) saturate(175%) brightness(1.06);
     border: 1px solid rgba(255, 255, 255, 0.11);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1.5px 0 rgba(0, 0, 0, 0.65), 0 24px 64px rgba(0, 0, 0, 0.8);
   }
 
   .glass-amber {
     background-color: rgba(245, 158, 11, 0.14);
-    backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
     -webkit-backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
+    backdrop-filter: blur(30px) saturate(165%) brightness(1.05);
     border: 1px solid rgba(251, 191, 36, 0.22);
     box-shadow: inset 0 1px 0 rgba(253, 224, 71, 0.48), inset 0 -1.5px 0 rgba(0, 0, 0, 0.6), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-lime {
     background-color: rgba(215, 255, 0, 0.13);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
+    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(215, 255, 0, 0.24);
     box-shadow: inset 0 1px 0 rgba(215, 255, 0, 0.56), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -652,8 +652,8 @@ body {
 
   .glass-pink {
     background-color: rgba(236, 72, 153, 0.18);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
+    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(244, 114, 182, 0.24);
     box-shadow: inset 0 1px 0 rgba(249, 168, 212, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -666,8 +666,8 @@ body {
 
   .glass-blue {
     background-color: rgba(59, 130, 246, 0.18);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
+    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(96, 165, 250, 0.24);
     box-shadow: inset 0 1px 0 rgba(147, 197, 253, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -680,8 +680,8 @@ body {
 
   .glass-emerald {
     background-color: rgba(16, 185, 129, 0.18);
-    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
+    backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
     border: 1px solid rgba(52, 211, 153, 0.24);
     box-shadow: inset 0 1px 0 rgba(110, 231, 183, 0.52), inset 0 -1.5px 0 rgba(0, 0, 0, 0.62), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
@@ -694,16 +694,16 @@ body {
 
   .glass-silver {
     background-color: rgba(228, 228, 231, 0.12);
-    backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
     -webkit-backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
+    backdrop-filter: blur(30px) saturate(160%) brightness(1.05);
     border: 1px solid rgba(255, 255, 255, 0.16);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), inset 0 -1.5px 0 rgba(0, 0, 0, 0.6), 0 18px 46px rgba(0, 0, 0, 0.48);
   }
 
   .glass-sticky-cell {
     background-color: rgba(15, 18, 26, 0.72);
-    backdrop-filter: blur(22px) saturate(155%);
     -webkit-backdrop-filter: blur(22px) saturate(155%);
+    backdrop-filter: blur(22px) saturate(155%);
   }
 }
 
