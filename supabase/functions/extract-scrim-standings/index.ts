@@ -9,8 +9,6 @@ declare const Deno: {
   };
 };
 
-import { GoogleGenerativeAI, SchemaType } from "npm:@google/generative-ai@^0.21.0";
-
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -47,7 +45,6 @@ function parseFlexibleDate(dateStr: string): string {
   if (!dateStr) return new Date().toISOString().split("T")[0];
   const cleaned = String(dateStr).trim();
 
-  // 1. Direct YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned;
 
   const monthMap: Record<string, string> = {
@@ -65,7 +62,6 @@ function parseFlexibleDate(dateStr: string): string {
     december: "12", dec: "12", disember: "12",
   };
 
-  // 2. Format: "Thursday, 5 November 2026" or "5 November 2026" or "05 Nov 2026"
   const dmyMatch = cleaned.match(/(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/);
   if (dmyMatch) {
     const day = dmyMatch[1].padStart(2, "0");
@@ -74,7 +70,6 @@ function parseFlexibleDate(dateStr: string): string {
     return `${year}-${month}-${day}`;
   }
 
-  // 3. Format: "November 5, 2026" or "Nov 5 2026"
   const mdyMatch = cleaned.match(/([a-zA-Z]+)\s+(\d{1,2}),?\s+(\d{4})/);
   if (mdyMatch) {
     const month = monthMap[mdyMatch[1].toLowerCase()] || "11";
@@ -83,7 +78,6 @@ function parseFlexibleDate(dateStr: string): string {
     return `${year}-${month}-${day}`;
   }
 
-  // 4. Format: "05/11/2026" or "05-11-2026"
   const slashMatch = cleaned.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
   if (slashMatch) {
     const day = slashMatch[1].padStart(2, "0");
@@ -101,33 +95,46 @@ function parseFlexibleDate(dateStr: string): string {
 }
 
 const extractionSchema = {
-  type: SchemaType.OBJECT,
+  type: "OBJECT",
   properties: {
     scrim_name: {
-      type: SchemaType.STRING,
-      description: "Primary tournament or scrim title header (e.g. 'MEC SCRIMS', 'CT SCRIMS', 'RYKHOR SCRIMS').",
+      type: "STRING",
+      description:
+        "Main tournament or scrim title plus season/stage badge if shown (e.g. 'MEC SCRIMS', 'SSS SEASON 10 - SEMI FINALS', 'CT SCRIMS').",
     },
     scrim_date: {
-      type: SchemaType.STRING,
-      description: "Date of match converted to YYYY-MM-DD (e.g. 'Monday, 9 November 2026' -> '2026-11-09', 'Thursday, 5 November 2026' -> '2026-11-05').",
+      type: "STRING",
+      description:
+        "Date of match converted to YYYY-MM-DD if printed on the poster (e.g. 'Monday, 9 November 2026' -> '2026-11-09'). Return empty string '' if no date appears anywhere on the poster.",
     },
     standings: {
-      type: SchemaType.ARRAY,
+      type: "ARRAY",
       items: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          rank: { type: SchemaType.INTEGER, description: "Rank number (#, RANK, or NO column)" },
+          rank: { type: "INTEGER", description: "Rank number (#, RANK, or NO column, e.g. 1..18)" },
           team_name: {
-            type: SchemaType.STRING,
-            description: "Full team name from TEAM / TEAM NAME / T E A M column (e.g. '2027', 'MEC x AZH', '4KRV BLACK NUMBER').",
+            type: "STRING",
+            description:
+              "Full team name from TEAMS / TEAM / TEAM NAME column (ignore circular/square team logo next to it; keep exact spelling and spacing).",
           },
           wwcd: {
-            type: SchemaType.INTEGER,
-            description: "Number of WWCD chicken dinners won (labeled 'WWCD', 'WIN', or symbolized by 🍳 / golden helmet / frying pan). Output 0 if the cell is blank, empty or dash.",
+            type: "INTEGER",
+            description:
+              "Win/WWCD column (labeled 'WWCD', 'WIN', or shown only as an icon like chicken/pan/helmet/spider). Output 0 if the cell is blank, empty, or covered only by background art.",
           },
-          placement_points: { type: SchemaType.INTEGER, description: "Placement points (labeled 'PLACE', 'PP', 'PLACEMENT', or 'PTS')" },
-          kill_points: { type: SchemaType.INTEGER, description: "Kill / Elimination points (labeled 'ELIMS', 'KP', 'KILLS', or 'ELIMINATIONS')" },
-          total_points: { type: SchemaType.INTEGER, description: "TOTAL points (labeled 'TOTAL', 'TOT', or 'PTS')" },
+          placement_points: {
+            type: "INTEGER",
+            description: "Placement points (labeled 'PLACE.', 'PLACE', 'PP', or 'PLACEMENT').",
+          },
+          kill_points: {
+            type: "INTEGER",
+            description: "Kill / Elimination points (labeled 'ELIMS.', 'ELIMS', 'KP', or 'KILLS').",
+          },
+          total_points: {
+            type: "INTEGER",
+            description: "TOTAL points (labeled 'TOTAL', 'TOT', or 'PTS').",
+          },
         },
         required: [
           "rank",
@@ -142,6 +149,17 @@ const extractionSchema = {
   },
   required: ["scrim_name", "scrim_date", "standings"],
 };
+
+interface ModelCandidate {
+  name: string;
+  supportsThinkingBudget: boolean;
+}
+
+const MODEL_CANDIDATES: ModelCandidate[] = [
+  { name: "gemini-2.5-flash", supportsThinkingBudget: true },
+  { name: "gemini-2.0-flash", supportsThinkingBudget: false },
+  { name: "gemini-2.5-flash-lite", supportsThinkingBudget: true },
+];
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -186,134 +204,101 @@ Deno.serve(async (req: Request) => {
       ? imageBase64.split(",")[1]
       : imageBase64;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const candidateModels = [
-      "gemini-3.5-flash",
-      "gemini-3-flash-preview",
-      "gemini-flash-latest",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-    ];
-
     const prompt = `
 You are an expert esports / PUBG Mobile tournament referee and OCR parser.
-Analyze this tournament standings poster image and extract all structured data accurately:
+Extract every single row accurately from this tournament standings poster:
 
 1. SCRIM / TOURNAMENT NAME:
-   - Identify the main tournament or scrim title at the top (e.g., 'MEC SCRIMS', 'CT SCRIMS', 'RYKHOR SCRIMS').
-   - Do NOT abbreviate. Ignore generic subtext like 'OVERALL STANDINGS', 'FINAL RESULTS', or sponsor logos unless it's part of the title.
+   - Identify the organizer/tournament title (logo or header, e.g. 'SSS', 'MEC SCRIMS', 'CT SCRIMS') plus any Season/Stage pill (e.g. 'SEASON 10 - SEMI FINALS' -> 'SSS Season 10 - Semi Finals').
+   - Ignore generic headings like 'OVERALL STANDINGS' or 'POWERED BY' sponsor text unless needed.
 
 2. MATCH DATE:
-   - Find the date text, typically above or below the title (e.g., 'Monday, 9 November 2026' or 'Thursday, 5 November 2026').
-   - Convert it into strict ISO format YYYY-MM-DD. For example:
-     * 'Monday, 9 November 2026' -> '2026-11-09'
-     * 'Thursday, 5 November 2026' -> '2026-11-05'
-     * '5 Nov 2026' -> '2026-11-05'
-     * '09/11/2026' -> '2026-11-09'
+   - If a date is printed on the poster, convert it to YYYY-MM-DD.
+   - If NO date is printed anywhere on the poster, return "".
 
-3. STANDINGS TABLE ROWS:
-   - Identify and map the columns:
-     * Rank column: '#' or 'RANK' or 'NO' -> rank (1, 2, 3...)
-     * Team column: 'T E A M', 'TEAM', 'TEAM NAME' -> team_name (e.g., '2027', 'MEC x AZH', '4KRV BLACK NUMBER', 'VOLTRA VAMP').
-       Keep exact spelling, spaces, numbers, and casing. Do not cut off names even if text is colored red, gold, or white.
-     * WWCD column: Labeled 'WWCD', 'WIN', or symbolized by an icon like a frying pan, chicken, or golden helmet 🍳.
-       VERY IMPORTANT: If the cell is empty, blank, has a dash or no number, output 0. Do NOT shift columns!
-     * Placement Points column: Labeled 'PLACE', 'PP', 'PLACEMENT', or 'PTS' -> placement_points (integer).
-     * Kill Points column: Labeled 'ELIMS', 'KP', 'KILLS', or 'ELIMINATIONS' -> kill_points (integer).
-     * Total Points column: Labeled 'TOTAL', 'TOT', or 'PTS' -> total_points (integer).
-   - Extract ALL rows in order without skipping (e.g., if there are 18 rows from #1 to #18, or 20 rows from #1 to #20, return every single item).
+3. STANDINGS TABLE ROWS (SINGLE OR DUAL-COLUMN):
+   - Many posters split standings into two side-by-side tables (e.g. Left: #1 to #9, Right: #10 to #18). Extract ALL rows in exact rank order (#1..#18 or #1..#20).
+   - Map columns strictly by column header alignment:
+     * Rank column: '#', '#1', 'RANK', 'NO' -> rank (integer).
+     * Team column: 'TEAMS', 'TEAM', 'TEAM NAME' -> exact team_name string (ignore small logo icon left of the name).
+     * WWCD column: 'WWCD', 'WIN', or icon header (frying pan, chicken, helmet, spider icon). VERY IMPORTANT: Blank/empty cells mean 0. Do NOT shift PLACE into WWCD when WWCD is blank!
+     * Placement column: 'PLACE.', 'PLACE', 'PP', 'PLACEMENT' -> placement_points.
+     * Elims/Kills column: 'ELIMS.', 'ELIMS', 'KP', 'KILLS' -> kill_points.
+     * Total column: 'TOTAL', 'TOT', 'PTS' -> total_points.
 `;
 
-    let result;
-    let lastError: any = null;
-    for (const modelName of candidateModels) {
+    let rawResponseText: string | null = null;
+    let lastError = "";
+
+    for (const candidate of MODEL_CANDIDATES) {
       try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: extractionSchema,
-            temperature: 0.1,
-          },
-        });
-        result = await model.generateContent([
-          prompt,
+        const generationConfig: Record<string, unknown> = {
+          responseMimeType: "application/json",
+          responseSchema: extractionSchema,
+          temperature: 0.1,
+        };
+        if (candidate.supportsThinkingBudget) {
+          generationConfig.thinkingConfig = { thinkingBudget: 0 };
+        }
+
+        const restRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
-            inlineData: {
-              data: sanitizedBase64,
-              mimeType: mimeType,
+            method: "POST",
+            signal: AbortSignal.timeout(20000),
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey.trim(),
             },
-          },
-        ]);
-        if (result) break;
-      } catch (err) {
-        lastError = err;
-        const msg = (err as any)?.message || String(err);
-        // Only try next model if 404/not found; otherwise break if rate limited
-        if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-          break;
-        }
-      }
-    }
-
-    // Direct REST API Fallback with explicit x-goog-api-key header
-    if (!result) {
-      for (const mName of ["gemini-3.5-flash", "gemini-3-flash-preview", "gemini-flash-latest"]) {
-        try {
-          const restRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": apiKey.trim(),
-              },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      { text: prompt },
-                      {
-                        inlineData: {
-                          mimeType: mimeType,
-                          data: sanitizedBase64,
-                        },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: prompt },
+                    {
+                      inlineData: {
+                        mimeType,
+                        data: sanitizedBase64,
                       },
-                    ],
-                  },
-                ],
-                generationConfig: {
-                  responseMimeType: "application/json",
-                  responseSchema: extractionSchema,
-                  temperature: 0.1,
+                    },
+                  ],
                 },
-              }),
-            }
-          );
-          if (restRes.ok) {
-            const data = await restRes.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              result = { response: { text: () => text } };
-              break;
-            }
-          } else {
-            const errJson = await restRes.json().catch(() => ({}));
-            lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
+              ],
+              generationConfig,
+            }),
           }
-        } catch (fetchErr) {
-          lastError = fetchErr;
+        );
+
+        if (restRes.ok) {
+          const data = await restRes.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            rawResponseText = text;
+            break;
+          }
+          lastError = `Empty response from ${candidate.name}`;
+        } else {
+          const errJson = await restRes.json().catch(() => ({}));
+          lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
+          if (
+            restRes.status === 401 ||
+            restRes.status === 403 ||
+            restRes.status === 429 ||
+            lastError.includes("RESOURCE_EXHAUSTED")
+          ) {
+            break;
+          }
         }
+      } catch (fetchErr) {
+        lastError = (fetchErr as any)?.message || String(fetchErr);
       }
     }
 
-    if (!result) {
-      const errorMessage = lastError?.message || String(lastError);
-
+    if (!rawResponseText) {
       if (
-        errorMessage.includes("429") ||
-        errorMessage.includes("RESOURCE_EXHAUSTED") ||
-        errorMessage.toLowerCase().includes("quota")
+        lastError.includes("429") ||
+        lastError.includes("RESOURCE_EXHAUSTED") ||
+        lastError.toLowerCase().includes("quota")
       ) {
         return new Response(
           JSON.stringify({ error: "Gemini API rate limit exceeded. Please retry shortly." }),
@@ -322,28 +307,27 @@ Analyze this tournament standings poster image and extract all structured data a
       }
 
       if (
-        errorMessage.includes("401") ||
-        errorMessage.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") ||
-        errorMessage.includes("API_KEY_SERVICE_BLOCKED") ||
-        errorMessage.includes("API key not valid")
+        lastError.includes("401") ||
+        lastError.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") ||
+        lastError.includes("API_KEY_SERVICE_BLOCKED") ||
+        lastError.includes("API key not valid")
       ) {
         return new Response(
           JSON.stringify({
             error: "GEMINI_KEY_RESTRICTED",
             details:
-              "Kunci Google AI Studio anda belum aktifkan servis Generative Language API di Google Cloud. Sila klik 'Create API key in new project' di Google AI Studio atau tekan Enable di Google Cloud Console.",
+              "Kunci Google AI Studio belum aktifkan servis Generative Language API di Google Cloud.",
           }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({ error: "Gemini extraction failed", details: errorMessage }),
+        JSON.stringify({ error: "Gemini extraction failed", details: lastError }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const rawResponseText = result.response.text();
     let parsed: ExtractionResponse;
     try {
       parsed = JSON.parse(rawResponseText);
@@ -408,4 +392,3 @@ Analyze this tournament standings poster image and extract all structured data a
     );
   }
 });
-

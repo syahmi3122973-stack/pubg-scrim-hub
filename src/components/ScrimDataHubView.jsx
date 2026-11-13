@@ -150,6 +150,66 @@ export function normalizeTeamAlias(rawName) {
   };
 }
 
+function readPosterFileAsBase64(selectedFile) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(selectedFile);
+  });
+}
+
+// Downscale oversized screenshots client-side so mobile uploads are faster and Edge Worker memory stays low
+function optimizePosterForOcr(selectedFile) {
+  return new Promise((resolve) => {
+    const MAX_DIM = 1800;
+    const shouldOptimize =
+      selectedFile.size > 900 * 1024 ||
+      selectedFile.type === 'image/png' ||
+      selectedFile.type === 'image/webp';
+
+    if (!shouldOptimize) {
+      readPosterFileAsBase64(selectedFile)
+        .then((dataUrl) => resolve({ dataUrl, mimeType: selectedFile.type || 'image/jpeg' }))
+        .catch(() => resolve(null));
+      return;
+    }
+
+    const img = new Image();
+    const tempUrl = URL.createObjectURL(selectedFile);
+    img.onload = () => {
+      try {
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        const targetW = Math.max(1, Math.round(w * scale));
+        const targetH = Math.max(1, Math.round(h * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('2D context unavailable');
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        URL.revokeObjectURL(tempUrl);
+        resolve({ dataUrl, mimeType: 'image/jpeg' });
+      } catch {
+        URL.revokeObjectURL(tempUrl);
+        readPosterFileAsBase64(selectedFile)
+          .then((dataUrl) => resolve({ dataUrl, mimeType: selectedFile.type || 'image/jpeg' }))
+          .catch(() => resolve(null));
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(tempUrl);
+      readPosterFileAsBase64(selectedFile)
+        .then((dataUrl) => resolve({ dataUrl, mimeType: selectedFile.type || 'image/jpeg' }))
+        .catch(() => resolve(null));
+    };
+    img.src = tempUrl;
+  });
+}
+
 export default function ScrimDataHubView({
   navigateToTab,
   onBack,
@@ -242,15 +302,6 @@ export default function ScrimDataHubView({
     }, 150);
   }, []);
 
-  const fileToBase64 = (selectedFile) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(selectedFile);
-    });
-  };
-
   const handleProcessImage = useCallback(
     async (selectedFile) => {
       setFile(selectedFile);
@@ -269,11 +320,15 @@ export default function ScrimDataHubView({
         fileName.includes('6b1e45a4') ||
         fileName.includes('441bda63');
       const isCtMatch =
-        fileName.includes('ct') ||
-        fileName.includes('scrim');
+        fileName.includes('ct_scrim') ||
+        fileName.includes('ct-scrim') ||
+        fileName.includes('ct scrim');
 
       try {
-        const base64Data = await fileToBase64(selectedFile);
+        const optimized = await optimizePosterForOcr(selectedFile);
+        if (!optimized?.dataUrl) {
+          throw new Error('Failed to encode image');
+        }
         let extractionResult = null;
         let edgeFunctionErrorMsg = null;
 
@@ -281,8 +336,8 @@ export default function ScrimDataHubView({
         try {
           const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
             body: {
-              imageBase64: base64Data,
-              mimeType: selectedFile.type || 'image/jpeg'
+              imageBase64: optimized.dataUrl,
+              mimeType: optimized.mimeType
             }
           });
 
@@ -342,6 +397,13 @@ export default function ScrimDataHubView({
                 edgeFunctionErrorMsg.includes('GEMINI_KEY'))
             ) {
               showToast('Kunci Gemini AI belum aktif di Google Cloud. Sila semak status API di Google AI Studio.');
+            } else if (
+              edgeFunctionErrorMsg &&
+              (edgeFunctionErrorMsg.includes('rate limit') ||
+                edgeFunctionErrorMsg.includes('429') ||
+                edgeFunctionErrorMsg.includes('RESOURCE_EXHAUSTED'))
+            ) {
+              showToast('Had permintaan AI penuh seketika (429). Sila tunggu 5-10 saat dan muat naik semula.');
             } else {
               showToast('Gagal mengekstrak poster secara automatik. Sila cuba muat naik semula atau guna template manual.');
             }
