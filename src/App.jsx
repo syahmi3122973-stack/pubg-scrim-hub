@@ -185,53 +185,38 @@ const HALL_OF_FAME_EVENT_TOGGLES = [
   { key: 'Tour', label: 'Tournament' }
 ];
 
-// Scalable SSS Tier-2 stage & season architecture:
-// Enable 'SEMI_FINAL_A' / 'SEMI_FINAL_B' here once Semi Final stage records are tracked in Supabase.
+// Separated SSS Tier-2 Season & Stage architecture (scalable for Grand Final + Semi Group A/B):
 const SSS_DEFAULT_SELECTION = { season: 'ALL', stage: 'ALL' };
-
-const SSS_STAGE_DEFINITIONS = [
-  { key: 'GRAND_FINAL', label: 'Grand Final', enabled: true },
-  { key: 'SEMI_FINAL_A', label: 'Semi Final Group A', enabled: false },
-  { key: 'SEMI_FINAL_B', label: 'Semi Final Group B', enabled: false }
-];
 
 const SSS_SEASONS_DESC = [12, 11, 10, 9, 8, 7, 6, 5, 4];
 
-const SSS_ALL_OPTION = {
-  id: 'ALL',
-  season: 'ALL',
-  stage: 'ALL',
-  label: 'All SSS Seasons (S4 - S12)'
-};
-
-const SSS_DROPDOWN_OPTIONS = [
-  SSS_ALL_OPTION,
-  ...SSS_SEASONS_DESC.flatMap((seasonNum) =>
-    SSS_STAGE_DEFINITIONS
-      .filter((stageDef) => stageDef.enabled)
-      .map((stageDef) => ({
-        id: `S${seasonNum}__${stageDef.key}`,
-        season: seasonNum,
-        stage: stageDef.key,
-        stageLabel: stageDef.label,
-        label: `SSS Season ${seasonNum} — ${stageDef.label}`
-      }))
-  )
+const SSS_SEASON_OPTIONS = [
+  { value: 'ALL', label: 'All Seasons (S4-S12)', shortLabel: 'S4 - S12' },
+  ...SSS_SEASONS_DESC.map((seasonNum) => ({
+    value: String(seasonNum),
+    season: seasonNum,
+    label: `Season ${seasonNum}`,
+    shortLabel: `S${seasonNum}`
+  }))
 ];
 
-const getSssOptionId = (selection = SSS_DEFAULT_SELECTION) => {
-  if (!selection || selection.season === 'ALL' || !selection.stage || selection.stage === 'ALL') {
-    return 'ALL';
-  }
-  return `S${selection.season}__${selection.stage}`;
-};
+const SSS_STAGE_OPTIONS = [
+  { key: 'ALL', label: 'Semua Stage' },
+  { key: 'GRAND_FINAL', label: 'Grand Final' },
+  { key: 'SEMI_FINAL_A', label: 'Semi Group A' },
+  { key: 'SEMI_FINAL_B', label: 'Semi Group B' }
+];
 
-const resolveSssSelectionById = (optionId) => {
-  if (!optionId || optionId === 'ALL') return { ...SSS_DEFAULT_SELECTION };
-  const found = SSS_DROPDOWN_OPTIONS.find((opt) => opt.id === optionId);
-  return found
-    ? { season: found.season, stage: found.stage }
-    : { ...SSS_DEFAULT_SELECTION };
+const formatSssSelectionLabel = (selection = SSS_DEFAULT_SELECTION) => {
+  const season = selection?.season ?? 'ALL';
+  const stage = selection?.stage ?? 'ALL';
+  const seasonObj = SSS_SEASON_OPTIONS.find((opt) => opt.value === String(season)) || SSS_SEASON_OPTIONS[0];
+  const stageObj = SSS_STAGE_OPTIONS.find((opt) => opt.key === stage) || SSS_STAGE_OPTIONS[0];
+
+  if (season === 'ALL' && stage === 'ALL') return 'All SSS Seasons (S4 - S12)';
+  if (season === 'ALL') return `All Seasons (S4 - S12) • ${stageObj.label}`;
+  if (stage === 'ALL') return `SSS ${seasonObj.label}`;
+  return `SSS ${seasonObj.label} — ${stageObj.label}`;
 };
 
 const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL', sssSelection = SSS_DEFAULT_SELECTION) => {
@@ -247,9 +232,9 @@ const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL', sssSelec
       return false;
     }
 
-    const activeSeason = sssSelection?.season;
-    const activeStage = sssSelection?.stage;
-    if (!activeSeason || activeSeason === 'ALL') {
+    const activeSeason = sssSelection?.season ?? 'ALL';
+    const activeStage = sssSelection?.stage ?? 'ALL';
+    if (activeSeason === 'ALL' && activeStage === 'ALL') {
       return true;
     }
 
@@ -263,35 +248,37 @@ const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL', sssSelec
       .filter(Boolean)
       .join(' ');
 
-    const seasonNum = Number(activeSeason);
-    const metaSeason = result?.scrimData?.sssSeason ?? result?.sssSeason;
-    const seasonRegex = new RegExp(
-      `(?:sss\\s*[-_#]?\\s*s?0?${seasonNum}(?!\\d)|\\bseason\\s*0?${seasonNum}(?!\\d)|\\bs0?${seasonNum}(?!\\d))`,
-      'i'
-    );
-    const matchesSeason = metaSeason !== undefined && metaSeason !== null
-      ? Number(metaSeason) === seasonNum
-      : seasonRegex.test(fullSssText);
+    if (activeSeason !== 'ALL') {
+      const seasonNum = Number(activeSeason);
+      const metaSeason = result?.scrimData?.sssSeason ?? result?.sssSeason;
+      const seasonRegex = new RegExp(
+        `(?:sss\\s*[-_#]?\\s*s?0?${seasonNum}(?!\\d)|\\bseason\\s*0?${seasonNum}(?!\\d)|\\bs0?${seasonNum}(?!\\d))`,
+        'i'
+      );
+      const matchesSeason = metaSeason !== undefined && metaSeason !== null
+        ? Number(metaSeason) === seasonNum
+        : seasonRegex.test(fullSssText);
 
-    if (!matchesSeason) return false;
-
-    if (!activeStage || activeStage === 'ALL') return true;
-
-    const metaStage = String(result?.scrimData?.sssStage || result?.sssStage || '').toUpperCase();
-    if (metaStage) {
-      return metaStage === activeStage;
+      if (!matchesSeason) return false;
     }
 
-    if (activeStage === 'SEMI_FINAL_A') {
-      return /(?:semi\s*-?\s*final.*(?:group\s*a|\bgrp\s*a\b|\ba\b)|group\s*a.*semi)/i.test(fullSssText);
-    }
-    if (activeStage === 'SEMI_FINAL_B') {
-      return /(?:semi\s*-?\s*final.*(?:group\s*b|\bgrp\s*b\b|\bb\b)|group\s*b.*semi)/i.test(fullSssText);
-    }
-    if (activeStage === 'GRAND_FINAL') {
-      // Existing SSS S4-S12 records without explicit stage labels represent Grand Final sessions.
-      const isExplicitSemi = /semi\s*-?\s*final/i.test(fullSssText);
-      return !isExplicitSemi || /grand\s*-?\s*final|\bgf\b/i.test(fullSssText);
+    if (activeStage !== 'ALL') {
+      const metaStage = String(result?.scrimData?.sssStage || result?.sssStage || '').toUpperCase();
+      if (metaStage) {
+        return metaStage === activeStage;
+      }
+
+      if (activeStage === 'SEMI_FINAL_A') {
+        return /\b(?:semi(?:\s*-?\s*final)?\s*(?:group|grp)?\s*a|(?:group|grp)\s*a)\b/i.test(fullSssText);
+      }
+      if (activeStage === 'SEMI_FINAL_B') {
+        return /\b(?:semi(?:\s*-?\s*final)?\s*(?:group|grp)?\s*b|(?:group|grp)\s*b)\b/i.test(fullSssText);
+      }
+      if (activeStage === 'GRAND_FINAL') {
+        // Existing SSS S4-S12 records without explicit Semi/Group labels represent Grand Final sessions.
+        const isExplicitSemi = /\bsemi(?:\s*-?\s*final)?\b|\b(?:group|grp)\s*[ab]\b/i.test(fullSssText);
+        return !isExplicitSemi || /grand\s*-?\s*final|\bgf\b/i.test(fullSssText);
+      }
     }
     return true;
   }
@@ -1335,14 +1322,11 @@ export default function App() {
   const [teamStatsEventType, setTeamStatsEventType] = useState('ALL');
   const [sssFilterSelection, setSssFilterSelection] = useState(() => ({ ...SSS_DEFAULT_SELECTION }));
 
-  const activeSssOptionId = useMemo(
-    () => getSssOptionId(sssFilterSelection),
-    [sssFilterSelection]
-  );
+  const activeSssOptionId = `${sssFilterSelection.season}_${sssFilterSelection.stage}`;
 
-  const activeSssOption = useMemo(
-    () => SSS_DROPDOWN_OPTIONS.find((opt) => opt.id === activeSssOptionId) || SSS_ALL_OPTION,
-    [activeSssOptionId]
+  const activeSssSummaryLabel = useMemo(
+    () => formatSssSelectionLabel(sssFilterSelection),
+    [sssFilterSelection]
   );
 
   // Combined filter state object connected to Team Matrix Supabase aggregation
@@ -1364,8 +1348,18 @@ export default function App() {
     }
   };
 
-  const handleSelectSssOption = (optionId) => {
-    setSssFilterSelection(resolveSssSelectionById(optionId));
+  const handleSelectSssSeason = (seasonValue) => {
+    setSssFilterSelection((prev) => ({
+      ...prev,
+      season: seasonValue === 'ALL' ? 'ALL' : Number(seasonValue)
+    }));
+  };
+
+  const handleSelectSssStage = (stageKey) => {
+    setSssFilterSelection((prev) => ({
+      ...prev,
+      stage: stageKey || 'ALL'
+    }));
   };
 
   // Auth State
@@ -6169,20 +6163,37 @@ export default function App() {
                       );
                     })}
                     {teamStatsCategory === 'SSS' && (
-                      <div className="sss-tier2-reveal shrink-0 flex items-center pl-1">
+                      <div className="sss-tier2-reveal shrink-0 flex items-center gap-1.5 pl-1">
                         <label htmlFor="profile-sss-season-select" className="sr-only">
                           Pilih Musim SSS
                         </label>
                         <select
                           id="profile-sss-season-select"
-                          name="profileSssSeasonStage"
-                          value={activeSssOptionId}
-                          onChange={(e) => handleSelectSssOption(e.target.value)}
+                          name="profileSssSeason"
+                          value={String(sssFilterSelection.season)}
+                          onChange={(e) => handleSelectSssSeason(e.target.value)}
                           className="sss-brand-select"
                         >
-                          {SSS_DROPDOWN_OPTIONS.map((opt) => (
-                            <option key={opt.id} value={opt.id}>
+                          {SSS_SEASON_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
                               {opt.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        <label htmlFor="profile-sss-stage-select" className="sr-only">
+                          Pilih Stage SSS
+                        </label>
+                        <select
+                          id="profile-sss-stage-select"
+                          name="profileSssStage"
+                          value={sssFilterSelection.stage}
+                          onChange={(e) => handleSelectSssStage(e.target.value)}
+                          className="sss-brand-select"
+                        >
+                          {SSS_STAGE_OPTIONS.map((st) => (
+                            <option key={st.key} value={st.key}>
+                              {st.label}
                             </option>
                           ))}
                         </select>
@@ -6642,28 +6653,49 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* Tier 2 Conditional Selector: Revealed ONLY when "SSS" is active */}
+                  {/* Tier 2 Conditional Selectors: Separated Season & Stage dropdowns revealed ONLY when "SSS" is active */}
                   {teamStatsCategory === 'SSS' && (
                     <div
                       key="sss-tier2-selector"
-                      className="sss-tier2-reveal flex items-center shrink-0 w-full sm:w-auto"
+                      className="sss-tier2-reveal grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0 w-full sm:w-auto"
                     >
-                      <label htmlFor="team-matrix-sss-select" className="sr-only">
-                        Pilih Musim SSS
-                      </label>
-                      <select
-                        id="team-matrix-sss-select"
-                        name="sssSeasonStage"
-                        value={activeSssOptionId}
-                        onChange={(e) => handleSelectSssOption(e.target.value)}
-                        className="sss-brand-select w-full sm:w-auto sm:min-w-[235px]"
-                      >
-                        {SSS_DROPDOWN_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="min-w-0">
+                        <label htmlFor="team-matrix-sss-season-select" className="sr-only">
+                          Pilih Musim SSS
+                        </label>
+                        <select
+                          id="team-matrix-sss-season-select"
+                          name="sssSeason"
+                          value={String(sssFilterSelection.season)}
+                          onChange={(e) => handleSelectSssSeason(e.target.value)}
+                          className="sss-brand-select w-full sm:w-auto"
+                        >
+                          {SSS_SEASON_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="min-w-0">
+                        <label htmlFor="team-matrix-sss-stage-select" className="sr-only">
+                          Pilih Stage SSS
+                        </label>
+                        <select
+                          id="team-matrix-sss-stage-select"
+                          name="sssStage"
+                          value={sssFilterSelection.stage}
+                          onChange={(e) => handleSelectSssStage(e.target.value)}
+                          className="sss-brand-select w-full sm:w-auto"
+                        >
+                          {SSS_STAGE_OPTIONS.map((st) => (
+                            <option key={st.key} value={st.key}>
+                              {st.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -6882,8 +6914,8 @@ export default function App() {
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                       {teamStatsCategory === 'SSS'
-                        ? (sssFilterSelection.season !== 'ALL'
-                            ? `Top Perform Team SSS • S${sssFilterSelection.season} ${activeSssOption.stageLabel || 'Grand Final'}${teamStatsEventType !== 'ALL' ? ` (${HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType})` : ''}`
+                        ? (sssFilterSelection.season !== 'ALL' || sssFilterSelection.stage !== 'ALL'
+                            ? `Top Perform Team • ${activeSssSummaryLabel}${teamStatsEventType !== 'ALL' ? ` (${HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType})` : ''}`
                             : (teamStatsEventType === 'Tour' ? 'Top Perform Team SSS • Tournament' : teamStatsEventType === 'Scrim' ? 'Top Perform Team SSS • Scrim' : 'Top Perform Team SSS'))
                         : teamStatsEventType === 'Tour'
                         ? `Top Perform Team • Tournament${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
@@ -6893,9 +6925,9 @@ export default function App() {
                     </h2>
                     <span className="text-[11px] text-zinc-400">
                       {teamStatsCategory === 'SSS'
-                        ? (sssFilterSelection.season === 'ALL'
+                        ? (sssFilterSelection.season === 'ALL' && sssFilterSelection.stage === 'ALL'
                             ? 'Data bermula dari Season 4 (S4 - S12) • '
-                            : `${activeSssOption.label} • `)
+                            : `${activeSssSummaryLabel} • `)
                         : ''}
                       {teamSearchQuery.trim()
                         ? `Hasil carian (${displayedRankedTeams.length} pasukan)`
@@ -6934,8 +6966,8 @@ export default function App() {
                 ) : displayedRankedTeams.length === 0 ? (() => {
                   const tierLabel = teamStatsCategory === 'ALL'
                     ? ''
-                    : teamStatsCategory === 'SSS' && sssFilterSelection.season !== 'ALL'
-                    ? activeSssOption.label
+                    : teamStatsCategory === 'SSS'
+                    ? activeSssSummaryLabel
                     : (HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory);
                   const eventLabel = teamStatsEventType === 'ALL'
                     ? ''
@@ -7288,13 +7320,13 @@ export default function App() {
               <div className="pt-1 pb-2 px-3 text-center space-y-1">
                 {teamStatsCategory === 'SSS' ? (
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {sssFilterSelection.season === 'ALL' ? (
+                    {sssFilterSelection.season === 'ALL' && sssFilterSelection.stage === 'ALL' ? (
                       <>
                         Nota: Rekod statistik <strong className="text-[#D7FF00] font-semibold">SSS</strong> ini dikumpul bermula dari <strong className="text-zinc-200 font-semibold">Season 4 (S4 - S12)</strong>.
                       </>
                     ) : (
                       <>
-                        Nota: Memaparkan statistik khas untuk <strong className="text-[#D7FF00] font-semibold">{activeSssOption.label}</strong>.
+                        Nota: Memaparkan statistik khas untuk <strong className="text-[#D7FF00] font-semibold">{activeSssSummaryLabel}</strong>.
                       </>
                     )}
                   </p>
