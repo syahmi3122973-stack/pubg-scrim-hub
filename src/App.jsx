@@ -461,7 +461,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'admin', 'scrim-data'].includes(hash)) {
+      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'privacy', 'terms', 'admin', 'scrim-data'].includes(hash)) {
         if (hash === 'standings' || hash === 'leaderboard') return 'history';
         if (hash === 'database') return 'teams';
         if (hash === 'home') return 'playground';
@@ -9106,14 +9106,240 @@ export default function App() {
           </div>
         )}
 
+        {/* VIEW 7: NOTIS PRIVASI */}
+        {activeTab === 'privacy' && (
+          <div className="max-w-3xl mx-auto space-y-5 pt-1 pb-28 md:pb-12">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <button
+                type="button"
+                onClick={handleNavigateBackTab}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Kembali</span>
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('privacy')}
+                  className="px-3.5 py-1.5 rounded-full text-xs bg-zinc-100 text-zinc-950 font-semibold cursor-pointer"
+                >
+                  Notis Privasi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('terms')}
+                  className="px-3.5 py-1.5 rounded-full text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+                >
+                  Terma Penggunaan
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5">
+              <div className="space-y-1.5 border-b border-zinc-800 pb-4">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
+                  Keselamatan &amp; Data
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                  Notis Privasi
+                </h1>
+                <p className="text-xs text-zinc-400">
+                  Kemas kini terakhir: November 2026 • SCRIM HUB (scrim.rykhor.my)
+                </p>
+              </div>
+
+              <div className="space-y-4 text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">1. Data Yang Dikumpul</h2>
+                  <p>
+                    Bila anda guna SCRIM HUB, kami hanya simpan maklumat yang perlu untuk jalankan fungsi app:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-zinc-300">
+                    <li>
+                      <strong className="text-white">Akaun Host:</strong> Email, nama paparan, gambar profil, bio, dan contact (WhatsApp / Telegram) jika anda daftar atau log masuk.
+                    </li>
+                    <li>
+                      <strong className="text-white">Rekod Scrim &amp; Team:</strong> Tajuk sesi, tarikh, tier, nama team, tag, logo yang dimuat naik, serta markah perlawanan (Placement, Kills, WWCD).
+                    </li>
+                    <li>
+                      <strong className="text-white">Feedback:</strong> Email (pilihan) dan mesej laporan bug atau cadangan yang anda hantar.
+                    </li>
+                  </ul>
+                </section>
+
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">2. Cara Data Disimpan &amp; Diproses</h2>
+                  <ul className="list-disc pl-5 space-y-1 text-zinc-300">
+                    <li>
+                      <strong className="text-white">Supabase Cloud:</strong> Data akaun, profil host, logo, dan rekod sesi yang disimpan ke Cloud diurus melalui perkhidmatan Supabase.
+                    </li>
+                    <li>
+                      <strong className="text-white">Storan Peranti (LocalStorage):</strong> Draf Quick Scorer, cache pasukan, dan senarai akaun untuk fungsi tukar akaun pantas disimpan secara setempat dalam browser anda sendiri.
+                    </li>
+                    <li>
+                      <strong className="text-white">Results Scanner (AI OCR):</strong> Gambar poster yang anda muat naik dihantar ke pelayan untuk baca nama team dan markah sahaja. Sila semak semula keputusan sebelum save ke rekod awam.
+                    </li>
+                  </ul>
+                </section>
+
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">3. Paparan Awam</h2>
+                  <p>
+                    Nama team, markah kejohanan, statistik Team Matrix, dan profil host (nama serta contact yang anda letak sebagai penganjur) boleh dilihat oleh pengguna lain sebagai rekod kejohanan. Jangan masukkan maklumat peribadi sensitif pada tajuk sesi atau borang awam.
+                  </p>
+                </section>
+
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">4. Kawalan Data Anda</h2>
+                  <p>
+                    Anda boleh edit profil, buang akaun dari peranti, atau padam sesi yang anda host pada bila-bila masa. Untuk permintaan padam akaun atau data sepenuhnya, hubungi pembangun melalui butang{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsFeedbackModalOpen(true)}
+                      className="text-[#D7FF00] font-semibold hover:underline cursor-pointer"
+                    >
+                      Feedback
+                    </button>
+                    .
+                  </p>
+                </section>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 8: TERMA PENGGUNAAN */}
+        {activeTab === 'terms' && (
+          <div className="max-w-3xl mx-auto space-y-5 pt-1 pb-28 md:pb-12">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <button
+                type="button"
+                onClick={handleNavigateBackTab}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Kembali</span>
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('privacy')}
+                  className="px-3.5 py-1.5 rounded-full text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+                >
+                  Notis Privasi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('terms')}
+                  className="px-3.5 py-1.5 rounded-full text-xs bg-zinc-100 text-zinc-950 font-semibold cursor-pointer"
+                >
+                  Terma Penggunaan
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5">
+              <div className="space-y-1.5 border-b border-zinc-800 pb-4">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
+                  Syarat &amp; Penafian
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                  Terma Penggunaan
+                </h1>
+                <p className="text-xs text-zinc-400">
+                  Kemas kini terakhir: November 2026 • SCRIM HUB (scrim.rykhor.my)
+                </p>
+              </div>
+
+              <div className="space-y-4 text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">1. Penggunaan Platform</h2>
+                  <p>
+                    Dengan menggunakan SCRIM HUB, anda bersetuju untuk menggunakan platform ini bagi tujuan pengurusan scrim, kejohanan, kiraan markah, dan rekod pasukan secara sah dan beretika.
+                  </p>
+                </section>
+
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">2. Kandungan &amp; Tanggungjawab Host</h2>
+                  <ul className="list-disc pl-5 space-y-1 text-zinc-300">
+                    <li>Host bertanggungjawab penuh ke atas ketepatan markah, nama pasukan, pautan media sosial, dan logo yang dimuat naik.</li>
+                    <li>Dilarang memuat naik kandungan lucah, ujaran kebencian, penipuan, atau bahan yang melanggar hak cipta pihak lain.</li>
+                    <li>Akses Co-Host hanya perlu dikongsi dengan pihak yang dipercayai. Pihak kami berhak membuang kandungan atau menyekat akses jika berlaku salah guna.</li>
+                  </ul>
+                </section>
+
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">3. Ketepatan Kiraan &amp; AI Scanner</h2>
+                  <p>
+                    Hasil imbasan poster menggunakan AI OCR boleh mengandungi ralat bacaan bergantung pada kualiti gambar. Host wajib menyemak kiraan PP + KP dan nama pasukan sebelum mengesahkan atau menerbitkan keputusan rasmi.
+                  </p>
+                </section>
+
+                <section className="space-y-1.5">
+                  <h2 className="text-sm sm:text-base font-bold text-white">4. Penafian Rasmi (Disclaimer)</h2>
+                  <p>
+                    SCRIM HUB dibangunkan secara bebas oleh <strong className="text-white">ry.khor</strong> untuk komuniti esports tempatan. Platform ini tidak bergabung, disokong, atau ditaja oleh Krafton, Tencent Games, atau PUBG Mobile. Perkhidmatan disediakan sebagaimana adanya (&quot;as-is&quot;) tanpa jaminan bebas ralat atau gangguan pelayan.
+                  </p>
+                </section>
+              </div>
+            </div>
+          </div>
+        )}
+
         </div>
 
-        {/* FOOTER METADATA */}
-        <div className="mt-8 pt-4 pb-2 border-t border-white/5 text-center">
-          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-            SCRIM HUB ENGINE • COMPETITIVE PRODUCTION BUILD
-          </p>
-        </div>
+        {/* FOOTER NAVIGATION & LEGAL LINKS */}
+        <footer className="mt-10 pt-5 pb-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
+          <span className="text-[11px] font-mono text-zinc-500">
+            © 2026 SCRIM HUB by ry.khor
+          </span>
+
+          <div className="flex items-center flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
+            <button
+              type="button"
+              onClick={() => navigateToTab('privacy')}
+              className={`py-1 transition cursor-pointer ${
+                activeTab === 'privacy'
+                  ? 'text-[#D7FF00] font-semibold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Notis Privasi
+            </button>
+            <button
+              type="button"
+              onClick={() => navigateToTab('terms')}
+              className={`py-1 transition cursor-pointer ${
+                activeTab === 'terms'
+                  ? 'text-[#D7FF00] font-semibold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Terma
+            </button>
+            <button
+              type="button"
+              onClick={() => navigateToTab('about')}
+              className={`py-1 transition cursor-pointer ${
+                activeTab === 'about'
+                  ? 'text-[#D7FF00] font-semibold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              About
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="py-1 text-zinc-400 hover:text-white transition cursor-pointer"
+            >
+              Feedback
+            </button>
+          </div>
+        </footer>
 
       </main>
 
