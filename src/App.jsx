@@ -5141,6 +5141,8 @@ export default function App() {
               ? 'tab-blur-exiting'
               : activeTab === 'teams'
               ? 'animate-teams-enter'
+              : activeTab === 'scorer' || activeTab === 'admin' || activeTab === 'scrim-data'
+              ? 'animate-tab-bottom'
               : navDirection === 'backward'
               ? 'animate-tab-backward'
               : 'animate-tab-forward'

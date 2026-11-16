@@ -246,6 +246,22 @@ body {
   }
 }
 
+@keyframes tabSlideInFromBottom {
+  0% {
+    opacity: 0;
+    filter: blur(16px);
+    transform: translate3d(0, 28px, 0) scale(0.984);
+  }
+  45% {
+    opacity: 0.94;
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .animate-tab-forward {
     animation: tabSlideInForward 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -253,6 +269,10 @@ body {
 
   .animate-tab-backward {
     animation: tabSlideInBackward 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-tab-bottom {
+    animation: tabSlideInFromBottom 0.64s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 
