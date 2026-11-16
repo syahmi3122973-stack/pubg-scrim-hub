@@ -112,9 +112,26 @@ body {
   }
 }
 
+@keyframes dropdownReveal {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translate3d(0, -6px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .animate-filter-reveal {
     animation: filterContentReveal 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-dropdown-reveal {
+    animation: dropdownReveal 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 
@@ -596,11 +613,35 @@ body {
     max-height: min(40vh, 236px);
     overflow-y: auto;
     overscroll-behavior: contain;
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.96);
+    transition:
+      opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      overlay 0.22s allow-discrete,
+      display 0.22s allow-discrete;
+  }
+
+  .sss-brand-select:open::picker(select) {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  @starting-style {
+    .sss-brand-select:open::picker(select) {
+      opacity: 0;
+      transform: translate3d(0, -6px, 0) scale(0.96);
+    }
   }
 
   .sss-brand-select::picker-icon {
     color: #D7FF00;
     margin-inline-start: 0.35rem;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sss-brand-select:open::picker-icon {
+    transform: rotate(180deg);
   }
 
   .sss-brand-select option {

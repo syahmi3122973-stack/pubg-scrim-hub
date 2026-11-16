@@ -685,7 +685,7 @@ export default function ScrimDataHubView({
 
       {/* Expandable Header Info */}
       {isHeaderInfoOpen && (
-        <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-200 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
+        <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-200 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
           <Sparkles className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
           <p className="leading-relaxed flex-1">
             Upload poster scrim atau tournament untuk check markah (PP + KP) &amp; save ke rekod.

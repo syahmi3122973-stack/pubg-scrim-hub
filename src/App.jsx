@@ -3824,6 +3824,21 @@ export default function App() {
   const [selectedTeamProfile, setSelectedTeamProfile] = useState('');
   const [expandedTeamScrimIdxs, setExpandedTeamScrimIdxs] = useState({});
 
+  useEffect(() => {
+    if (!selectedTeamProfile) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 20);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [selectedTeamProfile]);
+
   const toggleTeamScrimExpand = (idx) => {
     setExpandedTeamScrimIdxs(prev => ({
       ...prev,
@@ -4496,6 +4511,18 @@ export default function App() {
     }
   }, []);
 
+  const openTeamProfile = useCallback((teamName) => {
+    if (!teamName) return;
+    runBlurSwap(true, () => {
+      setNavDirection('forward');
+      setSelectedTeamProfile(teamName);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }, 15);
+    });
+  }, [runBlurSwap]);
+
   const navigateToTab = useCallback((tab) => {
     const normalizedNext = tab === 'home' ? 'playground' : tab;
     const normalizedCurrent = activeTabRef.current === 'home' ? 'playground' : activeTabRef.current;
@@ -4789,10 +4816,11 @@ export default function App() {
                     className="fixed inset-0 z-30"
                     onClick={() => setIsOrgPopoverOpen(false)}
                   />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 z-40">
                   <div
                     role="dialog"
                     aria-label="Active User Account"
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-[1.5rem] p-3 z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
+                    className="w-full bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
                   >
                     <div className="flex items-center justify-between px-1.5 pt-0.5">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
@@ -4917,6 +4945,7 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                  </div>
                 </>
               )}
             </div>
@@ -5039,7 +5068,7 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs">
+                  <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs origin-top-right animate-dropdown-reveal">
                     {isMasterAdmin && (
                       <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
                         <button
@@ -6447,7 +6476,7 @@ export default function App() {
 
                             {/* Dropdown Content - Expanded only on click */}
                             {isExpanded && (
-                              <div className="px-3.5 pb-3.5 pt-2 space-y-3 bg-zinc-950/50 animate-in fade-in duration-150">
+                              <div className="px-3.5 pb-3.5 pt-2 space-y-3 bg-zinc-950/50 origin-top animate-dropdown-reveal">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                                   <div className="glass-tile p-2 rounded-xl">
                                     <span className="text-[10px] uppercase font-bold text-zinc-400 block">Kills</span>
@@ -6558,7 +6587,7 @@ export default function App() {
 
               {/* Expandable Info Card (if toggled) */}
               {activeHeaderInfo === 'teams' && (
-                <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
+                <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
                     Check ranking team, rekod WWCD &amp; buat kad Story 9:16.
@@ -6693,7 +6722,7 @@ export default function App() {
 
               {/* Search Bar (Toggled by top-right Search icon) */}
               {(isHallOfFameSearchOpen || teamSearchQuery) && (
-                <div className="relative px-1 animate-in fade-in duration-150">
+                <div className="relative px-1 origin-top animate-dropdown-reveal">
                   <Search className="w-4 h-4 text-zinc-500 absolute left-4 top-3" />
                   <input
                     type="search"
@@ -6842,7 +6871,7 @@ export default function App() {
                       <button
                         key={`hof_t3_${t3Team.name}`}
                         type="button"
-                        onClick={() => setSelectedTeamProfile(t3Team.name)}
+                        onClick={() => openTeamProfile(t3Team.name)}
                         className="w-full text-left rounded-2xl bg-zinc-950/80 hover:bg-zinc-800/80 border border-zinc-800/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -7081,11 +7110,11 @@ export default function App() {
                                 key={team.name}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => runBlurSwap(true, () => setSelectedTeamProfile(team.name))}
+                                onClick={() => openTeamProfile(team.name)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    runBlurSwap(true, () => setSelectedTeamProfile(team.name));
+                                    openTeamProfile(team.name);
                                   }
                                 }}
                                 style={{ '--blur-delay': podiumDelay }}
@@ -7182,11 +7211,11 @@ export default function App() {
                                 key={team.name}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => runBlurSwap(true, () => setSelectedTeamProfile(team.name))}
+                                onClick={() => openTeamProfile(team.name)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    runBlurSwap(true, () => setSelectedTeamProfile(team.name));
+                                    openTeamProfile(team.name);
                                   }
                                 }}
                                 style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
@@ -7254,7 +7283,7 @@ export default function App() {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedTeamProfile(team.name);
+                                      openTeamProfile(team.name);
                                     }}
                                     className="w-7 h-7 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] transition shrink-0 cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
@@ -7361,7 +7390,7 @@ export default function App() {
 
             {/* Expandable Info Card (if toggled) */}
             {activeHeaderInfo === 'history' && (
-              <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
+              <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal shadow-lg mx-1">
                 <Flame className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                 <p className="leading-relaxed flex-1">
                   Arkib rekod scrim &amp; tournament, status sesi, dan export poster HD.
@@ -7450,7 +7479,7 @@ export default function App() {
 
               {/* Search Bar & Tier Filter Row (Toggled via Top-Right Search Icon or Active Query) */}
               {(isHistorySearchOpen || searchScrimQuery || tierFilter !== 'All') && (
-                <div className="flex items-center gap-2 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2 origin-top animate-dropdown-reveal">
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
                     <input
@@ -8305,7 +8334,7 @@ export default function App() {
 
                       {/* Expandable Info Card */}
                       {activeHeaderInfo === 'admin' && (
-                        <div className="p-3 sm:p-3.5 bg-zinc-950/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
+                        <div className="p-3 sm:p-3.5 bg-zinc-950/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal max-w-xl shadow-md">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
                             Urus scrim, invite Co-Host &amp; save rekod ke Cloud.
@@ -8452,7 +8481,7 @@ export default function App() {
                               className="fixed inset-0 z-30"
                               onClick={() => setIsScorerActionsMenuOpen(false)}
                             />
-                            <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs">
+                            <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs origin-top-right animate-dropdown-reveal">
                               <div className="py-1">
                                 <button
                                   type="button"
@@ -9310,7 +9339,7 @@ export default function App() {
               
               {/* SLIDE 0: PENGENALAN */}
               {currentGuideSlide === 0 && (
-                <div className="space-y-3 animate-in fade-in">
+                <div className="space-y-3 animate-filter-reveal">
                   <div className="space-y-1">
                     <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-[#D7FF00] bg-[#D7FF00]/10 px-2.5 py-0.5 rounded-full border border-[#D7FF00]/20">
                       PENGENALAN PLATFORM
@@ -9345,7 +9374,7 @@ export default function App() {
 
               {/* SLIDE 1: PANDUAN QUICK SCORER (TEKANAN UTAMA) */}
               {currentGuideSlide === 1 && (
-                <div className="space-y-3 animate-in fade-in">
+                <div className="space-y-3 animate-filter-reveal">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-[#D7FF00] bg-[#D7FF00]/10 px-2.5 py-0.5 rounded-full border border-[#D7FF00]/20">
@@ -9424,7 +9453,7 @@ export default function App() {
 
               {/* SLIDE 2: PANDUAN HOST WORKSPACE (TEKANAN UTAMA) */}
               {currentGuideSlide === 2 && (
-                <div className="space-y-3 animate-in fade-in">
+                <div className="space-y-3 animate-filter-reveal">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-black bg-[#D7FF00] px-2.5 py-0.5 rounded-full border border-[#D7FF00]">
@@ -9503,7 +9532,7 @@ export default function App() {
 
               {/* SLIDE 3: HISTORY & DATABASE */}
               {currentGuideSlide === 3 && (
-                <div className="space-y-3 animate-in fade-in">
+                <div className="space-y-3 animate-filter-reveal">
                   <div className="space-y-1">
                     <span className="text-[9px] sm:text-[10px] uppercase font-mono font-black text-zinc-300 bg-zinc-900 px-2.5 py-0.5 rounded-full border border-white/10">
                        REKOD &amp; ANALITIK
@@ -9960,7 +9989,7 @@ export default function App() {
 
             {/* INLINE EDIT MODE FORM (SEGERA DI ATAS SELEPAS AVATAR & BADGES) */}
             {isEditProfileMode && (
-              <div className="px-5 mb-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="px-5 mb-6 origin-top animate-dropdown-reveal">
                 <div className="flex items-center justify-between mb-3 pb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black">
