@@ -69,7 +69,7 @@ import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
 import TeamLogoCropper from './components/TeamLogoCropper';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
-import { cleanTeamDisplayName, getCanonicalTeamKey, pickPreferredTeamDisplayName } from './utils/teamAlias';
+import { cleanTeamDisplayName, getCanonicalTeamKey, pickPreferredTeamDisplayName, resolveTeamDisplayName } from './utils/teamAlias';
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
   <svg 
@@ -316,7 +316,8 @@ const INITIAL_FALLBACK_TEAMS = [
   { id: 'tm_21', name: 'IHC Esports', tag: 'IHC' },
   { id: 'tm_22', name: 'Nigma Galaxy', tag: 'NGX' },
   { id: 'tm_23', name: 'Alpha7 Esports', tag: 'A7' },
-  { id: 'tm_24', name: 'S2G Esports', tag: 'S2G' }
+  { id: 'tm_24', name: 'S2G Esports', tag: 'S2G' },
+  { id: 'tm_mec', name: 'MEC', tag: 'MEC' }
 ];
 
 const PLAYGROUND_DEFAULT_MAPS = ['Erangel', 'Erangel', 'Miramar', 'Miramar', 'Rondo'];
@@ -1229,11 +1230,16 @@ export default function App() {
       const sessionTeamNames = [...new Set(sessionToSync.matches.flatMap(m => m.slots.map(s => s.teamName ? s.teamName.trim() : `Slot #${s.slot}`)))];
       const newTeamsToRegister = [];
       sessionTeamNames.forEach(tName => {
-        if (!teams.some(t => t.name.toLowerCase() === tName.toLowerCase())) {
+        const cleanTName = resolveTeamDisplayName(cleanTeamDisplayName(tName)) || tName;
+        const key = getCanonicalTeamKey(cleanTName);
+        if (!teams.some(t => getCanonicalTeamKey(t.name) === key)) {
+          const isMec = key === 'mec';
+          const finalName = isMec ? 'MEC' : cleanTName;
+          const finalTag = isMec ? 'MEC' : finalName.slice(0, 4).toUpperCase();
           newTeamsToRegister.push({
-            id: 'tm_' + tName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36),
-            name: tName,
-            tag: tName.slice(0, 4).toUpperCase()
+            id: isMec ? 'tm_mec' : ('tm_' + finalName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36)),
+            name: finalName,
+            tag: finalTag
           });
         }
       });
@@ -2707,11 +2713,16 @@ export default function App() {
     const sessionTeamNames = [...new Set(compiledResults.map(r => r.teamName))];
     const newTeamsToRegister = [];
     sessionTeamNames.forEach(tName => {
-      if (!teams.some(t => t.name.toLowerCase() === tName.toLowerCase())) {
+      const cleanTName = resolveTeamDisplayName(cleanTeamDisplayName(tName)) || tName;
+      const key = getCanonicalTeamKey(cleanTName);
+      if (!teams.some(t => getCanonicalTeamKey(t.name) === key)) {
+        const isMec = key === 'mec';
+        const finalName = isMec ? 'MEC' : cleanTName;
+        const finalTag = isMec ? 'MEC' : finalName.slice(0, 4).toUpperCase();
         newTeamsToRegister.push({
-          id: 'tm_' + tName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36),
-          name: tName,
-          tag: tName.slice(0, 4).toUpperCase()
+          id: isMec ? 'tm_mec' : ('tm_' + finalName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36)),
+          name: finalName,
+          tag: finalTag
         });
       }
     });
@@ -2862,11 +2873,15 @@ export default function App() {
           const cleanName = cleanTeamDisplayName(r.teamName);
           const isPlaceholder = !cleanName || /^(?:slot\s+\d+|squad\s+#\d+)$/i.test(cleanName);
           const summaryKey = (!isPlaceholder && getCanonicalTeamKey(cleanName)) || r.teamId;
+          const isMec = summaryKey === 'mec';
+          const resolvedDisplayName = resolveTeamDisplayName(cleanName);
+          const displayTeamName = isMec ? 'MEC' : (resolvedDisplayName || cleanName || r.teamName);
+          const displayTag = isMec ? 'MEC' : r.tag;
           if (!summaryMap[summaryKey]) {
             summaryMap[summaryKey] = {
-              teamId: r.teamId,
-              teamName: cleanName || r.teamName,
-              tag: r.tag,
+              teamId: isMec ? 'tm_mec' : r.teamId,
+              teamName: displayTeamName,
+              tag: displayTag,
               matchesPlayed: 0,
               wwcd: 0,
               placePts: 0,
@@ -3857,22 +3872,35 @@ export default function App() {
       const teamKey = getCanonicalTeamKey(cleanName);
       if (!teamKey) return;
 
+      const isMecKey = teamKey === 'mec';
+      const resolvedName = resolveTeamDisplayName(cleanName);
+      const targetName = isMecKey ? (resolvedName || 'MEC') : (cleanName || t.name);
+      const targetTag = isMecKey ? 'MEC' : (t.tag || cleanName.slice(0, 4).toUpperCase());
+
       const existingReg = registeredByKey[teamKey];
-      if (!existingReg || (!existingReg.logo_url && t.logo_url)) {
+      if (!existingReg) {
         registeredByKey[teamKey] = {
           ...t,
-          name: cleanName || existingReg?.name || t.name,
-          tag: t.tag || existingReg?.tag || cleanName.slice(0, 4).toUpperCase(),
-          logo_url: t.logo_url || existingReg?.logo_url || null
+          name: targetName,
+          tag: targetTag,
+          logo_url: t.logo_url || null
         };
+      } else {
+        if (isMecKey && !/mec/i.test(existingReg.name)) {
+          existingReg.name = targetName;
+          existingReg.tag = 'MEC';
+        }
+        if (!existingReg.logo_url && t.logo_url) {
+          existingReg.logo_url = t.logo_url;
+        }
       }
 
       if (!statsByKey[teamKey]) {
         statsByKey[teamKey] = {
           canonicalKey: teamKey,
-          nameCounts: new Map([[cleanName, 1]]),
-          name: cleanName,
-          tag: t.tag || cleanName.slice(0, 4).toUpperCase(),
+          nameCounts: new Map([[targetName, 1]]),
+          name: targetName,
+          tag: targetTag,
           logo_url: t.logo_url || null,
           scrimResults: [],
           totalKills: 0,
@@ -3881,7 +3909,7 @@ export default function App() {
           matchesCount: 0
         };
       } else {
-        statsByKey[teamKey].nameCounts.set(cleanName, (statsByKey[teamKey].nameCounts.get(cleanName) || 0) + 1);
+        statsByKey[teamKey].nameCounts.set(targetName, (statsByKey[teamKey].nameCounts.get(targetName) || 0) + 1);
         if (!statsByKey[teamKey].logo_url && t.logo_url) {
           statsByKey[teamKey].logo_url = t.logo_url;
         }
@@ -3919,13 +3947,18 @@ export default function App() {
             Boolean(r.wwcd);
           if (!teamHasPlayed) return;
 
+          const isMecKey = teamKey === 'mec';
+          const resolvedCleanName = resolveTeamDisplayName(cleanTeamName);
+          const fallbackTeamName = isMecKey ? (resolvedCleanName || 'MEC') : (resolvedCleanName || cleanTeamName);
+          const fallbackTag = isMecKey ? 'MEC' : (r.tag || cleanTeamName.slice(0, 4).toUpperCase());
+
           if (!scrimSummary[teamKey]) {
             const dbTeam = registeredByKey[teamKey];
             scrimSummary[teamKey] = {
               teamKey,
               nameCounts: new Map(),
-              teamName: dbTeam?.name || cleanTeamName,
-              tag: r.tag || dbTeam?.tag || cleanTeamName.slice(0, 4).toUpperCase(),
+              teamName: dbTeam?.name || fallbackTeamName,
+              tag: isMecKey ? 'MEC' : (r.tag || dbTeam?.tag || fallbackTag),
               logo_url: dbTeam?.logo_url || null,
               totalPts: 0,
               totalKills: 0,
@@ -3934,8 +3967,8 @@ export default function App() {
             };
           }
           scrimSummary[teamKey].nameCounts.set(
-            cleanTeamName,
-            (scrimSummary[teamKey].nameCounts.get(cleanTeamName) || 0) + 1
+            fallbackTeamName,
+            (scrimSummary[teamKey].nameCounts.get(fallbackTeamName) || 0) + 1
           );
           if (!scrimSummary[teamKey].tag && r.tag) {
             scrimSummary[teamKey].tag = r.tag;
@@ -4007,12 +4040,17 @@ export default function App() {
     Object.values(statsByKey).forEach(t => {
       if (t.matchesCount > 0 && t.scrimResults && t.scrimResults.length > 0) {
         const dbTeam = registeredByKey[t.canonicalKey];
-        const finalName = pickPreferredTeamDisplayName(t.nameCounts, dbTeam?.name || null) || t.name;
+        const isMec = t.canonicalKey === 'mec';
+        const finalName = pickPreferredTeamDisplayName(t.nameCounts, dbTeam?.name || null, t.canonicalKey) || (isMec ? 'MEC' : t.name);
+        const aliases = Array.from(t.nameCounts.keys());
+        if (isMec && !aliases.some(a => /maqna/i.test(a))) {
+          aliases.push('MAQNA', 'MAQNA Esports');
+        }
         activeStats[finalName] = {
           name: finalName,
           canonicalKey: t.canonicalKey,
-          aliases: Array.from(t.nameCounts.keys()),
-          tag: dbTeam?.tag || t.tag,
+          aliases,
+          tag: (isMec && (!dbTeam?.tag || /^(?:mqn|maqna)$/i.test(dbTeam.tag))) ? 'MEC' : (dbTeam?.tag || t.tag),
           logo_url: dbTeam?.logo_url || t.logo_url || null,
           scrimResults: t.scrimResults,
           totalKills: t.totalKills,
@@ -4110,10 +4148,13 @@ export default function App() {
         const cleanName = cleanTeamDisplayName(t.name);
         const key = getCanonicalTeamKey(cleanName);
         if (!key) return;
+        const resolvedName = resolveTeamDisplayName(cleanName);
+        const targetName = key === 'mec' ? (resolvedName || 'MEC') : cleanName;
+        const targetTag = key === 'mec' ? 'MEC' : ((t.tag || cleanName.slice(0, 4)).trim().toUpperCase());
         map.set(key, {
           id: t.id || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase()),
-          name: cleanName,
-          tag: (t.tag || cleanName.slice(0, 4)).trim().toUpperCase(),
+          name: targetName,
+          tag: targetTag,
           logo_url: t.logo_url || ''
         });
       }
@@ -4125,11 +4166,14 @@ export default function App() {
         const cleanName = cleanTeamDisplayName(st.name);
         const key = getCanonicalTeamKey(cleanName);
         if (!key) return;
+        const resolvedName = resolveTeamDisplayName(cleanName);
+        const targetName = key === 'mec' ? (resolvedName || 'MEC') : cleanName;
+        const targetTag = key === 'mec' ? 'MEC' : ((st.tag || cleanName.slice(0, 4)).trim().toUpperCase());
         if (!map.has(key)) {
           map.set(key, {
             id: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase(),
-            name: cleanName,
-            tag: (st.tag || cleanName.slice(0, 4)).trim().toUpperCase(),
+            name: targetName,
+            tag: targetTag,
             logo_url: st.logo_url || ''
           });
         } else if (!map.get(key).logo_url && st.logo_url) {

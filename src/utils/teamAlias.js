@@ -15,7 +15,35 @@ const EXPLICIT_TEAM_KEY_ALIASES = {
   'sentry symphony': 'sentry symphony',
   'ben esports': 'ben',
   'ben esport': 'ben',
-  ben: 'ben'
+  ben: 'ben',
+  // MAQNA is MEC (merged canonical mapping)
+  maqna: 'mec',
+  'maqna esports': 'mec',
+  'maqna esport': 'mec',
+  'maqna gaming': 'mec',
+  'maqna team': 'mec',
+  'team maqna': 'mec',
+  'team maqna esports': 'mec',
+  'maqna squad': 'mec',
+  'maqna official': 'mec',
+  'maqna my': 'mec',
+  'maqna malaysia': 'mec',
+  mqn: 'mec',
+  'mqn esports': 'mec',
+  'mqn esport': 'mec',
+  'mqn gaming': 'mec',
+  'team mqn': 'mec',
+  mec: 'mec',
+  'mec esports': 'mec',
+  'mec esport': 'mec',
+  'mec gaming': 'mec',
+  'mec team': 'mec',
+  'team mec': 'mec',
+  'team mec esports': 'mec',
+  'mec squad': 'mec',
+  'mec official': 'mec',
+  'mec my': 'mec',
+  'mec malaysia': 'mec'
 };
 
 /**
@@ -32,9 +60,26 @@ export function cleanTeamDisplayName(rawName) {
 }
 
 /**
+ * Normalizes legacy or re-branded team names to their canonical display version.
+ * e.g., converts 'MAQNA' or 'MQN' variants into 'MEC' or 'MEC Esports'.
+ * @param {string} rawName
+ * @returns {string}
+ */
+export function resolveTeamDisplayName(rawName) {
+  const cleaned = cleanTeamDisplayName(rawName);
+  if (!cleaned) return '';
+
+  if (/\b(?:maqna|mqn)\b/i.test(cleaned)) {
+    return cleaned.replace(/\bmaqna\b/gi, 'MEC').replace(/\bmqn\b/gi, 'MEC');
+  }
+
+  return cleaned;
+}
+
+/**
  * Computes a deterministic canonical grouping key for a team name so split
- * variants such as "Sentry Symphony" + "Sentry Symphony Esports" or
- * "Ben" + "Ben Esports" aggregate into one team entry.
+ * variants such as "Sentry Symphony" + "Sentry Symphony Esports",
+ * "Ben" + "Ben Esports", or "MAQNA" + "MEC" aggregate into one team entry.
  * @param {string} rawName
  * @returns {string}
  */
@@ -62,6 +107,15 @@ export function getCanonicalTeamKey(rawName) {
     .replace(/[-–—|/.,:;]+$/g, '')
     .trim();
 
+  // Handle MAQNA / MQN variations explicitly
+  if (
+    normalized === 'maqna' ||
+    normalized === 'mqn' ||
+    /^(?:team\s+)?(?:maqna|mqn)(?:\s+(?:esports?|gaming|squad|official|my|malaysia))?$/i.test(stem)
+  ) {
+    return 'mec';
+  }
+
   // Strip trailing suffix tokens while preserving non-empty core names (e.g., "Team Secret" stays intact).
   let prev;
   do {
@@ -82,34 +136,51 @@ export function getCanonicalTeamKey(rawName) {
 /**
  * Selects the cleanest display name for a merged canonical team group.
  * Registered teams from the Team Manager always take priority; otherwise prefers
- * fuller official variants (e.g., "Ben Esports" over "Ben", "Sentry Symphony Esports"
- * over "Sentry Symphony") and higher frequency.
+ * fuller official variants (e.g., "MEC" / "MEC Esports", "Ben Esports" over "Ben",
+ * "Sentry Symphony Esports" over "Sentry Symphony") and higher frequency.
  * @param {Iterable<string>|Map<string, number>} candidatesOrCounts
  * @param {string|null} registeredName
+ * @param {string|null} canonicalKey
  * @returns {string}
  */
-export function pickPreferredTeamDisplayName(candidatesOrCounts, registeredName = null) {
+export function pickPreferredTeamDisplayName(candidatesOrCounts, registeredName = null, canonicalKey = null) {
   const regClean = cleanTeamDisplayName(registeredName);
-  if (regClean) return regClean;
+  if (regClean) {
+    return resolveTeamDisplayName(regClean);
+  }
 
   const entries =
     candidatesOrCounts instanceof Map
       ? Array.from(candidatesOrCounts.entries())
       : Array.from(candidatesOrCounts || []).map((name) => [name, 1]);
 
-  if (entries.length === 0) return '';
+  if (entries.length === 0) {
+    if (canonicalKey === 'mec') return 'MEC';
+    return '';
+  }
 
   const scoreCandidate = (name, count) => {
-    const clean = cleanTeamDisplayName(name);
+    const resolved = resolveTeamDisplayName(name);
+    const clean = cleanTeamDisplayName(resolved);
     const hasOfficialSuffix = /\b(?:esports|esport|e-sports|e-sport|gaming|official)\b/i.test(clean) ? 1 : 0;
     const isMixedCase = /[a-z]/.test(clean) && /[A-Z]/.test(clean) ? 1 : 0;
-    return { clean, hasOfficialSuffix, count, isMixedCase, len: clean.length };
+    const isCanonicalBrand = /\bmec\b/i.test(clean) ? 1 : 0;
+    return { clean, hasOfficialSuffix, count, isMixedCase, isCanonicalBrand, len: clean.length };
   };
 
-  return entries
+  // Group counts by resolved name so MAQNA and MEC counts aggregate together
+  const aggregatedCounts = new Map();
+  entries.forEach(([name, count]) => {
+    const resolved = resolveTeamDisplayName(name);
+    if (!resolved) return;
+    aggregatedCounts.set(resolved, (aggregatedCounts.get(resolved) || 0) + count);
+  });
+
+  return Array.from(aggregatedCounts.entries())
     .map(([name, count]) => scoreCandidate(name, count))
     .filter((item) => Boolean(item.clean))
     .sort((a, b) => {
+      if (b.isCanonicalBrand !== a.isCanonicalBrand) return b.isCanonicalBrand - a.isCanonicalBrand;
       if (b.hasOfficialSuffix !== a.hasOfficialSuffix) return b.hasOfficialSuffix - a.hasOfficialSuffix;
       if (b.count !== a.count) return b.count - a.count;
       if (b.len !== a.len) return b.len - a.len;
