@@ -61,7 +61,8 @@ import {
   Phone,
   Camera,
   Crop,
-  MoreVertical
+  MoreVertical,
+  GitMerge
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
@@ -69,7 +70,15 @@ import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
 import TeamLogoCropper from './components/TeamLogoCropper';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
-import { cleanTeamDisplayName, getCanonicalTeamKey, pickPreferredTeamDisplayName, resolveTeamDisplayName } from './utils/teamAlias';
+import {
+  cleanTeamDisplayName,
+  getCanonicalTeamKey,
+  getCompactTeamSignature,
+  pickPreferredTeamDisplayName,
+  resolveTeamDisplayName,
+  saveCustomTeamAlias,
+  findPotentialDuplicatePairs
+} from './utils/teamAlias';
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
   <svg 
@@ -1400,6 +1409,8 @@ export default function App() {
 
   const [isTeamManagerModalOpen, setIsTeamManagerModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
+  const [mergeTeamDraft, setMergeTeamDraft] = useState(null);
+  const [teamAliasVersion, setTeamAliasVersion] = useState(0);
   const [teamManagerSearch, setTeamManagerSearch] = useState('');
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isUploadingTeamLogo, setIsUploadingTeamLogo] = useState(false);
@@ -2865,6 +2876,7 @@ export default function App() {
 
     if (filterType === 'overall') {
       const summaryMap = {};
+      const sigToSummaryKey = {};
 
       targetScrim.matches.forEach((m) => {
         if (!m) return;
@@ -2872,11 +2884,21 @@ export default function App() {
           if (!r || !r.teamId) return;
           const cleanName = cleanTeamDisplayName(r.teamName);
           const isPlaceholder = !cleanName || /^(?:slot\s+\d+|squad\s+#\d+)$/i.test(cleanName);
-          const summaryKey = (!isPlaceholder && getCanonicalTeamKey(cleanName)) || r.teamId;
+          const rawKey = (!isPlaceholder && getCanonicalTeamKey(cleanName)) || r.teamId;
+          const sig = !isPlaceholder ? getCompactTeamSignature(cleanName) : '';
+          let summaryKey = rawKey;
+          if (sig) {
+            if (sigToSummaryKey[sig]) {
+              summaryKey = sigToSummaryKey[sig];
+            } else {
+              sigToSummaryKey[sig] = rawKey;
+            }
+          }
           const isMec = summaryKey === 'mec';
+          const isDacsVictim = summaryKey === 'dacs x victim';
           const resolvedDisplayName = resolveTeamDisplayName(cleanName);
-          const displayTeamName = isMec ? 'MEC' : (resolvedDisplayName || cleanName || r.teamName);
-          const displayTag = isMec ? 'MEC' : r.tag;
+          const displayTeamName = isMec ? 'MEC' : isDacsVictim ? 'DACS X VICTIM' : (resolvedDisplayName || cleanName || r.teamName);
+          const displayTag = isMec ? 'MEC' : isDacsVictim ? 'DACS' : r.tag;
           if (!summaryMap[summaryKey]) {
             summaryMap[summaryKey] = {
               teamId: isMec ? 'tm_mec' : r.teamId,
@@ -2888,8 +2910,8 @@ export default function App() {
               killPts: 0,
               totalPts: 0
             };
-          } else if (cleanName && cleanName.length > (summaryMap[summaryKey].teamName || '').length && /\b(?:esports?|gaming|official)\b/i.test(cleanName)) {
-            summaryMap[summaryKey].teamName = cleanName;
+          } else if (resolvedDisplayName && resolvedDisplayName.length > (summaryMap[summaryKey].teamName || '').length && (/\b(?:esports?|gaming|official)\b/i.test(resolvedDisplayName) || /\s/.test(resolvedDisplayName))) {
+            summaryMap[summaryKey].teamName = resolvedDisplayName;
           }
           const hasScore = (r.placement !== '' && r.placement !== null && r.placement !== undefined) || Number(r.kills) > 0 || Number(r.totalPts) > 0;
           if (hasScore) {
@@ -3862,20 +3884,45 @@ export default function App() {
   };
 
   const teamsStats = useMemo(() => {
+    // Recompute when user-defined custom team merges update localStorage aliases
+    if (teamAliasVersion < 0) return {};
     const registeredByKey = {};
     const statsByKey = {};
+    const signatureToKey = {};
+
+    const resolveUnifiedKey = (rawName) => {
+      const baseKey = getCanonicalTeamKey(rawName);
+      if (!baseKey) return '';
+      const sig = getCompactTeamSignature(rawName);
+      if (sig && signatureToKey[sig]) {
+        return signatureToKey[sig];
+      }
+      if (sig) {
+        signatureToKey[sig] = baseKey;
+      }
+      return baseKey;
+    };
 
     // Seed registered teams by canonical key so alias variants share canonical metadata
     teams.forEach(t => {
       if (!t || !t.name) return;
       const cleanName = cleanTeamDisplayName(t.name);
-      const teamKey = getCanonicalTeamKey(cleanName);
+      const teamKey = resolveUnifiedKey(cleanName);
       if (!teamKey) return;
 
       const isMecKey = teamKey === 'mec';
+      const isDacsVictimKey = teamKey === 'dacs x victim';
       const resolvedName = resolveTeamDisplayName(cleanName);
-      const targetName = isMecKey ? (resolvedName || 'MEC') : (cleanName || t.name);
-      const targetTag = isMecKey ? 'MEC' : (t.tag || cleanName.slice(0, 4).toUpperCase());
+      const targetName = isMecKey
+        ? (resolvedName || 'MEC')
+        : isDacsVictimKey
+          ? 'DACS X VICTIM'
+          : (resolvedName || cleanName || t.name);
+      const targetTag = isMecKey
+        ? 'MEC'
+        : isDacsVictimKey
+          ? 'DACS'
+          : (t.tag || cleanName.slice(0, 4).toUpperCase());
 
       const existingReg = registeredByKey[teamKey];
       if (!existingReg) {
@@ -3889,6 +3936,9 @@ export default function App() {
         if (isMecKey && !/mec/i.test(existingReg.name)) {
           existingReg.name = targetName;
           existingReg.tag = 'MEC';
+        } else if (isDacsVictimKey && !/^dacs x victim$/i.test(existingReg.name)) {
+          existingReg.name = 'DACS X VICTIM';
+          existingReg.tag = 'DACS';
         }
         if (!existingReg.logo_url && t.logo_url) {
           existingReg.logo_url = t.logo_url;
@@ -3934,9 +3984,9 @@ export default function App() {
 
         m.results.forEach(r => {
           if (!r || !r.teamName || !r.teamName.trim()) return;
-          // Clean country flag emojis and resolve canonical alias key to merge split suffix names
+          // Clean country flag emojis, spaces/unicode & resolve canonical alias key
           const cleanTeamName = cleanTeamDisplayName(r.teamName);
-          const teamKey = getCanonicalTeamKey(cleanTeamName);
+          const teamKey = resolveUnifiedKey(cleanTeamName);
           if (!cleanTeamName || !teamKey) return;
 
           // Verify this specific team actually played or has recorded points/kills/placement
@@ -3948,9 +3998,18 @@ export default function App() {
           if (!teamHasPlayed) return;
 
           const isMecKey = teamKey === 'mec';
+          const isDacsVictimKey = teamKey === 'dacs x victim';
           const resolvedCleanName = resolveTeamDisplayName(cleanTeamName);
-          const fallbackTeamName = isMecKey ? (resolvedCleanName || 'MEC') : (resolvedCleanName || cleanTeamName);
-          const fallbackTag = isMecKey ? 'MEC' : (r.tag || cleanTeamName.slice(0, 4).toUpperCase());
+          const fallbackTeamName = isMecKey
+            ? (resolvedCleanName || 'MEC')
+            : isDacsVictimKey
+              ? 'DACS X VICTIM'
+              : (resolvedCleanName || cleanTeamName);
+          const fallbackTag = isMecKey
+            ? 'MEC'
+            : isDacsVictimKey
+              ? 'DACS'
+              : (r.tag || cleanTeamName.slice(0, 4).toUpperCase());
 
           if (!scrimSummary[teamKey]) {
             const dbTeam = registeredByKey[teamKey];
@@ -3958,7 +4017,7 @@ export default function App() {
               teamKey,
               nameCounts: new Map(),
               teamName: dbTeam?.name || fallbackTeamName,
-              tag: isMecKey ? 'MEC' : (r.tag || dbTeam?.tag || fallbackTag),
+              tag: isMecKey ? 'MEC' : isDacsVictimKey ? 'DACS' : (r.tag || dbTeam?.tag || fallbackTag),
               logo_url: dbTeam?.logo_url || null,
               totalPts: 0,
               totalKills: 0,
@@ -3970,6 +4029,9 @@ export default function App() {
             fallbackTeamName,
             (scrimSummary[teamKey].nameCounts.get(fallbackTeamName) || 0) + 1
           );
+          if (cleanTeamName !== fallbackTeamName) {
+            scrimSummary[teamKey].nameCounts.set(cleanTeamName, (scrimSummary[teamKey].nameCounts.get(cleanTeamName) || 0));
+          }
           if (!scrimSummary[teamKey].tag && r.tag) {
             scrimSummary[teamKey].tag = r.tag;
           }
@@ -4041,16 +4103,22 @@ export default function App() {
       if (t.matchesCount > 0 && t.scrimResults && t.scrimResults.length > 0) {
         const dbTeam = registeredByKey[t.canonicalKey];
         const isMec = t.canonicalKey === 'mec';
-        const finalName = pickPreferredTeamDisplayName(t.nameCounts, dbTeam?.name || null, t.canonicalKey) || (isMec ? 'MEC' : t.name);
+        const isDacsVictim = t.canonicalKey === 'dacs x victim';
+        const finalName = pickPreferredTeamDisplayName(t.nameCounts, dbTeam?.name || null, t.canonicalKey) || (isMec ? 'MEC' : isDacsVictim ? 'DACS X VICTIM' : t.name);
         const aliases = Array.from(t.nameCounts.keys());
         if (isMec && !aliases.some(a => /maqna/i.test(a))) {
           aliases.push('MAQNA', 'MAQNA Esports');
+        }
+        if (isDacsVictim && !aliases.some(a => /dacs xvictim/i.test(a))) {
+          aliases.push('DACS XVICTIM');
         }
         activeStats[finalName] = {
           name: finalName,
           canonicalKey: t.canonicalKey,
           aliases,
-          tag: (isMec && (!dbTeam?.tag || /^(?:mqn|maqna)$/i.test(dbTeam.tag))) ? 'MEC' : (dbTeam?.tag || t.tag),
+          tag: (isMec && (!dbTeam?.tag || /^(?:mqn|maqna)$/i.test(dbTeam.tag)))
+            ? 'MEC'
+            : (isDacsVictim ? 'DACS' : (dbTeam?.tag || t.tag)),
           logo_url: dbTeam?.logo_url || t.logo_url || null,
           scrimResults: t.scrimResults,
           totalKills: t.totalKills,
@@ -4062,7 +4130,7 @@ export default function App() {
     });
 
     return activeStats;
-  }, [scrims, teams]);
+  }, [scrims, teams, teamAliasVersion]);
 
   const validTeamList = useMemo(() => {
     return Object.values(teamsStats)
@@ -4142,20 +4210,40 @@ export default function App() {
   // Master Admin (Kuasa Mutlak) Manageable Teams Directory
   const allManageableTeams = useMemo(() => {
     const map = new Map();
+    const signatureToKey = {};
+
+    const resolveKey = (rawName) => {
+      const base = getCanonicalTeamKey(rawName);
+      if (!base) return '';
+      const sig = getCompactTeamSignature(rawName);
+      if (sig && signatureToKey[sig]) return signatureToKey[sig];
+      if (sig) signatureToKey[sig] = base;
+      return base;
+    };
+
     // 1. Registered teams from state
     teams.forEach(t => {
       if (t && t.name) {
         const cleanName = cleanTeamDisplayName(t.name);
-        const key = getCanonicalTeamKey(cleanName);
+        const key = resolveKey(cleanName);
         if (!key) return;
         const resolvedName = resolveTeamDisplayName(cleanName);
-        const targetName = key === 'mec' ? (resolvedName || 'MEC') : cleanName;
-        const targetTag = key === 'mec' ? 'MEC' : ((t.tag || cleanName.slice(0, 4)).trim().toUpperCase());
+        const targetName = key === 'mec'
+          ? (resolvedName || 'MEC')
+          : key === 'dacs x victim'
+            ? 'DACS X VICTIM'
+            : (resolvedName || cleanName);
+        const targetTag = key === 'mec'
+          ? 'MEC'
+          : key === 'dacs x victim'
+            ? 'DACS'
+            : ((t.tag || cleanName.slice(0, 4)).trim().toUpperCase());
+        const existing = map.get(key);
         map.set(key, {
-          id: t.id || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase()),
-          name: targetName,
+          id: existing?.id || t.id || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase()),
+          name: existing?.name && /\s/.test(existing.name) && !/\s/.test(targetName) ? existing.name : targetName,
           tag: targetTag,
-          logo_url: t.logo_url || ''
+          logo_url: existing?.logo_url || t.logo_url || ''
         });
       }
     });
@@ -4164,11 +4252,19 @@ export default function App() {
     Object.values(teamsStats).forEach(st => {
       if (st && st.name) {
         const cleanName = cleanTeamDisplayName(st.name);
-        const key = getCanonicalTeamKey(cleanName);
+        const key = resolveKey(cleanName);
         if (!key) return;
         const resolvedName = resolveTeamDisplayName(cleanName);
-        const targetName = key === 'mec' ? (resolvedName || 'MEC') : cleanName;
-        const targetTag = key === 'mec' ? 'MEC' : ((st.tag || cleanName.slice(0, 4)).trim().toUpperCase());
+        const targetName = key === 'mec'
+          ? (resolvedName || 'MEC')
+          : key === 'dacs x victim'
+            ? 'DACS X VICTIM'
+            : (resolvedName || cleanName);
+        const targetTag = key === 'mec'
+          ? 'MEC'
+          : key === 'dacs x victim'
+            ? 'DACS'
+            : ((st.tag || cleanName.slice(0, 4)).trim().toUpperCase());
         if (!map.has(key)) {
           map.set(key, {
             id: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase(),
@@ -4184,6 +4280,11 @@ export default function App() {
 
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [teams, teamsStats]);
+
+  const potentialDuplicatePairs = useMemo(
+    () => findPotentialDuplicatePairs(allManageableTeams),
+    [allManageableTeams]
+  );
 
   const filteredManageableTeams = useMemo(() => {
     const q = teamManagerSearch.toLowerCase().trim();
@@ -4274,6 +4375,142 @@ export default function App() {
       showToast('Tak dapat save: ' + error.message);
     } finally {
       setIsSavingTeam(false);
+    }
+  };
+
+  const handleMergeTeams = async (sourceNameRaw, targetNameRaw) => {
+    const sourceName = cleanTeamDisplayName(sourceNameRaw);
+    const targetName = cleanTeamDisplayName(targetNameRaw);
+    if (!sourceName || !targetName) {
+      showToast('Pilih team asal dan team sasaran.');
+      return;
+    }
+
+    const sourceKey = getCanonicalTeamKey(sourceName);
+    const sourceSig = getCompactTeamSignature(sourceName);
+    const targetKey = getCanonicalTeamKey(targetName);
+    const targetSig = getCompactTeamSignature(targetName);
+    if (!sourceKey || !targetKey || (sourceKey === targetKey && sourceSig === targetSig && sourceName.toLowerCase() === targetName.toLowerCase())) {
+      showToast('Team asal dan sasaran sama je. Pilih dua team berbeza.');
+      return;
+    }
+
+    const sourceObj = allManageableTeams.find(t => t.name === sourceName) || teams.find(t => getCanonicalTeamKey(t.name) === sourceKey);
+    const targetObj = allManageableTeams.find(t => t.name === targetName) || teams.find(t => getCanonicalTeamKey(t.name) === targetKey);
+    const finalTargetId = targetObj?.id || ('tm_' + targetName.replace(/[^a-z0-9]+/gi, '_').toLowerCase());
+    const finalTargetTag = (targetObj?.tag || targetName.slice(0, 4)).trim().toUpperCase();
+    const inheritedLogo = targetObj?.logo_url || sourceObj?.logo_url || null;
+
+    setMergeTeamDraft(prev => prev ? { ...prev, isSubmitting: true } : { sourceName, targetName, isSubmitting: true });
+
+    try {
+      // 1. Persist canonical alias rule so future scans/imports auto-resolve
+      saveCustomTeamAlias(sourceName, targetName);
+      setTeamAliasVersion(v => v + 1);
+
+      // 2. Rewrite matching rows inside scrims (state + localStorage + Supabase)
+      const changedScrims = [];
+      const nextScrims = scrims.map(scrim => {
+        let modified = false;
+        const nextMatches = (scrim.matches || []).map(m => {
+          const nextResults = (m.results || []).map(r => {
+            if (!r || !r.teamName) return r;
+            const rKey = getCanonicalTeamKey(r.teamName);
+            const rSig = getCompactTeamSignature(r.teamName);
+            const matchesSource =
+              r.teamName.trim().toLowerCase() === sourceName.toLowerCase() ||
+              (sourceKey && rKey === sourceKey) ||
+              (sourceSig && rSig === sourceSig);
+            if (!matchesSource) return r;
+
+            modified = true;
+            return {
+              ...r,
+              teamId: finalTargetId,
+              teamName: targetName,
+              tag: finalTargetTag
+            };
+          });
+          return { ...m, results: nextResults };
+        });
+
+        if (!modified) return scrim;
+        const updatedScrim = { ...scrim, matches: nextMatches };
+        changedScrims.push(updatedScrim);
+        return updatedScrim;
+      });
+
+      if (changedScrims.length > 0) {
+        setScrims(nextScrims);
+        try {
+          const localRaw = localStorage.getItem('pubg_hub_saved_scrims');
+          if (localRaw) {
+            const parsedLocal = JSON.parse(localRaw);
+            if (Array.isArray(parsedLocal)) {
+              const changedMap = new Map(changedScrims.map(cs => [cs.id, cs]));
+              localStorage.setItem(
+                'pubg_hub_saved_scrims',
+                JSON.stringify(parsedLocal.map(ls => changedMap.get(ls?.id) || ls))
+              );
+            }
+          }
+        } catch {
+          // ignore localStorage error
+        }
+
+        for (const updated of changedScrims) {
+          try {
+            await supabase
+              .from('scrims')
+              .update({ matches: updated.matches })
+              .eq('id', updated.id);
+          } catch (scErr) {
+            console.warn('Scrim merge cloud sync note:', scErr);
+          }
+        }
+      }
+
+      // 3. Merge teams directory & logo
+      setTeams(prevTeams => {
+        const filtered = prevTeams.filter(t => {
+          if (!t || !t.name) return false;
+          const tk = getCanonicalTeamKey(t.name);
+          return t.name.trim().toLowerCase() !== sourceName.toLowerCase() && tk !== sourceKey;
+        });
+        const idx = filtered.findIndex(t => getCanonicalTeamKey(t.name) === targetKey || t.name.trim().toLowerCase() === targetName.toLowerCase());
+        const mergedEntry = {
+          id: finalTargetId,
+          name: targetName,
+          tag: finalTargetTag,
+          logo_url: inheritedLogo
+        };
+        if (idx >= 0) {
+          filtered[idx] = { ...filtered[idx], ...mergedEntry };
+        } else {
+          filtered.push(mergedEntry);
+        }
+        try {
+          localStorage.setItem('pubg_hub_custom_teams', JSON.stringify(filtered));
+        } catch {
+          // ignore
+        }
+        return filtered;
+      });
+
+      try {
+        if (sourceObj?.id && sourceObj.id !== finalTargetId) {
+          await supabase.from('teams').delete().eq('id', sourceObj.id);
+        }
+      } catch {
+        // Ignore if RLS blocks delete; alias mapping + scrim rewrite handles it cleanly
+      }
+
+      setMergeTeamDraft(null);
+      setEditingTeam(null);
+      showToast(`"${sourceName}" dah digabung ke "${targetName}" (${changedScrims.length} scrim dikemas kini).`);
+    } catch (err) {
+      showToast('Gagal gabung team: ' + (err?.message || 'Ralat'));
+      setMergeTeamDraft(prev => prev ? { ...prev, isSubmitting: false } : null);
     }
   };
 
@@ -4678,6 +4915,10 @@ export default function App() {
         setLogoCropSource(null);
         return true;
       }
+      if (mergeTeamDraft) {
+        setMergeTeamDraft(null);
+        return true;
+      }
       if (editingTeam) {
         setEditingTeam(null);
         return true;
@@ -4721,6 +4962,7 @@ export default function App() {
     isQuickCreateModalOpen,
     isTeamManagerModalOpen,
     logoCropSource,
+    mergeTeamDraft,
     editingTeam,
     isPerformanceModalOpen,
     inspectedScrim,
@@ -8220,6 +8462,7 @@ export default function App() {
             profileName={activeOrganizationName || profileName}
             scrims={scrims}
             setScrims={setScrims}
+            knownTeams={allManageableTeams}
             showToast={showToast}
           />
         )}
@@ -10654,6 +10897,7 @@ export default function App() {
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
           onClick={() => {
             if (logoCropSource) setLogoCropSource(null);
+            else if (mergeTeamDraft) setMergeTeamDraft(null);
             else if (editingTeam) setEditingTeam(null);
             else setIsTeamManagerModalOpen(false);
           }}
@@ -10682,6 +10926,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (logoCropSource) setLogoCropSource(null);
+                  else if (mergeTeamDraft) setMergeTeamDraft(null);
                   else if (editingTeam) setEditingTeam(null);
                   else setIsTeamManagerModalOpen(false);
                 }}
@@ -10700,7 +10945,7 @@ export default function App() {
               className="hidden"
             />
 
-            {/* View A: Crop Logo OR Edit Team Form */}
+            {/* View A: Crop Logo OR Merge Teams OR Edit Team Form */}
             {editingTeam && logoCropSource ? (
               <TeamLogoCropper
                 key={logoCropSource}
@@ -10710,6 +10955,148 @@ export default function App() {
                 onCancel={() => setLogoCropSource(null)}
                 onConfirm={handleConfirmLogoCrop}
               />
+            ) : mergeTeamDraft ? (
+              <div className="space-y-4 overflow-y-auto pr-0.5 flex-1 overscroll-contain">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setMergeTeamDraft(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#D7FF00] transition cursor-pointer min-h-[36px]"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Kembali ke Senarai</span>
+                  </button>
+                  <span className="text-[10px] font-mono font-bold text-[#D7FF00] uppercase tracking-wider">
+                    Gabung Duplikat
+                  </span>
+                </div>
+
+                {/* Auto-detected near-duplicate pairs */}
+                {potentialDuplicatePairs.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-black border border-amber-400/25 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
+                        Duplikat Dikesan ({potentialDuplicatePairs.length})
+                      </span>
+                      <span className="text-[10px] text-zinc-400">Tap untuk pilih</span>
+                    </div>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-0.5">
+                      {potentialDuplicatePairs.map((pair, pIdx) => (
+                        <div
+                          key={`${pair.source.name}_${pair.target.name}_${pIdx}`}
+                          className="p-2.5 rounded-xl bg-zinc-950 border border-white/10 flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-white truncate">
+                              <span className="text-zinc-400 line-through mr-1.5">{pair.source.name}</span>
+                              <span className="text-[#D7FF00]">→ {pair.target.name}</span>
+                            </p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5">{pair.reason}</p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={mergeTeamDraft.isSubmitting}
+                            onClick={() =>
+                              setMergeTeamDraft({
+                                sourceName: pair.source.name,
+                                targetName: pair.target.name,
+                                isSubmitting: false
+                              })
+                            }
+                            className="px-2.5 py-1.5 rounded-lg bg-[#D7FF00]/15 hover:bg-[#D7FF00] text-[#D7FF00] hover:text-black text-[11px] font-black transition shrink-0 cursor-pointer"
+                          >
+                            Pilih
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual Source -> Target Merge Form */}
+                <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-3.5">
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-400 mb-1.5">
+                      Team Lama / Salah Ejaan (Akan Digabung)
+                    </label>
+                    <select
+                      value={mergeTeamDraft.sourceName || ''}
+                      onChange={(e) => setMergeTeamDraft(prev => ({ ...prev, sourceName: e.target.value }))}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-bold focus:outline-none focus:border-[#D7FF00]"
+                    >
+                      <option value="">-- Pilih team asal --</option>
+                      {allManageableTeams.map(t => (
+                        <option key={`src_${t.id}_${t.name}`} value={t.name}>
+                          {t.name} [{t.tag}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex justify-center">
+                    <div className="w-8 h-8 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center text-[#D7FF00]">
+                      <GitMerge className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-400 mb-1.5">
+                      Team Rasmi / Kekal (Sasaran)
+                    </label>
+                    <select
+                      value={mergeTeamDraft.targetName || ''}
+                      onChange={(e) => setMergeTeamDraft(prev => ({ ...prev, targetName: e.target.value }))}
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-bold focus:outline-none focus:border-[#D7FF00]"
+                    >
+                      <option value="">-- Pilih team rasmi --</option>
+                      {allManageableTeams
+                        .filter(t => t.name !== mergeTeamDraft.sourceName)
+                        .map(t => (
+                          <option key={`tgt_${t.id}_${t.name}`} value={t.name}>
+                            {t.name} [{t.tag}]
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Semua rekod match, kill, WWCD dan mata daripada team lama akan dipindahkan terus ke team rasmi dan disimpan sebagai alias kekal.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setMergeTeamDraft(null)}
+                    className="flex-1 py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      mergeTeamDraft.isSubmitting ||
+                      !mergeTeamDraft.sourceName ||
+                      !mergeTeamDraft.targetName ||
+                      mergeTeamDraft.sourceName === mergeTeamDraft.targetName
+                    }
+                    onClick={() => handleMergeTeams(mergeTeamDraft.sourceName, mergeTeamDraft.targetName)}
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-40 text-black text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                  >
+                    {mergeTeamDraft.isSubmitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-black" />
+                        <span>Menggabung...</span>
+                      </>
+                    ) : (
+                      <>
+                        <GitMerge className="w-3.5 h-3.5 text-black" />
+                        <span>Gabung Sekarang</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             ) : editingTeam ? (
               <div className="space-y-4 overflow-y-auto pr-0.5 flex-1 overscroll-contain">
                 <div className="flex items-center justify-between">
@@ -10845,6 +11232,25 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Quick Merge Shortcut */}
+                {!editingTeam._isNew && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const original = editingTeam._originalName || editingTeam.name;
+                      setMergeTeamDraft({
+                        sourceName: original,
+                        targetName: '',
+                        isSubmitting: false
+                      });
+                    }}
+                    className="w-full py-2.5 px-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-white/10 text-zinc-300 hover:text-[#D7FF00] text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <GitMerge className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <span>Gabung team ini ke team lain...</span>
+                  </button>
+                )}
+
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-2">
                   <button
@@ -10899,26 +11305,48 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px]">
+                  <div className="flex items-center justify-between text-[11px] gap-2">
                     <span className="text-zinc-400 font-mono">
                       {filteredManageableTeams.length} team
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingTeam({
-                          id: 'tm_new_' + Date.now().toString(36),
-                          name: '',
-                          tag: '',
-                          logo_url: '',
-                          _isNew: true
-                        });
-                      }}
-                      className="inline-flex items-center gap-1 text-[#D7FF00] hover:underline font-bold cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Team</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const firstPair = potentialDuplicatePairs[0];
+                          setMergeTeamDraft({
+                            sourceName: firstPair?.source?.name || '',
+                            targetName: firstPair?.target?.name || '',
+                            isSubmitting: false
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-950 hover:bg-zinc-900 border border-white/10 text-zinc-200 hover:text-[#D7FF00] font-bold transition cursor-pointer"
+                      >
+                        <GitMerge className="w-3 h-3 text-[#D7FF00]" />
+                        <span>Gabung Team</span>
+                        {potentialDuplicatePairs.length > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-black">
+                            {potentialDuplicatePairs.length}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTeam({
+                            id: 'tm_new_' + Date.now().toString(36),
+                            name: '',
+                            tag: '',
+                            logo_url: '',
+                            _isNew: true
+                          });
+                        }}
+                        className="inline-flex items-center gap-1 text-[#D7FF00] hover:underline font-bold cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Team</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 

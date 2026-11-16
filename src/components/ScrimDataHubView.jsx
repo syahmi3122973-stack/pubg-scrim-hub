@@ -20,7 +20,12 @@ import {
   Users,
   Zap
 } from 'lucide-react';
-import { cleanTeamDisplayName, getCanonicalTeamKey } from '../utils/teamAlias';
+import {
+  cleanTeamDisplayName,
+  getCanonicalTeamKey,
+  resolveTeamDisplayName,
+  findClosestKnownTeamMatch
+} from '../utils/teamAlias';
 
 // Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
 export const MEC_SCRIMS_18_TEAMS = [
@@ -127,19 +132,28 @@ export function parsePosterDate(dateStr) {
 }
 
 // Normalize team name variations (e.g. "[4KRV] ESPORTS OFFICIAL" -> canonical slug "4krv")
-export function normalizeTeamAlias(rawName) {
+export function normalizeTeamAlias(rawName, knownTeams = []) {
   if (!rawName) return { raw: '', canonicalName: '', slug: '', tag: '' };
   const trimmed = cleanTeamDisplayName(rawName);
+  const resolved = resolveTeamDisplayName(trimmed);
+  const exactMatch = findClosestKnownTeamMatch(resolved, knownTeams);
+  const matchedName = exactMatch?.matchType === 'exact_compact' ? exactMatch.team.name : resolved;
   const bracketMatch = trimmed.match(/^\[([^\]]+)\]\s*(.*)$/);
-  const baseKey = getCanonicalTeamKey(trimmed);
+  const baseKey = getCanonicalTeamKey(matchedName);
 
-  const finalDisplay = (baseKey || trimmed).toUpperCase();
-  const slug = finalDisplay
+  const finalDisplay = (matchedName || baseKey || trimmed).toUpperCase();
+  const slug = (baseKey || finalDisplay)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  const tag = (bracketMatch ? bracketMatch[1] : finalDisplay.slice(0, 4)).toUpperCase();
+  const tag = (
+    exactMatch?.matchType === 'exact_compact' && exactMatch.team.tag
+      ? exactMatch.team.tag
+      : bracketMatch
+        ? bracketMatch[1]
+        : finalDisplay.slice(0, 4)
+  ).toUpperCase();
 
   return {
     raw: trimmed,
@@ -219,6 +233,7 @@ export default function ScrimDataHubView({
   profileName = '',
   scrims,
   setScrims,
+  knownTeams = [],
   showToast
 }) {
   const [isHeaderInfoOpen, setIsHeaderInfoOpen] = useState(false);
@@ -360,15 +375,21 @@ export default function ScrimDataHubView({
           setScrimName(parsedTitle);
           setScrimDate(parsedDate);
           setStandings(
-            extractionResult.standings.map((s, idx) => ({
-              tempId: `ocr_${Date.now()}_${idx}`,
-              rank: Number(s.rank) || idx + 1,
-              team_name: String(s.team_name || `Slot #${idx + 1}`).trim(),
-              wwcd: Number(s.wwcd) || 0,
-              placement_points: Number(s.placement_points) || 0,
-              kill_points: Number(s.kill_points) || 0,
-              total_points: Number(s.total_points) || 0
-            }))
+            extractionResult.standings.map((s, idx) => {
+              const rawTeam = String(s.team_name || `Slot #${idx + 1}`).trim();
+              const resolved = resolveTeamDisplayName(rawTeam);
+              const exactMatch = findClosestKnownTeamMatch(resolved, knownTeams);
+              const snappedName = exactMatch?.matchType === 'exact_compact' ? exactMatch.team.name : resolved;
+              return {
+                tempId: `ocr_${Date.now()}_${idx}`,
+                rank: Number(s.rank) || idx + 1,
+                team_name: snappedName,
+                wwcd: Number(s.wwcd) || 0,
+                placement_points: Number(s.placement_points) || 0,
+                kill_points: Number(s.kill_points) || 0,
+                total_points: Number(s.total_points) || 0
+              };
+            })
           );
           showToast(`Extract siap: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Team`);
           scrollToStandings();
@@ -580,7 +601,7 @@ export default function ScrimDataHubView({
             matchNo: 1,
             map: 'Overall Standings',
             results: standings.map((r, idx) => {
-              const norm = normalizeTeamAlias(r.team_name);
+              const norm = normalizeTeamAlias(r.team_name, knownTeams);
               const pp = Number(r.placement_points) || 0;
               const kp = Number(r.kill_points) || 0;
               return {
@@ -1010,6 +1031,11 @@ export default function ScrimDataHubView({
 
             {/* Content Display: Card View (Mobile-Friendly) OR Table View */}
             <div className="p-4 sm:p-5">
+              <datalist id="scrim-known-teams-list">
+                {knownTeams.map((kt) => (
+                  <option key={kt.id || kt.name} value={kt.name} />
+                ))}
+              </datalist>
               {filteredStandings.length === 0 ? (
                 <div className="py-12 px-4 text-center space-y-2">
                   <div className="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto text-zinc-500">
@@ -1073,6 +1099,11 @@ export default function ScrimDataHubView({
                     const tot = Number(row.total_points || 0);
                     const isMismatch = pp + kp !== tot;
                     const isSpecialRed = row.team_name.toUpperCase().includes('VOLTRA');
+                    const nearMatch = findClosestKnownTeamMatch(row.team_name, knownTeams);
+                    const hasSuggestion =
+                      nearMatch &&
+                      nearMatch.team?.name &&
+                      nearMatch.team.name.toLowerCase() !== String(row.team_name || '').trim().toLowerCase();
 
                     return (
                       <div
@@ -1107,6 +1138,7 @@ export default function ScrimDataHubView({
                             </label>
                             <input
                               type="text"
+                              list="scrim-known-teams-list"
                               value={row.team_name}
                               onChange={(e) =>
                                 handleUpdateRow(row.tempId, 'team_name', e.target.value)
@@ -1116,6 +1148,17 @@ export default function ScrimDataHubView({
                                 (isSpecialRed ? 'text-rose-400' : 'text-white')
                               }
                             />
+                            {hasSuggestion && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateRow(row.tempId, 'team_name', nearMatch.team.name)
+                                }
+                                className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-[10px] font-bold text-amber-300 transition cursor-pointer"
+                              >
+                                <span>Guna nama sedia ada: {nearMatch.team.name}</span>
+                              </button>
+                            )}
                           </div>
 
                           <div className="text-right shrink-0">
@@ -1269,6 +1312,11 @@ export default function ScrimDataHubView({
                         const kp = Number(row.kill_points || 0);
                         const tot = Number(row.total_points || 0);
                         const isMismatch = pp + kp !== tot;
+                        const nearMatch = findClosestKnownTeamMatch(row.team_name, knownTeams);
+                        const hasSuggestion =
+                          nearMatch &&
+                          nearMatch.team?.name &&
+                          nearMatch.team.name.toLowerCase() !== String(row.team_name || '').trim().toLowerCase();
 
                         return (
                           <tr
@@ -1285,12 +1333,24 @@ export default function ScrimDataHubView({
                             <td className="py-2 px-3 font-sans sticky left-12 glass-sticky-cell z-10">
                               <input
                                 type="text"
+                                list="scrim-known-teams-list"
                                 value={row.team_name}
                                 onChange={(e) =>
                                   handleUpdateRow(row.tempId, 'team_name', e.target.value)
                                 }
                                 className="w-full bg-transparent focus:bg-zinc-900 rounded-lg px-2 py-1 text-white font-bold focus:outline-none"
                               />
+                              {hasSuggestion && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdateRow(row.tempId, 'team_name', nearMatch.team.name)
+                                  }
+                                  className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-[10px] font-bold text-amber-300 transition cursor-pointer"
+                                >
+                                  <span>Guna: {nearMatch.team.name}</span>
+                                </button>
+                              )}
                             </td>
 
                             <td className="py-2 px-2 text-center">
