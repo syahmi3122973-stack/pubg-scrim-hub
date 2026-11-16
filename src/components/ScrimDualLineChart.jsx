@@ -213,7 +213,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
   if (items.length === 0) {
     return (
       <div className="glass-panel rounded-2xl p-5 text-center text-xs text-zinc-400">
-        Tiada rekod scrim untuk memaparkan graf prestasi Kills &amp; Placement Points.
+        Belum ada rekod scrim untuk tunjuk graf Kills &amp; PP.
       </div>
     );
   }
@@ -231,7 +231,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
         <div>
           <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-[#D7FF00]" />
-            <span>Tren Prestasi Per Scrim</span>
+            <span>Prestasi Per Scrim</span>
           </span>
           <h3 className="text-sm sm:text-base font-black text-white tracking-tight mt-0.5">
             Kills vs Placement Points
@@ -253,21 +253,21 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       {/* LEVEL 2: Hierarchy Insight Strip (Averages & Peak Callout) */}
       <div className="grid grid-cols-3 gap-2 relative z-10">
         <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Purata Kills</span>
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Avg Kills</span>
           <span className="text-xs sm:text-sm font-black font-mono text-[#D7FF00]">
             {avgKills} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
           </span>
         </div>
 
         <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Purata PP</span>
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Avg PP</span>
           <span className="text-xs sm:text-sm font-black font-mono text-teal-300">
             {avgPp} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
           </span>
         </div>
 
         <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Puncak Terbaik</span>
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Best Score</span>
           <span className="text-xs sm:text-sm font-black font-mono text-white truncate block">
             {bestScrim ? `${bestScrim.points} PTS` : '-'}
           </span>
@@ -292,8 +292,8 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
           <>
             <span className="text-zinc-400 truncate">
               {items.length === 1
-                ? `${items[0].scrimName} — ${items[0].kills} Kills • ${items[0].pp} PP`
-                : 'Sentuh atau hover titik scrim untuk lihat butiran'}
+                ? `${items[0].scrimName}: ${items[0].kills} Kills • ${items[0].pp} PP`
+                : 'Tap mana-mana titik untuk check detail'}
             </span>
             {bestScrim && (
               <span className="font-mono text-[10px] text-zinc-400 shrink-0">
@@ -542,8 +542,8 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
       {/* LEVEL 4: Chronological Footnote */}
       <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono pt-1.5 relative z-10">
-        <span>Kronologi: Lama → Terkini</span>
-        <span>{items.length} Sesi Dianalisis</span>
+        <span>Lama → Terkini</span>
+        <span>{items.length} Sesi</span>
       </div>
     </div>
   );

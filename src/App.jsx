@@ -894,7 +894,7 @@ export default function App() {
     setPlaygroundSession(prev => {
       const currentCount = prev.matches[0]?.slots?.length || 16;
       if (currentCount >= 24) {
-        showToast('Maximum 24 teams reached!');
+        showToast('Limit 24 team dah penuh.');
         return prev;
       }
       const newSlotNo = currentCount + 1;
@@ -916,7 +916,7 @@ export default function App() {
         ]
       }));
 
-      showToast(`Slot #${newSlotNo} ditambah! Jumlah pasukan: ${newSlotNo}`);
+      showToast(`Slot #${newSlotNo} ditambah (${newSlotNo} team).`);
       return { ...prev, matches: updatedMatches, synced: false };
     });
   };
@@ -925,7 +925,7 @@ export default function App() {
     setPlaygroundSession(prev => {
       const currentCount = prev.matches[0]?.slots?.length || 16;
       if (currentCount <= 2) {
-        showToast('Minimum 2 pasukan diperlukan!');
+        showToast('Perlu sekurang-kurangnya 2 team.');
         return prev;
       }
       const updatedMatches = prev.matches.map(m => ({
@@ -933,7 +933,7 @@ export default function App() {
         slots: m.slots.slice(0, -1)
       }));
 
-      showToast(`Slot #${currentCount} dipadam. Jumlah pasukan: ${currentCount - 1}`);
+      showToast(`Slot #${currentCount} dibuang (${currentCount - 1} team).`);
       return { ...prev, matches: updatedMatches, synced: false };
     });
   };
@@ -987,7 +987,7 @@ export default function App() {
     }
 
     if (extracted.length === 0) {
-      showToast('Tiada nama pasukan dikesan. Sila pastikan teks mengandungi senarai nama.');
+      showToast('Tak jumpa nama team dalam teks ni.');
       return;
     }
 
@@ -1010,7 +1010,7 @@ export default function App() {
           };
         });
       });
-      showToast(`Berjaya import ${extracted.length} pasukan ke sesi Host.`);
+      showToast(`${extracted.length} team dah masuk ke sesi Host.`);
       setIsImportModalOpen(false);
       setImportRawText('');
       return;
@@ -1040,7 +1040,7 @@ export default function App() {
       return { ...prev, matches: updatedMatches, synced: false };
     });
 
-    showToast(`Berjaya import ${extracted.length} pasukan ke semua 5 perlawanan.`);
+    showToast(`${extracted.length} team dah masuk ke semua 5 match.`);
     setIsImportModalOpen(false);
     setImportRawText('');
   };
@@ -1090,7 +1090,7 @@ export default function App() {
   };
 
   const handleClearPlaygroundForm = () => {
-    if (!window.confirm('Kosongkan semua markah untuk kesemua 5 match? (Nama team dikekalkan)')) return;
+    if (!window.confirm('Clear semua markah untuk 5 match? Nama team masih kekal.')) return;
     setPlaygroundSession(prev => {
       const updatedMatches = prev.matches.map(m => ({
         ...m,
@@ -1105,20 +1105,20 @@ export default function App() {
       }));
       return { ...prev, matches: updatedMatches, synced: false };
     });
-    showToast('Markah dikosongkan! Sedia untuk rekod baru.');
+    showToast('Markah dah clear.');
   };
 
   const handleResetPlaygroundToDefault = () => {
-    if (!window.confirm('Reset semula borang ke 16 slot kosong asal?')) return;
+    if (!window.confirm('Reset balik form ke 16 slot kosong?')) return;
     setPlaygroundSession(createDefaultPlaygroundSession(16));
     setCurrentPlaygroundMatchIdx(0);
-    showToast('Borang dikosongkan ke format asal (16 slot bersih)!');
+    showToast('Form dah reset ke 16 slot.');
   };
 
   const handleLoadDemoPlaygroundData = () => {
     setPlaygroundSession(createDemoPlaygroundSession(16));
     setCurrentPlaygroundMatchIdx(0);
-    showToast('Data contoh demo dimuatkan! Anda boleh lihat contoh kiraan & rupa poster.');
+    showToast('Data demo dah load.');
     setTimeout(() => {
       const el = document.getElementById('quick-scorer-workspace');
       if (el) {
@@ -1132,7 +1132,7 @@ export default function App() {
       const url = `${window.location.origin}${window.location.pathname}#guide`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
-          showToast('Link panduan disalin ke papan klip.');
+          showToast('Link panduan dah copy.');
         }).catch(() => {
           showToast(`Link panduan: ${url}`);
         });
@@ -1140,7 +1140,7 @@ export default function App() {
         showToast(`Link panduan: ${url}`);
       }
     } catch {
-      showToast('Pautan: ' + window.location.href);
+      showToast('Link: ' + window.location.href);
     }
   };
 
@@ -1163,10 +1163,10 @@ export default function App() {
       link.download = `${cleanTitle}-${suffix}.png`;
       link.href = dataUrl;
       link.click();
-      showToast('Overall Leaderboard PNG berjaya dimuat turun.');
+      showToast('Poster Leaderboard PNG dah download.');
     } catch (err) {
       console.error('Error generating poster:', err);
-      showToast('Failed to download poster: ' + err.message);
+      showToast('Tak dapat download poster: ' + err.message);
     } finally {
       setIsDownloadingPoster(false);
     }
@@ -1191,10 +1191,10 @@ export default function App() {
       link.download = `${cleanTitle}-${suffix}.png`;
       link.href = dataUrl;
       link.click();
-      showToast('Poster Standings PNG berjaya dimuat turun.');
+      showToast('Poster Standings PNG dah download.');
     } catch (err) {
       console.error('Error generating poster:', err);
-      showToast('Gagal memuat turun poster: ' + err.message);
+      showToast('Tak dapat download poster: ' + err.message);
     } finally {
       setIsDownloadingAdminPoster(false);
     }
@@ -1279,7 +1279,7 @@ export default function App() {
         // ignore
       }
 
-      showToast('5 Match disimpan ke Dashboard & Rekod Prestasi Pasukan dikemaskini.');
+      showToast('5 Match dah save ke Dashboard & Team Matrix.');
       setIsAuthModalOpen(false);
       setPendingCloudSync(false);
     } catch (err) {
@@ -1643,9 +1643,9 @@ export default function App() {
       });
 
       if (error) {
-        showToast('Registration Error: ' + error.message);
+        showToast('Daftar gagal: ' + error.message);
       } else {
-        showToast('Registration complete! Please sign in.');
+        showToast('Akaun siap! Boleh log masuk sekarang.');
         setIsRegisterMode(false);
         if (data?.user) {
           setCurrentUser(data.user);
@@ -1662,7 +1662,7 @@ export default function App() {
       });
 
       if (error) {
-        showToast('Sign In Failed: ' + error.message);
+        showToast('Log masuk gagal: ' + error.message);
       } else {
         setCurrentUser(data.user);
         showToast('Welcome back, ' + data.user.email);
@@ -1711,23 +1711,23 @@ export default function App() {
       return;
     }
     setIsOrgPopoverOpen(false);
-    showToast(`Menukar ke akaun ${targetAccount.name || targetAccount.email}...`);
+    showToast(`Tukar ke ${targetAccount.name || targetAccount.email}...`);
     try {
       const { data, error } = await supabase.auth.setSession({
         access_token: targetAccount.session.access_token,
         refresh_token: targetAccount.session.refresh_token
       });
       if (error) {
-        showToast('Sesi akaun telah tamat tempoh. Sila log masuk semula.');
+        showToast('Sesi dah expired. Log masuk semula.');
         setAuthEmail(targetAccount.email);
         setAuthPassword('');
         setIsAuthModalOpen(true);
       } else if (data?.user) {
         setCurrentUser(data.user);
-        showToast(`Berjaya bertukar: ${targetAccount.name || data.user.email}`);
+        showToast(`Dah tukar ke ${targetAccount.name || data.user.email}`);
       }
     } catch (err) {
-      showToast('Ralat menukar akaun: ' + err.message);
+      showToast('Error tukar akaun: ' + err.message);
     }
   };
 
@@ -1738,7 +1738,7 @@ export default function App() {
     try {
       localStorage.setItem('pubg_saved_accounts', JSON.stringify(nextList));
     } catch {}
-    showToast(`Akaun ${emailToRemove} dipadam dari senarai peranti.`);
+    showToast(`${emailToRemove} dibuang dari device ni.`);
     if (currentUser?.email?.toLowerCase() === emailToRemove.toLowerCase()) {
       handleLogout();
     }
@@ -1756,7 +1756,7 @@ export default function App() {
     setNewHostContact('');
     setNewScrimTitle('');
     setAdminSelectedScrimId('');
-    showToast('Logged out successfully.');
+    showToast('Dah log keluar.');
   };
 
   const isAuthorizedAdmin = useCallback((scrim) => {
@@ -1905,7 +1905,7 @@ export default function App() {
       totalPts: 0,
       wwcd: false
     })));
-    showToast(`Sesi baru "${newSession.title}" sedia untuk diisi!`);
+    showToast(`Sesi baru "${newSession.title}" dah ready!`);
   }, [currentUser, profileName, profileContact, adminHostedScrims.length]);
 
   useEffect(() => {
@@ -2006,7 +2006,7 @@ export default function App() {
       const { error } = await supabase.from('profiles').upsert(payload);
 
       if (error) {
-        showToast('Profile Error: ' + error.message);
+        showToast('Profile error: ' + error.message);
       } else {
         setProfiles(prev => {
           const filtered = prev.filter(p => p.id !== currentUser.id);
@@ -2016,10 +2016,10 @@ export default function App() {
         setAvatarFile(null);
         setIsEditProfileMode(false);
         setIsProfileModalOpen(false);
-        showToast('Profil berjaya dikemaskini!');
+        showToast('Profile dah update!');
       }
     } catch (err) {
-      showToast('Failed to upload profile picture: ' + err.message);
+      showToast('Tak dapat upload gambar: ' + err.message);
     } finally {
       setIsSavingProfile(false);
     }
@@ -2044,12 +2044,12 @@ export default function App() {
       if (error) {
         showToast('Error: ' + error.message);
       } else {
-        showToast('Thank you! Feedback delivered to Developer ry.khor.');
+        showToast('Feedback dah hantar ke ry.khor. Thank you!');
         setFeedbackMessage('');
         setIsFeedbackModalOpen(false);
       }
     } catch (err) {
-      showToast('Failed to send: ' + err.message);
+      showToast('Tak dapat hantar: ' + err.message);
     } finally {
       setIsSendingFeedback(false);
     }
@@ -2147,11 +2147,11 @@ export default function App() {
     if (!currentUser) return;
     const target = scrims.find(s => s.id === scrimId);
     if (!target || (!isAuthorizedAdmin(target) && target.created_by !== 'public_ocr')) {
-      showToast('You do not have permission to delete this session!');
+      showToast('Awak tak ada akses untuk padam sesi ni.');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to permanently delete "${target.title}"? All match results will be removed.`)) {
+    if (!window.confirm(`Confirm nak padam "${target.title}"? Semua rekod match akan hilang sekali.`)) {
       return;
     }
 
@@ -2184,9 +2184,9 @@ export default function App() {
         setSelectedScrimId(updated[0]?.id || '');
       }
 
-      showToast('Session deleted successfully!');
+      showToast('Sesi dah padam.');
     } catch (err) {
-      showToast('Failed to delete session: ' + err.message);
+      showToast('Tak dapat padam sesi: ' + err.message);
     }
   };
 
@@ -2194,7 +2194,7 @@ export default function App() {
     const targetScrim = scrimOverride && scrimOverride.id ? scrimOverride : activeAdminScrim;
     if (!targetScrim) return;
     if (!isAuthorizedAdmin(targetScrim)) {
-      showToast('Hanya penganjur / host dibenarkan ubah maklumat sesi ini.');
+      showToast('Host sesi ini sahaja boleh edit info.');
       return;
     }
     setEditTargetScrim(targetScrim);
@@ -2213,7 +2213,7 @@ export default function App() {
     e.preventDefault();
     const editingScrim = editTargetScrim || activeAdminScrim;
     if (!editingScrim || !isAuthorizedAdmin(editingScrim)) {
-      showToast('Access denied!');
+      showToast('Akses tak dibenarkan.');
       return;
     }
 
@@ -2242,7 +2242,7 @@ export default function App() {
         .eq('id', editingScrim.id);
 
       if (error) {
-        showToast('Update failed: ' + error.message);
+        showToast('Update gagal: ' + error.message);
       } else {
         const merged = { ...editingScrim, ...updatedData };
         setScrims(prev => {
@@ -2270,10 +2270,10 @@ export default function App() {
         setInspectedScrim(prev => (prev && prev.id === editingScrim.id ? merged : prev));
         setIsEditScrimModalOpen(false);
         setEditTargetScrim(null);
-        showToast('Event settings saved successfully!');
+        showToast('Setting sesi dah save.');
       }
     } catch (err) {
-      showToast('Failed to upload logo: ' + err.message);
+      showToast('Tak dapat upload logo: ' + err.message);
     } finally {
       setIsSavingEdit(false);
     }
@@ -2281,7 +2281,7 @@ export default function App() {
 
   const handleToggleFinishScrim = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) {
-      showToast('Only authorized hosts can change lock status!');
+      showToast('Host sesi ni sahaja boleh lock atau unlock.');
       return;
     }
 
@@ -2292,22 +2292,22 @@ export default function App() {
       .eq('id', activeAdminScrim.id);
 
     if (error) {
-      showToast('Status update failed: ' + error.message);
+      showToast('Tak dapat update status: ' + error.message);
     } else {
       const updated = { ...activeAdminScrim, is_finished: nextState };
       setScrims(scrims.map(s => s.id === activeAdminScrim.id ? updated : s));
       setSelectedScrimId(activeAdminScrim.id);
-      showToast(nextState ? 'Session marked as concluded (Locked).' : 'Session reopened for scoring.');
+      showToast(nextState ? 'Sesi dah lock (tamat).' : 'Sesi dibuka balik untuk kira markah.');
     }
   };
 
   const handleAddNewMatch = async () => {
     if (!activeAdminScrim) {
-      showToast('Sila cipta atau pilih sesi terlebih dahulu!');
+      showToast('Pilih atau buat sesi dulu.');
       return;
     }
     if (activeAdminScrim.is_finished) {
-      showToast('Cannot add rounds to a concluded session.');
+      showToast('Sesi dah lock, tak boleh tambah match.');
       return;
     }
 
@@ -2363,7 +2363,7 @@ export default function App() {
     });
     setSelectedMatchIdx(updatedMatches.length - 1);
     setInputMap(defaultMap);
-    showToast(`Match ${nextMatchNo} (${defaultMap}) ditambah!`);
+    showToast(`Match ${nextMatchNo} (${defaultMap}) dah tambah.`);
 
     try {
       await supabase.from('scrims').upsert(updatedScrim);
@@ -2375,13 +2375,13 @@ export default function App() {
   const handleRemoveLastMatch = async () => {
     if (!activeAdminScrim || !isAuthorizedAdmin(activeAdminScrim)) return;
     if (activeAdminScrim.is_finished) {
-      showToast('Cannot delete rounds from a concluded session.');
+      showToast('Sesi dah lock, tak boleh padam match.');
       return;
     }
 
     const currentMatches = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
     if (currentMatches.length <= 1) {
-      showToast('Minimum 1 match round required.');
+      showToast('Perlu sekurang-kurangnya 1 match.');
       return;
     }
 
@@ -2393,7 +2393,7 @@ export default function App() {
 
     // Confirm only if this match already has saved scores
     if (hasRecordedScores) {
-      if (!window.confirm(`Match ${lastMatchIndex + 1} mengandungi markah yang telah disimpan. Adakah anda pasti mahu memadamkannya?`)) {
+      if (!window.confirm(`Match ${lastMatchIndex + 1} dah ada markah. Confirm nak padam?`)) {
         return;
       }
     }
@@ -2419,7 +2419,7 @@ export default function App() {
       setSelectedMatchIdx(trimmed.length - 1);
     }
 
-    showToast(`Match ${lastMatchIndex + 1} berjaya dipadam.`);
+    showToast(`Match ${lastMatchIndex + 1} dah padam.`);
 
     try {
       await supabase.from('scrims').upsert(updatedScrim);
@@ -2430,11 +2430,11 @@ export default function App() {
 
   const handleAddTeamSlot = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('Scores are locked because this session has concluded.');
+      showToast('Sesi dah lock, markah tak boleh ubah.');
       return;
     }
     if (matchSlots.length >= 24) {
-      showToast('Maximum limit reached (24 teams).');
+      showToast('Limit 24 team dah penuh.');
       return;
     }
 
@@ -2455,26 +2455,26 @@ export default function App() {
       return [...prev, newSlot];
     });
 
-    showToast(`Team slot ${matchSlots.length + 1} added.`);
+    showToast(`Slot #${matchSlots.length + 1} dah tambah.`);
   };
 
   const handleRemoveTeamSlot = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('Scores are locked because this session has concluded.');
+      showToast('Sesi dah lock, markah tak boleh ubah.');
       return;
     }
     if (matchSlots.length <= 2) {
-      showToast('Minimum 2 teams required.');
+      showToast('Perlu sekurang-kurangnya 2 team.');
       return;
     }
 
     setMatchSlots(prev => prev.slice(0, -1));
-    showToast(`Team slot ${matchSlots.length} removed.`);
+    showToast(`Slot #${matchSlots.length} dah buang.`);
   };
 
   const handleClearAdminForm = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('Scores are locked.');
+      showToast('Markah dah lock.');
       return;
     }
     setMatchSlots(prev => prev.map(s => ({
@@ -2485,7 +2485,7 @@ export default function App() {
       totalPts: 0,
       wwcd: false
     })));
-    showToast(`Markah Match ${selectedMatchIdx + 1} dikosongkan.`);
+    showToast(`Markah Match ${selectedMatchIdx + 1} dah clear.`);
   };
 
   const handleAdminCellKeyDown = (e, rowIdx, colName) => {
@@ -2526,7 +2526,7 @@ export default function App() {
 
   const handleSlotChange = (index, field, value) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('Scores are locked because this session has concluded.');
+      showToast('Sesi dah lock, markah tak boleh ubah.');
       return;
     }
 
@@ -2636,7 +2636,7 @@ export default function App() {
 
   const handleAdjustKills = (index, delta) => {
     if (activeAdminScrim?.is_finished) {
-      showToast('Scores are locked.');
+      showToast('Markah dah lock.');
       return;
     }
     const current = matchSlots[index].kills;
@@ -2645,7 +2645,7 @@ export default function App() {
 
   const handleRandomizeTestData = () => {
     if (activeAdminScrim?.is_finished) {
-      showToast('This session is locked.');
+      showToast('Sesi ni dah lock.');
       return;
     }
     const count = matchSlots.length;
@@ -2665,20 +2665,20 @@ export default function App() {
         };
       });
     });
-    showToast('Simulated scores populated successfully.');
+    showToast('Data demo dah masuk.');
   };
 
   const handleSaveMatchScore = async () => {
     if (!currentUser) {
-      showToast('Please sign in as Admin to save scores.');
+      showToast('Log masuk dulu untuk save markah.');
       return;
     }
     if (!activeAdminScrim) {
-      showToast('Please create or select a session first.');
+      showToast('Pilih atau buat sesi dulu.');
       return;
     }
     if (activeAdminScrim.is_finished) {
-      showToast('This session has concluded (Scores locked).');
+      showToast('Sesi dah tamat & markah dah lock.');
       return;
     }
 
@@ -2766,14 +2766,14 @@ export default function App() {
       });
       setAdminSelectedScrimId(targetId);
       setSelectedScrimId(targetId);
-      showToast(`Match ${selectedMatchIdx + 1} & sesi berjaya disimpan ke Cloud!`);
+      showToast(`Match ${selectedMatchIdx + 1} dah save ke Cloud!`);
     }
   };
 
   const handleCreateNewScrim = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Only verified hosts can create match sessions!');
+      showToast('Log masuk sebagai host dulu untuk buat sesi.');
       return;
     }
     if (!newScrimTitle.trim()) return;
@@ -2828,10 +2828,10 @@ export default function App() {
         setNewHostContact('');
         setLogoFile(null);
         setIsCreateScrimOpen(false);
-        showToast(`${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} session created successfully!`);
+        showToast(`Sesi ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} dah siap!`);
       }
     } catch (err) {
-      showToast('Upload failed: ' + err.message);
+      showToast('Upload gagal: ' + err.message);
     } finally {
       setIsUploadingLogo(false);
     }
@@ -2841,7 +2841,7 @@ export default function App() {
     if (!activeAdminScrim) return;
     const shareUrl = `${window.location.origin}?claim_scrim=${activeAdminScrim.id}&token=${activeAdminScrim.claim_token || 'shared'}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
-      showToast('Co-Host invitation link copied!');
+      showToast('Link invite Co-Host dah copy!');
     });
   };
 
@@ -2962,7 +2962,7 @@ export default function App() {
     if (!targetSession) return;
     const dataToUse = calculateLeaderboard(targetSession, 'overall');
     if (!dataToUse.length) {
-      showToast('Tiada data markah untuk disalin.');
+      showToast('Belum ada markah untuk copy.');
       return;
     }
 
@@ -2983,16 +2983,16 @@ export default function App() {
     navigator.clipboard.writeText(output).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2500);
-      showToast('Standings text copied to clipboard.');
+      showToast('Teks standings dah copy.');
     }).catch(() => {
-      showToast('Gagal menyalin teks standings.');
+      showToast('Tak dapat copy teks standings.');
     });
   };
 
   // INSTAGRAM STORY INFOGRAPHIC ENGINE
   const handleShareToInstagramStory = async (team, stats, hostFilterName, eventTypeLabel) => {
     if (!team || !stats) {
-      showToast('No statistics available to generate card!');
+      showToast('Belum ada statistik untuk buat kad.');
       return;
     }
 
@@ -3799,7 +3799,7 @@ export default function App() {
             title: `[${team.tag}] ${eventTypeLabel} Stats`,
             text: `Statistik pasukan ${team.name} di SCRIM HUB! (scrim.rykhor.my)`
           });
-          showToast('Instagram Story card sedia untuk dikongsi!');
+          showToast('Kad Story 9:16 ready untuk share!');
         } catch (err) {
           if (err.name !== 'AbortError') showToast('Error: ' + err.message);
         }
@@ -3810,11 +3810,11 @@ export default function App() {
         link.href = objectUrl;
         link.click();
         setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
-        showToast('Kad statistik berjaya dimuat turun!');
+        showToast('Kad statistik dah download!');
       }
 
     } catch (error) {
-      showToast('Gagal menjana kad: ' + error.message);
+      showToast('Tak dapat buat kad: ' + error.message);
     } finally {
       setIsGeneratingStory(false);
     }
@@ -4137,7 +4137,7 @@ export default function App() {
 
   const handleSaveTeamDetails = async (updatedTeam) => {
     if (!updatedTeam || !updatedTeam.name.trim()) {
-      showToast('Sila masukkan nama pasukan yang sah.');
+      showToast('Masukkan nama team yang betul.');
       return;
     }
 
@@ -4204,15 +4204,15 @@ export default function App() {
       }
 
       if (syncError && syncError.message?.includes('logo_url')) {
-        showToast(`Pasukan ${cleanTeam.name} disimpan secara lokal! Sila tambah kolum logo_url di Supabase teams.`);
+        showToast(`${cleanTeam.name} save kat device sahaja. Tambah column logo_url di Supabase teams.`);
       } else if (syncError) {
-        showToast(`Pasukan disimpan (Cloud note: ${syncError.message})`);
+        showToast(`Team dah save (Cloud: ${syncError.message})`);
       } else {
-        showToast(`Pasukan ${cleanTeam.name} & logo berjaya disimpan ke Cloud!`);
+        showToast(`${cleanTeam.name} & logo dah save ke Cloud!`);
       }
       setEditingTeam(null);
     } catch (error) {
-      showToast('Gagal menyimpan: ' + error.message);
+      showToast('Tak dapat save: ' + error.message);
     } finally {
       setIsSavingTeam(false);
     }
@@ -4231,7 +4231,7 @@ export default function App() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showToast('Sila pilih fail gambar (PNG, JPG, WEBP).');
+      showToast('Pilih file gambar sahaja (PNG, JPG, WEBP).');
       return;
     }
 
@@ -4239,7 +4239,7 @@ export default function App() {
       const dataUrl = await readFileAsDataUrl(file);
       setLogoCropSource(dataUrl);
     } catch (err) {
-      showToast('Gagal membaca fail gambar: ' + err.message);
+      showToast('Tak dapat baca file gambar: ' + err.message);
     } finally {
       if (logoFileInputRef.current) {
         logoFileInputRef.current.value = '';
@@ -4278,9 +4278,9 @@ export default function App() {
 
       setEditingTeam(prev => (prev ? { ...prev, logo_url: publicUrl || previewDataUrl } : prev));
       setLogoCropSource(null);
-      showToast('Gambar logo berjaya dicrop & dimuat naik!');
+      showToast('Logo dah crop & upload!');
     } catch (err) {
-      showToast('Gagal memuat naik gambar: ' + err.message);
+      showToast('Tak dapat upload gambar: ' + err.message);
     } finally {
       setIsUploadingTeamLogo(false);
     }
@@ -4392,7 +4392,7 @@ export default function App() {
   const handleCreateShowcasePost = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      showToast('Only admins can publish content!');
+      showToast('Log masuk dulu untuk post content.');
       return;
     }
     if (!postTitle.trim()) return;
@@ -4440,7 +4440,7 @@ export default function App() {
       const { error } = await supabase.from('posts').insert([newPost]);
 
       if (error) {
-        showToast('Error publishing: ' + error.message);
+        showToast('Tak dapat post: ' + error.message);
       } else {
         setPosts([newPost, ...posts]);
         setIsShowcaseModalOpen(false);
@@ -4448,7 +4448,7 @@ export default function App() {
         setShowcaseFile(null);
         setExternalSocialUrl('');
         setPostCaption('');
-        showToast('Content published successfully!');
+        showToast('Content dah post!');
       }
     } catch (err) {
       showToast('Upload error: ' + err.message);
@@ -4460,19 +4460,19 @@ export default function App() {
   const handleDeletePost = async (postId, postOwnerId) => {
     if (!currentUser) return;
     if (postOwnerId && postOwnerId !== currentUser.id && postOwnerId !== currentUser.email) {
-      showToast('You can only delete your own posts!');
+      showToast('Awak boleh padam post sendiri sahaja.');
       return;
     }
 
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    if (!window.confirm('Confirm nak padam post ni?')) return;
 
     const { error } = await supabase.from('posts').delete().eq('id', postId);
 
     if (error) {
-      showToast('Failed to delete: ' + error.message);
+      showToast('Tak dapat padam: ' + error.message);
     } else {
       setPosts(posts.filter(p => p.id !== postId));
-      showToast('Post deleted successfully!');
+      showToast('Post dah padam.');
     }
   };
 
@@ -4902,7 +4902,7 @@ export default function App() {
                       >
                         <div className="flex items-center gap-2">
                           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Tambah Akaun Baru</span>
+                          <span>Tambah Akaun</span>
                         </div>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
@@ -4915,7 +4915,7 @@ export default function App() {
                         }}
                         className="w-full px-3 py-1.5 rounded-xl hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
                       >
-                        <span>Log Keluar Akaun Semasa</span>
+                        <span>Log Keluar Akaun Ini</span>
                         <LogOut className="w-3 h-3" />
                       </button>
                     </div>
@@ -5160,7 +5160,7 @@ export default function App() {
                   <div className="h-5 w-48 rounded-full bg-white/[0.06] animate-pulse" />
                   <div className="h-7 rounded-full glass-pill flex items-center gap-2 px-3">
                     <progress aria-label="Menyemak sesi" className="loading-spinner" style={{ '--size': '14px', '--thickness': '2px' }} />
-                    <span className="text-[11px] font-mono text-zinc-300">Menyemak sesi...</span>
+                    <span className="text-[11px] font-mono text-zinc-300">Check sesi...</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-5">
@@ -5219,7 +5219,7 @@ export default function App() {
           ) || scrims[0] || null;
           const lastScannedLabel = lastScannedRecord
             ? `${lastScannedRecord.title} • ${lastScannedRecord.date || 'Today'}`
-            : 'Tiada rekod imbasan terkini';
+            : 'Belum ada scan terkini';
 
           const quickScorerPreviewTitle =
             playgroundSession?.title && playgroundSession.title !== 'PUBG Mobile Scrim Season'
@@ -5227,7 +5227,7 @@ export default function App() {
               : scrims[0]?.title || 'Sesi Pantas PMGC';
 
           const latestRekodSession = scrims[0] || null;
-          const latestRekodTitle = latestRekodSession?.title || 'Tiada sesi direkod lagi';
+          const latestRekodTitle = latestRekodSession?.title || 'Belum ada sesi lagi';
           const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
 
           return (
@@ -5254,8 +5254,8 @@ export default function App() {
                   )}
                   <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
                     {currentUser
-                      ? 'Urus rekod scrim, semak prestasi pasukan & imbas keputusan poster.'
-                      : 'Semak ranking pasukan, kira markah PMGC & imbas poster keputusan.'}
+                      ? 'Urus rekod scrim, check prestasi team & scan poster keputusan.'
+                      : 'Check ranking team, kira markah PMGC & scan poster keputusan.'}
                   </p>
                 </div>
 
@@ -5325,7 +5325,7 @@ export default function App() {
                               aria-hidden={homeHofSlide !== 0}
                               className="hof-crossfade-item block"
                             >
-                              Semua Pasukan
+                              Semua Team
                             </span>
                             <span
                               data-active={homeHofSlide === 1}
@@ -5522,7 +5522,7 @@ export default function App() {
                               </div>
                             ) : (
                               <div className="hof-stat-tile hof-podium-strip hidden lg:flex items-center justify-between rounded-xl glass-tile px-3.5 py-2.5 text-xs font-bold text-zinc-200">
-                                <span>Rekod Tier 3 akan dipaparkan di sini selepas match disimpan.</span>
+                                <span>Rekod Tier 3 akan keluar kat sini lepas match disimpan.</span>
                                 <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase text-[#D7FF00] shrink-0">
                                   <span>Buka Tier 3</span>
                                   <ArrowRight className="w-3 h-3" />
@@ -5543,7 +5543,7 @@ export default function App() {
                           >
                             {tier3Leader
                               ? `Tier 3 #1: ${tier3Leader.name} (${tier3Leader.tier3Points} PTS)`
-                              : 'Ketik untuk buka Leaderboard penuh'}
+                              : 'Tap untuk buka Leaderboard penuh'}
                           </span>
                           <span
                             data-active={homeHofSlide === 1}
@@ -5552,7 +5552,7 @@ export default function App() {
                           >
                             {tier3TopThree.length > 1
                               ? `#2 ${tier3TopThree[1].name} • #3 ${tier3TopThree[2]?.name || '-'}`
-                              : 'Ketik untuk buka Ranking Tier 3'}
+                              : 'Tap untuk buka Ranking Tier 3'}
                           </span>
                         </div>
 
@@ -5629,7 +5629,7 @@ export default function App() {
                     {/* Specific Capability Summary */}
                     <div className="my-auto py-4 relative z-10">
                       <p className="text-xs font-medium text-pink-50 leading-relaxed text-pretty">
-                        Muat naik poster untuk kira &amp; semak markah.
+                        Upload poster untuk extract &amp; check markah.
                       </p>
                     </div>
 
@@ -5738,7 +5738,7 @@ export default function App() {
                             {homeContendersCategory === 'TIER_3' ? 'Top Contenders • Tier 3' : 'Top Contenders Semasa'}
                           </h3>
                           <p className="text-[11px] text-zinc-400">
-                            Tekan nama pasukan untuk lihat rekod &amp; graf
+                            Tap nama team untuk tengok rekod &amp; graf
                           </p>
                         </div>
                       </div>
@@ -5886,8 +5886,8 @@ export default function App() {
                     ) : (
                       <div className="py-10 text-center text-xs text-zinc-400 rounded-2xl glass-tile">
                         {homeContendersCategory === 'TIER_3'
-                          ? 'Belum ada rekod kejohanan Tier 3 direkodkan lagi.'
-                          : 'Belum ada data ranking pasukan direkodkan.'}
+                          ? 'Belum ada rekod Tier 3 lagi.'
+                          : 'Belum ada data ranking team lagi.'}
                       </div>
                     )}
                   </div>
@@ -5905,7 +5905,7 @@ export default function App() {
                               Arkib Sesi Terkini
                             </h3>
                             <p className="text-[11px] text-zinc-400">
-                              Klik sesi untuk terus semak scoreboard penuh
+                              Tap sesi untuk tengok scoreboard penuh
                             </p>
                           </div>
                         </div>
@@ -5982,7 +5982,7 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="py-10 text-center text-xs text-zinc-400 rounded-2xl glass-tile">
-                          Tiada rekod sesi terkini dijumpai.
+                          Belum ada rekod sesi terkini.
                         </div>
                       )}
                     </div>
@@ -6146,7 +6146,7 @@ export default function App() {
                         <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
                           <span>Tag: <strong className="text-zinc-200">[{activeTeamData.tag}]</strong></span>
                           <span>•</span>
-                          <span>{activeTeamScopedStats.eventsCount} Sesi Berdaftar</span>
+                          <span>{activeTeamScopedStats.eventsCount} Sesi</span>
                         </p>
                       </div>
                     </div>
@@ -6279,7 +6279,7 @@ export default function App() {
                       {activeTeamScopedStats.eventsCount}
                     </span>
                     <span className="text-[10px] text-zinc-400 font-mono font-medium">
-                      {activeTeamScopedStats.matchesCount} match beraksi
+                      {activeTeamScopedStats.matchesCount} match
                     </span>
                   </div>
                 </div>
@@ -6288,7 +6288,7 @@ export default function App() {
                 <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
-                      Profil Gaya Permainan
+                      Gaya Main (KP vs PP)
                     </span>
                     <div className="flex items-center gap-3 text-xs font-mono">
                       <span className="text-[#D7FF00] font-bold">KP: {kpPercent}%</span>
@@ -6340,7 +6340,7 @@ export default function App() {
                   className="w-full py-3.5 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md active:scale-[0.98] cursor-pointer"
                 >
                   <Share2 className="w-4 h-4 text-black" />
-                  <span>Jana Kad Analitik &amp; IG Story 9:16</span>
+                  <span>Buat Kad Story 9:16</span>
                 </button>
                   </div>
 
@@ -6349,7 +6349,7 @@ export default function App() {
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black text-white uppercase tracking-wider">
-                        Sejarah Perlawanan
+                        Rekod Match
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full glass-pill text-zinc-200 font-mono font-bold">
                         {activeTeamScopedStats.filteredResults.length} Rekod
@@ -6474,7 +6474,7 @@ export default function App() {
                                   className="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[#D7FF00] hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                   <Eye className="w-3.5 h-3.5" />
-                                  <span>Lihat Papan Markah Penuh Sesi Ini</span>
+                                  <span>Tengok Scoreboard Penuh</span>
                                 </button>
                               </div>
                             )}
@@ -6484,7 +6484,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="p-8 text-center text-zinc-500 text-xs bg-zinc-950/40 rounded-2xl">
-                      Tiada rekod bagi kategori ini.
+                      Belum ada rekod untuk kategori ni.
                     </div>
                   )}
                 </div>
@@ -6562,7 +6562,7 @@ export default function App() {
                 <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
-                    Lihat ranking pasukan, rekod kemenangan &amp; kad Story 9:16.
+                    Check ranking team, rekod WWCD &amp; buat kad Story 9:16.
                   </p>
                   <button
                     type="button"
@@ -6699,7 +6699,7 @@ export default function App() {
                   <input
                     type="search"
                     enterKeyHint="search"
-                    placeholder="Cari nama pasukan atau tag..."
+                    placeholder="Cari nama atau tag team..."
                     value={teamSearchQuery}
                     onChange={(e) => setTeamSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -6797,7 +6797,7 @@ export default function App() {
 
                   {/* Description Paragraph */}
                   <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-xs sm:max-w-sm mx-auto pt-0.5 text-pretty">
-                    Ranking pasukan, rekod WWCD &amp; kad Story 9:16.
+                    Ranking team, rekod WWCD &amp; kad Story 9:16.
                   </p>
                 </div>
               </div>
@@ -6823,7 +6823,7 @@ export default function App() {
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 truncate">
-                          Ranking Pasukan cemerlang Tier 3
+                          Top team kategori Tier 3
                         </p>
                       </div>
                     </div>
@@ -6914,10 +6914,10 @@ export default function App() {
                         ? `${activeSssSummaryLabel} • `
                         : ''}
                       {teamSearchQuery.trim()
-                        ? `Hasil carian (${displayedRankedTeams.length} pasukan)`
+                        ? `Jumpa ${displayedRankedTeams.length} team`
                         : showAllTeams
-                        ? `Senarai penuh (${rankedTeamsWithStats.length} pasukan aktif)`
-                        : `Kedudukan Top ${Math.min(10, rankedTeamsWithStats.length)} pasukan terbaik`}
+                        ? `Semua ${rankedTeamsWithStats.length} team`
+                        : `Top ${Math.min(10, rankedTeamsWithStats.length)} team`}
                     </span>
                   </div>
 
@@ -6944,7 +6944,7 @@ export default function App() {
                   <div className="space-y-2.5 py-2" aria-busy="true" aria-label="Memuatkan ranking pasukan">
                     <div className="flex items-center justify-center gap-2 pb-2">
                       <progress aria-label="Memuatkan Team Matrix" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
-                      <span className="text-xs font-mono text-zinc-300">Memuatkan ranking pasukan...</span>
+                      <span className="text-xs font-mono text-zinc-300">Loading ranking team...</span>
                     </div>
                     {[0, 1, 2, 3].map((i) => (
                       <div key={i} className="glass-tile rounded-xl px-4 py-3 flex items-center justify-between gap-3 animate-pulse">
@@ -6961,7 +6961,7 @@ export default function App() {
                   <div className="py-8 text-center space-y-2">
                     <Users className="w-7 h-7 text-zinc-500 mx-auto" />
                     <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-                      Belum ada rekod perlawanan. Markah yang disimpan akan dipaparkan di sini.
+                      Belum ada rekod match. Markah yang dah save akan masuk sini.
                     </p>
                   </div>
                 ) : displayedRankedTeams.length === 0 ? (() => {
@@ -6982,13 +6982,13 @@ export default function App() {
                       <div className="space-y-1 max-w-xs mx-auto">
                         <p className="text-xs sm:text-sm font-bold text-white">
                           {teamSearchQuery.trim()
-                            ? `Tiada pasukan sepadan dengan "${teamSearchQuery.trim()}"`
-                            : `Belum ada rekod untuk ${activeFilterLabel}`}
+                            ? `Tak jumpa team "${teamSearchQuery.trim()}"`
+                            : `Belum ada rekod ${activeFilterLabel}`}
                         </p>
                         <p className="text-[11px] text-zinc-400 leading-relaxed">
                           {teamSearchQuery.trim()
-                            ? 'Cuba kata kunci nama atau tag pasukan yang lain.'
-                            : `Ranking pasukan akan muncul di sini selepas rekod ${activeFilterLabel} disimpan.`}
+                            ? 'Cuba cari nama atau tag team lain.'
+                            : `Ranking akan keluar lepas rekod ${activeFilterLabel} disimpan.`}
                         </p>
                       </div>
                       <button
@@ -7278,8 +7278,8 @@ export default function App() {
                     className="w-full py-2.5 rounded-2xl glass-tile glass-tile-hover text-xs font-bold text-zinc-200 hover:text-[#D7FF00] transition cursor-pointer"
                   >
                     {isHallOfFameFullView
-                      ? 'Tunjukkan Top 10 Sahaja ↑'
-                      : `Lihat Semua ${rankedTeamsWithStats.length} Pasukan ↓`}
+                      ? 'Tunjuk Top 10 Sahaja ↑'
+                      : `Tengok Semua ${rankedTeamsWithStats.length} Team ↓`}
                   </button>
                 )}
               </div>
@@ -7290,18 +7290,18 @@ export default function App() {
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
                     {sssFilterSelection.season === 'ALL' && sssFilterSelection.stage === 'GRAND_FINAL' ? (
                       <>
-                        Nota: Rekod statistik <strong className="text-[#D7FF00] font-semibold">SSS</strong> ini dikumpul bermula dari <strong className="text-zinc-200 font-semibold">Season 4 (S4 - S12)</strong>.
+                        Nota: Rekod <strong className="text-[#D7FF00] font-semibold">SSS</strong> dikumpul dari <strong className="text-zinc-200 font-semibold">Season 4 (S4-S12)</strong>.
                       </>
                     ) : (
                       <>
-                        Nota: Memaparkan statistik khas untuk <strong className="text-[#D7FF00] font-semibold">{activeSssSummaryLabel}</strong>.
+                        Nota: Statistik untuk <strong className="text-[#D7FF00] font-semibold">{activeSssSummaryLabel}</strong>.
                       </>
                     )}
                   </p>
                 ) : (
                   <>
                     <p className="text-[11px] text-zinc-400 leading-relaxed">
-                      Nota: Data statistik dikumpul daripada platform scrim bermula <strong className="text-zinc-300 font-semibold">November 2026</strong>.
+                      Nota: Data scrim mula dikumpul sejak <strong className="text-zinc-300 font-semibold">November 2026</strong>.
                     </p>
                     <p className="text-[10px] font-mono text-zinc-400/90 tracking-wide leading-relaxed">
                       MEC SCRIMS • BUNNYKUN SCRIMS • BEN ESPORTS SCRIMS • CT SCRIMS • KxLatte SCRIMS
@@ -7362,7 +7362,7 @@ export default function App() {
               <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
                 <Flame className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                 <p className="leading-relaxed flex-1">
-                  Arkib keputusan rasmi, status sesi (Completed / Pending), carta kedudukan keseluruhan pusingan &amp; cetakan poster HD.
+                  Arkib rekod scrim &amp; tournament, status sesi, dan export poster HD.
                 </p>
                 <button
                   type="button"
@@ -7454,7 +7454,7 @@ export default function App() {
                     <input
                       type="search"
                       enterKeyHint="search"
-                      placeholder="Cari nama scrim, penganjur atau tier..."
+                      placeholder="Cari nama scrim, host atau tier..."
                       value={searchScrimQuery}
                       onChange={(e) => setSearchScrimQuery(e.target.value)}
                       onKeyDown={(e) => {
@@ -7497,7 +7497,7 @@ export default function App() {
               <div className="space-y-4 px-1" aria-busy="true" aria-label="Memuatkan rekod sesi">
                 <div className="flex items-center gap-2 text-xs font-mono text-zinc-300">
                   <progress aria-label="Memuatkan arkib sesi" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
-                  <span>Memuatkan arkib sesi...</span>
+                  <span>Loading rekod...</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
                   {[0, 1, 2, 3].map((i) => (
@@ -7514,9 +7514,9 @@ export default function App() {
             ) : filteredScrims.length === 0 ? (
               <div className="my-4 py-14 px-6 text-center bg-zinc-900/90 border border-zinc-800 rounded-3xl space-y-3.5 mx-1">
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
-                <h3 className="font-black text-white text-base">Tiada Rekod Sesi Dijumpai</h3>
+                <h3 className="font-black text-white text-base">Tiada Rekod Lagi</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
-                  Belum ada sesi kejohanan atau scrim di bawah carian atau penapis ini. Anda boleh cipta sesi baharu di Portal Host.
+                  Tak ada rekod untuk filter ni. Boleh buat sesi baru kat Portal Host.
                 </p>
                 <button
                   type="button"
@@ -7625,7 +7625,7 @@ export default function App() {
                   <Award className="w-5 h-5 text-[#D7FF00]"/>
                   <span>Direktori Penganjur</span>
                 </h2>
-                <p className="text-xs text-zinc-400">Direktori penganjur &amp; hos kejohanan berdaftar.</p>
+                <p className="text-xs text-zinc-400">Senarai host &amp; penganjur berdaftar.</p>
               </div>
 
               <div className="relative">
@@ -7633,7 +7633,7 @@ export default function App() {
                 <input
                   type="search"
                   enterKeyHint="search"
-                  placeholder="Cari penganjur..."
+                  placeholder="Cari nama host..."
                   value={searchHostQuery}
                   onChange={(e) => setSearchHostQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -7731,7 +7731,7 @@ export default function App() {
                   <Sparkles className="w-4 h-4 text-[#D7FF00]"/>
                   <span>Showcase Komuniti</span>
                 </h2>
-                <p className="text-[11px] text-zinc-400">Klip &amp; sorotan komuniti.</p>
+                <p className="text-[11px] text-zinc-400">Klip &amp; highlight komuniti.</p>
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
@@ -7858,7 +7858,7 @@ export default function App() {
                   SCRIM HUB <span className="text-[#D7FF00]">by ry.khor</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                  SCRIM HUB is an all-in-one competitive esports management platform built specifically for PUBG Mobile tournament organizers, scrim hosts, and tier squads. Automate live match scoring, dynamic leaderboard rankings, verified career statistics, and instant social media poster generation directly in your browser.
+                  Web app untuk host scrim, penganjur tournament &amp; squad PUBG Mobile. Kira markah PMGC, susun ranking, check rekod team &amp; export poster terus dari browser.
                 </p>
               </div>
             </div>
@@ -7868,8 +7868,8 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-5 h-5 text-[#D7FF00]"/>
                 <div>
-                  <h2 className="text-base sm:text-lg font-black text-white">Platform User Guide & Feature Manual</h2>
-                  <p className="text-xs text-zinc-400">Master every capability of SCRIM HUB to manage professional scrims and tournaments with ease.</p>
+                  <h2 className="text-base sm:text-lg font-black text-white">Panduan Guna SCRIM HUB</h2>
+                  <p className="text-xs text-zinc-400">Cara guna Quick Scorer, Host Panel, Leaderboard &amp; rekod team.</p>
                 </div>
               </div>
 
@@ -7882,8 +7882,8 @@ export default function App() {
                       <Lock className="w-4 h-4"/>
                     </div>
                     <div>
-                      <h3 className="font-black text-sm text-white">1. How Admin Starts a Scrim / Tour</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">FIXTURE SETUP & ROUND MANAGEMENT</span>
+                      <h3 className="font-black text-sm text-white">1. Cara Host Mula Scrim / Tour</h3>
+                      <span className="text-[10px] text-zinc-400 font-mono">SETUP SESI &amp; MATCH</span>
                     </div>
                   </div>
 
@@ -7891,40 +7891,40 @@ export default function App() {
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">1</span>
                       <div>
-                        <strong className="text-white block">Sign In to Admin Portal</strong>
-                        Navigate to the <strong>Admin Scrim</strong> tab and log in using your authorized host credentials.
+                        <strong className="text-white block">Log Masuk Akaun Host</strong>
+                        Buka tab <strong>Host</strong> dan log masuk akaun anda.
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">2</span>
                       <div>
-                        <strong className="text-white block">Choose Event Type & Enter Details</strong>
-                        Toggle between <span className="bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 px-1.5 py-0.5 rounded font-bold">Scrim</span> (practice) or <span className="bg-amber-400/15 text-amber-300 border border-amber-400/30 px-1.5 py-0.5 rounded font-bold">Tournament</span> (official). Fill in fixture title, organizer, tier division, contact, and upload an event logo.
+                        <strong className="text-white block">Pilih Format &amp; Isi Info</strong>
+                        Pilih <span className="bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 px-1.5 py-0.5 rounded font-bold">Scrim</span> atau <span className="bg-amber-400/15 text-amber-300 border border-amber-400/30 px-1.5 py-0.5 rounded font-bold">Tournament</span>. Isi tajuk, nama host, tier, contact &amp; upload logo event kalau ada.
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">3</span>
                       <div>
-                        <strong className="text-white block">Adjust Team Slots (Up to 24)</strong>
-                        Use the <strong>+ Add Team</strong> and <strong>- Remove Team</strong> buttons to set the exact number of competing squads (2 to 24 teams).
+                        <strong className="text-white block">Set Slot Team (2-24 Team)</strong>
+                        Guna butang <strong>+</strong> / <strong>-</strong> kat Slot untuk adjust jumlah team, atau guna <strong>Import WA</strong> untuk paste terus dari WhatsApp.
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">4</span>
                       <div>
-                        <strong className="text-white block">Input Match Scores & Maps</strong>
-                        Select active round (Match 1, Match 2...) and the battleground map. Choose the placement from the rank dropdown and enter eliminations.
+                        <strong className="text-white block">Isi Markah &amp; Map</strong>
+                        Pilih match &amp; map (Erangel, Miramar, dll), kemudian pilih placement dan masuk jumlah kills.
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2.5">
                       <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">5</span>
                       <div>
-                        <strong className="text-white block">Save & Conclude</strong>
-                        Click <strong>"Save Match Scores"</strong> to commit results to the database. Once all rounds finish, hit <strong>"Conclude"</strong> to lock scores permanently.
+                        <strong className="text-white block">Save &amp; Lock Keputusan</strong>
+                        Tekan <strong>Save</strong> untuk simpan ke Cloud. Bila semua match habis, guna menu <strong>⋮</strong> untuk lock keputusan.
                       </div>
                     </div>
                   </div>
@@ -7937,13 +7937,13 @@ export default function App() {
                       <Crosshair className="w-4 h-4"/>
                     </div>
                     <div>
-                      <h3 className="font-black text-sm text-white">2. Official PMGC Point System</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">STANDARDIZED BATTLE ROYALE SCORING</span>
+                      <h3 className="font-black text-sm text-white">2. Sistem Kiraan PMGC</h3>
+                      <span className="text-[10px] text-zinc-400 font-mono">STANDARD 10-POINT PMGC</span>
                     </div>
                   </div>
 
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    SCRIM HUB uses the standard PUBG Mobile Global Championship (PMGC) 10-point scoring matrix. Points are calculated automatically per round:
+                    Sistem ikut format rasmi PMGC 10-point. Placement &amp; kill points dikira terus setiap pusingan:
                   </p>
 
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
@@ -7994,34 +7994,29 @@ export default function App() {
                       <Trophy className="w-4 h-4"/>
                     </div>
                     <div>
-                      <h3 className="font-black text-sm text-white">3. Live Leaderboard & Instant Posters</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">AUTOMATED SOCIAL MEDIA PUBLISHING</span>
+                      <h3 className="font-black text-sm text-white">3. Live Leaderboard &amp; Poster PNG</h3>
+                      <span className="text-[10px] text-zinc-400 font-mono">EXPORT TERUS KE WA / IG</span>
                     </div>
                   </div>
 
                   <div className="space-y-2 text-xs text-zinc-300 leading-relaxed">
                     <p>
-                      The <strong>Leaderboard</strong> dynamically aggregates team standings in real-time with automated tie-breaking (Total Points &gt; WWCD Count &gt; Placement Points &gt; Elimination Points).
+                      <strong>Leaderboard</strong> susun ranking ikut Total Points, Placement Points, Kills &amp; WWCD.
                     </p>
 
                     <div className="p-3 glass-tile rounded-2xl space-y-1.5">
                       <span className="text-white font-black block flex items-center gap-1.5">
                         <Download className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Instant Matchday Poster (Up to 24 Teams)
+                        Poster Standings HD (Sehingga 24 Team)
                       </span>
                       <p className="text-[11px] text-zinc-400">
-                        Click the <strong>"Poster PNG"</strong> button on any active session to render a dynamic graphic banner ready for Instagram or WhatsApp. It automatically scales and pulls:
+                        Tekan <strong>Export PNG</strong> untuk download poster siap logo event, badge WWCD &amp; table markah penuh.
                       </p>
-                      <ul className="list-disc pl-4 text-[11px] text-zinc-400 space-y-0.5">
-                        <li>Your uploaded tournament/scrim logo.</li>
-                        <li>Verified leaderboard standings (2-24 teams) with WWCD badges.</li>
-                        <li>Host &amp; organizer contact banner and session regulations without overlapping.</li>
-                      </ul>
                     </div>
 
                     <div className="p-2.5 glass-tile rounded-xl text-[11px] flex items-center justify-between">
-                      <span className="font-bold text-zinc-200">Copy Text Feature:</span>
-                      <span className="text-zinc-400">1-click formatted text for WhatsApp &amp; Discord</span>
+                      <span className="font-bold text-zinc-200">Salin Teks:</span>
+                      <span className="text-zinc-400">Copy table standings terus untuk WhatsApp &amp; Discord</span>
                     </div>
                   </div>
                 </div>
@@ -8033,8 +8028,8 @@ export default function App() {
                       <Sparkles className="w-4 h-4"/>
                     </div>
                     <div>
-                      <h3 className="font-black text-sm text-white">4. Analytics, IG Story &amp; Content</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">TEAM PROFILES &amp; TIKTOK BINDING</span>
+                      <h3 className="font-black text-sm text-white">4. Statistik Team, Story 9:16 &amp; Content</h3>
+                      <span className="text-[10px] text-zinc-400 font-mono">TEAM MATRIX &amp; TIKTOK LINK</span>
                     </div>
                   </div>
 
@@ -8042,30 +8037,30 @@ export default function App() {
                     <div className="p-3 glass-tile rounded-2xl space-y-1">
                       <strong className="text-white block flex items-center gap-1.5">
                         <BarChart2 className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Scoped Career Statistics
+                        Filter Rekod Team
                       </strong>
                       <p className="text-[11px] text-zinc-400">
-                        Filter squad metrics across <strong>All Events</strong>, <strong>Scrims Only</strong>, or <strong>Tour Only</strong> to analyze kill averages, total WWCDs, and battle logs.
+                        Tap mana-mana team dalam Team Matrix untuk filter ikut <strong>Scrim</strong>, <strong>Tournament</strong>, atau <strong>Tier</strong>.
                       </p>
                     </div>
 
                     <div className="p-3 glass-tile rounded-2xl space-y-1">
                       <strong className="text-white block flex items-center gap-1.5">
                         <Share className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        9:16 Instagram Story Generator
+                        Kad IG Story 9:16
                       </strong>
                       <p className="text-[11px] text-zinc-400">
-                        Inside <em>Team Performance Info</em>, click <strong>"Share to IG Story"</strong> to render a vertical story card showcasing circular gauges, combat archetypes, and career points.
+                        Tekan <strong>Story 9:16</strong> kat profile team untuk export kad statistik siap dengan graf &amp; total points.
                       </p>
                     </div>
 
                     <div className="p-3 glass-tile rounded-2xl space-y-1">
                       <strong className="text-white block flex items-center gap-1.5">
                         <Video className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Showcase Content &amp; Social Links
+                        Showcase Content
                       </strong>
                       <p className="text-[11px] text-zinc-400">
-                        Use <strong>"Post Your Content"</strong> to publish match posters or bind links from TikTok and Instagram with interactive player cards.
+                        Post poster match atau link TikTok &amp; Instagram kat bahagian Content.
                       </p>
                     </div>
                   </div>
@@ -8078,21 +8073,21 @@ export default function App() {
             <div className="glass-panel rounded-3xl p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-2">
                 <div>
-                  <h3 className="font-black text-sm text-white">Platform Credits & Technical Info</h3>
-                  <p className="text-xs text-zinc-400">System infrastructure and developer identity.</p>
+                  <h3 className="font-black text-sm text-white">Credits &amp; Info Teknikal</h3>
+                  <p className="text-xs text-zinc-400">Info build &amp; developer.</p>
                 </div>
                 <span className="text-[10px] font-mono glass-pill text-zinc-300 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto">
-                  v2.7.0 • PRODUCTION READY
+                  v2.7.0
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-4 glass-tile rounded-2xl space-y-3">
                   <div>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Created & Engineered By</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Dibina Oleh</span>
                     <span className="font-black text-white text-sm block">ry.khor (RYAN.)</span>
                     <p className="text-zinc-400 text-[11px] mt-0.5">
-                      Esports Digital Creator & Frontend Developer specializing in high-performance competitive gaming interfaces.
+                      Frontend developer &amp; creator platform esports.
                     </p>
                   </div>
 
@@ -8124,7 +8119,7 @@ export default function App() {
                 <div className="p-4 glass-tile rounded-2xl space-y-2">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Technology Stack</span>
                   <span className="font-black text-white text-sm block">React • Tailwind CSS • Supabase</span>
-                  <p className="text-zinc-400 text-[11px]">Real-time database sync, secure organizer credentials, and responsive HTML5 Canvas rendering engine.</p>
+                  <p className="text-zinc-400 text-[11px]">Cloud sync dengan Supabase &amp; jana poster HD terus dalam browser.</p>
                 </div>
               </div>
             </div>
@@ -8160,8 +8155,8 @@ export default function App() {
                   </h2>
                   <p className="text-xs text-zinc-400 text-pretty">
                     {isRegisterMode
-                      ? 'Cipta akaun host untuk simpan dan urus rekod kejohanan anda.'
-                      : 'Log masuk untuk mengurus kejohanan dan rekod cloud anda.'}
+                      ? 'Daftar akaun host untuk save & urus rekod scrim.'
+                      : 'Log masuk untuk urus sesi & save rekod ke Cloud.'}
                   </p>
                 </div>
 
@@ -8241,7 +8236,7 @@ export default function App() {
                       onClick={() => setIsRegisterMode(!isRegisterMode)}
                       className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
                     >
-                      {isRegisterMode ? 'Already have an account? Sign In' : "Don't have a host account? Register here"}
+                      {isRegisterMode ? 'Dah ada akaun? Log Masuk' : 'Belum ada akaun? Daftar sini'}
                     </button>
                   </div>
 
@@ -8251,7 +8246,7 @@ export default function App() {
                       onClick={() => navigateToTab('scorer')}
                       className="text-xs text-zinc-400 hover:text-white font-semibold transition cursor-pointer"
                     >
-                      Atau guna Quick Scorer tanpa akaun →
+                      Atau guna Quick Scorer tanpa login →
                     </button>
                   </div>
                 </form>
@@ -8305,7 +8300,7 @@ export default function App() {
                         <div className="p-3 sm:p-3.5 bg-zinc-950/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
-                            Urus scrim, jemput Co-Host &amp; simpan rekod kejohanan ke Cloud.
+                            Urus scrim, invite Co-Host &amp; save rekod ke Cloud.
                           </p>
                           <button
                             type="button"
@@ -8424,7 +8419,7 @@ export default function App() {
                       type="button"
                       onClick={handleQuickNewSession}
                       className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
-                      title="Mula sesi kejohanan / scrim baru serta-merta"
+                      title="Buat sesi baru"
                     >
                       <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[3]" />
                       <span>Sesi Baru</span>
@@ -8437,7 +8432,7 @@ export default function App() {
                           onClick={() => setIsScorerActionsMenuOpen(prev => !prev)}
                           aria-label="More Session Actions"
                           aria-expanded={isScorerActionsMenuOpen}
-                          title="Tindakan Sesi (Edit, Kunci, Co-Host, Padam)"
+                          title="Menu sesi (Edit, Lock, Co-Host, Padam)"
                           className="w-9 h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center transition active:scale-95 cursor-pointer"
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -8460,7 +8455,7 @@ export default function App() {
                                   className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
                                 >
                                   <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
-                                  <span>Edit Maklumat Sesi</span>
+                                  <span>Edit Info Sesi</span>
                                 </button>
 
                                 <button
@@ -8474,12 +8469,12 @@ export default function App() {
                                   {activeAdminScrim.is_finished ? (
                                     <>
                                       <Unlock className="w-3.5 h-3.5 text-amber-300" />
-                                      <span>Buka Kunci Sesi</span>
+                                      <span>Unlock Sesi</span>
                                     </>
                                   ) : (
                                     <>
                                       <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />
-                                      <span>Kunci Keputusan</span>
+                                      <span>Lock Keputusan</span>
                                     </>
                                   )}
                                 </button>
@@ -8494,7 +8489,7 @@ export default function App() {
                                     className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
                                   >
                                     <Share2 className="w-3.5 h-3.5 text-zinc-400" />
-                                    <span>Salin Pautan Co-Host</span>
+                                    <span>Copy Link Co-Host</span>
                                   </button>
                                 )}
                               </div>
@@ -8536,7 +8531,7 @@ export default function App() {
                           </div>
                           <div>
                             <h2 className="text-sm sm:text-base font-black text-white">
-                              Borang Kemasukan Markah
+                              Isi Markah Match
                             </h2>
                             <p className="text-[11px] font-mono tabular-nums text-zinc-400">
                               Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
@@ -8551,7 +8546,7 @@ export default function App() {
                             onClick={() => setIsImportModalOpen(true)}
                             disabled={activeAdminScrim?.is_finished}
                             className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/40 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                            title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
+                            title="Paste list team dari WhatsApp / Discord"
                           >
                             <Copy className="w-3.5 h-3.5 text-emerald-300"/>
                             <span>Import WA</span>
@@ -8562,7 +8557,7 @@ export default function App() {
                             onClick={handleRandomizeTestData}
                             disabled={activeAdminScrim?.is_finished}
                             className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                            title="Isi markah demo rawak untuk ujian pantas"
+                            title="Isi markah demo untuk test"
                           >
                             <Eye className="w-3.5 h-3.5 text-zinc-100"/>
                             <span>Demo</span>
@@ -8573,7 +8568,7 @@ export default function App() {
                             onClick={handleClearAdminForm}
                             disabled={activeAdminScrim?.is_finished}
                             className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 border border-zinc-700 disabled:opacity-40 cursor-pointer"
-                            title="Kosongkan markah perlawanan ini"
+                            title="Clear markah match ni"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
                             <span className="hidden sm:inline">Clear</span>
@@ -8621,7 +8616,7 @@ export default function App() {
                                   type="button"
                                   onClick={handleRemoveLastMatch}
                                   className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/10 flex items-center justify-center transition active:scale-90"
-                                  title="Padam pusingan match terakhir"
+                                  title="Padam match terakhir"
                                 >
                                   <Minus className="w-3.5 h-3.5" />
                                 </button>
@@ -8630,7 +8625,7 @@ export default function App() {
                                 type="button"
                                 onClick={handleAddNewMatch}
                                 className="h-8 px-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[#D7FF00] border border-[#D7FF00]/30 font-black text-xs transition flex items-center gap-1 active:scale-95"
-                                title="Tambah pusingan match baru"
+                                title="Tambah match baru"
                               >
                                 <Plus className="w-3.5 h-3.5 text-[#D7FF00]" />
                                 <span>Match</span>
@@ -8682,7 +8677,7 @@ export default function App() {
                           type="button"
                           onClick={openEditScrimModal}
                           className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white truncate px-2 py-1 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer group"
-                          title="Tekan untuk edit info kejohanan"
+                          title="Tap untuk edit info sesi"
                         >
                           <span className="text-[#D7FF00] font-mono font-bold">[{activeAdminScrim?.tier || 'Tier 1'}]</span>
                           <span className="truncate group-hover:text-[#D7FF00] transition font-bold">{activeAdminScrim?.title || 'PUBG Mobile Scrim'}</span>
@@ -8698,7 +8693,7 @@ export default function App() {
                               onClick={handleRemoveTeamSlot}
                               disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
                               className="w-6 h-6 rounded-lg bg-zinc-800 border border-white/10 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition shadow-2xs"
-                              title="Padam slot baris team terakhir"
+                              title="Buang slot terakhir"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -8710,7 +8705,7 @@ export default function App() {
                               onClick={handleAddTeamSlot}
                               disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
                               className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
-                              title="Tambah slot baris team baru"
+                              title="Tambah slot team"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -8857,7 +8852,7 @@ export default function App() {
                           )}
                         >
                           <Save className="w-4 h-4"/>
-                          <span>{activeAdminScrim?.is_finished ? 'Keputusan Dikunci' : `Simpan Skor Match ${selectedMatchIdx + 1} ke Cloud`}</span>
+                          <span>{activeAdminScrim?.is_finished ? 'Keputusan Dah Lock' : `Save Match ${selectedMatchIdx + 1} ke Cloud`}</span>
                         </button>
 
                         <button
@@ -9061,7 +9056,7 @@ export default function App() {
                         className="w-full lg:hidden py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl text-xs font-bold transition border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
                       >
                         <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#D7FF00]" />
-                        <span>Kembali Ke Isi Markah ↑</span>
+                        <span>Balik Ke Borang ↑</span>
                       </button>
                     </div>
 
@@ -9099,7 +9094,7 @@ export default function App() {
                   <h3 className="font-black text-base text-white">
                     <span>{performanceTeam.name}</span>
                   </h3>
-                  <span className="text-[11px] text-zinc-300">Statistik prestasi &amp; eksport Story 9:16</span>
+                  <span className="text-[11px] text-zinc-300">Statistik team &amp; export Story 9:16</span>
                 </div>
               </div>
 
@@ -9155,13 +9150,13 @@ export default function App() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
               <div className="p-3 bg-zinc-900/60 rounded-2xl">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Points / Event</span>
+                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Pts / Sesi</span>
                 <span className="text-base font-black font-mono text-[#D7FF00]">
                   {filteredTeamPerformance.avgPts}
                 </span>
               </div>
               <div className="p-3 bg-zinc-900/60 rounded-2xl">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Kills / Event</span>
+                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Kills / Sesi</span>
                 <span className="text-base font-black font-mono text-white">
                   {filteredTeamPerformance.avgKills}
                 </span>
@@ -9173,9 +9168,9 @@ export default function App() {
                 </span>
               </div>
               <div className="p-3 bg-zinc-900/60 rounded-2xl">
-                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Filtered Sessions</span>
+                <span className="text-[9px] uppercase font-bold text-zinc-500 block">Jumlah Sesi</span>
                 <span className="text-base font-black font-mono text-zinc-300">
-                  {filteredTeamPerformance.results.length} Sessions
+                  {filteredTeamPerformance.results.length} Sesi
                 </span>
               </div>
             </div>
@@ -9299,25 +9294,25 @@ export default function App() {
                       Selamat Datang ke SCRIM HUB
                     </h2>
                     <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                      SCRIM HUB ialah platform pengurusan &amp; kalkulator mata scrim PUBG Mobile paling pantas. 100% percuma &amp; terbuka untuk semua — daripada squad sparring santai hinggalah kejohanan komuniti rasmi.
+                      Web app untuk kira markah scrim PUBG Mobile, buat poster standings &amp; simpan rekod team. Percuma untuk host &amp; squad.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 pt-1">
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
-                      <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">1. Format Rasmi</span>
-                      <h4 className="text-xs font-bold text-white">Standard Mata PMGC</h4>
-                      <p className="text-[11px] text-zinc-400 leading-snug">#1 (10pts), #2 (6pts), #3 (5pts) hingga ke #8 (1pt) + 1 mata untuk setiap elim.</p>
+                      <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">1. Format PMGC</span>
+                      <h4 className="text-xs font-bold text-white">Standard 10-Point</h4>
+                      <p className="text-[11px] text-zinc-400 leading-snug">#1 (10pts), #2 (6pts), #3 (5pts) sampai #8 (1pt) + 1 point setiap kill.</p>
                     </div>
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
-                      <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">2. Poster Automatik</span>
-                      <h4 className="text-xs font-bold text-white">Live Overall Standings</h4>
-                      <p className="text-[11px] text-zinc-400 leading-snug">Visual leaderboard resolusi tinggi siap dijana terus untuk WhatsApp, Discord &amp; Story.</p>
+                      <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">2. Poster HD</span>
+                      <h4 className="text-xs font-bold text-white">Live Standings</h4>
+                      <p className="text-[11px] text-zinc-400 leading-snug">Export terus jadi poster PNG atau copy teks untuk WhatsApp &amp; Discord.</p>
                     </div>
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
-                      <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">3. Dua Mod Selesa</span>
-                      <h4 className="text-xs font-bold text-white">Pantas atau Cloud</h4>
-                      <p className="text-[11px] text-zinc-400 leading-snug">Guna Quick Scorer tanpa login, atau daftar Host untuk anjur kejohanan bersiri.</p>
+                      <span className="text-[9px] font-black uppercase text-[#D7FF00] bg-[#D7FF00]/10 px-2 py-0.5 rounded inline-block">3. Cloud Sync</span>
+                      <h4 className="text-xs font-bold text-white">Simpan Rekod</h4>
+                      <p className="text-[11px] text-zinc-400 leading-snug">Log masuk sebagai Host untuk save sesi ke Cloud &amp; update Team Matrix.</p>
                     </div>
                   </div>
                 </div>
@@ -9337,7 +9332,7 @@ export default function App() {
                       Cara Guna Quick Scorer (Kiraan Pantas)
                     </h2>
                     <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                      Direka untuk pusingan harian atau semakan keputusan segera. Buka web dan terus masukkan mata di borang tanpa perlu sebarang persediaan.
+                      Buka dan terus isi markah untuk match harian.
                     </p>
                   </div>
 
@@ -9345,40 +9340,40 @@ export default function App() {
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">1</span>
-                        <h4 className="text-xs font-bold text-white">Pilih Pusingan Match</h4>
+                        <h4 className="text-xs font-bold text-white">Pilih Match</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Tekan tab <strong>Match 1</strong> hingga <strong>Match 5</strong> di bar pusingan. Anda juga boleh menamakan sesi perlawanan anda.
+                        Tap <strong>Match 1</strong> sampai <strong>Match 5</strong> atau tekan <strong>+ Match</strong> untuk tambah pusingan.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">2</span>
-                        <h4 className="text-xs font-bold text-white">Taip Nama Pasukan</h4>
+                        <h4 className="text-xs font-bold text-white">Isi Nama Team</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Masukkan nama skuad di lajur <em>Team Name</em>. Nama pasukan automatik diselaraskan untuk kesemua 5 match!
+                        Taip nama team kat ruang <em>Team Name</em> atau guna <strong>Import WA</strong>. Nama team akan sync ke match lain.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">3</span>
-                        <h4 className="text-xs font-bold text-white">Pilih Kedudukan &amp; Kills</h4>
+                        <h4 className="text-xs font-bold text-white">Pilih Placement &amp; Kills</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Pilih nombor kedudukan (contoh: <code>#1</code>) &amp; taip jumlah kills. Sistem automatik mengira mata rasmi dan lencana WWCD.
+                        Pilih rank (cth: <code>#1</code>) &amp; masuk kills. Markah dan badge WWCD dikira terus.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">4</span>
-                        <h4 className="text-xs font-bold text-white">Download Poster Standings</h4>
+                        <h4 className="text-xs font-bold text-white">Export Poster PNG</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Semak Live Overall Standings di sebelah kanan. Tekan butang <strong>Download Poster</strong> untuk simpan fail grafik HD.
+                        Check Live Leaderboard &amp; tekan <strong>Export PNG</strong> untuk download poster.
                       </p>
                     </div>
                   </div>
@@ -9416,7 +9411,7 @@ export default function App() {
                       Cara Guna Host Workspace (Penganjur Rasmi)
                     </h2>
                     <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                      Direka khas untuk penganjur kejohanan, liga bertingkat (Qualifiers/Finals) dan clan esports yang memerlukan rekod tersimpan selamat.
+                      Untuk host liga, qualifier atau scrim harian yang nak rekod tersimpan dalam Cloud.
                     </p>
                   </div>
 
@@ -9427,37 +9422,37 @@ export default function App() {
                         <h4 className="text-xs font-bold text-white">Daftar Akaun Host</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Buka tab <strong>Host Workspace</strong> dan masukkan emel anda. Pendaftaran adalah terbuka &amp; segera untuk simpan data ke Cloud.
+                        Log masuk atau daftar dengan email untuk buka akses save ke Cloud.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">2</span>
-                        <h4 className="text-xs font-bold text-white">Cipta Sesi Kejohanan</h4>
+                        <h4 className="text-xs font-bold text-white">Buat Sesi Baru</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Tekan <strong>Sesi Baru</strong>. Tetapkan nama kejohanan, format (Scrim/Tour), dan pusingan match tanpa had.
+                        Tekan <strong>Sesi Baru</strong>, kemudian set tajuk, format Scrim/Tour &amp; bilangan match.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">3</span>
-                        <h4 className="text-xs font-bold text-white">Isi Keputusan &amp; Live Ranking</h4>
+                        <h4 className="text-xs font-bold text-white">Isi Markah &amp; Live Ranking</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Antara muka sama mudah macam Scorer! Rekod kedudukan &amp; kills dengan Live Leaderboard poster di sebelah kanan.
+                        Isi rank &amp; kills macam biasa sambil preview poster standings kat sebelah kanan.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black text-[10px] flex items-center justify-center flex-shrink-0">4</span>
-                        <h4 className="text-xs font-bold text-white">Kunci &amp; Tamatkan Sesi</h4>
+                        <h4 className="text-xs font-bold text-white">Lock Sesi Bila Tamat</h4>
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-snug pl-7">
-                        Bila kejohanan tamat, tekan <strong>Kunci Sesi</strong> untuk arkibkan data kekal dan kemaskini prestasi pasukan ke Database.
+                        Lepas habis semua match, tekan <strong>Lock Keputusan</strong> supaya markah tak diubah lagi.
                       </p>
                     </div>
                   </div>
@@ -9492,7 +9487,7 @@ export default function App() {
                       Arkib History &amp; Database Prestasi
                     </h2>
                     <p className="text-xs text-zinc-400 leading-relaxed font-normal">
-                      Semua kejohanan yang disimpan di Host Workspace secara automatik terhimpun dalam arkib rekod dan profil analitik setiap skuad.
+                      Semua sesi yang dah save akan masuk ke tab Rekod dan Team Matrix.
                     </p>
                   </div>
 
@@ -9500,29 +9495,29 @@ export default function App() {
                     <div className="p-2.5 sm:p-3.5 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-[#D7FF00]"/>
-                        <span>Tab History (Arkib Kejohanan)</span>
+                        <span>Tab Rekod (Arkib Sesi)</span>
                       </h4>
                       <p className="text-[11px] text-zinc-400 leading-relaxed">
-                        Senarai perlawanan lepas yang pernah dianjurkan. Boleh semak keputusan detail setiap match, kemaskini jika ada ralat, atau padam sesi lama.
+                        Senarai scrim &amp; tournament lepas. Tap mana-mana sesi untuk tengok scoreboard penuh atau edit balik kalau ada silap.
                       </p>
                     </div>
 
                     <div className="p-2.5 sm:p-3.5 bg-zinc-900/60 rounded-xl sm:rounded-2xl space-y-1">
                       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                         <Database className="w-4 h-4 text-[#D7FF00]"/>
-                        <span>Tab Database (Prestasi Pasukan)</span>
+                        <span>Tab Teams (Team Matrix)</span>
                       </h4>
                       <p className="text-[11px] text-zinc-400 leading-relaxed">
-                        Statistik pasukan sepanjang musim: Jumlah kills, mata purata, bilangan Chicken Dinner (WWCD) &amp; graf prestasi perlawanan.
+                        Ranking team ikut total points, kills, WWCD &amp; graf prestasi setiap scrim.
                       </p>
                     </div>
                   </div>
 
                   <div className="p-2.5 sm:p-3 bg-pink-950/50 border border-pink-500/25 rounded-xl sm:rounded-2xl flex items-center justify-between gap-2.5">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-black uppercase text-pink-400">Kongsi ke Instagram Story</span>
+                      <span className="text-[10px] font-black uppercase text-pink-400">Export ke IG Story</span>
                       <p className="text-[11px] text-zinc-300 leading-snug">
-                        Di tab Database, tekan mana-mana kad pasukan dan pilih <strong>Share to IG Story</strong> untuk jana visual kad esport siap kongsi!
+                        Dalam tab Teams, pilih mana-mana team dan tekan <strong>Story 9:16</strong> untuk download kad statistik.
                       </p>
                     </div>
                   </div>
@@ -9619,15 +9614,15 @@ export default function App() {
               </h2>
               <p className="text-xs text-zinc-400 text-pretty">
                 {isRegisterMode
-                  ? 'Sign up to manage tournaments and save match fixtures.'
-                  : 'Sign in to access your tournament dashboard.'}
+                  ? 'Daftar akaun host untuk save & urus rekod scrim.'
+                  : 'Log masuk untuk buka dashboard host.'}
               </p>
             </div>
 
             {pendingCloudSync && (
               <div className="p-3 bg-[#D7FF00]/10 border border-[#D7FF00]/20 rounded-2xl text-xs text-[#D7FF00] font-semibold flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-[#D7FF00] flex-shrink-0" />
-                <span>Data perlawanan sedia disimpan ke cloud selepas log masuk.</span>
+                <span>Data match akan terus save ke Cloud lepas log masuk.</span>
               </div>
             )}
 
@@ -9707,7 +9702,7 @@ export default function App() {
                   onClick={() => setIsRegisterMode(!isRegisterMode)}
                   className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
                 >
-                  {isRegisterMode ? 'Already have an account? Sign In' : "Don't have a host account? Register here"}
+                  {isRegisterMode ? 'Dah ada akaun? Log Masuk' : 'Belum ada akaun? Daftar sini'}
                 </button>
               </div>
             </form>
@@ -9726,7 +9721,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="font-black text-sm text-white">Developer Feedback & Bug Report</h3>
-                  <span className="text-[10px] text-zinc-400">Direct message to ry.khor</span>
+                  <span className="text-[10px] text-zinc-400">Mesej terus ke ry.khor</span>
                 </div>
               </div>
               <button 
@@ -9757,7 +9752,7 @@ export default function App() {
                 <input
                   type="email"
                   autoComplete="email"
-                  placeholder="name@email.com (if follow-up is needed)"
+                  placeholder="name@email.com (kalau perlu reply)"
                   value={feedbackEmail}
                   onChange={(e) => setFeedbackEmail(e.target.value)}
                   className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
@@ -9769,7 +9764,7 @@ export default function App() {
                 <textarea
                   rows="3"
                   required
-                  placeholder="Describe the bug or feature recommendation in detail..."
+                  placeholder="Tulis detail bug atau cadangan..."
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
                   className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00]"
@@ -9850,7 +9845,7 @@ export default function App() {
                 <div className="space-y-1.5 max-w-xs">
                   <h3 className="text-lg font-black text-white">Profil &amp; Akaun Host</h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    Sila log masuk untuk melihat profil penganjur, statistik sesi, dan pengurusan cloud anda.
+                    Log masuk untuk tengok profile, statistik sesi &amp; rekod Cloud.
                   </p>
                 </div>
                 <button
@@ -10280,7 +10275,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs sm:text-sm font-medium text-zinc-300 line-clamp-3">
-                    {profileBio || 'Penganjur kejohanan rasmi PUBG Mobile Scrims.'}
+                    {profileBio || 'Host PUBG Mobile Scrims.'}
                   </p>
                   <span className="text-[9px] font-mono text-zinc-500 font-semibold">Terkini</span>
                 </div>
@@ -10477,7 +10472,7 @@ export default function App() {
 
                   <div>
                     <label className="block text-[10px] text-zinc-400 mb-1">
-                      Atau Tampal Pautan URL Gambar:
+                      Atau paste link URL gambar:
                     </label>
                     <input
                       type="url"
@@ -10576,7 +10571,7 @@ export default function App() {
 
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-zinc-400 font-mono">
-                      {filteredManageableTeams.length} pasukan dikesan
+                      {filteredManageableTeams.length} team
                     </span>
                     <button
                       type="button"
@@ -10592,7 +10587,7 @@ export default function App() {
                       className="inline-flex items-center gap-1 text-[#D7FF00] hover:underline font-bold cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Tambah Pasukan</span>
+                      <span>Tambah Team</span>
                     </button>
                   </div>
                 </div>
@@ -10654,7 +10649,7 @@ export default function App() {
                     })
                   ) : (
                     <div className="py-8 text-center text-zinc-500 text-xs">
-                      Tiada pasukan sepadan dengan carian "{teamManagerSearch}".
+                      Tak jumpa team "{teamManagerSearch}".
                     </div>
                   )}
                 </div>
@@ -10852,7 +10847,7 @@ export default function App() {
                 <div className="bg-zinc-900/60 border border-white/5 text-zinc-300 p-2.5 rounded-2xl flex items-center gap-2 text-xs">
                   <Info className="w-4 h-4 text-[#D7FF00] shrink-0" />
                   <span className="leading-snug">
-                    Di sini anda boleh tukar <strong>nama sesi</strong>, <strong>tarikh scrim</strong>, muat naik <strong>logo rasmi</strong>, dan kemaskini <strong>description / peraturan</strong>.
+                    Tukar <strong>nama sesi</strong>, <strong>tarikh</strong>, <strong>logo</strong> &amp; <strong>description</strong> kat sini.
                   </span>
                 </div>
 
@@ -11141,7 +11136,7 @@ export default function App() {
                 ))}
               </div>
               <p className="text-[10px] text-zinc-500 font-mono text-center pt-1">
-                *Kedudukan disusun automatik mengikut Total PTS → Placement PTS → Kill PTS → WWCD.
+                *Susunan ikut Total PTS → Placement PTS → Kill PTS → WWCD.
               </p>
             </div>
 
@@ -11484,7 +11479,7 @@ export default function App() {
                 <div className="min-w-0 flex-1">
                   <span className="text-xs font-black text-white block">Imbas Keputusan</span>
                   <p className="text-[11px] text-zinc-200 leading-snug mt-0.5">
-                    Muat naik poster keputusan untuk kira &amp; semak markah.
+                    Upload poster untuk extract &amp; check markah.
                   </p>
                 </div>
               </button>
@@ -11508,7 +11503,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-black text-white">Import Pasukan (WhatsApp / Teks)</h3>
-                  <p className="text-[11px] text-zinc-400">Tampal senarai pasukan dari chat WhatsApp atau Discord</p>
+                  <p className="text-[11px] text-zinc-400">Paste list team dari WhatsApp atau Discord</p>
                 </div>
               </div>
               <button
@@ -11524,7 +11519,7 @@ export default function App() {
               <div className="p-3 bg-zinc-900/60 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-400 space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Format Disokong Automatik:</span>
+                  <span>Format Yang Boleh Masuk:</span>
                 </div>
                 <p className="text-zinc-300 leading-relaxed font-mono text-[10px]">
                   1. Geek Fam<br/>
@@ -11532,7 +11527,7 @@ export default function App() {
                   3. Yoodo Alliance<br/>
                   Slot 4: Vampire Esports...
                 </p>
-                <p className="text-[10px] text-zinc-400">Nombor, bullet, dan prefix &quot;Slot&quot; akan dibersihkan secara automatik ke semua 5 perlawanan.</p>
+                <p className="text-[10px] text-zinc-400">Nombor, bullet &amp; &quot;Slot&quot; akan auto-clean untuk semua 5 match.</p>
               </div>
 
               <div>
@@ -11550,7 +11545,7 @@ export default function App() {
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-zinc-400 font-medium">
-                  {importRawText.trim() ? `${importRawText.trim().split(/\r?\n/).filter(l => l.trim().length > 0).length} baris dikesan` : 'Menunggu input...'}
+                  {importRawText.trim() ? `${importRawText.trim().split(/\r?\n/).filter(l => l.trim().length > 0).length} baris` : 'Tunggu input...'}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -11797,7 +11792,7 @@ export default function App() {
                 ) : (
                   <div className="py-10 text-center space-y-2.5">
                     <p className="text-xs text-zinc-400">
-                      Tiada sesi padan dengan carian atau tapisan semasa.
+                      Tak jumpa sesi untuk filter ni.
                     </p>
                     <button
                       type="button"

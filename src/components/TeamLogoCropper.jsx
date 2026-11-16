@@ -143,7 +143,7 @@ export default function TeamLogoCropper({
     const natW = naturalSize.width || imgEl?.naturalWidth || imgEl?.width || 0;
     const natH = naturalSize.height || imgEl?.naturalHeight || imgEl?.height || 0;
     if (!imgEl || !natW || !natH || isExporting || isSubmitting) {
-      setLoadError('Gambar belum siap dimuatkan. Sila tunggu sekejap atau pilih semula gambar.');
+      setLoadError('Gambar belum siap load lagi. Tunggu kejap atau pilih semula.');
       return;
     }
 
@@ -153,7 +153,7 @@ export default function TeamLogoCropper({
       canvas.width = EXPORT_SIZE_PX;
       canvas.height = EXPORT_SIZE_PX;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Kanvas pelayar tidak disokong.');
+      if (!ctx) throw new Error('Browser tak support canvas.');
 
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
@@ -187,7 +187,7 @@ export default function TeamLogoCropper({
       const croppedFile = new File([finalBlob], `team_logo_${Date.now()}.png`, { type: 'image/png' });
       await onConfirm(croppedFile, previewDataUrl);
     } catch (err) {
-      setLoadError(err?.message || 'Gagal memproses imej. Cuba muat naik fail dari peranti.');
+      setLoadError(err?.message || 'Tak dapat proses gambar. Cuba upload dari phone/PC.');
     } finally {
       setIsExporting(false);
     }
@@ -208,7 +208,7 @@ export default function TeamLogoCropper({
               Crop Logo {teamName ? `• ${teamName}` : ''}
             </h4>
             <p className="text-[10px] text-zinc-400">
-              Seret untuk laras posisi, cubit atau guna slider untuk zoom
+              Drag untuk adjust posisi, pinch atau guna slider untuk zoom
             </p>
           </div>
         </div>
@@ -243,10 +243,10 @@ export default function TeamLogoCropper({
               ref={imgRef}
               src={imageSrc}
               crossOrigin={imageSrc.startsWith('data:') || imageSrc.startsWith('blob:') ? undefined : 'anonymous'}
-              alt="Pratonton Crop Logo"
+              alt="Preview Crop Logo"
               onLoad={handleImageLoad}
               onError={() =>
-                setLoadError('Gambar URL luaran disekat CORS. Sila muat naik gambar dari peranti anda.')
+                setLoadError('Link gambar luar kena block CORS. Cuba upload gambar terus dari device.')
               }
               draggable={false}
               style={{
@@ -391,7 +391,7 @@ export default function TeamLogoCropper({
           {busy ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Memuat naik...</span>
+              <span>Uploading...</span>
             </>
           ) : (
             <>

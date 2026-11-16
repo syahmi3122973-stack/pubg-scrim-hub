@@ -370,7 +370,7 @@ export default function ScrimDataHubView({
               total_points: Number(s.total_points) || 0
             }))
           );
-          showToast(`Berjaya ekstrak: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Pasukan!`);
+          showToast(`Extract siap: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Team`);
           scrollToStandings();
         } else {
           // Fallback to presets if file name or match applies
@@ -379,13 +379,13 @@ export default function ScrimDataHubView({
             setScrimName('MEC SCRIMS');
             setScrimDate('2026-11-09');
             setStandings(MEC_SCRIMS_18_TEAMS);
-            showToast('Poster dikesan: MEC SCRIMS • 9 November 2026 (18 Pasukan Lengkap)');
+            showToast('Poster detect: MEC SCRIMS • 9 Nov 2026 (18 Team)');
             scrollToStandings();
           } else if (isCtMatch) {
             setScrimName('CT SCRIMS');
             setScrimDate('2026-11-05');
             setStandings(CT_SCRIMS_20_TEAMS);
-            showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan Lengkap)');
+            showToast('Poster detect: CT SCRIMS • 5 Nov 2026 (20 Team)');
             scrollToStandings();
           } else {
             if (
@@ -395,16 +395,16 @@ export default function ScrimDataHubView({
                 edgeFunctionErrorMsg.includes('BLOCKED') ||
                 edgeFunctionErrorMsg.includes('GEMINI_KEY'))
             ) {
-              showToast('Kunci Gemini AI belum aktif di Google Cloud. Sila semak status API di Google AI Studio.');
+              showToast('Gemini AI key belum aktif lagi. Check status API di Google AI Studio.');
             } else if (
               edgeFunctionErrorMsg &&
               (edgeFunctionErrorMsg.includes('rate limit') ||
                 edgeFunctionErrorMsg.includes('429') ||
                 edgeFunctionErrorMsg.includes('RESOURCE_EXHAUSTED'))
             ) {
-              showToast('Had permintaan AI penuh seketika (429). Sila tunggu 5-10 saat dan muat naik semula.');
+              showToast('AI limit penuh kejap (429). Tunggu 5-10 saat & upload balik.');
             } else {
-              showToast('Gagal mengekstrak poster secara automatik. Sila cuba muat naik semula atau guna template manual.');
+              showToast('Tak dapat auto-extract poster. Cuba upload semula atau isi manual.');
             }
           }
         }
@@ -413,16 +413,16 @@ export default function ScrimDataHubView({
           setScrimName('MEC SCRIMS');
           setScrimDate('2026-11-09');
           setStandings(MEC_SCRIMS_18_TEAMS);
-          showToast('Poster dikesan: MEC SCRIMS • 9 November 2026 (18 Pasukan)');
+          showToast('Poster detect: MEC SCRIMS • 9 Nov 2026 (18 Team)');
           scrollToStandings();
         } else if (isCtMatch) {
           setScrimName('CT SCRIMS');
           setScrimDate('2026-11-05');
           setStandings(CT_SCRIMS_20_TEAMS);
-          showToast('Poster dikesan: CT SCRIMS • 5 November 2026 (20 Pasukan)');
+          showToast('Poster detect: CT SCRIMS • 5 Nov 2026 (20 Team)');
           scrollToStandings();
         } else {
-          showToast('Gagal memproses imej poster. Sila cuba sekali lagi.');
+          showToast('Tak dapat proses gambar poster. Cuba sekali lagi.');
         }
       } finally {
         setIsProcessing(false);
@@ -470,7 +470,7 @@ export default function ScrimDataHubView({
         total_points: Number(r.placement_points || 0) + Number(r.kill_points || 0)
       }))
     );
-    showToast('Semua jumlah mata (Total = PP + KP) telah dikira semula secara automatik!');
+    showToast('Total (PP + KP) dah dikira semula!');
   };
 
   const handleResetPage = () => {
@@ -484,7 +484,7 @@ export default function ScrimDataHubView({
     setScrimDate(new Date().toISOString().split('T')[0]);
     setStandings([]);
     setTeamSearchQuery('');
-    showToast('Halaman Results Scanner telah dikosongkan.');
+    showToast('Results Scanner dah dikosongkan.');
   };
 
   const mismatchCount = useMemo(() => {
@@ -514,11 +514,11 @@ export default function ScrimDataHubView({
 
   const handleCommitToDatabase = async () => {
     if (!scrimName.trim()) {
-      showToast('Sila masukkan nama Scrim / Kejohanan terlebih dahulu.');
+      showToast('Isi nama Scrim / Tournament dulu.');
       return;
     }
     if (standings.length === 0) {
-      showToast('Jadual standings kosong!');
+      showToast('Table standings masih kosong.');
       return;
     }
 
@@ -569,7 +569,7 @@ export default function ScrimDataHubView({
         title: scrimName.trim(),
         event_type: 'Scrim',
         tier: scrimTier,
-        description: `Diekstrak secara automatik melalui Results Scanner AI Poster OCR (${scrimName.trim()}).`,
+        description: `Diextract dari Results Scanner AI Poster OCR (${scrimName.trim()}).`,
         date: scrimDate || new Date().toISOString().split('T')[0],
         logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
         host_name: effectiveHost,
@@ -629,8 +629,8 @@ export default function ScrimDataHubView({
 
       showToast(
         committedToNewSchema
-          ? 'Berjaya disimpan ke Database Supabase & dikemas kini ke Rekod / Team Matrix!'
-          : 'Berjaya disimpan ke Rekod Sesi & Team Matrix!'
+          ? 'Dah save ke Cloud & update Rekod / Team Matrix!'
+          : 'Dah save ke Rekod & Team Matrix!'
       );
 
       // Kosongkan semula halaman selepas berjaya tambah ke database
@@ -645,7 +645,7 @@ export default function ScrimDataHubView({
       setStandings([]);
       setTeamSearchQuery('');
     } catch (err) {
-      showToast('Ralat menyimpan: ' + (err.message || String(err)));
+      showToast('Error save: ' + (err.message || String(err)));
     } finally {
       setIsSaving(false);
     }
@@ -688,7 +688,7 @@ export default function ScrimDataHubView({
         <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-200 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
           <Sparkles className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
           <p className="leading-relaxed flex-1">
-            Muat naik poster scrim atau kejohanan untuk semak jumlah mata (PP + KP) dan simpan ke rekod.
+            Upload poster scrim atau tournament untuk check markah (PP + KP) &amp; save ke rekod.
           </p>
           <button
             type="button"
@@ -707,10 +707,10 @@ export default function ScrimDataHubView({
       >
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white text-balance">
-            Imbas Keputusan Poster
+            Scan Keputusan Poster
           </h1>
           <p className="text-xs text-zinc-300 max-w-sm text-pretty">
-            Muat naik gambar poster untuk semak markah &amp; simpan rekod.
+            Upload gambar poster untuk check markah &amp; save rekod.
           </p>
         </div>
       </div>
@@ -726,10 +726,10 @@ export default function ScrimDataHubView({
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 text-balance">
                 <UploadCloud className="w-5 h-5 text-[#D7FF00] shrink-0" />
-                <span>Muat Naik Poster Keputusan</span>
+                <span>Upload Poster Keputusan</span>
               </h2>
               <p className="text-xs text-zinc-300 text-pretty">
-                Menyokong pelbagai susun atur jadual kejohanan PUBG Mobile (1 hingga 25 pasukan).
+                Support layout table PUBG Mobile untuk 1-25 team.
               </p>
             </div>
           </div>
@@ -747,7 +747,7 @@ export default function ScrimDataHubView({
                 if (dropped && dropped.type.startsWith('image/')) {
                   handleProcessImage(dropped);
                 } else {
-                  showToast('Sila muat naik fail imej (.png, .jpg, .webp)');
+                  showToast('Upload fail gambar sahaja (.png, .jpg, .webp)');
                 }
               }}
               onClick={() => fileInputRef.current?.click()}
@@ -776,10 +776,10 @@ export default function ScrimDataHubView({
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-white">
-                      Sedang mengimbas poster...
+                      Tengah scan poster...
                     </p>
                     <p className="text-[11px] text-zinc-300 font-mono">
-                      Mengesan Nama Scrim, Tarikh, WWCD, Placement &amp; Elims
+                      Baca Nama Scrim, Tarikh, WWCD, Placement &amp; Elims
                     </p>
                   </div>
                 </div>
@@ -795,7 +795,7 @@ export default function ScrimDataHubView({
                       {file?.name || 'Poster Standings'}
                     </p>
                     <p className="text-xs text-zinc-300">
-                      Klik untuk menukar gambar poster lain
+                      Tap untuk tukar poster lain
                     </p>
                   </div>
                 </div>
@@ -806,11 +806,11 @@ export default function ScrimDataHubView({
                   </div>
                   <div className="space-y-0.5">
                     <p className="text-sm font-bold text-white">
-                      Seret &amp; lepas poster keputusan atau{' '}
-                      <span className="text-[#D7FF00] underline">pilih fail</span>
+                      Drop poster di sini atau{' '}
+                      <span className="text-[#D7FF00] underline">pilih file</span>
                     </p>
                     <p className="text-[11px] text-zinc-300 font-mono">
-                      Semakan Jumlah Mata (PP + KP = Total)
+                      Auto check kiraan (PP + KP = Total)
                     </p>
                   </div>
                 </div>
@@ -826,11 +826,11 @@ export default function ScrimDataHubView({
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-[#D7FF00]" />
-                <span className="text-sm font-bold text-white">Maklumat Sesi Hasil OCR</span>
+                <span className="text-sm font-bold text-white">Info Sesi (OCR)</span>
               </div>
               <div className="flex items-center gap-2 text-xs font-mono">
                 <span className="px-2.5 py-0.5 rounded-full glass-tile text-zinc-200">
-                  <strong className="text-white">{standings.length}</strong> Pasukan
+                  <strong className="text-white">{standings.length}</strong> Team
                 </span>
                 {totalWWCDCount > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full glass-tile text-[#D7FF00]">
@@ -911,23 +911,23 @@ export default function ScrimDataHubView({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
-                      <span>Senarai Pasukan &amp; Semakan Mata</span>
+                      <span>Senarai Team &amp; Check Markah</span>
                     </h3>
 
                     {mismatchCount > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 text-[11px] font-bold">
                         <AlertTriangle className="w-3 h-3 text-rose-400" />
-                        <span>{mismatchCount} Ralat Matematik</span>
+                        <span>{mismatchCount} Kiraan Tak Match</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[11px] font-bold">
                         <CheckCircle className="w-3 h-3" />
-                        <span>Semua Kiraan Sah (PP+KP=Total)</span>
+                        <span>Semua Kiraan OK (PP+KP=Total)</span>
                       </span>
                     )}
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Sesuai untuk skrin telefon bimbit — semua butiran markah dipaparkan penuh tanpa terpotong.
+                    Semua markah ditunjuk penuh tanpa perlu scroll ke tepi.
                   </p>
                 </div>
 
@@ -1017,13 +1017,13 @@ export default function ScrimDataHubView({
                   </div>
                   <p className="text-sm font-bold text-white">
                     {teamSearchQuery
-                      ? `Tiada pasukan sepadan dengan "${teamSearchQuery}"`
-                      : 'Halaman Bersih • Sedia Untuk Muat Naik Baru'}
+                      ? `Tak jumpa team "${teamSearchQuery}"`
+                      : 'Sedia Untuk Scan Poster Baru'}
                   </p>
                   <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                     {teamSearchQuery
-                      ? 'Cuba kata kunci yang lain atau padamkan carian anda.'
-                      : 'Muat naik poster keputusan di atas, atau pilih template di bawah untuk memulakan semakan:'}
+                      ? 'Cuba taip nama team lain atau clear search.'
+                      : 'Upload poster di atas, atau pilih template di bawah:'}
                   </p>
                   {!teamSearchQuery && (
                     <div className="flex flex-wrap items-center justify-center gap-2 pt-3">
@@ -1033,7 +1033,7 @@ export default function ScrimDataHubView({
                           setScrimName('MEC SCRIMS');
                           setScrimDate('2026-11-09');
                           setStandings(MEC_SCRIMS_18_TEAMS);
-                          showToast('Template MEC SCRIMS (18 Pasukan) dimuatkan');
+                          showToast('Template MEC SCRIMS (18 Team) dah load');
                           scrollToStandings();
                         }}
                         className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
@@ -1046,7 +1046,7 @@ export default function ScrimDataHubView({
                           setScrimName('CT SCRIMS');
                           setScrimDate('2026-11-05');
                           setStandings(CT_SCRIMS_20_TEAMS);
-                          showToast('Template CT SCRIMS (20 Pasukan) dimuatkan');
+                          showToast('Template CT SCRIMS (20 Team) dah load');
                           scrollToStandings();
                         }}
                         className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
@@ -1400,7 +1400,7 @@ export default function ScrimDataHubView({
                   className="w-full py-2.5 rounded-2xl glass-tile glass-tile-hover text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#D7FF00]" />
-                  <span>Tambah Pasukan Baru</span>
+                  <span>Tambah Team Baru</span>
                 </button>
               </div>
             </div>
@@ -1408,13 +1408,13 @@ export default function ScrimDataHubView({
             {/* Footer Commit Bar */}
             <div className="bg-white/[0.04] backdrop-blur-md px-4 sm:px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/10">
               <div className="text-xs text-zinc-400 font-mono">
-                Jumlah Pasukan: <strong className="text-white">{standings.length}</strong> •{' '}
+                Total Team: <strong className="text-white">{standings.length}</strong> •{' '}
                 {mismatchCount > 0 ? (
                   <span className="text-rose-400">
-                    {mismatchCount} baris akan dibetulkan automatik semasa simpan
+                    {mismatchCount} row akan auto-betul masa save
                   </span>
                 ) : (
-                  <span className="text-[#D7FF00]">Sedia untuk disimpan ke Database</span>
+                  <span className="text-[#D7FF00]">Ready untuk save ke Cloud</span>
                 )}
               </div>
 
@@ -1426,13 +1426,13 @@ export default function ScrimDataHubView({
               >
                 {isSaving ? (
                   <>
-                    <progress aria-label="Menyimpan ke pangkalan data" className="loading-spinner loading-spinner-dark" style={{ '--size': '14px', '--thickness': '2px' }} />
-                    <span>Menyimpan...</span>
+                    <progress aria-label="Menyimpan ke database" className="loading-spinner loading-spinner-dark" style={{ '--size': '14px', '--thickness': '2px' }} />
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
                     <Database className="w-3.5 h-3.5" />
-                    <span>Commit to Database</span>
+                    <span>Save ke Rekod</span>
                   </>
                 )}
               </button>
