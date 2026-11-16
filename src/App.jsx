@@ -59,12 +59,14 @@ import {
   Home,
   Crown,
   Phone,
-  Camera
+  Camera,
+  Crop
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
 import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
+import TeamLogoCropper from './components/TeamLogoCropper';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 import { cleanTeamDisplayName, getCanonicalTeamKey, pickPreferredTeamDisplayName } from './utils/teamAlias';
 
@@ -1400,6 +1402,7 @@ export default function App() {
   const [teamManagerSearch, setTeamManagerSearch] = useState('');
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isUploadingTeamLogo, setIsUploadingTeamLogo] = useState(false);
+  const [logoCropSource, setLogoCropSource] = useState(null);
   const logoFileInputRef = useRef(null);
 
   // Modals & Popovers
@@ -4219,6 +4222,14 @@ export default function App() {
     }
   };
 
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const handleUploadLogoFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -4228,37 +4239,54 @@ export default function App() {
       return;
     }
 
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setLogoCropSource(dataUrl);
+    } catch (err) {
+      showToast('Gagal membaca fail gambar: ' + err.message);
+    } finally {
+      if (logoFileInputRef.current) {
+        logoFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleOpenExistingLogoCrop = async () => {
+    const src = editingTeam?.logo_url?.trim();
+    if (!src) return;
+    if (src.startsWith('data:') || src.startsWith('blob:')) {
+      setLogoCropSource(src);
+      return;
+    }
+
+    try {
+      const res = await fetch(src, { mode: 'cors' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const dataUrl = await readFileAsDataUrl(blob);
+      setLogoCropSource(dataUrl);
+    } catch {
+      setLogoCropSource(src);
+    }
+  };
+
+  const handleConfirmLogoCrop = async (croppedFile, previewDataUrl) => {
     setIsUploadingTeamLogo(true);
     try {
       let publicUrl = null;
       try {
-        publicUrl = await uploadMediaToSupabase(file, 'team-logos');
+        publicUrl = await uploadMediaToSupabase(croppedFile, 'team-logos');
       } catch (storageErr) {
         console.warn('Storage upload error, using local data URL fallback:', storageErr);
       }
 
-      if (!publicUrl) {
-        publicUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
-
-      setEditingTeam(prev => ({
-        ...prev,
-        logo_url: publicUrl
-      }));
-
-      showToast('Gambar logo berjaya dimuat naik!');
+      setEditingTeam(prev => (prev ? { ...prev, logo_url: publicUrl || previewDataUrl } : prev));
+      setLogoCropSource(null);
+      showToast('Gambar logo berjaya dicrop & dimuat naik!');
     } catch (err) {
       showToast('Gagal memuat naik gambar: ' + err.message);
     } finally {
       setIsUploadingTeamLogo(false);
-      if (logoFileInputRef.current) {
-        logoFileInputRef.current.value = '';
-      }
     }
   };
 
@@ -4581,6 +4609,10 @@ export default function App() {
     if (isImportModalOpen) { setIsImportModalOpen(false); return true; }
     if (isQuickCreateModalOpen) { setIsQuickCreateModalOpen(false); return true; }
     if (isTeamManagerModalOpen) {
+      if (logoCropSource) {
+        setLogoCropSource(null);
+        return true;
+      }
       if (editingTeam) {
         setEditingTeam(null);
         return true;
@@ -4623,6 +4655,7 @@ export default function App() {
     isImportModalOpen,
     isQuickCreateModalOpen,
     isTeamManagerModalOpen,
+    logoCropSource,
     editingTeam,
     isPerformanceModalOpen,
     inspectedScrim,
@@ -10304,7 +10337,8 @@ export default function App() {
           aria-label="Pengurusan Pasukan & Logo"
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
           onClick={() => {
-            if (editingTeam) setEditingTeam(null);
+            if (logoCropSource) setLogoCropSource(null);
+            else if (editingTeam) setEditingTeam(null);
             else setIsTeamManagerModalOpen(false);
           }}
         >
@@ -10331,7 +10365,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (editingTeam) setEditingTeam(null);
+                  if (logoCropSource) setLogoCropSource(null);
+                  else if (editingTeam) setEditingTeam(null);
                   else setIsTeamManagerModalOpen(false);
                 }}
                 className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
@@ -10349,13 +10384,24 @@ export default function App() {
               className="hidden"
             />
 
-            {/* View A: Edit Team Form */}
-            {editingTeam ? (
+            {/* View A: Crop Logo OR Edit Team Form */}
+            {editingTeam && logoCropSource ? (
+              <TeamLogoCropper
+                imageSrc={logoCropSource}
+                teamName={editingTeam.name}
+                isSubmitting={isUploadingTeamLogo}
+                onCancel={() => setLogoCropSource(null)}
+                onConfirm={handleConfirmLogoCrop}
+              />
+            ) : editingTeam ? (
               <div className="space-y-4 overflow-y-auto pr-0.5 flex-1 overscroll-contain">
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => setEditingTeam(null)}
+                    onClick={() => {
+                      setLogoCropSource(null);
+                      setEditingTeam(null);
+                    }}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#D7FF00] transition cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -10395,7 +10441,7 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="space-y-2 flex-1">
+                    <div className="space-y-2 flex-1 min-w-0">
                       <button
                         type="button"
                         onClick={() => logoFileInputRef.current?.click()}
@@ -10410,19 +10456,29 @@ export default function App() {
                         ) : (
                           <>
                             <Upload className="w-3.5 h-3.5 text-[#D7FF00]" />
-                            <span>Pilih Gambar dari Telefon</span>
+                            <span>Pilih &amp; Crop Gambar</span>
                           </>
                         )}
                       </button>
 
                       {editingTeam.logo_url && (
-                        <button
-                          type="button"
-                          onClick={() => setEditingTeam(prev => ({ ...prev, logo_url: '' }))}
-                          className="w-full py-1.5 px-2 rounded-xl text-[10px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
-                        >
-                          Padam Logo Semasa
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleOpenExistingLogoCrop}
+                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-bold text-[#D7FF00] inline-flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-[0.98]"
+                          >
+                            <Crop className="w-3 h-3" />
+                            <span>Crop Logo Ini</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingTeam(prev => ({ ...prev, logo_url: '' }))}
+                            className="py-1.5 px-2.5 rounded-xl text-[10px] font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
+                          >
+                            Padam
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
