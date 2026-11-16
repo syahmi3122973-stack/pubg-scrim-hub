@@ -4694,7 +4694,7 @@ export default function App() {
       )}
 
       {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
-      <header className={`glass-header sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 transition-colors ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+      <header className={`bg-[#06070b] sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -4770,14 +4770,13 @@ export default function App() {
                 onClick={() => setIsOrgPopoverOpen(prev => !prev)}
                 aria-expanded={isOrgPopoverOpen}
                 aria-haspopup="dialog"
-                className="px-3.5 py-1.5 rounded-full glass-pill glass-tile-hover flex items-center gap-2 text-xs font-bold text-white transition-all active:scale-95 cursor-pointer max-w-[190px] sm:max-w-[240px]"
+                className="px-2 py-1 flex items-center gap-1.5 text-sm font-bold text-white hover:text-[#D7FF00] transition-colors active:scale-95 cursor-pointer max-w-[190px] sm:max-w-[240px]"
                 title="Akaun Aktif Semasa"
               >
-                <span className="w-2 h-2 rounded-full bg-[#D7FF00] shrink-0 shadow-[0_0_8px_rgba(215,255,0,0.6)]" />
                 <span className="truncate">{activeOrganizationName}</span>
                 <ChevronDown
                   className={
-                    'w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ' +
+                    'w-4 h-4 text-zinc-400 shrink-0 transition-transform duration-200 ' +
                     (isOrgPopoverOpen ? 'rotate-180 text-[#D7FF00]' : '')
                   }
                 />
@@ -4793,7 +4792,7 @@ export default function App() {
                   <div
                     role="dialog"
                     aria-label="Active User Account"
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 glass-modal rounded-[1.5rem] p-3 z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-[1.5rem] p-3 z-40 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
                   >
                     <div className="flex items-center justify-between px-1.5 pt-0.5">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
@@ -5040,7 +5039,7 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 glass-modal rounded-2xl z-50 py-1.5 divide-y divide-white/10 text-xs">
+                  <div className="absolute right-0 mt-2 w-56 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs">
                     {isMasterAdmin && (
                       <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
                         <button
