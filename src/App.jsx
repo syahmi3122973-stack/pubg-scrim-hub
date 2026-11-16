@@ -60,7 +60,8 @@ import {
   Crown,
   Phone,
   Camera,
-  Crop
+  Crop,
+  MoreVertical
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
@@ -1406,6 +1407,7 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isEditProfileMode, setIsEditProfileMode] = useState(false);
   const [isOrgPopoverOpen, setIsOrgPopoverOpen] = useState(false);
+  const [isScorerActionsMenuOpen, setIsScorerActionsMenuOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
@@ -4500,6 +4502,7 @@ export default function App() {
     setIsQuickCreateModalOpen(false);
     setIsSessionPickerOpen(false);
     setIsOrgPopoverOpen(false);
+    setIsScorerActionsMenuOpen(false);
     setIsNavMenuOpen(false);
     setActiveHeaderInfo(null);
 
@@ -6076,7 +6079,7 @@ export default function App() {
               : 0;
 
             return (
-              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-10 animate-teams-enter relative">
+              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-28 md:pb-10 animate-teams-enter relative">
                 {/* 1. TOP NAVIGATION BAR */}
                 <div className="flex items-center justify-between px-1">
                   <button
@@ -6150,7 +6153,7 @@ export default function App() {
                   </div>
 
                   {/* Interactive Category Filter Scope Tabs */}
-                  <div className="mt-4 pt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <div className="mt-4 pt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-6">
                     <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
                       Skop:
                     </span>
@@ -6162,10 +6165,10 @@ export default function App() {
                           type="button"
                           aria-pressed={isEvActive}
                           onClick={() => setTeamStatsEventType(prev => (prev === ev.key ? 'ALL' : ev.key))}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                             isEvActive
-                              ? (ev.key === 'Tour' ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.25)]' : 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]')
-                              : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800'
+                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
                           <span>{ev.label}</span>
@@ -6180,10 +6183,10 @@ export default function App() {
                           key={cat.key}
                           type="button"
                           onClick={() => handleSelectTeamStatsCategory(cat.key)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                          className={`px-3.5 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer ${
                             isActive
-                              ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]'
-                              : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800/80'
+                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
                           {cat.label}
@@ -6514,20 +6517,12 @@ export default function App() {
           }
 
           return (
-            <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-4 md:pb-12 relative">
-              {/* 1. TOP NAVIGATION BAR (Following Reference: "< My Personality" + Search Right) */}
+            <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-28 md:pb-12 relative">
+              {/* 1. TOP NAVIGATION BAR (Top-level tab: no back chevron) */}
               <div className="flex items-center justify-between px-1">
-                <button
-                  type="button"
-                  onClick={() => navigateToTab('playground')}
-                  className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group"
-                  title="Kembali ke Laman Utama"
-                >
-                  <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
-                  <span className="text-base sm:text-lg font-bold tracking-tight">
-                    Teams
-                  </span>
-                </button>
+                <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
+                  Teams
+                </h2>
 
                 <div className="flex items-center gap-2">
                   <button
@@ -6536,8 +6531,8 @@ export default function App() {
                     className={
                       'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                       (isHallOfFameSearchOpen || teamSearchQuery
-                        ? 'bg-[#D7FF00] text-black shadow-sm'
-                        : 'bg-zinc-900/80 text-zinc-300 hover:text-white')
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                        : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white')
                     }
                     title="Cari pasukan"
                     aria-label="Cari pasukan"
@@ -6551,8 +6546,8 @@ export default function App() {
                     className={
                       'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                       (activeHeaderInfo === 'teams'
-                        ? 'bg-[#D7FF00] text-black shadow-sm'
-                        : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white')
                     }
                     title="Info Team Matrix"
                     aria-label="Info Team Matrix"
@@ -6564,7 +6559,7 @@ export default function App() {
 
               {/* Expandable Info Card (if toggled) */}
               {activeHeaderInfo === 'teams' && (
-                <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
+                <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
                     Lihat ranking pasukan, rekod kemenangan &amp; kad Story 9:16.
@@ -6585,17 +6580,17 @@ export default function App() {
                 <div
                   role="group"
                   aria-label="Toggle Jenis Acara"
-                  className="inline-flex items-center gap-1 glass-pill p-1 rounded-full self-start shrink-0"
+                  className="inline-flex items-center gap-1.5 self-start shrink-0"
                 >
                   <button
                     type="button"
                     aria-pressed={teamStatsEventType === 'ALL'}
                     onClick={() => setTeamStatsEventType('ALL')}
                     className={
-                      'px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ' +
+                      'px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all cursor-pointer ' +
                       (teamStatsEventType === 'ALL'
-                        ? 'bg-zinc-100 text-black shadow-xs'
-                        : 'text-zinc-400 hover:text-zinc-200')
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
                     }
                   >
                     Semua Event
@@ -6609,23 +6604,12 @@ export default function App() {
                         aria-pressed={isEvActive}
                         onClick={() => setTeamStatsEventType(prev => (prev === ev.key ? 'ALL' : ev.key))}
                         className={
-                          'px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ' +
+                          'px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ' +
                           (isEvActive
-                            ? (ev.key === 'Tour'
-                                ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.22)]'
-                                : 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.22)]')
-                            : 'text-zinc-400 hover:text-zinc-200')
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
                         }
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            isEvActive
-                              ? 'bg-black'
-                              : ev.key === 'Tour'
-                              ? 'bg-amber-400/70'
-                              : 'bg-[#D7FF00]/70'
-                          }`}
-                        />
                         <span>{ev.label}</span>
                       </button>
                     );
@@ -6637,11 +6621,10 @@ export default function App() {
                   <div
                     role="group"
                     aria-label="Tapis Tier Team Matrix"
-                    className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {HALL_OF_FAME_FILTERS.map((cat) => {
                       const isActive = teamStatsCategory === cat.key;
-                      const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
                       return (
                         <button
                           key={cat.key}
@@ -6649,19 +6632,12 @@ export default function App() {
                           aria-pressed={isActive}
                           onClick={() => handleSelectTeamStatsCategory(cat.key)}
                           className={
-                            'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
+                            'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
                             (isActive
-                              ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
-                              : isTier3Highlight
-                              ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
-                              : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
+                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
                           }
                         >
-                          {isActive ? (
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
-                          ) : isTier3Highlight ? (
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                          ) : null}
                           <span>{cat.label}</span>
                         </button>
                       );
@@ -6807,7 +6783,7 @@ export default function App() {
                   </h1>
 
                   {/* Stats Line: Jumlah Team - Jumlah Scrim - Jumlah Tournament */}
-                  <div className="flex items-center justify-center gap-4 sm:gap-5 text-xs sm:text-sm font-mono text-zinc-300">
+                  <div className="flex items-center justify-center gap-4 sm:gap-5 text-xs sm:text-sm font-mono tabular-nums text-zinc-300">
                     <span>
                       <strong className="text-white font-bold">{totalTeamsCount}</strong> Team
                     </span>
@@ -6826,15 +6802,15 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Visible on "Semua" so Tier 3 stays prominent) */}
+              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Sleek Dark Obsidian Surface, Amber Reserved for #1 & CTA) */}
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
-                  className="glass-amber rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
+                  className="bg-zinc-900/95 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
                   style={{ '--blur-delay': '75ms' }}
                 >
                   <div className="flex items-center justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-2xl bg-amber-400/15 text-amber-300 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-2xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center shrink-0">
                         <Award className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
@@ -6842,7 +6818,7 @@ export default function App() {
                           <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
                             Division Amateur
                           </h2>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-mono font-black text-[9px] uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono tabular-nums font-bold text-[9px] uppercase tracking-wider">
                             {tier3RankedTeams.length} Team
                           </span>
                         </div>
@@ -6855,7 +6831,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleSelectTeamStatsCategory('TIER_3')}
-                      className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
+                      className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
                     >
                       <span>Rank Tier 3</span>
                       <ArrowRight className="w-3 h-3" />
@@ -6868,15 +6844,15 @@ export default function App() {
                         key={`hof_t3_${t3Team.name}`}
                         type="button"
                         onClick={() => setSelectedTeamProfile(t3Team.name)}
-                        className="w-full text-left rounded-2xl bg-black/35 hover:bg-black/55 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
+                        className="w-full text-left rounded-2xl bg-zinc-950/80 hover:bg-zinc-800/80 border border-zinc-800/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className={`w-7 h-7 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
+                          <span className={`w-7 h-7 rounded-xl font-mono tabular-nums font-black text-xs flex items-center justify-center shrink-0 ${
                             idx === 0
-                              ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.3)]'
+                              ? 'bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(251,191,36,0.25)]'
                               : idx === 1
-                              ? 'bg-zinc-200 text-black'
-                              : 'bg-orange-400/90 text-black'
+                              ? 'bg-zinc-200 text-zinc-950'
+                              : 'bg-zinc-800 border border-zinc-700 text-zinc-200'
                           }`}>
                             #{idx + 1}
                           </span>
@@ -6888,23 +6864,23 @@ export default function App() {
                               className="w-8 h-8 rounded-xl object-cover bg-zinc-900 shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-xl bg-zinc-900 text-amber-300 font-black text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 font-black text-[11px] flex items-center justify-center shrink-0">
                               {(t3Team.tag || t3Team.name.slice(0, 3)).toUpperCase()}
                             </div>
                           )}
 
                           <div className="min-w-0">
-                            <div className="text-xs sm:text-sm font-black text-white truncate group-hover:text-amber-300 transition-colors">
+                            <div className="text-xs sm:text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
                               {t3Team.name}
                             </div>
-                            <div className="text-[10px] font-mono text-zinc-400">
+                            <div className="text-[10px] font-mono tabular-nums text-zinc-400">
                               {t3Team.tier3Kills}K • {t3Team.tier3WWCD} WWCD
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right font-mono shrink-0">
-                          <div className="text-sm font-black text-amber-300 leading-none">
+                        <div className="text-right font-mono tabular-nums shrink-0">
+                          <div className="text-sm font-black text-white leading-none">
                             {t3Team.tier3Points}
                           </div>
                           <div className="text-[9px] text-zinc-500 font-bold">
@@ -7221,7 +7197,7 @@ export default function App() {
                                 {/* Left: Rank # + Compact Tag Pill + Uppercase Team Name */}
                                 <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
                                   <span
-                                    className={`w-6 sm:w-7 text-center font-mono font-black text-xs sm:text-sm shrink-0 ${
+                                    className={`w-6 sm:w-7 text-center font-mono tabular-nums font-black text-xs sm:text-sm shrink-0 ${
                                       rankNum === 1
                                         ? 'text-[#D7FF00]'
                                         : rankNum === 2
@@ -7234,7 +7210,7 @@ export default function App() {
                                     {rankNum}
                                   </span>
 
-                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 text-[#D7FF00]">
+                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
                                     {tagText}
                                   </span>
 
@@ -7243,7 +7219,7 @@ export default function App() {
                                   </span>
 
                                   {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
-                                    <span className="px-1.5 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
+                                    <span className="px-1.5 py-0.5 rounded-md font-mono tabular-nums font-black text-[9px] sm:text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
                                       T3 #{tier3RankByTeam.get(team.name).tier3Rank}
                                     </span>
                                   )}
@@ -7251,7 +7227,7 @@ export default function App() {
 
                                 {/* Right: Mini Logo + Stats + Points + Small Eye View Button */}
                                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                                  <span className="hidden sm:inline font-mono text-[11px] text-zinc-500">
+                                  <span className="hidden sm:inline font-mono tabular-nums text-[11px] text-zinc-500">
                                     {team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M
                                   </span>
 
@@ -7263,11 +7239,11 @@ export default function App() {
                                     />
                                   )}
 
-                                  <div className="flex items-baseline gap-0.5 font-mono font-black min-w-[52px] sm:min-w-[62px] justify-end">
+                                  <div className="flex items-baseline gap-0.5 font-mono tabular-nums font-black min-w-[52px] sm:min-w-[62px] justify-end">
                                     <span className="text-sm sm:text-base text-white">
                                       {team.scopedPoints}
                                     </span>
-                                    <span className="text-[9px] text-[#D7FF00] font-bold">
+                                    <span className="text-[9px] text-zinc-400 font-bold">
                                       PTS
                                     </span>
                                   </div>
@@ -7340,21 +7316,13 @@ export default function App() {
 
         {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
-          <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-4 md:pb-12">
+          <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-28 md:pb-12">
             
-            {/* 1. TOP NAVIGATION BAR (Exact Position & Size of Search & Info Buttons as Teams / Team Matrix) */}
+            {/* 1. TOP NAVIGATION BAR (Top-level tab: no back chevron) */}
             <div className="flex items-center justify-between px-1">
-              <button
-                type="button"
-                onClick={() => navigateToTab('playground')}
-                className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group"
-                title="Kembali ke Laman Utama"
-              >
-                <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
-                <span className="text-base sm:text-lg font-bold tracking-tight">
-                  Rekod
-                </span>
-              </button>
+              <span className="text-base sm:text-lg font-bold tracking-tight text-white">
+                Rekod
+              </span>
 
               <div className="flex items-center gap-2">
                 <button
@@ -7363,8 +7331,8 @@ export default function App() {
                   className={
                     'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                     (isHistorySearchOpen || searchScrimQuery
-                      ? 'bg-[#D7FF00] text-black shadow-sm'
-                      : 'bg-zinc-900/80 text-zinc-300 hover:text-white')
+                      ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                      : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white')
                   }
                   title="Cari sesi scrim atau kejohanan"
                   aria-label="Cari sesi scrim atau kejohanan"
@@ -7378,8 +7346,8 @@ export default function App() {
                   className={
                     'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                     (activeHeaderInfo === 'history'
-                      ? 'bg-[#D7FF00] text-black shadow-sm'
-                      : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
+                      ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white')
                   }
                   title="Info Rekod & Arkib"
                   aria-label="Info Rekod & Arkib"
@@ -7391,7 +7359,7 @@ export default function App() {
 
             {/* Expandable Info Card (if toggled) */}
             {activeHeaderInfo === 'history' && (
-              <div className="p-3.5 bg-[#121214] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
+              <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
                 <Flame className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                 <p className="leading-relaxed flex-1">
                   Arkib keputusan rasmi, status sesi (Completed / Pending), carta kedudukan keseluruhan pusingan &amp; cetakan poster HD.
@@ -7407,7 +7375,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 2. HEADING + CONNECTED FILTER PILLS BAR (Following Reference "Find Jobs" + Connected Pills) */}
+            {/* 2. HEADING + FILTER PILLS BAR */}
             <div className="space-y-3.5 px-1">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white text-balance">
@@ -7417,71 +7385,65 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => navigateToTab('admin')}
-                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
+                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
                   title="Cipta atau urus sesi kejohanan baru di Portal Host"
                 >
-                  <Plus className="w-3.5 h-3.5 text-black stroke-[2.5]" />
+                  <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
                   <span>Sesi Baru</span>
                 </button>
               </div>
 
-              {/* Connected Pills Row (Exact Reference Chain Style: (Semua)—(Completed)—(Pending)—(Scrim)—(Tournament)) */}
-              <div className="relative flex items-center overflow-x-auto no-scrollbar py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex items-center relative">
-                  {/* Horizontal connector line behind pills */}
-                  <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[2px] bg-zinc-800 pointer-events-none z-0" />
-
-                  {[
-                    {
-                      key: 'ALL',
-                      label: 'Semua',
-                      isActive: historyStatusFilter === 'ALL' && leaderboardEventTypeFilter === 'All',
-                      onClick: () => {
-                        setHistoryStatusFilter('ALL');
-                        setLeaderboardEventTypeFilter('All');
-                      }
-                    },
-                    {
-                      key: 'Completed',
-                      label: 'Completed',
-                      isActive: historyStatusFilter === 'Completed',
-                      onClick: () => setHistoryStatusFilter(prev => (prev === 'Completed' ? 'ALL' : 'Completed'))
-                    },
-                    {
-                      key: 'Pending',
-                      label: 'Pending',
-                      isActive: historyStatusFilter === 'Pending',
-                      onClick: () => setHistoryStatusFilter(prev => (prev === 'Pending' ? 'ALL' : 'Pending'))
-                    },
-                    {
-                      key: 'Scrim',
-                      label: 'Scrim',
-                      isActive: leaderboardEventTypeFilter === 'Scrim',
-                      onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Scrim' ? 'All' : 'Scrim'))
-                    },
-                    {
-                      key: 'Tour',
-                      label: 'Tournament',
-                      isActive: leaderboardEventTypeFilter === 'Tour',
-                      onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Tour' ? 'All' : 'Tour'))
+              {/* High-Contrast Neutral Filter Pills Row */}
+              <div className="relative flex items-center gap-2 overflow-x-auto no-scrollbar py-1 pr-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {[
+                  {
+                    key: 'ALL',
+                    label: 'Semua',
+                    isActive: historyStatusFilter === 'ALL' && leaderboardEventTypeFilter === 'All',
+                    onClick: () => {
+                      setHistoryStatusFilter('ALL');
+                      setLeaderboardEventTypeFilter('All');
                     }
-                  ].map((pill, idx) => (
-                    <button
-                      key={pill.key}
-                      type="button"
-                      onClick={pill.onClick}
-                      className={
-                        'relative z-10 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
-                        (idx > 0 ? 'ml-2.5 ' : '') +
-                        (pill.isActive
-                          ? 'bg-[#D7FF00] text-black shadow-[0_0_15px_rgba(215,255,0,0.22)]'
-                          : 'bg-[#18181C] text-zinc-300 hover:text-white hover:bg-zinc-800')
-                      }
-                    >
-                      {pill.label}
-                    </button>
-                  ))}
-                </div>
+                  },
+                  {
+                    key: 'Completed',
+                    label: 'Completed',
+                    isActive: historyStatusFilter === 'Completed',
+                    onClick: () => setHistoryStatusFilter(prev => (prev === 'Completed' ? 'ALL' : 'Completed'))
+                  },
+                  {
+                    key: 'Pending',
+                    label: 'Pending',
+                    isActive: historyStatusFilter === 'Pending',
+                    onClick: () => setHistoryStatusFilter(prev => (prev === 'Pending' ? 'ALL' : 'Pending'))
+                  },
+                  {
+                    key: 'Scrim',
+                    label: 'Scrim',
+                    isActive: leaderboardEventTypeFilter === 'Scrim',
+                    onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Scrim' ? 'All' : 'Scrim'))
+                  },
+                  {
+                    key: 'Tour',
+                    label: 'Tournament',
+                    isActive: leaderboardEventTypeFilter === 'Tour',
+                    onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Tour' ? 'All' : 'Tour'))
+                  }
+                ].map((pill) => (
+                  <button
+                    key={pill.key}
+                    type="button"
+                    onClick={pill.onClick}
+                    className={
+                      'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
+                      (pill.isActive
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                    }
+                  >
+                    {pill.label}
+                  </button>
+                ))}
               </div>
 
               {/* Search Bar & Tier Filter Row (Toggled via Top-Right Search Icon or Active Query) */}
@@ -7550,16 +7512,16 @@ export default function App() {
                 </div>
               </div>
             ) : filteredScrims.length === 0 ? (
-              <div className="p-12 text-center glass-panel rounded-3xl space-y-3 mx-1">
+              <div className="my-4 py-14 px-6 text-center bg-zinc-900/90 border border-zinc-800 rounded-3xl space-y-3.5 mx-1">
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Sesi Dijumpai</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
                   Belum ada sesi kejohanan atau scrim di bawah carian atau penapis ini. Anda boleh cipta sesi baharu di Portal Host.
                 </p>
                 <button
                   type="button"
                   onClick={() => navigateToTab('admin')}
-                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
+                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
                 >
                   Buka Portal Host →
                 </button>
@@ -8295,10 +8257,10 @@ export default function App() {
                 </form>
               </div>
             ) : (
-              <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-4 sm:space-y-6 pb-28 md:pb-12">
                 
                 {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
-                <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
+                <div className="bg-zinc-900/90 border border-zinc-800/70 rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                     <div className="space-y-2.5 flex-1 min-w-0">
                       {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -8306,7 +8268,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => navigateToTab('playground')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl glass-pill glass-tile-hover text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
                           title="Kembali ke Laman Utama"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
@@ -8318,8 +8280,8 @@ export default function App() {
                           onClick={() => toggleHeaderInfo('admin')}
                           className={'p-1.5 sm:p-2 rounded-xl transition cursor-pointer shrink-0 ' + (
                             activeHeaderInfo === 'admin'
-                              ? 'bg-[#D7FF00] text-black border border-[#D7FF00] shadow-sm'
-                              : 'glass-tile glass-tile-hover text-zinc-400 hover:text-white'
+                              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
                           )}
                           title="Info portal penganjur"
                           aria-label="Info portal penganjur"
@@ -8340,7 +8302,7 @@ export default function App() {
 
                       {/* Expandable Info Card */}
                       {activeHeaderInfo === 'admin' && (
-                        <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
+                        <div className="p-3 sm:p-3.5 bg-zinc-950/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
                             Urus scrim, jemput Co-Host &amp; simpan rekod kejohanan ke Cloud.
@@ -8357,16 +8319,29 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Right User Badge / Logout Action */}
+                    {/* Right User Badge / Relocated Poster Jump Trigger / Logout Action */}
                     <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                      <div className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-white/10 text-xs font-mono text-zinc-300 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                      <div className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs font-mono text-zinc-300 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
                         <span className="font-bold text-white truncate max-w-[140px]">{profileName || currentUser.email.split('@')[0]}</span>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        title="Lihat pratonton & eksport poster"
+                      >
+                        <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
+                        <span>Poster</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 text-xs font-bold transition active:scale-95"
+                        className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 border border-zinc-700 text-xs font-bold transition active:scale-95 cursor-pointer"
                         title="Log Keluar Akaun Host"
                       >
                         <LogOut className="w-3.5 h-3.5" />
@@ -8375,18 +8350,18 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 1. ADVANCE SESSION CONTROL BAR (Sleek & Compact) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md rounded-3xl shadow-xl">
+                {/* 1. ADVANCE SESSION CONTROL BAR (No Overflow, Consolidated More Actions Menu) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/90 border border-zinc-800/70 rounded-3xl">
                   {/* Left: Active Session Dropdown Selector */}
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#D7FF00] text-black font-black flex items-center justify-center shrink-0 shadow-xs">
-                      {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4 text-black" /> : <Flame className="w-4 h-4 text-black" />}
+                    <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 text-[#D7FF00] font-black flex items-center justify-center shrink-0">
+                      {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         {adminHostedScrims.length > 0 ? (
-                          <div className="relative flex-1 max-w-sm">
+                          <div className="relative flex-1 min-w-0 max-w-sm">
                             <button
                               type="button"
                               onClick={() => {
@@ -8395,15 +8370,15 @@ export default function App() {
                               }}
                               aria-haspopup="dialog"
                               aria-expanded={isSessionPickerOpen}
-                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
+                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-800/70 rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] min-w-0"
                               title="Tukar atau cari sesi kejohanan / scrim"
                             >
-                              <span className="flex items-center gap-2 min-w-0">
+                              <span className="flex items-center gap-2 min-w-0 flex-1">
                                 <span
                                   className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black uppercase shrink-0 ${
                                     activeAdminScrim?.event_type === 'Tour'
                                       ? 'bg-amber-500/20 text-amber-300'
-                                      : 'bg-[#D7FF00]/15 text-[#D7FF00]'
+                                      : 'bg-zinc-800 text-zinc-200'
                                   }`}
                                 >
                                   {activeAdminScrim?.event_type === 'Tour' ? 'Tour' : 'Scrim'}
@@ -8413,7 +8388,7 @@ export default function App() {
                                 </span>
                               </span>
                               <span className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300">
+                                <span className="text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300">
                                   {adminHostedScrims.length}
                                 </span>
                                 <ChevronDown className={`w-4 h-4 transition-transform ${isSessionPickerOpen ? 'rotate-180 text-[#D7FF00]' : ''}`} />
@@ -8421,11 +8396,11 @@ export default function App() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-white/10 truncate max-w-[220px]">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-zinc-800/70 truncate">
                               {activeAdminScrim?.title || 'Official Scrim - Session 1'}
                             </span>
-                            <span className="text-[10px] font-mono text-[#D7FF00] font-bold">
+                            <span className="text-[10px] font-mono text-zinc-400 font-bold shrink-0">
                               (Sedia Diisi)
                             </span>
                           </div>
@@ -8434,74 +8409,113 @@ export default function App() {
                         <span className={'inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ' + (
                           activeAdminScrim?.is_finished 
                             ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
-                            : 'bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/25'
+                            : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
                         )}>
-                          <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-[#D7FF00] animate-pulse')} />
+                          <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-emerald-400')} />
                           <span>{activeAdminScrim?.is_finished ? 'LOCKED' : (activeAdminScrim?.is_draft ? 'READY' : 'CLOUD')}</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right: Advance Management Actions */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-auto flex-wrap">
+                  {/* Right: Primary + Sesi Baru CTA & Consolidated More Actions (⋮) Menu */}
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                     <button
                       type="button"
                       onClick={handleQuickNewSession}
-                      className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1 shadow-xs active:scale-95"
-                      title="Mula sesi kejohanan / scrim baru serta-merta tanpa modal"
+                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                      title="Mula sesi kejohanan / scrim baru serta-merta"
                     >
-                      <Plus className="w-3.5 h-3.5 text-black stroke-[3]" />
+                      <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[3]" />
                       <span>Sesi Baru</span>
                     </button>
 
                     {activeAdminScrim && (
-                      <>
+                      <div className="relative">
                         <button
                           type="button"
-                          onClick={openEditScrimModal}
-                          className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
-                          title="Edit maklumat sesi (nama, tier, logo)"
+                          onClick={() => setIsScorerActionsMenuOpen(prev => !prev)}
+                          aria-label="More Session Actions"
+                          aria-expanded={isScorerActionsMenuOpen}
+                          title="Tindakan Sesi (Edit, Kunci, Co-Host, Padam)"
+                          className="w-9 h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center transition active:scale-95 cursor-pointer"
                         >
-                          <Edit3 className="w-3.5 h-3.5 text-[#D7FF00]" />
-                          <span className="hidden md:inline">Edit</span>
+                          <MoreVertical className="w-4 h-4" />
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={handleToggleFinishScrim}
-                          className={'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border active:scale-95 ' + (
-                            activeAdminScrim.is_finished
-                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
-                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-white/10'
-                          )}
-                          title={activeAdminScrim.is_finished ? 'Buka kunci sesi untuk edit' : 'Kunci keputusan rasmi'}
-                        >
-                          {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5" /> : <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />}
-                          <span className="hidden sm:inline">{activeAdminScrim.is_finished ? 'Buka Kunci' : 'Kunci'}</span>
-                        </button>
+                        {isScorerActionsMenuOpen && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => setIsScorerActionsMenuOpen(false)}
+                            />
+                            <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs">
+                              <div className="py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsScorerActionsMenuOpen(false);
+                                    openEditScrimModal();
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
+                                  <span>Edit Maklumat Sesi</span>
+                                </button>
 
-                        {isAuthorizedAdmin(activeAdminScrim) && (
-                          <button
-                            type="button"
-                            onClick={handleCopyHostShareLink}
-                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 active:scale-95"
-                            title="Salin Pautan Co-Host"
-                          >
-                            <Share2 className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="hidden md:inline">Co-Host</span>
-                          </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsScorerActionsMenuOpen(false);
+                                    handleToggleFinishScrim();
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                >
+                                  {activeAdminScrim.is_finished ? (
+                                    <>
+                                      <Unlock className="w-3.5 h-3.5 text-amber-300" />
+                                      <span>Buka Kunci Sesi</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />
+                                      <span>Kunci Keputusan</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {isAuthorizedAdmin(activeAdminScrim) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsScorerActionsMenuOpen(false);
+                                      handleCopyHostShareLink();
+                                    }}
+                                    className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                  >
+                                    <Share2 className="w-3.5 h-3.5 text-zinc-400" />
+                                    <span>Salin Pautan Co-Host</span>
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsScorerActionsMenuOpen(false);
+                                    handleDeleteScrim(activeAdminScrim.id);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 font-bold transition cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Padam Sesi Ini</span>
+                                </button>
+                              </div>
+                            </div>
+                          </>
                         )}
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteScrim(activeAdminScrim.id)}
-                          className="p-1.5 sm:px-2 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
-                          title="Padam sesi ini"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -8512,34 +8526,34 @@ export default function App() {
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    <div className="glass-panel rounded-3xl p-4 sm:p-5 space-y-4">
+                    <div className="bg-zinc-900/90 border border-zinc-800/70 rounded-3xl p-4 sm:p-5 space-y-4">
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/70">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-black shadow-xs shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 text-[#D7FF00] flex items-center justify-center font-black shrink-0">
                             <Zap className="w-5 h-5 fill-current"/>
                           </div>
                           <div>
                             <h2 className="text-sm sm:text-base font-black text-white">
                               Borang Kemasukan Markah
                             </h2>
-                            <p className="text-[11px] text-zinc-400">
+                            <p className="text-[11px] font-mono tabular-nums text-zinc-400">
                               Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
                             </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                          {/* Quick WhatsApp / Text Import Button */}
+                          {/* Quick WhatsApp / Text Import Button (High Contrast Emerald) */}
                           <button
                             type="button"
                             onClick={() => setIsImportModalOpen(true)}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
+                            className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/40 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
                             title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
                           >
-                            <Copy className="w-3.5 h-3.5 text-black"/>
+                            <Copy className="w-3.5 h-3.5 text-emerald-300"/>
                             <span>Import WA</span>
                           </button>
 
@@ -8547,10 +8561,10 @@ export default function App() {
                             type="button"
                             onClick={handleRandomizeTestData}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-40 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
+                            className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
                             title="Isi markah demo rawak untuk ujian pantas"
                           >
-                            <Eye className="w-3.5 h-3.5 text-black"/>
+                            <Eye className="w-3.5 h-3.5 text-zinc-100"/>
                             <span>Demo</span>
                           </button>
 
@@ -8558,7 +8572,7 @@ export default function App() {
                             type="button"
                             onClick={handleClearAdminForm}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/5 disabled:opacity-40"
+                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 border border-zinc-700 disabled:opacity-40 cursor-pointer"
                             title="Kosongkan markah perlawanan ini"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
@@ -8718,7 +8732,7 @@ export default function App() {
                                 <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5 font-mono">
+                            <tbody className="divide-y divide-white/5 font-mono tabular-nums">
                               {matchSlots.map((row, idx) => {
                                 const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
                                 return (
@@ -8727,7 +8741,7 @@ export default function App() {
                                     className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.1]' : 'hover:bg-zinc-800/40')}
                                   >
                                     {/* Slot # */}
-                                    <td className="py-2 px-3 text-center text-zinc-500 font-bold">
+                                    <td className="py-2 px-3 text-center text-zinc-500 font-bold tabular-nums">
                                       #{String(row.slot).padStart(2, '0')}
                                     </td>
 
@@ -8741,7 +8755,7 @@ export default function App() {
                                         onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
                                         onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
                                         placeholder={`Squad ${row.slot}...`}
-                                        className="w-full bg-zinc-900/90 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
+                                        className="w-full bg-zinc-900/90 border border-zinc-800/70 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
                                       />
                                     </td>
 
@@ -8753,7 +8767,7 @@ export default function App() {
                                         value={row.placement || ''}
                                         onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                                         onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
-                                        className="w-full bg-zinc-900/90 border border-white/10 rounded-lg py-1 px-1 font-bold text-white focus:outline-none focus:border-[#D7FF00] text-xs text-center disabled:opacity-40"
+                                        className="w-full bg-zinc-900/90 border border-zinc-800/70 rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:border-[#D7FF00] text-xs text-center disabled:opacity-40"
                                       >
                                         <option value="" className="bg-zinc-950 text-white">--</option>
                                         {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
@@ -8771,7 +8785,7 @@ export default function App() {
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, -1)}
-                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           -
                                         </button>
@@ -8783,13 +8797,13 @@ export default function App() {
                                           value={row.kills}
                                           onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
                                           onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
-                                          className="w-11 bg-zinc-900/90 border border-white/10 rounded-lg text-center py-1 text-xs font-bold text-white focus:outline-none focus:border-[#D7FF00] disabled:opacity-40 font-mono"
+                                          className="w-11 bg-zinc-900/90 border border-zinc-800/70 rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:border-[#D7FF00] disabled:opacity-40 font-mono"
                                         />
                                         <button
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, 1)}
-                                          className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           +
                                         </button>
@@ -8804,8 +8818,8 @@ export default function App() {
                                         onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
                                         className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
                                           isWWCD 
-                                            ? 'bg-[#D7FF00] text-black shadow-xs font-bold' 
-                                            : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                                            ? 'bg-[#D7FF00] text-zinc-950 shadow-xs font-bold' 
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
                                         )}
                                       >
                                         {isWWCD ? 'WWCD' : 'Normal'}
@@ -8813,7 +8827,7 @@ export default function App() {
                                     </td>
 
                                     {/* Total Pts */}
-                                    <td className="py-2 px-3 text-center text-[#D7FF00] font-black text-sm">
+                                    <td className="py-2 px-3 text-center text-[#D7FF00] font-black tabular-nums text-sm">
                                       {row.totalPts}
                                     </td>
                                   </tr>
@@ -8865,14 +8879,14 @@ export default function App() {
                   <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
-                    <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl text-xs shadow-md">
+                    <div className="flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800/70 p-1 rounded-2xl text-xs">
                       <button
                         type="button"
                         onClick={() => setAdminPosterViewMode('overall')}
-                        className={'flex-1 py-1.5 px-2 rounded-xl font-black text-center transition flex items-center justify-center gap-1.5 ' + (
+                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
                           adminPosterViewMode === 'overall'
-                            ? 'bg-[#D7FF00] text-black shadow-sm'
-                            : 'text-zinc-400 hover:text-white'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                         )}
                       >
                         <Trophy className="w-3.5 h-3.5"/>
@@ -8881,10 +8895,10 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setAdminPosterViewMode('match')}
-                        className={'flex-1 py-1.5 px-2 rounded-xl font-bold text-center transition flex items-center justify-center gap-1.5 ' + (
+                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
                           adminPosterViewMode === 'match'
-                            ? 'bg-[#D7FF00] text-black shadow-sm'
-                            : 'text-zinc-400 hover:text-white'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
                         )}
                       >
                         <Zap className="w-3.5 h-3.5"/>
@@ -11562,45 +11576,6 @@ export default function App() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* FLOATING ACTION PILL ON MOBILE: SLEEK ERGONOMIC THUMB ZONE SHORTCUT */}
-      {(activeTab === 'scorer' || (activeTab === 'admin' && adminHostedScrims.length > 0)) && (
-        <div className={'lg:hidden fixed bottom-20 right-4 z-40 ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}>
-          <button
-            type="button"
-            onClick={() => {
-              if (activeTab === 'admin') {
-                if (isScrolledToPoster) {
-                  document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                  document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              } else {
-                if (isScrolledToPoster) {
-                  document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                  document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }
-            }}
-            className="px-3.5 py-2 rounded-full bg-zinc-950/95 backdrop-blur-md text-[#D7FF00] border border-[#D7FF00]/30 shadow-[0_4px_25px_rgba(0,0,0,0.65)] flex items-center gap-1.5 active:scale-95 transition-all text-xs font-black group"
-            title={isScrolledToPoster ? 'Kembali ke borang isi markah' : 'Lihat pratonton poster'}
-            aria-label={isScrolledToPoster ? 'Scroll to scoring' : 'Scroll to poster'}
-          >
-            {isScrolledToPoster ? (
-              <>
-                <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#D7FF00]" />
-                <span>Borang Markah</span>
-              </>
-            ) : (
-              <>
-                <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
-                <span>Poster</span>
-              </>
-            )}
-          </button>
         </div>
       )}
 
