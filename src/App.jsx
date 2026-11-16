@@ -5039,7 +5039,7 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs">
+                  <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs">
                     {isMasterAdmin && (
                       <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
                         <button
@@ -5048,12 +5048,9 @@ export default function App() {
                             setIsNavMenuOpen(false);
                             setIsTeamManagerModalOpen(true);
                           }}
-                          className="w-full px-3.5 py-2.5 text-left flex items-center gap-2 hover:bg-[#D7FF00]/15 text-[#D7FF00] transition font-black"
+                          className="w-full px-4 py-2.5 text-left hover:bg-[#D7FF00]/15 text-[#D7FF00] transition font-black cursor-pointer"
                         >
-                          <Crown className="w-4 h-4 text-[#D7FF00] shrink-0" />
-                          <div className="min-w-0">
-                            <span className="block leading-tight">Urus Pasukan &amp; Logo</span>
-                          </div>
+                          Urus Pasukan &amp; Logo
                         </button>
                       </div>
                     )}
@@ -5061,10 +5058,9 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => handleOpenGuide(0)}
-                        className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 text-zinc-200 transition font-bold"
+                        className="w-full px-4 py-2 text-left hover:bg-white/5 text-zinc-200 transition font-bold cursor-pointer"
                       >
-                        <BookOpen className="w-4 h-4 text-[#D7FF00]"/>
-                        <span>Slide Panduan App</span>
+                        Slide Panduan App
                       </button>
                       <button
                         type="button"
@@ -5072,12 +5068,11 @@ export default function App() {
                           navigateToTab('showcase');
                           setIsNavMenuOpen(false);
                         }}
-                        className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 transition ' + (
+                        className={'w-full px-4 py-2 text-left hover:bg-white/5 transition font-semibold cursor-pointer ' + (
                           activeTab === 'showcase' ? 'text-[#D7FF00] font-bold bg-white/5' : 'text-zinc-300'
                         )}
                       >
-                        <Sparkles className="w-4 h-4 text-[#D7FF00]"/>
-                        <span className="font-semibold">Content</span>
+                        Content
                       </button>
                       <button
                         type="button"
@@ -5085,12 +5080,11 @@ export default function App() {
                           navigateToTab('hosts');
                           setIsNavMenuOpen(false);
                         }}
-                        className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 transition ' + (
+                        className={'w-full px-4 py-2 text-left hover:bg-white/5 transition font-semibold cursor-pointer ' + (
                           activeTab === 'hosts' ? 'text-[#D7FF00] font-bold bg-white/5' : 'text-zinc-300'
                         )}
                       >
-                        <Flame className="w-4 h-4 text-[#D7FF00]"/>
-                        <span className="font-semibold">Direktori Host</span>
+                        Direktori Host
                       </button>
                       <button
                         type="button"
@@ -5098,12 +5092,11 @@ export default function App() {
                           navigateToTab('about');
                           setIsNavMenuOpen(false);
                         }}
-                        className={'w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 transition ' + (
+                        className={'w-full px-4 py-2 text-left hover:bg-white/5 transition font-semibold cursor-pointer ' + (
                           activeTab === 'about' ? 'text-[#D7FF00] font-bold bg-white/5' : 'text-zinc-300'
                         )}
                       >
-                        <Info className="w-4 h-4 text-[#D7FF00]"/>
-                        <span className="font-semibold">About Scrim Hub</span>
+                        About Scrim Hub
                       </button>
                     </div>
                     <div className="py-1">
@@ -5113,10 +5106,9 @@ export default function App() {
                           setIsFeedbackModalOpen(true);
                           setIsNavMenuOpen(false);
                         }}
-                        className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-white/5 text-zinc-300 transition"
+                        className="w-full px-4 py-2 text-left hover:bg-white/5 text-zinc-300 transition font-semibold cursor-pointer"
                       >
-                        <Bug className="w-4 h-4 text-[#D7FF00]"/>
-                        <span className="font-semibold">Feedback / Report Bug</span>
+                        Feedback / Report Bug
                       </button>
                       {currentUser && (
                         <button
@@ -5125,10 +5117,9 @@ export default function App() {
                             setIsNavMenuOpen(false);
                             handleLogout();
                           }}
-                          className="w-full px-3.5 py-2 text-left flex items-center gap-2 hover:bg-rose-500/10 text-rose-400 transition font-bold"
+                          className="w-full px-4 py-2 text-left hover:bg-rose-500/10 text-rose-400 transition font-bold cursor-pointer"
                         >
-                          <LogOut className="w-4 h-4" />
-                          <span>Log Keluar Akaun</span>
+                          Log Keluar Akaun
                         </button>
                       )}
                     </div>
@@ -5239,61 +5230,58 @@ export default function App() {
           return (
             <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
               
-              {/* TIER 1: Specific Headline + Live Counters */}
+              {/* TIER 1: Specific Centered Headline + Live Counters */}
               <div
-                className="flex items-center justify-between gap-4 px-1.5 md:px-1 animate-home-tier"
+                className={`flex gap-3 px-1.5 md:px-1 animate-home-tier ${
+                  currentUser
+                    ? 'items-center justify-between'
+                    : 'flex-col items-center text-center'
+                }`}
                 style={{ '--home-delay': '0ms' }}
               >
-                <div className="min-w-0">
+                <div className={currentUser ? 'min-w-0' : 'max-w-xl mx-auto text-center'}>
                   {currentUser ? (
                     <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
                       Selamat kembali, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
                     </h1>
                   ) : (
-                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
                       Kedudukan Scrim &amp; <span className="text-[#D7FF00]">Kejohanan PUBG Mobile</span>
                     </h1>
                   )}
                   <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
                     {currentUser
                       ? 'Urus rekod scrim, semak prestasi pasukan & imbas keputusan poster.'
-                      : 'Semak ranking pasukan rasmi, kira markah PMGC dan imbas poster keputusan.'}
+                      : 'Semak ranking pasukan, kira markah PMGC & imbas poster keputusan.'}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
-                  {/* Data Counters (Desktop only) */}
-                  <div className="hidden lg:flex items-center gap-2">
-                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
-                      <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
+                {(currentUser || scrims.length > 0 || validTeamList.length > 0) && (
+                  <div className={`items-center gap-2.5 shrink-0 ${currentUser ? 'flex' : 'hidden lg:flex'}`}>
+                    {/* Data Counters (Desktop only) */}
+                    <div className="hidden lg:flex items-center gap-2">
+                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
+                        <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
+                      </div>
+                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
+                        <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                        <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
+                      </div>
                     </div>
-                    <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
-                      <Trophy className="w-3.5 h-3.5 text-emerald-400" />
-                      <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
-                    </div>
-                  </div>
 
-                  {currentUser ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileModalOpen(true)}
-                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
-                      <span>{adminHostedScrims.length} Hosted</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-[11px] md:text-xs font-black text-black flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(215,255,0,0.25)]"
-                    >
-                      <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-black stroke-[2.2]" />
-                      <span>Log Masuk Host</span>
-                    </button>
-                  )}
-                </div>
+                    {currentUser && (
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileModalOpen(true)}
+                        className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
+                        <span>{adminHostedScrims.length} Hosted</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
                 {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
@@ -5334,14 +5322,14 @@ export default function App() {
                               aria-hidden={homeHofSlide !== 0}
                               className="hof-crossfade-item block"
                             >
-                              Kedudukan Keseluruhan
+                              Semua Pasukan
                             </span>
                             <span
                               data-active={homeHofSlide === 1}
                               aria-hidden={homeHofSlide !== 1}
                               className="hof-crossfade-item block"
                             >
-                              Sorotan Tier 3
+                              Tier 3
                             </span>
                           </div>
                           <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-none pt-0.5 flex items-baseline gap-1.5">
@@ -5467,7 +5455,7 @@ export default function App() {
                                 </span>
                                 <div className="flex items-baseline justify-between gap-1 mt-0.5">
                                   <span className="text-sm sm:text-base lg:text-lg font-black text-white truncate">
-                                    {tier3Leader ? tier3Leader.name : 'Sedia Untuk Cabaran'}
+                                    {tier3Leader ? tier3Leader.name : 'Belum ada rekod'}
                                   </span>
                                   <span className="text-xs font-mono font-black text-[#D7FF00] shrink-0">
                                     {tier3Leader ? `${tier3Leader.tier3Points} PTS` : 'Tier 3'}
@@ -5531,7 +5519,7 @@ export default function App() {
                               </div>
                             ) : (
                               <div className="hof-stat-tile hof-podium-strip hidden lg:flex items-center justify-between rounded-xl glass-tile px-3.5 py-2.5 text-xs font-bold text-zinc-200">
-                                <span>Rekod kejohanan Tier 3 akan terpapar di sini secara automatik.</span>
+                                <span>Rekod Tier 3 akan dipaparkan di sini selepas match disimpan.</span>
                                 <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase text-[#D7FF00] shrink-0">
                                   <span>Buka Tier 3</span>
                                   <ArrowRight className="w-3 h-3" />
@@ -5638,7 +5626,7 @@ export default function App() {
                     {/* Specific Capability Summary */}
                     <div className="my-auto py-4 relative z-10">
                       <p className="text-xs font-medium text-pink-50 leading-relaxed text-pretty">
-                        Muat naik gambar poster kejohanan untuk ekstrak markah &amp; audit PP + KP secara automatik.
+                        Muat naik poster untuk kira &amp; semak markah.
                       </p>
                     </div>
 
@@ -5747,7 +5735,7 @@ export default function App() {
                             {homeContendersCategory === 'TIER_3' ? 'Top Contenders • Tier 3' : 'Top Contenders Semasa'}
                           </h3>
                           <p className="text-[11px] text-zinc-400">
-                            Klik mana-mana pasukan untuk terus buka profil analitik &amp; graf scrim
+                            Tekan nama pasukan untuk lihat rekod &amp; graf
                           </p>
                         </div>
                       </div>
@@ -6579,7 +6567,7 @@ export default function App() {
                 <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
-                    Pangkalan data statistik ranking pasukan, analitik konsistensi seluruh kejohanan Malaysia, metrik win-rate dan penjana kad Story 9:16.
+                    Lihat ranking pasukan, rekod kemenangan &amp; kad Story 9:16.
                   </p>
                   <button
                     type="button"
@@ -6833,7 +6821,7 @@ export default function App() {
 
                   {/* Description Paragraph */}
                   <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-xs sm:max-w-sm mx-auto pt-0.5 text-pretty">
-                    Kedudukan rasmi pasukan, rekod WWCD &amp; jana kad Story 9:16.
+                    Ranking pasukan, rekod WWCD &amp; kad Story 9:16.
                   </p>
                 </div>
               </div>
@@ -6997,7 +6985,7 @@ export default function App() {
                   <div className="py-8 text-center space-y-2">
                     <Users className="w-7 h-7 text-zinc-500 mx-auto" />
                     <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-                      Tiada pasukan dengan rekod perlawanan lagi. Rekod akan muncul secara automatik sebaik sahaja markah disimpan.
+                      Belum ada rekod perlawanan. Markah yang disimpan akan dipaparkan di sini.
                     </p>
                   </div>
                 ) : displayedRankedTeams.length === 0 ? (() => {
@@ -7024,7 +7012,7 @@ export default function App() {
                         <p className="text-[11px] text-zinc-400 leading-relaxed">
                           {teamSearchQuery.trim()
                             ? 'Cuba kata kunci nama atau tag pasukan yang lain.'
-                            : `Statistik dan ranking pasukan akan muncul secara automatik selepas sesi kategori ${activeFilterLabel} direkodkan.`}
+                            : `Ranking pasukan akan muncul di sini selepas rekod ${activeFilterLabel} disimpan.`}
                         </p>
                       </div>
                       <button
@@ -8347,7 +8335,7 @@ export default function App() {
 
                       {/* Memorable Helper Text */}
                       <p className="text-xs sm:text-sm text-zinc-400 font-normal">
-                        Kiraan mata automatik PMGC, simpanan Cloud Database &amp; poster Overall Standings HD.
+                        Kira Markah, Simpan Cloud &amp; Eksport Poster HD
                       </p>
 
                       {/* Expandable Info Card */}
@@ -8355,7 +8343,7 @@ export default function App() {
                         <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
-                            Pusat penganjur kejohanan rasmi dengan simpanan cloud automatik, sokongan jemputan Co-Host, dan pengurusan berbilang pusingan.
+                            Urus scrim, jemput Co-Host &amp; simpan rekod kejohanan ke Cloud.
                           </p>
                           <button
                             type="button"
@@ -11460,9 +11448,9 @@ export default function App() {
                   <Edit3 className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-black text-white block">1. Quick Scorer</span>
+                  <span className="text-xs font-black text-white block">Quick Scorer</span>
                   <p className="text-[11px] text-zinc-300 leading-snug mt-0.5">
-                    Kira markah PMGC, simpan Cloud &amp; eksport poster HD.
+                    Kira Markah, Simpan Cloud &amp; Eksport Poster HD
                   </p>
                 </div>
               </button>
@@ -11480,9 +11468,9 @@ export default function App() {
                   <Upload className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-black text-white block">2. Imbas Keputusan</span>
+                  <span className="text-xs font-black text-white block">Imbas Keputusan</span>
                   <p className="text-[11px] text-zinc-200 leading-snug mt-0.5">
-                    Imbas poster keputusan &amp; audit matematik automatik.
+                    Muat naik poster keputusan untuk kira &amp; semak markah.
                   </p>
                 </div>
               </button>

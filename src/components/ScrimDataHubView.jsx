@@ -688,7 +688,7 @@ export default function ScrimDataHubView({
         <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-200 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
           <Sparkles className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
           <p className="leading-relaxed flex-1">
-            <strong className="text-white">Results Scanner</strong> mengekstrak poster keputusan kejohanan secara automatik (`gemini-3.5-flash`), menyemak ketepatan matematik (`PP + KP = Total`), dan menyediakan paparan responsif mudah alih untuk semua pasukan.
+            Muat naik poster scrim atau kejohanan untuk semak jumlah mata (PP + KP) dan simpan ke rekod.
           </p>
           <button
             type="button"
@@ -710,7 +710,7 @@ export default function ScrimDataHubView({
             Imbas Keputusan Poster
           </h1>
           <p className="text-xs text-zinc-300 max-w-sm text-pretty">
-            Ekstrak kedudukan pasukan dan audit mata automatik daripada gambar poster kejohanan.
+            Muat naik gambar poster untuk semak markah &amp; simpan rekod.
           </p>
         </div>
       </div>
@@ -776,7 +776,7 @@ export default function ScrimDataHubView({
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-white">
-                      Menganalisis Poster &amp; Ekstrak Jadual...
+                      Sedang mengimbas poster...
                     </p>
                     <p className="text-[11px] text-zinc-300 font-mono">
                       Mengesan Nama Scrim, Tarikh, WWCD, Placement &amp; Elims
@@ -810,7 +810,7 @@ export default function ScrimDataHubView({
                       <span className="text-[#D7FF00] underline">pilih fail</span>
                     </p>
                     <p className="text-[11px] text-zinc-300 font-mono">
-                      Auto-Audit Matematik (PP + KP = Total)
+                      Semakan Jumlah Mata (PP + KP = Total)
                     </p>
                   </div>
                 </div>
