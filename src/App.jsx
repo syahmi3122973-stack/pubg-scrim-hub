@@ -101,7 +101,7 @@ function TikTokPreviewCard({ post }) {
   const fallbackThumbnail = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80";
 
   return (
-    <div className="relative w-full max-w-[320px] mx-auto aspect-[9/15] rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex flex-col justify-between p-4 group select-none">
+    <div className="relative w-full max-w-[320px] mx-auto aspect-[9/15] rounded-3xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex flex-col justify-between p-4 group select-none">
       <img
         src={post.media_url || fallbackThumbnail}
         alt={post.title}
@@ -4820,7 +4820,7 @@ export default function App() {
                   <div
                     role="dialog"
                     aria-label="Active User Account"
-                    className="w-full bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
+                    className="w-full bg-black border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
                   >
                     <div className="flex items-center justify-between px-1.5 pt-0.5">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
@@ -5068,7 +5068,7 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs origin-top-right animate-dropdown-reveal">
+                  <div className="absolute right-0 mt-2 w-48 bg-black border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs origin-top-right animate-dropdown-reveal">
                     {isMasterAdmin && (
                       <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
                         <button
@@ -8481,7 +8481,7 @@ export default function App() {
                               className="fixed inset-0 z-30"
                               onClick={() => setIsScorerActionsMenuOpen(false)}
                             />
-                            <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs origin-top-right animate-dropdown-reveal">
+                            <div className="absolute right-0 mt-2 w-48 bg-black border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs origin-top-right animate-dropdown-reveal">
                               <div className="py-1">
                                 <button
                                   type="button"
@@ -11753,7 +11753,7 @@ export default function App() {
                     value={sessionPickerQuery}
                     onChange={(e) => setSessionPickerQuery(e.target.value)}
                     placeholder="Cari nama sesi, tarikh atau tier..."
-                    className="w-full bg-[#09090D] rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white font-semibold placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#D7FF00]/60 [&::-webkit-search-cancel-button]:hidden"
+                    className="w-full bg-black border border-zinc-800 rounded-2xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white font-semibold placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#D7FF00]/60 [&::-webkit-search-cancel-button]:hidden"
                   />
                   {sessionPickerQuery && (
                     <button
@@ -11819,7 +11819,7 @@ export default function App() {
                         className={`w-full text-left rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-3 transition cursor-pointer group active:scale-[0.99] ${
                           isSelected
                             ? 'bg-[#D7FF00]/15 shadow-[0_0_18px_rgba(215,255,0,0.08)]'
-                            : 'bg-[#17171D]/85 hover:bg-[#1E1E26]'
+                            : 'bg-black border border-zinc-800/80 hover:bg-zinc-950'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">

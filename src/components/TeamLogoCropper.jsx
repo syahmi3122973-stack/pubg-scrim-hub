@@ -7,8 +7,8 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4.5;
 
 const BG_MODES = [
-  { key: 'transparent', label: 'Lutsinar', fill: null, previewBg: '#0c0e15' },
-  { key: 'dark', label: 'Gelap', fill: '#0c0c10', previewBg: '#0c0c10' },
+  { key: 'transparent', label: 'Lutsinar', fill: null, previewBg: '#000000' },
+  { key: 'dark', label: 'Gelap', fill: '#000000', previewBg: '#000000' },
   { key: 'light', label: 'Putih', fill: '#ffffff', previewBg: '#ffffff' }
 ];
 

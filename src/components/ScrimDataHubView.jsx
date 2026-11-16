@@ -890,10 +890,10 @@ export default function ScrimDataHubView({
                   onChange={(e) => setScrimTier(e.target.value)}
                   className="w-full glass-tile rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] cursor-pointer"
                 >
-                  <option value="Tier 1 (Pro)" className="bg-[#111218]">Tier 1 (Pro)</option>
-                  <option value="Tier 2 (Semi-Pro)" className="bg-[#111218]">Tier 2 (Semi-Pro)</option>
-                  <option value="Tier 3 (Amateur)" className="bg-[#111218]">Tier 3 (Amateur)</option>
-                  <option value="Open Community" className="bg-[#111218]">Open Community</option>
+                  <option value="Tier 1 (Pro)" className="bg-black">Tier 1 (Pro)</option>
+                  <option value="Tier 2 (Semi-Pro)" className="bg-black">Tier 2 (Semi-Pro)</option>
+                  <option value="Tier 3 (Amateur)" className="bg-black">Tier 3 (Amateur)</option>
+                  <option value="Open Community" className="bg-black">Open Community</option>
                 </select>
               </div>
             </div>
