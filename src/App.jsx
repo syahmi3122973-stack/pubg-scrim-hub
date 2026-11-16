@@ -10387,6 +10387,7 @@ export default function App() {
             {/* View A: Crop Logo OR Edit Team Form */}
             {editingTeam && logoCropSource ? (
               <TeamLogoCropper
+                key={logoCropSource}
                 imageSrc={logoCropSource}
                 teamName={editingTeam.name}
                 isSubmitting={isUploadingTeamLogo}

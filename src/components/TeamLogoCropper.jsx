@@ -35,11 +35,14 @@ export default function TeamLogoCropper({
   const pinchStartZoomRef = useRef(1);
 
   useEffect(() => {
-    setNaturalSize({ width: 0, height: 0 });
-    setPan({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
-    setLoadError('');
+    const el = imgRef.current;
+    if (el && el.complete) {
+      const w = el.naturalWidth || el.width;
+      const h = el.naturalHeight || el.height;
+      if (w > 0 && h > 0) {
+        setNaturalSize({ width: w, height: h });
+      }
+    }
   }, [imageSrc]);
 
   const baseScale = naturalSize.width > 0 && naturalSize.height > 0
@@ -64,8 +67,10 @@ export default function TeamLogoCropper({
 
   const handleImageLoad = (e) => {
     const el = e.currentTarget;
-    if (el.naturalWidth && el.naturalHeight) {
-      setNaturalSize({ width: el.naturalWidth, height: el.naturalHeight });
+    const w = el.naturalWidth || el.width;
+    const h = el.naturalHeight || el.height;
+    if (w > 0 && h > 0) {
+      setNaturalSize({ width: w, height: h });
       setLoadError('');
     }
   };
@@ -135,7 +140,12 @@ export default function TeamLogoCropper({
 
   const handleConfirmCrop = async () => {
     const imgEl = imgRef.current;
-    if (!imgEl || !naturalSize.width || isExporting || isSubmitting) return;
+    const natW = naturalSize.width || imgEl?.naturalWidth || imgEl?.width || 0;
+    const natH = naturalSize.height || imgEl?.naturalHeight || imgEl?.height || 0;
+    if (!imgEl || !natW || !natH || isExporting || isSubmitting) {
+      setLoadError('Gambar belum siap dimuatkan. Sila tunggu sekejap atau pilih semula gambar.');
+      return;
+    }
 
     setIsExporting(true);
     try {
@@ -156,9 +166,10 @@ export default function TeamLogoCropper({
         ctx.clearRect(0, 0, EXPORT_SIZE_PX, EXPORT_SIZE_PX);
       }
 
+      const effBaseScale = CROP_VIEWPORT_PX / Math.max(natW, natH);
       const ratio = EXPORT_SIZE_PX / CROP_VIEWPORT_PX;
-      const drawW = naturalSize.width * baseScale * ratio;
-      const drawH = naturalSize.height * baseScale * ratio;
+      const drawW = natW * effBaseScale * ratio;
+      const drawH = natH * effBaseScale * ratio;
 
       ctx.save();
       ctx.translate(EXPORT_SIZE_PX / 2 + pan.x * ratio, EXPORT_SIZE_PX / 2 + pan.y * ratio);
@@ -167,15 +178,13 @@ export default function TeamLogoCropper({
       ctx.drawImage(imgEl, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error('Gagal menjana gambar crop.'))),
-          'image/png'
-        );
+      const previewDataUrl = canvas.toDataURL('image/png');
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png');
       });
 
-      const previewDataUrl = canvas.toDataURL('image/png');
-      const croppedFile = new File([blob], `team_logo_${Date.now()}.png`, { type: 'image/png' });
+      const finalBlob = blob || await (await fetch(previewDataUrl)).blob();
+      const croppedFile = new File([finalBlob], `team_logo_${Date.now()}.png`, { type: 'image/png' });
       await onConfirm(croppedFile, previewDataUrl);
     } catch (err) {
       setLoadError(err?.message || 'Gagal memproses imej. Cuba muat naik fail dari peranti.');
@@ -376,7 +385,7 @@ export default function TeamLogoCropper({
         <button
           type="button"
           onClick={handleConfirmCrop}
-          disabled={busy || !naturalSize.width || Boolean(loadError)}
+          disabled={busy || Boolean(loadError)}
           className="flex-1 py-2.5 px-4 rounded-2xl bg-[#D7FF00] hover:bg-[#c5ea00] text-black font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition shadow-[0_0_20px_rgba(215,255,0,0.22)] cursor-pointer active:scale-[0.99] disabled:opacity-50"
         >
           {busy ? (
