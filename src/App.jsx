@@ -60,8 +60,7 @@ import {
   Crown,
   Phone,
   Camera,
-  Crop,
-  MoreVertical
+  Crop
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
@@ -1407,7 +1406,6 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isEditProfileMode, setIsEditProfileMode] = useState(false);
   const [isOrgPopoverOpen, setIsOrgPopoverOpen] = useState(false);
-  const [isScorerActionsMenuOpen, setIsScorerActionsMenuOpen] = useState(false);
   const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [performanceTeam, setPerformanceTeam] = useState(null);
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
@@ -4502,7 +4500,6 @@ export default function App() {
     setIsQuickCreateModalOpen(false);
     setIsSessionPickerOpen(false);
     setIsOrgPopoverOpen(false);
-    setIsScorerActionsMenuOpen(false);
     setIsNavMenuOpen(false);
     setActiveHeaderInfo(null);
 
@@ -5182,7 +5179,9 @@ export default function App() {
           }
 
           // 2. BENTO-GRID COMMAND CENTER (Available for both Guests & Authenticated Users)
+          const leadingTeam = validTeamList[0] || null;
           const topThreePreview = validTeamList.slice(0, 3);
+          const tier3Leader = tier3RankedTeams[0] || null;
           const tier3TopThree = tier3RankedTeams.slice(0, 3);
           const desktopContendersSource = homeContendersCategory === 'TIER_3' ? tier3RankedTeams : validTeamList;
           const desktopContenders = desktopContendersSource.slice(0, 4);
@@ -5194,12 +5193,42 @@ export default function App() {
           );
           const recentSessionsDock = scrims.slice(0, 3);
 
+          const highestKillTeam = validTeamList.reduce((best, cur) => {
+            const curAvg = cur.scrimResults?.length ? cur.totalKills / cur.scrimResults.length : 0;
+            const bestAvg = best?.scrimResults?.length ? best.totalKills / best.scrimResults.length : 0;
+            return curAvg > bestAvg ? cur : best;
+          }, validTeamList[0] || null);
+          const highestKillAvgVal = highestKillTeam?.scrimResults?.length
+            ? (highestKillTeam.totalKills / highestKillTeam.scrimResults.length).toFixed(1)
+            : '9.4';
+
+          const tier3HighestKillTeam = tier3RankedTeams.reduce((best, cur) => {
+            const curAvg = cur.tier3Events ? cur.tier3Kills / cur.tier3Events : 0;
+            const bestAvg = best?.tier3Events ? best.tier3Kills / best.tier3Events : 0;
+            return curAvg > bestAvg ? cur : best;
+          }, tier3RankedTeams[0] || null);
+          const tier3KillAvgVal = tier3HighestKillTeam?.tier3Events
+            ? (tier3HighestKillTeam.tier3Kills / tier3HighestKillTeam.tier3Events).toFixed(1)
+            : '0.0';
+
+          const lastScannedRecord = scrims.find(
+            s => s.created_by === 'public_ocr' || (s.description && s.description.toLowerCase().includes('ocr'))
+          ) || scrims[0] || null;
+          const lastScannedLabel = lastScannedRecord
+            ? `${lastScannedRecord.title} • ${lastScannedRecord.date || 'Today'}`
+            : 'Tiada rekod imbasan terkini';
+
+          const quickScorerPreviewTitle =
+            playgroundSession?.title && playgroundSession.title !== 'PUBG Mobile Scrim Season'
+              ? playgroundSession.title
+              : scrims[0]?.title || 'Sesi Pantas PMGC';
+
           const latestRekodSession = scrims[0] || null;
           const latestRekodTitle = latestRekodSession?.title || 'Tiada sesi direkod lagi';
           const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
 
           return (
-            <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-28 md:pb-12 relative">
+            <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
               
               {/* TIER 1: Specific Centered Headline + Live Counters */}
               <div
@@ -5231,11 +5260,11 @@ export default function App() {
                   <div className={`items-center gap-2.5 shrink-0 ${currentUser ? 'flex' : 'hidden lg:flex'}`}>
                     {/* Data Counters (Desktop only) */}
                     <div className="hidden lg:flex items-center gap-2">
-                      <div className="px-3.5 py-2 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono tabular-nums font-bold text-zinc-200 flex items-center gap-2">
+                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
                         <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
                         <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
                       </div>
-                      <div className="px-3.5 py-2 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono tabular-nums font-bold text-zinc-200 flex items-center gap-1.5">
+                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
                         <Trophy className="w-3.5 h-3.5 text-emerald-400" />
                         <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
                       </div>
@@ -5245,7 +5274,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setIsProfileModalOpen(true)}
-                        className="px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-[11px] md:text-xs font-mono tabular-nums font-bold text-zinc-100 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                       >
                         <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
                         <span>{adminHostedScrims.length} Hosted</span>
@@ -5255,261 +5284,439 @@ export default function App() {
                 )}
               </div>
 
-              {/* TIER 2A: ABOVE-THE-FOLD PRIMARY HOST TOOLS (Symmetrical 2-Column Bento Grid) */}
-              <div
-                className="grid grid-cols-2 gap-3 sm:gap-4 animate-home-tier"
-                style={{ '--home-delay': '60ms' }}
-              >
-                {/* TOOL 1: Quick Scorer */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigateToTab('scorer')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigateToTab('scorer');
-                    }
-                  }}
-                  className="min-h-[140px] sm:min-h-[156px] rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 text-white active:scale-[0.98] transition cursor-pointer flex flex-col justify-between group select-none"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700/80 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Edit3 className="w-4 h-4 stroke-[2]" />
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition" />
-                  </div>
-
-                  <div className="space-y-1 pt-3">
-                    <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-snug">
-                      Quick Scorer
-                    </h2>
-                    <p className="text-xs text-zinc-400 leading-snug">
-                      Kira Markah, Simpan Cloud &amp; Eksport Poster HD
-                    </p>
-                  </div>
-                </div>
-
-                {/* TOOL 2: Imbas Keputusan */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigateToTab('scrim-data')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigateToTab('scrim-data');
-                    }
-                  }}
-                  className="min-h-[140px] sm:min-h-[156px] rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 text-white active:scale-[0.98] transition cursor-pointer flex flex-col justify-between group select-none"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700/80 text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Upload className="w-4 h-4 stroke-[2]" />
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition" />
-                  </div>
-
-                  <div className="space-y-1 pt-3">
-                    <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-snug">
-                      Imbas Keputusan
-                    </h2>
-                    <p className="text-xs text-zinc-400 leading-snug">
-                      Muat naik poster untuk kira &amp; semak markah
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* TIER 2B: DECLUTTERED TEAM MATRIX PREVIEW CARD & REKOD ARCHIVE */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5">
-                {/* Team Matrix Vertical Top 3 Preview Card */}
-                <div
-                  style={{ '--home-delay': '130ms' }}
-                  className="lg:col-span-8 rounded-2xl sm:rounded-3xl p-4 sm:p-6 bg-zinc-900/90 border border-zinc-800 text-white flex flex-col justify-between gap-4 animate-home-tier"
-                >
-                  {/* Card Header: Title + Neutral High-Contrast Tier Filter Pills */}
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <span className="text-[11px] font-mono font-semibold text-zinc-400 block leading-none">
-                        {homeHofSlide === 0 ? 'Semua Pasukan' : 'Tier 3'}
-                      </span>
-                      <h2 className="text-xl sm:text-2xl tracking-tight text-white leading-none pt-1 flex items-baseline gap-1.5">
-                        <span className="font-team-matrix font-bold uppercase">Team</span>
-                        <span className="font-jetbrains font-extrabold uppercase text-[0.88em] text-[#D7FF00] translate-y-[0.5px]">Matrix</span>
-                      </h2>
-                    </div>
-
-                    <div
-                      data-hof-controls
-                      className="flex items-center gap-1.5 shrink-0"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsHomeHofInteracting(true);
-                          setHomeHofSlide(0);
-                        }}
-                        aria-pressed={homeHofSlide === 0}
-                        className={`px-3 py-1 rounded-full text-xs transition cursor-pointer ${
-                          homeHofSlide === 0
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        Semua
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsHomeHofInteracting(true);
-                          setHomeHofSlide(1);
-                        }}
-                        aria-pressed={homeHofSlide === 1}
-                        className={`px-3 py-1 rounded-full text-xs transition cursor-pointer ${
-                          homeHofSlide === 1
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        Tier 3
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Clean Breathable Vertical Top 3 Leaderboard Preview (#1, #2, #3) */}
-                  <div className="space-y-2">
-                    {(() => {
-                      const activePreviewList = homeHofSlide === 1 ? tier3TopThree : topThreePreview;
-                      if (activePreviewList.length === 0) {
-                        return (
-                          <div className="rounded-2xl bg-zinc-950/70 border border-zinc-800/80 px-4 py-6 text-center text-xs text-zinc-400">
-                            Belum ada rekod untuk kategori ini.
-                          </div>
-                        );
-                      }
-                      return activePreviewList.slice(0, 3).map((team, idx) => {
-                        const pts = homeHofSlide === 1 ? team.tier3Points : team.totalPoints;
-                        const rankBadgeStyle =
-                          idx === 0
-                            ? 'bg-[#D7FF00] text-zinc-950'
-                            : idx === 1
-                            ? 'bg-zinc-200 text-zinc-950'
-                            : 'bg-amber-400 text-zinc-950';
-                        return (
-                          <button
-                            key={`${homeHofSlide}_${team.name}`}
-                            type="button"
-                            onClick={() => {
-                              setTeamStatsEventType('ALL');
-                              handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
-                              setSelectedTeamProfile(team.name);
-                              navigateToTab('teams');
-                            }}
-                            className="w-full rounded-xl bg-zinc-950/80 hover:bg-zinc-800/80 border border-zinc-800/80 px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition cursor-pointer group active:scale-[0.99]"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <span
-                                className={`w-6 h-6 rounded-lg font-mono font-black text-xs tabular-nums flex items-center justify-center shrink-0 ${rankBadgeStyle}`}
-                              >
-                                #{idx + 1}
-                              </span>
-                              {team.logo_url ? (
-                                <img
-                                  src={team.logo_url}
-                                  alt=""
-                                  className="w-7 h-7 rounded-lg object-contain bg-zinc-900 p-0.5 shrink-0"
-                                />
-                              ) : (
-                                <span className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-mono font-bold text-zinc-300 flex items-center justify-center shrink-0">
-                                  {(team.tag || team.name.slice(0, 3)).toUpperCase()}
-                                </span>
-                              )}
-                              <span className="flex-1 min-w-0 truncate text-xs sm:text-sm font-bold text-white group-hover:text-[#D7FF00] transition-colors">
-                                {team.name}
-                              </span>
-                            </div>
-
-                            <div className="flex items-baseline gap-1 font-mono tabular-nums shrink-0">
-                              <span className="text-sm sm:text-base font-black text-white">
-                                {pts}
-                              </span>
-                              <span className="text-[10px] font-bold text-zinc-400">
-                                PTS
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      });
-                    })()}
-                  </div>
-
-                  {/* Card Footer Action */}
-                  <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-[11px] font-mono tabular-nums text-zinc-400">
-                      {homeHofSlide === 1
-                        ? `${tier3RankedTeams.length} pasukan Tier 3 aktif`
-                        : `${validTeamList.length} pasukan berdaftar`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
+                {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
+                <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5">
+                  
+                  {/* CARD A: Focal Hero Card (Acid Lime Accent) — [Team Matrix + Tier 3 Rank Slide] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    data-hof-slide={homeHofSlide}
+                    onClick={() => {
+                      setTeamStatsEventType('ALL');
+                      handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
+                      navigateToTab('teams');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
                         setTeamStatsEventType('ALL');
                         handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
                         navigateToTab('teams');
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-100 hover:text-[#D7FF00] transition cursor-pointer"
-                    >
-                      <span>Buka Team Matrix</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                      }
+                    }}
+                    onMouseEnter={() => setIsHomeHofInteracting(true)}
+                    onMouseLeave={() => setIsHomeHofInteracting(false)}
+                    onFocus={() => setIsHomeHofInteracting(true)}
+                    onBlur={() => setIsHomeHofInteracting(false)}
+                    style={{ '--home-delay': '80ms' }}
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 glass-lime hof-hero-card text-white lg:hover:-translate-y-1 active:scale-[0.985] [&:has([data-hof-controls]:active)]:scale-100 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
+                  >
+                    <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
+                      {/* Top Row: Smooth Crossfading Section Label, Title & Reactive Trophy Icon */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="hof-crossfade-stack text-[11px] font-mono font-bold text-[#D7FF00] leading-tight">
+                            <span
+                              data-active={homeHofSlide === 0}
+                              aria-hidden={homeHofSlide !== 0}
+                              className="hof-crossfade-item block"
+                            >
+                              Semua Pasukan
+                            </span>
+                            <span
+                              data-active={homeHofSlide === 1}
+                              aria-hidden={homeHofSlide !== 1}
+                              className="hof-crossfade-item block"
+                            >
+                              Tier 3
+                            </span>
+                          </div>
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-none pt-0.5 flex items-baseline gap-1.5">
+                            <span className="font-team-matrix font-bold uppercase">Team</span>
+                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em] text-[#D7FF00] translate-y-[0.5px]">Matrix</span>
+                          </h2>
+                        </div>
 
-                {/* Rekod Kejohanan Card */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigateToTab('history')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigateToTab('history');
-                    }
-                  }}
-                  style={{ '--home-delay': '190ms' }}
-                  className="lg:col-span-4 rounded-2xl sm:rounded-3xl p-4 sm:p-6 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 text-white active:scale-[0.98] transition cursor-pointer flex flex-col justify-between group select-none min-h-[140px] animate-home-tier"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700/80 text-zinc-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Clock className="w-4 h-4 stroke-[2]" />
+                        <div
+                          className={`hof-trophy-badge w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-lg group-hover:scale-105 shrink-0 ${
+                            homeHofSlide === 1 ? '-rotate-6 scale-105' : 'rotate-0 scale-100'
+                          }`}
+                        >
+                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 stroke-[2]" />
+                        </div>
+                      </div>
+
+                      {/* Slide Carousel Viewport (Composited Slide + Soft Depth Breath) */}
+                      <div
+                        role="region"
+                        aria-roledescription="carousel"
+                        aria-label="Ringkasan Team Matrix dan Tier 3"
+                        className="overflow-hidden rounded-2xl"
+                      >
+                        <div
+                          className="hof-slide-track"
+                          style={{ transform: `translate3d(-${homeHofSlide * 100}%, 0, 0)` }}
+                        >
+                          {/* SLIDE 1: OVERALL RANKING (SEMUA) */}
+                          <div
+                            role="group"
+                            aria-roledescription="slide"
+                            aria-label="1 of 2"
+                            data-active={homeHofSlide === 0}
+                            inert={homeHofSlide !== 0 ? true : undefined}
+                            className="hof-slide-panel space-y-3"
+                          >
+                            <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                                  #1 Leading Clan
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white truncate">
+                                    {leadingTeam ? leadingTeam.name : 'Geek Fam'}
+                                  </span>
+                                  <span className="text-xs font-mono font-black text-[#D7FF00] shrink-0">
+                                    {leadingTeam ? `${leadingTeam.totalPoints} PTS` : '148 PTS'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                                  Kill Avg • WWCD Streak
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white font-mono">
+                                    {highestKillAvgVal} Elims
+                                  </span>
+                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-[#D7FF00] text-black shrink-0">
+                                    {leadingTeam ? `${leadingTeam.totalWWCD} WWCD` : '4 WWCD'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {topThreePreview.length > 0 && (
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex flex-col gap-2 pt-0.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-300 px-0.5">
+                                  <span>Live Podium Top 3 • Semua</span>
+                                  <span className="inline-flex items-center gap-1 text-[#D7FF00] group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Leaderboard</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2.5">
+                                  {topThreePreview.map((team, idx) => (
+                                    <div
+                                      key={team.name}
+                                      className="rounded-xl glass-tile px-3 py-2 flex items-center gap-2 min-w-0"
+                                    >
+                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
+                                        idx === 0 ? 'bg-[#D7FF00] text-black' : 'bg-white/10 text-white'
+                                      }`}>
+                                        #{idx + 1}
+                                      </span>
+                                      {team.logo_url && (
+                                        <img
+                                          src={team.logo_url}
+                                          alt=""
+                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/30"
+                                        />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-white truncate leading-tight">
+                                          {team.name}
+                                        </div>
+                                        <div className="text-[10px] font-mono font-bold text-[#D7FF00] leading-tight">
+                                          {team.totalPoints} PTS • {team.totalWWCD}W
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* SLIDE 2: TIER 3 (AMATEUR) RANKING SPOTLIGHT */}
+                          <div
+                            role="group"
+                            aria-roledescription="slide"
+                            aria-label="2 of 2"
+                            data-active={homeHofSlide === 1}
+                            inert={homeHofSlide !== 1 ? true : undefined}
+                            className="hof-slide-panel space-y-3"
+                          >
+                            <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                                  #1 Tier 3 Leader
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white truncate">
+                                    {tier3Leader ? tier3Leader.name : 'Belum ada rekod'}
+                                  </span>
+                                  <span className="text-xs font-mono font-black text-[#D7FF00] shrink-0">
+                                    {tier3Leader ? `${tier3Leader.tier3Points} PTS` : 'Tier 3'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                                  Tier 3 Kill Avg • Aktif
+                                </span>
+                                <div className="flex items-baseline justify-between gap-1 mt-0.5">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white font-mono">
+                                    {tier3KillAvgVal} Elims
+                                  </span>
+                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-[#D7FF00] text-black shrink-0">
+                                    {tier3Leader ? `${tier3RankedTeams.length} Team` : 'Amateur'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {tier3TopThree.length > 0 ? (
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex flex-col gap-2 pt-0.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-300 px-0.5">
+                                  <span>Podium Top 3 • Tier 3 (Amateur)</span>
+                                  <span className="inline-flex items-center gap-1 text-[#D7FF00] group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Rank Tier 3</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2.5">
+                                  {tier3TopThree.map((team, idx) => (
+                                    <div
+                                      key={`t3_${team.name}`}
+                                      className="rounded-xl glass-tile px-3 py-2 flex items-center gap-2 min-w-0"
+                                    >
+                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
+                                        idx === 0 ? 'bg-[#D7FF00] text-black' : 'bg-white/10 text-white'
+                                      }`}>
+                                        #{idx + 1}
+                                      </span>
+                                      {team.logo_url && (
+                                        <img
+                                          src={team.logo_url}
+                                          alt=""
+                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/30"
+                                        />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-white truncate leading-tight">
+                                          {team.name}
+                                        </div>
+                                        <div className="text-[10px] font-mono font-bold text-[#D7FF00] leading-tight">
+                                          {team.tier3Points} PTS • {team.tier3WWCD}W
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex items-center justify-between rounded-xl glass-tile px-3.5 py-2.5 text-xs font-bold text-zinc-200">
+                                <span>Rekod Tier 3 akan dipaparkan di sini selepas match disimpan.</span>
+                                <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase text-[#D7FF00] shrink-0">
+                                  <span>Buka Tier 3</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Slide Switcher Bar + Crossfading Teaser + Sliding Toggle Control */}
+                      <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
+                        <div className="hof-crossfade-stack text-[10px] font-mono font-bold text-zinc-200 min-w-0 flex-1">
+                          <span
+                            data-active={homeHofSlide === 0}
+                            aria-hidden={homeHofSlide !== 0}
+                            className="hof-crossfade-item truncate block"
+                          >
+                            {tier3Leader
+                              ? `Tier 3 #1: ${tier3Leader.name} (${tier3Leader.tier3Points} PTS)`
+                              : 'Ketik untuk buka Leaderboard penuh'}
+                          </span>
+                          <span
+                            data-active={homeHofSlide === 1}
+                            aria-hidden={homeHofSlide !== 1}
+                            className="hof-crossfade-item truncate block"
+                          >
+                            {tier3TopThree.length > 1
+                              ? `#2 ${tier3TopThree[1].name} • #3 ${tier3TopThree[2]?.name || '-'}`
+                              : 'Ketik untuk buka Ranking Tier 3'}
+                          </span>
+                        </div>
+
+                        <div
+                          data-hof-controls
+                          className="flex items-center gap-1 glass-pill rounded-full p-0.5 touch-manipulation shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="relative grid grid-cols-2 items-center rounded-full">
+                            <span
+                              aria-hidden="true"
+                              className="hof-toggle-thumb pointer-events-none absolute inset-y-0 left-0 w-1/2 rounded-full bg-[#D7FF00] shadow-[0_2px_10px_rgba(215,255,0,0.3)]"
+                              style={{ transform: `translate3d(${homeHofSlide * 100}%, 0, 0)` }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setHomeHofSlide(0)}
+                              aria-label="Paparan Semua Ranking"
+                              aria-current={homeHofSlide === 0 ? 'true' : undefined}
+                              className={`relative z-10 px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition-colors duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-95 touch-manipulation text-center ${
+                                homeHofSlide === 0 ? 'text-black' : 'text-zinc-300 hover:text-white'
+                              }`}
+                            >
+                              Semua
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setHomeHofSlide(1)}
+                              aria-label="Paparan Ranking Tier 3"
+                              aria-current={homeHofSlide === 1 ? 'true' : undefined}
+                              className={`relative z-10 px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition-colors duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-95 touch-manipulation text-center ${
+                                homeHofSlide === 1 ? 'text-black' : 'text-zinc-300 hover:text-white'
+                              }`}
+                            >
+                              Tier 3
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsHomeHofPaused((prev) => !prev)}
+                            aria-label={isHomeHofPaused ? 'Mainkan slaid' : 'Jeda slaid'}
+                            title={isHomeHofPaused ? 'Mainkan slaid automatik' : 'Jeda slaid automatik'}
+                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#D7FF00] hover:text-black text-white flex items-center justify-center transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-90 touch-manipulation"
+                          >
+                            {isHomeHofPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD B: Left Tall Card (Pink Accent) — [Results Scanner] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToTab('scrim-data')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigateToTab('scrim-data');
+                      }
+                    }}
+                    style={{ '--home-delay': '160ms' }}
+                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 glass-pink text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
+                  >
+                    {/* Top Icon */}
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <div className="w-11 h-11 rounded-2xl glass-tile text-pink-200 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                        <Upload className="w-5 h-5 stroke-[2]" />
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-pink-100 group-hover:translate-x-0.5 transition-transform" />
                     </div>
 
-                    {latestRekodSession && (
-                      latestRekodFinished ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 text-[10px] font-mono font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Completed</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-amber-300 text-[10px] font-mono font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                          <span>Pending</span>
-                        </span>
-                      )
-                    )}
+                    {/* Specific Capability Summary */}
+                    <div className="my-auto py-4 relative z-10">
+                      <p className="text-xs font-medium text-pink-50 leading-relaxed text-pretty">
+                        Muat naik poster untuk kira &amp; semak markah.
+                      </p>
+                    </div>
+
+                    {/* Bottom Title & Last Scanned History */}
+                    <div className="space-y-1.5 relative z-10">
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight text-balance">
+                        Imbas Keputusan
+                      </h2>
+                      <p className="text-[11px] font-medium text-pink-50/95 leading-snug line-clamp-2">
+                        Terkini: <strong className="text-white font-bold">{lastScannedLabel}</strong>
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="space-y-1 pt-3">
-                    <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-snug">
-                      Rekod Kejohanan &amp; Scrim
-                    </h2>
-                    <p className="text-xs text-zinc-400 truncate">
-                      {latestRekodTitle}
-                    </p>
+                  {/* CARD C: Top-Right Card (Blue Accent) — [Quick Scorer] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToTab('scorer')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigateToTab('scorer');
+                      }
+                    }}
+                    style={{ '--home-delay': '230ms' }}
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 glass-blue text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                  >
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <div className="w-10 h-10 rounded-2xl glass-tile text-blue-200 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Edit3 className="w-4 h-4 stroke-[2]" />
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-blue-100 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+
+                    <div className="space-y-1 pt-3 relative z-10">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight text-balance">
+                        Quick Scorer
+                      </h2>
+                      <p className="text-[11px] font-medium text-blue-50 truncate">
+                        {quickScorerPreviewTitle}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* CARD D: Bottom-Right Card (Green Accent) — [Rekod / Match Logs] */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigateToTab('history')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigateToTab('history');
+                      }
+                    }}
+                    style={{ '--home-delay': '300ms' }}
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 glass-emerald text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                  >
+                    <div className="flex items-center justify-between gap-2 relative z-10">
+                      <div className="w-10 h-10 rounded-2xl glass-tile text-emerald-200 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Clock className="w-4 h-4 stroke-[2]" />
+                      </div>
+
+                      {latestRekodSession && (
+                        latestRekodFinished ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 backdrop-blur-md border border-emerald-300/25 text-emerald-100 text-[10px] font-mono font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+                            <span>Selesai</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/75 backdrop-blur-md border border-amber-300/25 text-amber-100 text-[10px] font-mono font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+                            <span>Live</span>
+                          </span>
+                        )
+                      )}
+                    </div>
+
+                    <div className="space-y-1 pt-3 relative z-10">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight text-balance">
+                        Rekod Kejohanan
+                      </h2>
+                      <p className="text-[11px] font-medium text-emerald-50 truncate">
+                        {latestRekodTitle}
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
-              </div>
 
                 {/* TIER 3: DESKTOP IMMERSIVE LIVE ARENA DOCK (Hidden on mobile so phone view remains compact & identical) */}
                 <div
@@ -5534,14 +5741,14 @@ export default function App() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center glass-pill rounded-full p-0.5">
                           <button
                             type="button"
                             onClick={() => setHomeContendersCategory('ALL')}
-                            className={`px-3 py-1 rounded-full text-[11px] transition cursor-pointer ${
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
                               homeContendersCategory === 'ALL'
-                                ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                ? 'bg-[#D7FF00] text-black'
+                                : 'text-zinc-400 hover:text-white'
                             }`}
                           >
                             Semua
@@ -5549,12 +5756,13 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setHomeContendersCategory('TIER_3')}
-                            className={`px-3 py-1 rounded-full text-[11px] transition cursor-pointer flex items-center gap-1 ${
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
                               homeContendersCategory === 'TIER_3'
-                                ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                ? 'bg-amber-400 text-black'
+                                : 'text-amber-300/80 hover:text-amber-200'
                             }`}
                           >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
                             <span>Tier 3</span>
                           </button>
                         </div>
@@ -5868,7 +6076,7 @@ export default function App() {
               : 0;
 
             return (
-              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-28 md:pb-10 animate-teams-enter relative">
+              <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-10 animate-teams-enter relative">
                 {/* 1. TOP NAVIGATION BAR */}
                 <div className="flex items-center justify-between px-1">
                   <button
@@ -5942,7 +6150,7 @@ export default function App() {
                   </div>
 
                   {/* Interactive Category Filter Scope Tabs */}
-                  <div className="mt-4 pt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-6">
+                  <div className="mt-4 pt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                     <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
                       Skop:
                     </span>
@@ -5954,10 +6162,10 @@ export default function App() {
                           type="button"
                           aria-pressed={isEvActive}
                           onClick={() => setTeamStatsEventType(prev => (prev === ev.key ? 'ALL' : ev.key))}
-                          className={`px-3 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                             isEvActive
-                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                              ? (ev.key === 'Tour' ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.25)]' : 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]')
+                              : 'bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800'
                           }`}
                         >
                           <span>{ev.label}</span>
@@ -5972,10 +6180,10 @@ export default function App() {
                           key={cat.key}
                           type="button"
                           onClick={() => handleSelectTeamStatsCategory(cat.key)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer ${
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                             isActive
-                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                              ? 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.25)]'
+                              : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800/80'
                           }`}
                         >
                           {cat.label}
@@ -6306,12 +6514,20 @@ export default function App() {
           }
 
           return (
-            <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-28 md:pb-12 relative">
-              {/* 1. TOP NAVIGATION BAR (Top-level tab: no back chevron) */}
+            <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-4 md:pb-12 relative">
+              {/* 1. TOP NAVIGATION BAR (Following Reference: "< My Personality" + Search Right) */}
               <div className="flex items-center justify-between px-1">
-                <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
-                  Teams
-                </h2>
+                <button
+                  type="button"
+                  onClick={() => navigateToTab('playground')}
+                  className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group"
+                  title="Kembali ke Laman Utama"
+                >
+                  <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
+                  <span className="text-base sm:text-lg font-bold tracking-tight">
+                    Teams
+                  </span>
+                </button>
 
                 <div className="flex items-center gap-2">
                   <button
@@ -6320,8 +6536,8 @@ export default function App() {
                     className={
                       'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                       (isHallOfFameSearchOpen || teamSearchQuery
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white')
+                        ? 'bg-[#D7FF00] text-black shadow-sm'
+                        : 'bg-zinc-900/80 text-zinc-300 hover:text-white')
                     }
                     title="Cari pasukan"
                     aria-label="Cari pasukan"
@@ -6335,8 +6551,8 @@ export default function App() {
                     className={
                       'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                       (activeHeaderInfo === 'teams'
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white')
+                        ? 'bg-[#D7FF00] text-black shadow-sm'
+                        : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
                     }
                     title="Info Team Matrix"
                     aria-label="Info Team Matrix"
@@ -6348,7 +6564,7 @@ export default function App() {
 
               {/* Expandable Info Card (if toggled) */}
               {activeHeaderInfo === 'teams' && (
-                <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
+                <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
                     Lihat ranking pasukan, rekod kemenangan &amp; kad Story 9:16.
@@ -6369,17 +6585,17 @@ export default function App() {
                 <div
                   role="group"
                   aria-label="Toggle Jenis Acara"
-                  className="inline-flex items-center gap-1.5 self-start shrink-0"
+                  className="inline-flex items-center gap-1 glass-pill p-1 rounded-full self-start shrink-0"
                 >
                   <button
                     type="button"
                     aria-pressed={teamStatsEventType === 'ALL'}
                     onClick={() => setTeamStatsEventType('ALL')}
                     className={
-                      'px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all cursor-pointer ' +
+                      'px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ' +
                       (teamStatsEventType === 'ALL'
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                        ? 'bg-zinc-100 text-black shadow-xs'
+                        : 'text-zinc-400 hover:text-zinc-200')
                     }
                   >
                     Semua Event
@@ -6393,12 +6609,23 @@ export default function App() {
                         aria-pressed={isEvActive}
                         onClick={() => setTeamStatsEventType(prev => (prev === ev.key ? 'ALL' : ev.key))}
                         className={
-                          'px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ' +
+                          'px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ' +
                           (isEvActive
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                            ? (ev.key === 'Tour'
+                                ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.22)]'
+                                : 'bg-[#D7FF00] text-black shadow-[0_0_12px_rgba(215,255,0,0.22)]')
+                            : 'text-zinc-400 hover:text-zinc-200')
                         }
                       >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            isEvActive
+                              ? 'bg-black'
+                              : ev.key === 'Tour'
+                              ? 'bg-amber-400/70'
+                              : 'bg-[#D7FF00]/70'
+                          }`}
+                        />
                         <span>{ev.label}</span>
                       </button>
                     );
@@ -6410,10 +6637,11 @@ export default function App() {
                   <div
                     role="group"
                     aria-label="Tapis Tier Team Matrix"
-                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {HALL_OF_FAME_FILTERS.map((cat) => {
                       const isActive = teamStatsCategory === cat.key;
+                      const isTier3Highlight = cat.key === 'TIER_3' && !isActive && tier3RankedTeams.length > 0;
                       return (
                         <button
                           key={cat.key}
@@ -6421,12 +6649,19 @@ export default function App() {
                           aria-pressed={isActive}
                           onClick={() => handleSelectTeamStatsCategory(cat.key)}
                           className={
-                            'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
+                            'px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
                             (isActive
-                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                              ? 'bg-[#D7FF00]/18 text-[#D7FF00] font-bold shadow-[0_0_12px_rgba(215,255,0,0.15)]'
+                              : isTier3Highlight
+                              ? 'bg-amber-400/12 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100'
+                              : 'bg-zinc-900/75 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80')
                           }
                         >
+                          {isActive ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00] shrink-0" />
+                          ) : isTier3Highlight ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                          ) : null}
                           <span>{cat.label}</span>
                         </button>
                       );
@@ -6572,7 +6807,7 @@ export default function App() {
                   </h1>
 
                   {/* Stats Line: Jumlah Team - Jumlah Scrim - Jumlah Tournament */}
-                  <div className="flex items-center justify-center gap-4 sm:gap-5 text-xs sm:text-sm font-mono tabular-nums text-zinc-300">
+                  <div className="flex items-center justify-center gap-4 sm:gap-5 text-xs sm:text-sm font-mono text-zinc-300">
                     <span>
                       <strong className="text-white font-bold">{totalTeamsCount}</strong> Team
                     </span>
@@ -6591,15 +6826,15 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Sleek Dark Obsidian Surface, Amber Reserved for #1 & CTA) */}
+              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Visible on "Semua" so Tier 3 stays prominent) */}
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
-                  className="bg-zinc-900/95 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
+                  className="glass-amber rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
                   style={{ '--blur-delay': '75ms' }}
                 >
                   <div className="flex items-center justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-2xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-2xl bg-amber-400/15 text-amber-300 flex items-center justify-center shrink-0">
                         <Award className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
@@ -6607,7 +6842,7 @@ export default function App() {
                           <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
                             Division Amateur
                           </h2>
-                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono tabular-nums font-bold text-[9px] uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-mono font-black text-[9px] uppercase tracking-wider">
                             {tier3RankedTeams.length} Team
                           </span>
                         </div>
@@ -6620,7 +6855,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleSelectTeamStatsCategory('TIER_3')}
-                      className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
+                      className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
                     >
                       <span>Rank Tier 3</span>
                       <ArrowRight className="w-3 h-3" />
@@ -6633,15 +6868,15 @@ export default function App() {
                         key={`hof_t3_${t3Team.name}`}
                         type="button"
                         onClick={() => setSelectedTeamProfile(t3Team.name)}
-                        className="w-full text-left rounded-2xl bg-zinc-950/80 hover:bg-zinc-800/80 border border-zinc-800/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
+                        className="w-full text-left rounded-2xl bg-black/35 hover:bg-black/55 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className={`w-7 h-7 rounded-xl font-mono tabular-nums font-black text-xs flex items-center justify-center shrink-0 ${
+                          <span className={`w-7 h-7 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
                             idx === 0
-                              ? 'bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(251,191,36,0.25)]'
+                              ? 'bg-amber-400 text-black shadow-[0_0_12px_rgba(251,191,36,0.3)]'
                               : idx === 1
-                              ? 'bg-zinc-200 text-zinc-950'
-                              : 'bg-zinc-800 border border-zinc-700 text-zinc-200'
+                              ? 'bg-zinc-200 text-black'
+                              : 'bg-orange-400/90 text-black'
                           }`}>
                             #{idx + 1}
                           </span>
@@ -6653,23 +6888,23 @@ export default function App() {
                               className="w-8 h-8 rounded-xl object-cover bg-zinc-900 shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 font-black text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-zinc-900 text-amber-300 font-black text-[11px] flex items-center justify-center shrink-0">
                               {(t3Team.tag || t3Team.name.slice(0, 3)).toUpperCase()}
                             </div>
                           )}
 
                           <div className="min-w-0">
-                            <div className="text-xs sm:text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                            <div className="text-xs sm:text-sm font-black text-white truncate group-hover:text-amber-300 transition-colors">
                               {t3Team.name}
                             </div>
-                            <div className="text-[10px] font-mono tabular-nums text-zinc-400">
+                            <div className="text-[10px] font-mono text-zinc-400">
                               {t3Team.tier3Kills}K • {t3Team.tier3WWCD} WWCD
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right font-mono tabular-nums shrink-0">
-                          <div className="text-sm font-black text-white leading-none">
+                        <div className="text-right font-mono shrink-0">
+                          <div className="text-sm font-black text-amber-300 leading-none">
                             {t3Team.tier3Points}
                           </div>
                           <div className="text-[9px] text-zinc-500 font-bold">
@@ -6986,7 +7221,7 @@ export default function App() {
                                 {/* Left: Rank # + Compact Tag Pill + Uppercase Team Name */}
                                 <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
                                   <span
-                                    className={`w-6 sm:w-7 text-center font-mono tabular-nums font-black text-xs sm:text-sm shrink-0 ${
+                                    className={`w-6 sm:w-7 text-center font-mono font-black text-xs sm:text-sm shrink-0 ${
                                       rankNum === 1
                                         ? 'text-[#D7FF00]'
                                         : rankNum === 2
@@ -6999,7 +7234,7 @@ export default function App() {
                                     {rankNum}
                                   </span>
 
-                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
+                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 text-[#D7FF00]">
                                     {tagText}
                                   </span>
 
@@ -7008,7 +7243,7 @@ export default function App() {
                                   </span>
 
                                   {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
-                                    <span className="px-1.5 py-0.5 rounded-md font-mono tabular-nums font-black text-[9px] sm:text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
+                                    <span className="px-1.5 py-0.5 rounded-md font-mono font-black text-[9px] sm:text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
                                       T3 #{tier3RankByTeam.get(team.name).tier3Rank}
                                     </span>
                                   )}
@@ -7016,7 +7251,7 @@ export default function App() {
 
                                 {/* Right: Mini Logo + Stats + Points + Small Eye View Button */}
                                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                                  <span className="hidden sm:inline font-mono tabular-nums text-[11px] text-zinc-500">
+                                  <span className="hidden sm:inline font-mono text-[11px] text-zinc-500">
                                     {team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M
                                   </span>
 
@@ -7028,11 +7263,11 @@ export default function App() {
                                     />
                                   )}
 
-                                  <div className="flex items-baseline gap-0.5 font-mono tabular-nums font-black min-w-[52px] sm:min-w-[62px] justify-end">
+                                  <div className="flex items-baseline gap-0.5 font-mono font-black min-w-[52px] sm:min-w-[62px] justify-end">
                                     <span className="text-sm sm:text-base text-white">
                                       {team.scopedPoints}
                                     </span>
-                                    <span className="text-[9px] text-zinc-400 font-bold">
+                                    <span className="text-[9px] text-[#D7FF00] font-bold">
                                       PTS
                                     </span>
                                   </div>
@@ -7105,13 +7340,21 @@ export default function App() {
 
         {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
         {(activeTab === 'history' || activeTab === 'leaderboard') && (
-          <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-28 md:pb-12">
+          <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-4 md:pb-12">
             
-            {/* 1. TOP NAVIGATION BAR (Top-level tab: no back chevron) */}
+            {/* 1. TOP NAVIGATION BAR (Exact Position & Size of Search & Info Buttons as Teams / Team Matrix) */}
             <div className="flex items-center justify-between px-1">
-              <span className="text-base sm:text-lg font-bold tracking-tight text-white">
-                Rekod
-              </span>
+              <button
+                type="button"
+                onClick={() => navigateToTab('playground')}
+                className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group"
+                title="Kembali ke Laman Utama"
+              >
+                <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] group-hover:-translate-x-0.5 transition-all" />
+                <span className="text-base sm:text-lg font-bold tracking-tight">
+                  Rekod
+                </span>
+              </button>
 
               <div className="flex items-center gap-2">
                 <button
@@ -7120,8 +7363,8 @@ export default function App() {
                   className={
                     'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                     (isHistorySearchOpen || searchScrimQuery
-                      ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white')
+                      ? 'bg-[#D7FF00] text-black shadow-sm'
+                      : 'bg-zinc-900/80 text-zinc-300 hover:text-white')
                   }
                   title="Cari sesi scrim atau kejohanan"
                   aria-label="Cari sesi scrim atau kejohanan"
@@ -7135,8 +7378,8 @@ export default function App() {
                   className={
                     'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                     (activeHeaderInfo === 'history'
-                      ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white')
+                      ? 'bg-[#D7FF00] text-black shadow-sm'
+                      : 'bg-zinc-900/80 text-zinc-400 hover:text-white')
                   }
                   title="Info Rekod & Arkib"
                   aria-label="Info Rekod & Arkib"
@@ -7148,7 +7391,7 @@ export default function App() {
 
             {/* Expandable Info Card (if toggled) */}
             {activeHeaderInfo === 'history' && (
-              <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
+              <div className="p-3.5 bg-[#121214] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 shadow-lg mx-1">
                 <Flame className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                 <p className="leading-relaxed flex-1">
                   Arkib keputusan rasmi, status sesi (Completed / Pending), carta kedudukan keseluruhan pusingan &amp; cetakan poster HD.
@@ -7164,7 +7407,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 2. HEADING + FILTER PILLS BAR */}
+            {/* 2. HEADING + CONNECTED FILTER PILLS BAR (Following Reference "Find Jobs" + Connected Pills) */}
             <div className="space-y-3.5 px-1">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white text-balance">
@@ -7174,65 +7417,71 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => navigateToTab('admin')}
-                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
+                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
                   title="Cipta atau urus sesi kejohanan baru di Portal Host"
                 >
-                  <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
+                  <Plus className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                   <span>Sesi Baru</span>
                 </button>
               </div>
 
-              {/* High-Contrast Neutral Filter Pills Row */}
-              <div className="relative flex items-center gap-2 overflow-x-auto no-scrollbar py-1 pr-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {[
-                  {
-                    key: 'ALL',
-                    label: 'Semua',
-                    isActive: historyStatusFilter === 'ALL' && leaderboardEventTypeFilter === 'All',
-                    onClick: () => {
-                      setHistoryStatusFilter('ALL');
-                      setLeaderboardEventTypeFilter('All');
+              {/* Connected Pills Row (Exact Reference Chain Style: (Semua)—(Completed)—(Pending)—(Scrim)—(Tournament)) */}
+              <div className="relative flex items-center overflow-x-auto no-scrollbar py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex items-center relative">
+                  {/* Horizontal connector line behind pills */}
+                  <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[2px] bg-zinc-800 pointer-events-none z-0" />
+
+                  {[
+                    {
+                      key: 'ALL',
+                      label: 'Semua',
+                      isActive: historyStatusFilter === 'ALL' && leaderboardEventTypeFilter === 'All',
+                      onClick: () => {
+                        setHistoryStatusFilter('ALL');
+                        setLeaderboardEventTypeFilter('All');
+                      }
+                    },
+                    {
+                      key: 'Completed',
+                      label: 'Completed',
+                      isActive: historyStatusFilter === 'Completed',
+                      onClick: () => setHistoryStatusFilter(prev => (prev === 'Completed' ? 'ALL' : 'Completed'))
+                    },
+                    {
+                      key: 'Pending',
+                      label: 'Pending',
+                      isActive: historyStatusFilter === 'Pending',
+                      onClick: () => setHistoryStatusFilter(prev => (prev === 'Pending' ? 'ALL' : 'Pending'))
+                    },
+                    {
+                      key: 'Scrim',
+                      label: 'Scrim',
+                      isActive: leaderboardEventTypeFilter === 'Scrim',
+                      onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Scrim' ? 'All' : 'Scrim'))
+                    },
+                    {
+                      key: 'Tour',
+                      label: 'Tournament',
+                      isActive: leaderboardEventTypeFilter === 'Tour',
+                      onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Tour' ? 'All' : 'Tour'))
                     }
-                  },
-                  {
-                    key: 'Completed',
-                    label: 'Completed',
-                    isActive: historyStatusFilter === 'Completed',
-                    onClick: () => setHistoryStatusFilter(prev => (prev === 'Completed' ? 'ALL' : 'Completed'))
-                  },
-                  {
-                    key: 'Pending',
-                    label: 'Pending',
-                    isActive: historyStatusFilter === 'Pending',
-                    onClick: () => setHistoryStatusFilter(prev => (prev === 'Pending' ? 'ALL' : 'Pending'))
-                  },
-                  {
-                    key: 'Scrim',
-                    label: 'Scrim',
-                    isActive: leaderboardEventTypeFilter === 'Scrim',
-                    onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Scrim' ? 'All' : 'Scrim'))
-                  },
-                  {
-                    key: 'Tour',
-                    label: 'Tournament',
-                    isActive: leaderboardEventTypeFilter === 'Tour',
-                    onClick: () => setLeaderboardEventTypeFilter(prev => (prev === 'Tour' ? 'All' : 'Tour'))
-                  }
-                ].map((pill) => (
-                  <button
-                    key={pill.key}
-                    type="button"
-                    onClick={pill.onClick}
-                    className={
-                      'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
-                      (pill.isActive
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
-                    }
-                  >
-                    {pill.label}
-                  </button>
-                ))}
+                  ].map((pill, idx) => (
+                    <button
+                      key={pill.key}
+                      type="button"
+                      onClick={pill.onClick}
+                      className={
+                        'relative z-10 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
+                        (idx > 0 ? 'ml-2.5 ' : '') +
+                        (pill.isActive
+                          ? 'bg-[#D7FF00] text-black shadow-[0_0_15px_rgba(215,255,0,0.22)]'
+                          : 'bg-[#18181C] text-zinc-300 hover:text-white hover:bg-zinc-800')
+                      }
+                    >
+                      {pill.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Search Bar & Tier Filter Row (Toggled via Top-Right Search Icon or Active Query) */}
@@ -7301,16 +7550,16 @@ export default function App() {
                 </div>
               </div>
             ) : filteredScrims.length === 0 ? (
-              <div className="my-4 py-14 px-6 text-center bg-zinc-900/90 border border-zinc-800 rounded-3xl space-y-3.5 mx-1">
+              <div className="p-12 text-center glass-panel rounded-3xl space-y-3 mx-1">
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Sesi Dijumpai</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                   Belum ada sesi kejohanan atau scrim di bawah carian atau penapis ini. Anda boleh cipta sesi baharu di Portal Host.
                 </p>
                 <button
                   type="button"
                   onClick={() => navigateToTab('admin')}
-                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
+                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
                 >
                   Buka Portal Host →
                 </button>
@@ -8046,10 +8295,10 @@ export default function App() {
                 </form>
               </div>
             ) : (
-              <div className="space-y-4 sm:space-y-6 pb-28 md:pb-12">
+              <div className="space-y-4 sm:space-y-6">
                 
                 {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
-                <div className="bg-zinc-900/90 border border-zinc-800/70 rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
+                <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                     <div className="space-y-2.5 flex-1 min-w-0">
                       {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -8057,7 +8306,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => navigateToTab('playground')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl glass-pill glass-tile-hover text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95"
                           title="Kembali ke Laman Utama"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
@@ -8069,8 +8318,8 @@ export default function App() {
                           onClick={() => toggleHeaderInfo('admin')}
                           className={'p-1.5 sm:p-2 rounded-xl transition cursor-pointer shrink-0 ' + (
                             activeHeaderInfo === 'admin'
-                              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
+                              ? 'bg-[#D7FF00] text-black border border-[#D7FF00] shadow-sm'
+                              : 'glass-tile glass-tile-hover text-zinc-400 hover:text-white'
                           )}
                           title="Info portal penganjur"
                           aria-label="Info portal penganjur"
@@ -8091,7 +8340,7 @@ export default function App() {
 
                       {/* Expandable Info Card */}
                       {activeHeaderInfo === 'admin' && (
-                        <div className="p-3 sm:p-3.5 bg-zinc-950/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
+                        <div className="p-3 sm:p-3.5 bg-zinc-900/90 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 animate-in fade-in duration-150 max-w-xl shadow-md">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
                             Urus scrim, jemput Co-Host &amp; simpan rekod kejohanan ke Cloud.
@@ -8108,29 +8357,16 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Right User Badge / Relocated Poster Jump Trigger / Logout Action */}
+                    {/* Right User Badge / Logout Action */}
                     <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                      <div className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs font-mono text-zinc-300 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                      <div className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-white/10 text-xs font-mono text-zinc-300 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
                         <span className="font-bold text-white truncate max-w-[140px]">{profileName || currentUser.email.split('@')[0]}</span>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                        title="Lihat pratonton & eksport poster"
-                      >
-                        <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
-                        <span>Poster</span>
-                      </button>
-
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 border border-zinc-700 text-xs font-bold transition active:scale-95 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 text-xs font-bold transition active:scale-95"
                         title="Log Keluar Akaun Host"
                       >
                         <LogOut className="w-3.5 h-3.5" />
@@ -8139,18 +8375,18 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 1. ADVANCE SESSION CONTROL BAR (No Overflow, Consolidated More Actions Menu) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/90 border border-zinc-800/70 rounded-3xl">
+                {/* 1. ADVANCE SESSION CONTROL BAR (Sleek & Compact) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/60 backdrop-blur-md rounded-3xl shadow-xl">
                   {/* Left: Active Session Dropdown Selector */}
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 text-[#D7FF00] font-black flex items-center justify-center shrink-0">
-                      {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
+                    <div className="w-9 h-9 rounded-xl bg-[#D7FF00] text-black font-black flex items-center justify-center shrink-0 shadow-xs">
+                      {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4 text-black" /> : <Flame className="w-4 h-4 text-black" />}
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2">
                         {adminHostedScrims.length > 0 ? (
-                          <div className="relative flex-1 min-w-0 max-w-sm">
+                          <div className="relative flex-1 max-w-sm">
                             <button
                               type="button"
                               onClick={() => {
@@ -8159,15 +8395,15 @@ export default function App() {
                               }}
                               aria-haspopup="dialog"
                               aria-expanded={isSessionPickerOpen}
-                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-800/70 rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] min-w-0"
+                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
                               title="Tukar atau cari sesi kejohanan / scrim"
                             >
-                              <span className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="flex items-center gap-2 min-w-0">
                                 <span
                                   className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black uppercase shrink-0 ${
                                     activeAdminScrim?.event_type === 'Tour'
                                       ? 'bg-amber-500/20 text-amber-300'
-                                      : 'bg-zinc-800 text-zinc-200'
+                                      : 'bg-[#D7FF00]/15 text-[#D7FF00]'
                                   }`}
                                 >
                                   {activeAdminScrim?.event_type === 'Tour' ? 'Tour' : 'Scrim'}
@@ -8177,7 +8413,7 @@ export default function App() {
                                 </span>
                               </span>
                               <span className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                                <span className="text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300">
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300">
                                   {adminHostedScrims.length}
                                 </span>
                                 <ChevronDown className={`w-4 h-4 transition-transform ${isSessionPickerOpen ? 'rotate-180 text-[#D7FF00]' : ''}`} />
@@ -8185,11 +8421,11 @@ export default function App() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-zinc-800/70 truncate">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-white/10 truncate max-w-[220px]">
                               {activeAdminScrim?.title || 'Official Scrim - Session 1'}
                             </span>
-                            <span className="text-[10px] font-mono text-zinc-400 font-bold shrink-0">
+                            <span className="text-[10px] font-mono text-[#D7FF00] font-bold">
                               (Sedia Diisi)
                             </span>
                           </div>
@@ -8198,113 +8434,74 @@ export default function App() {
                         <span className={'inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ' + (
                           activeAdminScrim?.is_finished 
                             ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
-                            : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                            : 'bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/25'
                         )}>
-                          <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-emerald-400')} />
+                          <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-[#D7FF00] animate-pulse')} />
                           <span>{activeAdminScrim?.is_finished ? 'LOCKED' : (activeAdminScrim?.is_draft ? 'READY' : 'CLOUD')}</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right: Primary + Sesi Baru CTA & Consolidated More Actions (⋮) Menu */}
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  {/* Right: Advance Management Actions */}
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto flex-wrap">
                     <button
                       type="button"
                       onClick={handleQuickNewSession}
-                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
-                      title="Mula sesi kejohanan / scrim baru serta-merta"
+                      className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1 shadow-xs active:scale-95"
+                      title="Mula sesi kejohanan / scrim baru serta-merta tanpa modal"
                     >
-                      <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[3]" />
+                      <Plus className="w-3.5 h-3.5 text-black stroke-[3]" />
                       <span>Sesi Baru</span>
                     </button>
 
                     {activeAdminScrim && (
-                      <div className="relative">
+                      <>
                         <button
                           type="button"
-                          onClick={() => setIsScorerActionsMenuOpen(prev => !prev)}
-                          aria-label="More Session Actions"
-                          aria-expanded={isScorerActionsMenuOpen}
-                          title="Tindakan Sesi (Edit, Kunci, Co-Host, Padam)"
-                          className="w-9 h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                          onClick={openEditScrimModal}
+                          className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
+                          title="Edit maklumat sesi (nama, tier, logo)"
                         >
-                          <MoreVertical className="w-4 h-4" />
+                          <Edit3 className="w-3.5 h-3.5 text-[#D7FF00]" />
+                          <span className="hidden md:inline">Edit</span>
                         </button>
 
-                        {isScorerActionsMenuOpen && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-30"
-                              onClick={() => setIsScorerActionsMenuOpen(false)}
-                            />
-                            <div className="absolute right-0 mt-2 w-48 bg-[#10121a] border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs">
-                              <div className="py-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsScorerActionsMenuOpen(false);
-                                    openEditScrimModal();
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
-                                  <span>Edit Maklumat Sesi</span>
-                                </button>
+                        <button
+                          type="button"
+                          onClick={handleToggleFinishScrim}
+                          className={'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border active:scale-95 ' + (
+                            activeAdminScrim.is_finished
+                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-white/10'
+                          )}
+                          title={activeAdminScrim.is_finished ? 'Buka kunci sesi untuk edit' : 'Kunci keputusan rasmi'}
+                        >
+                          {activeAdminScrim.is_finished ? <Unlock className="w-3.5 h-3.5" /> : <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />}
+                          <span className="hidden sm:inline">{activeAdminScrim.is_finished ? 'Buka Kunci' : 'Kunci'}</span>
+                        </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsScorerActionsMenuOpen(false);
-                                    handleToggleFinishScrim();
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                >
-                                  {activeAdminScrim.is_finished ? (
-                                    <>
-                                      <Unlock className="w-3.5 h-3.5 text-amber-300" />
-                                      <span>Buka Kunci Sesi</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <LockKeyhole className="w-3.5 h-3.5 text-zinc-400" />
-                                      <span>Kunci Keputusan</span>
-                                    </>
-                                  )}
-                                </button>
-
-                                {isAuthorizedAdmin(activeAdminScrim) && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsScorerActionsMenuOpen(false);
-                                      handleCopyHostShareLink();
-                                    }}
-                                    className="w-full px-3.5 py-2 text-left text-zinc-100 hover:bg-zinc-800/80 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                  >
-                                    <Share2 className="w-3.5 h-3.5 text-zinc-400" />
-                                    <span>Salin Pautan Co-Host</span>
-                                  </button>
-                                )}
-                              </div>
-
-                              <div className="py-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsScorerActionsMenuOpen(false);
-                                    handleDeleteScrim(activeAdminScrim.id);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 font-bold transition cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Padam Sesi Ini</span>
-                                </button>
-                              </div>
-                            </div>
-                          </>
+                        {isAuthorizedAdmin(activeAdminScrim) && (
+                          <button
+                            type="button"
+                            onClick={handleCopyHostShareLink}
+                            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/10 active:scale-95"
+                            title="Salin Pautan Co-Host"
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="hidden md:inline">Co-Host</span>
+                          </button>
                         )}
-                      </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteScrim(activeAdminScrim.id)}
+                          className="p-1.5 sm:px-2 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/5 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95"
+                          title="Padam sesi ini"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -8315,34 +8512,34 @@ export default function App() {
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    <div className="bg-zinc-900/90 border border-zinc-800/70 rounded-3xl p-4 sm:p-5 space-y-4">
+                    <div className="glass-panel rounded-3xl p-4 sm:p-5 space-y-4">
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/70">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 text-[#D7FF00] flex items-center justify-center font-black shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-zinc-800 text-[#D7FF00] flex items-center justify-center font-black shadow-xs shrink-0">
                             <Zap className="w-5 h-5 fill-current"/>
                           </div>
                           <div>
                             <h2 className="text-sm sm:text-base font-black text-white">
                               Borang Kemasukan Markah
                             </h2>
-                            <p className="text-[11px] font-mono tabular-nums text-zinc-400">
+                            <p className="text-[11px] text-zinc-400">
                               Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
                             </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                          {/* Quick WhatsApp / Text Import Button (High Contrast Emerald) */}
+                          {/* Quick WhatsApp / Text Import Button */}
                           <button
                             type="button"
                             onClick={() => setIsImportModalOpen(true)}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/40 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
                             title="Tampal senarai nama pasukan daripada WhatsApp / Discord"
                           >
-                            <Copy className="w-3.5 h-3.5 text-emerald-300"/>
+                            <Copy className="w-3.5 h-3.5 text-black"/>
                             <span>Import WA</span>
                           </button>
 
@@ -8350,10 +8547,10 @@ export default function App() {
                             type="button"
                             onClick={handleRandomizeTestData}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            className="px-2.5 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-40 text-black rounded-xl text-xs font-black transition flex items-center gap-1 shadow-xs active:scale-95"
                             title="Isi markah demo rawak untuk ujian pantas"
                           >
-                            <Eye className="w-3.5 h-3.5 text-zinc-100"/>
+                            <Eye className="w-3.5 h-3.5 text-black"/>
                             <span>Demo</span>
                           </button>
 
@@ -8361,7 +8558,7 @@ export default function App() {
                             type="button"
                             onClick={handleClearAdminForm}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 border border-zinc-700 disabled:opacity-40 cursor-pointer"
+                            className="px-2 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-white/5 disabled:opacity-40"
                             title="Kosongkan markah perlawanan ini"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
@@ -8521,7 +8718,7 @@ export default function App() {
                                 <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5 font-mono tabular-nums">
+                            <tbody className="divide-y divide-white/5 font-mono">
                               {matchSlots.map((row, idx) => {
                                 const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
                                 return (
@@ -8530,7 +8727,7 @@ export default function App() {
                                     className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.1]' : 'hover:bg-zinc-800/40')}
                                   >
                                     {/* Slot # */}
-                                    <td className="py-2 px-3 text-center text-zinc-500 font-bold tabular-nums">
+                                    <td className="py-2 px-3 text-center text-zinc-500 font-bold">
                                       #{String(row.slot).padStart(2, '0')}
                                     </td>
 
@@ -8544,7 +8741,7 @@ export default function App() {
                                         onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
                                         onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
                                         placeholder={`Squad ${row.slot}...`}
-                                        className="w-full bg-zinc-900/90 border border-zinc-800/70 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
+                                        className="w-full bg-zinc-900/90 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
                                       />
                                     </td>
 
@@ -8556,7 +8753,7 @@ export default function App() {
                                         value={row.placement || ''}
                                         onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                                         onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
-                                        className="w-full bg-zinc-900/90 border border-zinc-800/70 rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:border-[#D7FF00] text-xs text-center disabled:opacity-40"
+                                        className="w-full bg-zinc-900/90 border border-white/10 rounded-lg py-1 px-1 font-bold text-white focus:outline-none focus:border-[#D7FF00] text-xs text-center disabled:opacity-40"
                                       >
                                         <option value="" className="bg-zinc-950 text-white">--</option>
                                         {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
@@ -8574,7 +8771,7 @@ export default function App() {
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, -1)}
-                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           -
                                         </button>
@@ -8586,13 +8783,13 @@ export default function App() {
                                           value={row.kills}
                                           onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
                                           onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
-                                          className="w-11 bg-zinc-900/90 border border-zinc-800/70 rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:border-[#D7FF00] disabled:opacity-40 font-mono"
+                                          className="w-11 bg-zinc-900/90 border border-white/10 rounded-lg text-center py-1 text-xs font-bold text-white focus:outline-none focus:border-[#D7FF00] disabled:opacity-40 font-mono"
                                         />
                                         <button
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, 1)}
-                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           +
                                         </button>
@@ -8607,8 +8804,8 @@ export default function App() {
                                         onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
                                         className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
                                           isWWCD 
-                                            ? 'bg-[#D7FF00] text-zinc-950 shadow-xs font-bold' 
-                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                                            ? 'bg-[#D7FF00] text-black shadow-xs font-bold' 
+                                            : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
                                         )}
                                       >
                                         {isWWCD ? 'WWCD' : 'Normal'}
@@ -8616,7 +8813,7 @@ export default function App() {
                                     </td>
 
                                     {/* Total Pts */}
-                                    <td className="py-2 px-3 text-center text-[#D7FF00] font-black tabular-nums text-sm">
+                                    <td className="py-2 px-3 text-center text-[#D7FF00] font-black text-sm">
                                       {row.totalPts}
                                     </td>
                                   </tr>
@@ -8668,14 +8865,14 @@ export default function App() {
                   <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
-                    <div className="flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800/70 p-1 rounded-2xl text-xs">
+                    <div className="flex items-center justify-between bg-zinc-950/90 p-1 rounded-2xl text-xs shadow-md">
                       <button
                         type="button"
                         onClick={() => setAdminPosterViewMode('overall')}
-                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
+                        className={'flex-1 py-1.5 px-2 rounded-xl font-black text-center transition flex items-center justify-center gap-1.5 ' + (
                           adminPosterViewMode === 'overall'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                            ? 'bg-[#D7FF00] text-black shadow-sm'
+                            : 'text-zinc-400 hover:text-white'
                         )}
                       >
                         <Trophy className="w-3.5 h-3.5"/>
@@ -8684,10 +8881,10 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setAdminPosterViewMode('match')}
-                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
+                        className={'flex-1 py-1.5 px-2 rounded-xl font-bold text-center transition flex items-center justify-center gap-1.5 ' + (
                           adminPosterViewMode === 'match'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                            ? 'bg-[#D7FF00] text-black shadow-sm'
+                            : 'text-zinc-400 hover:text-white'
                         )}
                       >
                         <Zap className="w-3.5 h-3.5"/>
@@ -11365,6 +11562,45 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* FLOATING ACTION PILL ON MOBILE: SLEEK ERGONOMIC THUMB ZONE SHORTCUT */}
+      {(activeTab === 'scorer' || (activeTab === 'admin' && adminHostedScrims.length > 0)) && (
+        <div className={'lg:hidden fixed bottom-20 right-4 z-40 ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}>
+          <button
+            type="button"
+            onClick={() => {
+              if (activeTab === 'admin') {
+                if (isScrolledToPoster) {
+                  document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              } else {
+                if (isScrolledToPoster) {
+                  document.getElementById('quick-scorer-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  document.getElementById('quick-scorer-leaderboard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }
+            }}
+            className="px-3.5 py-2 rounded-full bg-zinc-950/95 backdrop-blur-md text-[#D7FF00] border border-[#D7FF00]/30 shadow-[0_4px_25px_rgba(0,0,0,0.65)] flex items-center gap-1.5 active:scale-95 transition-all text-xs font-black group"
+            title={isScrolledToPoster ? 'Kembali ke borang isi markah' : 'Lihat pratonton poster'}
+            aria-label={isScrolledToPoster ? 'Scroll to scoring' : 'Scroll to poster'}
+          >
+            {isScrolledToPoster ? (
+              <>
+                <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#D7FF00]" />
+                <span>Borang Markah</span>
+              </>
+            ) : (
+              <>
+                <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
+                <span>Poster</span>
+              </>
+            )}
+          </button>
         </div>
       )}
 
