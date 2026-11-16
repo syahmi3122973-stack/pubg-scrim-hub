@@ -4699,7 +4699,7 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#06070b] text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
       <BackButtonHandler
         activeTab={activeTab}
         tabHistory={tabHistory}
@@ -4721,7 +4721,7 @@ export default function App() {
       )}
 
       {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
-      <header style={{ '--open-delay': '0ms' }} className={`bg-[#06070b] sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 animate-linear-open ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+      <header style={{ '--open-delay': '0ms' }} className={`bg-black sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 animate-linear-open ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -9858,7 +9858,7 @@ export default function App() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-drawer-title"
-          id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#06070b]/92 backdrop-blur-2xl w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
+          id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-black w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
           <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 md:px-6 lg:px-10 xl:px-12 animate-linear-open">
             {/* Top Frosted Glass Cover Banner */}
@@ -9923,7 +9923,7 @@ export default function App() {
             <div className="relative -mt-16 md:-mt-20 flex flex-col md:flex-row items-center md:items-end justify-between px-5 md:px-6 lg:px-8 pb-6 gap-6">
               <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 text-center md:text-left">
                 <div className="relative">
-                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full p-1 bg-[#080808] shadow-2xl">
+                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full p-1 bg-black shadow-2xl">
                     <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 flex items-center justify-center">
                       {avatarDisplaySrc ? (
                         <img
