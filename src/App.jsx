@@ -4697,7 +4697,7 @@ export default function App() {
       )}
 
       {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
-      <header className={`bg-[#06070b] sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+      <header style={{ '--open-delay': '0ms' }} className={`bg-[#06070b] sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 animate-linear-open ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -5136,7 +5136,7 @@ export default function App() {
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
+      <main style={{ '--open-delay': '90ms' }} className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10 animate-linear-open">
         <div
           key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
           className={`tab-blur-stage ${
@@ -6498,22 +6498,22 @@ export default function App() {
             ? rankedTeamsWithStats
             : rankedTeamsWithStats.slice(0, 10);
 
-          // Generate radial tick marks for the minimalist semi-circle dial (-74 deg to +74 deg)
+          // Generate full 360-deg precision tick ring centered at (200, 190) for continuous smooth rotation
           const dialTicks = [];
-          for (let deg = -74; deg <= 74; deg += 2) {
+          for (let deg = 0; deg < 360; deg += 3) {
             const rad = ((deg - 90) * Math.PI) / 180;
             const cx = 200;
             const cy = 190;
-            const isMajor = deg % 10 === 0;
-            const rInner = isMajor ? 148 : 151;
-            const rOuter = isMajor ? 163 : 160;
+            const isCardinal = deg % 90 === 0;
+            const isMajor = deg % 15 === 0;
+            const rInner = isCardinal ? 146 : isMajor ? 149 : 152;
+            const rOuter = isCardinal ? 164 : isMajor ? 162 : 160;
             const x1 = cx + rInner * Math.cos(rad);
             const y1 = cy + rInner * Math.sin(rad);
             const x2 = cx + rOuter * Math.cos(rad);
             const y2 = cy + rOuter * Math.sin(rad);
-            const distFromCenter = Math.abs(deg) / 74;
-            const opacity = Math.max(0.12, (1 - distFromCenter * 0.75) * (isMajor ? 0.65 : 0.38));
-            dialTicks.push({ deg, x1, y1, x2, y2, opacity, isCenter: deg === 0 });
+            const opacity = isCardinal ? 0.92 : isMajor ? 0.56 : 0.26;
+            dialTicks.push({ deg, x1, y1, x2, y2, opacity, isCardinal });
           }
 
           return (
@@ -6725,33 +6725,33 @@ export default function App() {
               {/* 3. MINIMALIST SEMI-CIRCULAR DIAL + TEAM MATRIX CENTERPIECE (No Floating Icons Around It) */}
               <div className="relative pt-2 pb-3 flex flex-col items-center text-center select-none overflow-hidden">
                 <svg
-                  viewBox="0 0 400 130"
-                  className="w-full max-w-[380px] sm:max-w-[430px] h-auto overflow-visible pointer-events-none"
+                  viewBox="0 0 400 124"
+                  className="w-full max-w-[380px] sm:max-w-[430px] h-auto overflow-hidden pointer-events-none"
                   aria-hidden="true"
                 >
-                  {/* Top & Bottom Center Indicator Pointers */}
+                  {/* Stationary 12-o'clock Center Indicator Pointers */}
                   <line
                     x1="200"
                     y1="10"
                     x2="200"
-                    y2="22"
+                    y2="21"
                     stroke="#D7FF00"
                     strokeWidth="2"
                     strokeLinecap="round"
                   />
                   <line
                     x1="200"
-                    y1="46"
+                    y1="48"
                     x2="200"
-                    y2="58"
+                    y2="59"
                     stroke="#FFFFFF"
                     strokeOpacity="0.85"
                     strokeWidth="2"
                     strokeLinecap="round"
                   />
 
-                  {/* Semi-Circular Radial Tick Marks with Sweep Animation */}
-                  <g key={`${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`} className="animate-dial-sweep">
+                  {/* Continuously Rotating Chronograph Tick Ring */}
+                  <g className="animate-dial-spin">
                     {dialTicks.map((t) => (
                       <line
                         key={t.deg}
@@ -6759,19 +6759,19 @@ export default function App() {
                         y1={t.y1}
                         x2={t.x2}
                         y2={t.y2}
-                        stroke={t.isCenter ? '#D7FF00' : '#E4E4E7'}
-                        strokeOpacity={t.isCenter ? 0.95 : t.opacity}
-                        strokeWidth={t.isCenter ? '2' : '1.25'}
+                        stroke={t.isCardinal ? '#D7FF00' : '#E4E4E7'}
+                        strokeOpacity={t.opacity}
+                        strokeWidth={t.isCardinal ? '2' : '1.25'}
                         strokeLinecap="round"
                       />
                     ))}
                   </g>
                 </svg>
 
-                {/* Center Text Inside the Dial Arc */}
+                {/* Center Text Inside the Dial Arc (Slow Exclusive Blur Reveal) */}
                 <div
                   className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-teams-blur"
-                  style={{ '--blur-delay': '40ms' }}
+                  style={{ '--blur-delay': '140ms' }}
                 >
                   <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-bold uppercase flex items-center justify-center gap-2.5 sm:gap-3.5">
                     <span className="font-team-matrix tracking-[0.1em] text-white">
@@ -6806,7 +6806,7 @@ export default function App() {
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
                   className="bg-zinc-900/95 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
-                  style={{ '--blur-delay': '75ms' }}
+                  style={{ '--blur-delay': '260ms' }}
                 >
                   <div className="flex items-center justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -6895,8 +6895,8 @@ export default function App() {
 
               {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
-                className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 animate-teams-blur"
-                style={{ '--blur-delay': '105ms' }}
+                className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 min-h-[420px] animate-teams-blur"
+                style={{ '--blur-delay': '360ms' }}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -6975,7 +6975,10 @@ export default function App() {
                     : (HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType);
                   const activeFilterLabel = [eventLabel, tierLabel].filter(Boolean).join(' • ') || 'Semua';
                   return (
-                    <div className="py-10 px-4 text-center space-y-3 glass-tile rounded-2xl">
+                    <div
+                      key={`teams_empty_${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`}
+                      className="min-h-[320px] flex flex-col items-center justify-center py-10 px-4 text-center space-y-3 glass-tile rounded-2xl animate-teams-scope"
+                    >
                       <div className="w-11 h-11 rounded-2xl glass-pill text-zinc-400 flex items-center justify-center mx-auto">
                         {teamSearchQuery.trim() ? <Search className="w-5 h-5" /> : <Trophy className="w-5 h-5 text-[#D7FF00]/80" />}
                       </div>
@@ -7030,7 +7033,7 @@ export default function App() {
                   return (
                     <div
                       key={`teams_scope_${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`}
-                      className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-2.5 sm:space-y-3 animate-teams-scope"
+                      className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto min-h-[320px] space-y-2.5 sm:space-y-3 animate-teams-scope"
                     >
                       {/* TOP 3 PODIUM SHOWCASE */}
                       {podiumSlots.length > 0 && (
@@ -7048,7 +7051,7 @@ export default function App() {
                             const isSelected = currentSelectedTeam === team.name;
                             const isFirst = slotRank === 1;
                             const isSecond = slotRank === 2;
-                            const podiumDelay = isFirst ? '70ms' : isSecond ? '115ms' : '155ms';
+                            const podiumDelay = isFirst ? '160ms' : isSecond ? '260ms' : '350ms';
 
                             const podiumSurfaceClass = isFirst
                               ? 'glass-lime'
@@ -7187,7 +7190,7 @@ export default function App() {
                                     runBlurSwap(true, () => setSelectedTeamProfile(team.name));
                                   }
                                 }}
-                                style={{ '--blur-delay': `${105 + Math.min(idx, 6) * 24}ms` }}
+                                style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
                                 className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
                                     ? 'bg-white/[0.11] border border-[#D7FF00]/45 shadow-[0_0_20px_rgba(215,255,0,0.08)]'
@@ -7512,7 +7515,10 @@ export default function App() {
                 </div>
               </div>
             ) : filteredScrims.length === 0 ? (
-              <div className="my-4 py-14 px-6 text-center bg-zinc-900/90 border border-zinc-800 rounded-3xl space-y-3.5 mx-1">
+              <div
+                key={`rekod_empty_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
+                className="min-h-[340px] flex flex-col items-center justify-center my-4 py-14 px-6 text-center bg-zinc-900/90 border border-zinc-800 rounded-3xl space-y-3.5 mx-1 animate-filter-reveal"
+              >
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Lagi</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
@@ -7527,7 +7533,10 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 px-1">
+              <div
+                key={`rekod_list_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
+                className="min-h-[340px] content-start grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 px-1 animate-filter-reveal"
+              >
                 {filteredScrims.map((s, idx) => {
                   const isFinished = Boolean(s.is_finished);
 
@@ -9082,8 +9091,14 @@ export default function App() {
 
       {/* MODAL 1: TEAM PERFORMANCE & IG STORY EXPORT */}
       {isPerformanceModalOpen && performanceTeam && filteredTeamPerformance && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
-          <div className="glass-modal rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div
+          onClick={() => setIsPerformanceModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-3xl max-w-2xl w-full h-[84dvh] sm:h-[620px] max-h-[90vh] flex flex-col overflow-y-auto p-4 sm:p-6 space-y-4 animate-card-entrance"
+          >
             
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center space-x-3">
@@ -9148,6 +9163,10 @@ export default function App() {
               </div>
             </div>
 
+            <div
+              key={`perf_filter_${performanceModalCategory}_${selectedPerformanceHost}`}
+              className="space-y-4 animate-filter-reveal flex-1"
+            >
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
               <div className="p-3 bg-zinc-900/60 rounded-2xl">
                 <span className="text-[9px] uppercase font-bold text-zinc-500 block">Avg Pts / Sesi</span>
@@ -9176,6 +9195,7 @@ export default function App() {
             </div>
 
             <ScrimDualLineChart results={filteredTeamPerformance.results} compact />
+            </div>
 
             <div className="pt-2 flex items-center justify-between">
               <button
@@ -9213,8 +9233,14 @@ export default function App() {
 
       {/* MODAL 0: SLIDE PRESENTATION PANDUAN APLIKASI (QUICK SCORER & ADMIN FOCUS) */}
       {isGuideModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
-          <div className="glass-modal rounded-2xl sm:rounded-3xl max-w-2xl w-full p-3.5 sm:p-6 space-y-3 sm:space-y-4 relative overflow-hidden flex flex-col h-[94vh] sm:h-auto sm:max-h-[88vh]">
+        <div
+          onClick={handleCloseGuide}
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-2xl sm:rounded-3xl max-w-2xl w-full p-3.5 sm:p-6 space-y-3 sm:space-y-4 relative overflow-hidden flex flex-col h-[90dvh] sm:h-[520px] sm:max-h-[88vh] animate-card-entrance"
+          >
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-white/5 pb-2.5 sm:pb-3 flex-shrink-0 gap-2">
@@ -9712,8 +9738,14 @@ export default function App() {
 
       {/* MODAL 2: DEVELOPER FEEDBACK MODAL */}
       {isFeedbackModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="glass-modal rounded-3xl max-w-md w-full p-6 space-y-4">
+        <div
+          onClick={() => setIsFeedbackModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-3xl max-w-md w-full p-6 space-y-4 animate-card-entrance"
+          >
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center">
@@ -10330,7 +10362,7 @@ export default function App() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg glass-modal rounded-[2rem] p-5 sm:p-6 space-y-4 max-h-[88vh] flex flex-col relative animate-in zoom-in-95 duration-150 overflow-hidden"
+            className="w-full max-w-lg glass-modal rounded-[2rem] p-5 sm:p-6 space-y-4 h-[82dvh] sm:h-[78vh] flex flex-col relative animate-card-entrance overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
@@ -10593,7 +10625,7 @@ export default function App() {
                 </div>
 
                 {/* Team List */}
-                <div className="space-y-2 overflow-y-auto pr-0.5 flex-1 overscroll-contain max-h-96">
+                <div className="space-y-2 overflow-y-auto pr-0.5 flex-1 min-h-0 overscroll-contain">
                   {filteredManageableTeams.length > 0 ? (
                     filteredManageableTeams.map((team) => {
                       return (
@@ -10807,8 +10839,17 @@ export default function App() {
 
       {/* MODAL 4: EDIT EVENT SETTINGS */}
       {isEditScrimModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden">
-          <div className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[88dvh] sm:max-h-[90vh] flex flex-col overflow-hidden relative z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-2 duration-200">
+        <div
+          onClick={() => {
+            setIsEditScrimModalOpen(false);
+            setEditTargetScrim(null);
+          }}
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[88dvh] sm:max-h-[90vh] flex flex-col overflow-hidden relative z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-2 duration-200"
+          >
             <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5 pb-3 shrink-0">
               <h3 id="edit-scrim-modal-title" className="font-black text-sm text-white flex items-center gap-1.5">
                 <Edit3 className="w-4 h-4 text-[#D7FF00]"/>
@@ -11002,8 +11043,14 @@ export default function App() {
 
       {/* MODAL 5: PUBLIC DETAILS MODAL */}
       {inspectedScrim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
-          <div className="glass-modal rounded-3xl max-w-2xl lg:max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-4 lg:space-y-5">
+        <div
+          onClick={() => setInspectedScrim(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-3xl max-w-2xl lg:max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-4 lg:space-y-5 animate-card-entrance"
+          >
             
             <div className="flex items-start justify-between border-b border-white/5 pb-3.5 gap-3">
               <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -11110,7 +11157,7 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+              <div className="space-y-1.5 h-60 overflow-y-auto">
                 {calculateLeaderboard(inspectedScrim, 'overall').map((teamRow) => (
                   <div
                     key={teamRow.teamId}
@@ -11195,8 +11242,14 @@ export default function App() {
 
       {/* MODAL 6: SHOWCASE POST DETAIL MODAL */}
       {inspectedPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md">
-          <div className="glass-modal rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div
+          onClick={() => setInspectedPost(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-4 animate-card-entrance"
+          >
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#D7FF00] text-black font-mono">
@@ -11280,8 +11333,14 @@ export default function App() {
 
       {/* MODAL 7: PUBLISH CONTENT WITH SOCIAL MEDIA / FILE OPTIONS */}
       {isShowcaseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="glass-modal rounded-3xl max-w-lg w-full p-6 space-y-4">
+        <div
+          onClick={() => setIsShowcaseModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-modal rounded-3xl max-w-lg w-full p-6 space-y-4 animate-card-entrance"
+          >
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="font-black text-sm text-white flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-[#D7FF00]"/>
@@ -11609,8 +11668,13 @@ export default function App() {
             onClick={() => setIsSessionPickerOpen(false)}
           >
             <div
+              aria-hidden="true"
+              className="fixed inset-0 cursor-pointer"
+              onClick={() => setIsSessionPickerOpen(false)}
+            />
+            <div
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg glass-modal rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[76dvh] sm:max-h-[74vh] overflow-hidden animate-drawer-up"
+              className="relative z-10 w-full sm:max-w-lg glass-modal rounded-t-3xl sm:rounded-3xl flex flex-col h-[76dvh] sm:h-[74vh] overflow-hidden animate-drawer-up"
             >
               {/* Mobile Drag Handle */}
               <div className="sm:hidden flex justify-center pt-2.5 pb-0.5 shrink-0">
@@ -11676,7 +11740,7 @@ export default function App() {
                 </div>
 
                 {/* Compact Filter Chips */}
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-6">
                   {[
                     { key: 'ALL', label: `Semua (${adminHostedScrims.length})` },
                     { key: 'ACTIVE', label: `Aktif (${activeCount})` },
@@ -11690,10 +11754,10 @@ export default function App() {
                         key={chip.key}
                         type="button"
                         onClick={() => setSessionPickerFilter(chip.key)}
-                        className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 transition cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap shrink-0 transition-all cursor-pointer active:scale-95 ${
                           isChipActive
-                            ? 'bg-[#D7FF00]/18 text-[#D7FF00]'
-                            : 'bg-zinc-900/90 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
+                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 font-medium'
                         }`}
                       >
                         {chip.label}
@@ -11703,8 +11767,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Scrollable Bounded Session List (handles 100+ sessions smoothly) */}
-              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-1.5 [scrollbar-gutter:stable]">
+              {/* Scrollable Bounded Session List (Fixed window height + animated filter switch) */}
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 [scrollbar-gutter:stable]">
+                <div key={sessionPickerFilter} className="space-y-1.5 min-h-full animate-filter-reveal">
                 {filteredPickerScrims.length > 0 ? (
                   filteredPickerScrims.map((s) => {
                     const isSelected = s.id === adminSelectedScrimId;
@@ -11802,10 +11867,11 @@ export default function App() {
                       }}
                       className="px-3.5 py-1.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-[#D7FF00] transition cursor-pointer"
                     >
-                      Reset Tapisan
+                      Reset Filter
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </div>

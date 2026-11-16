@@ -60,21 +60,61 @@ body {
   }
 }
 
-@keyframes dialSweepIn {
+@keyframes linearOpenBlur {
   0% {
     opacity: 0;
-    transform: rotate(-30deg) scale(0.94);
+    filter: blur(20px);
+    transform: translate3d(0, 12px, 0) scale(0.986);
+  }
+  45% {
+    opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: rotate(0deg) scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .animate-dial-sweep {
+  .animate-linear-open {
+    animation: linearOpenBlur 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--open-delay, 0ms) both;
+  }
+}
+
+@keyframes dialAmbientSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-dial-spin {
     transform-origin: 200px 190px;
-    animation: dialSweepIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: dialAmbientSpin 42s linear infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes filterContentReveal {
+  0% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translate3d(0, 8px, 0) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-filter-reveal {
+    animation: filterContentReveal 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 
@@ -202,61 +242,74 @@ body {
   will-change: transform, opacity;
 }
 
-/* Interactive Teams Tab Entry & Scope Transition Choreography (Compositor-Only, < 400ms) */
+/* Exclusive Slow Blur Entry & Scope Reveal for Team Matrix */
 @keyframes teamsBlurIn {
   0% {
     opacity: 0;
-    transform: scale(0.982);
+    filter: blur(22px);
+    transform: translate3d(0, 12px, 0) scale(0.985);
+  }
+  45% {
+    opacity: 0.92;
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 @keyframes teamsBlurItem {
   0% {
     opacity: 0;
-    transform: scale(0.975);
+    filter: blur(24px);
+    transform: translate3d(0, 14px, 0) scale(0.984);
+  }
+  48% {
+    opacity: 0.94;
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 @keyframes teamsScopeBlurIn {
   0% {
-    opacity: 0.25;
-    transform: scale(0.986);
+    opacity: 0;
+    filter: blur(14px);
+    transform: translate3d(0, 8px, 0) scale(0.99);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 .tab-blur-stage {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.14s ease, transform 0.14s ease, filter 0.14s ease;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .tab-blur-exiting {
     opacity: 0.08;
-    transform: scale(0.982);
-    transition: opacity 0.12s cubic-bezier(0.22, 1, 0.36, 1), transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+    filter: blur(8px);
+    transform: scale(0.984);
+    transition: opacity 0.14s cubic-bezier(0.22, 1, 0.36, 1), transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), filter 0.14s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .animate-teams-enter {
-    animation: teamsBlurIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: teamsBlurIn 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-teams-blur {
-    animation: teamsBlurItem 0.28s cubic-bezier(0.22, 1, 0.36, 1) var(--blur-delay, 0ms) both;
+    animation: teamsBlurItem 1.3s cubic-bezier(0.16, 1, 0.3, 1) var(--blur-delay, 0ms) both;
   }
 
   .animate-teams-scope {
-    animation: teamsScopeBlurIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: teamsScopeBlurIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 
