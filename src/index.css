@@ -121,17 +121,21 @@ body {
 @keyframes staggerSlideUp {
   0% {
     opacity: 0;
-    transform: translateY(18px) scale(0.975);
+    filter: blur(14px);
+    transform: translate3d(0, 12px, 0) scale(0.985);
+  }
+  48% {
+    opacity: 0.94;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 .animate-stagger-card {
-  animation: staggerSlideUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: transform, opacity;
+  animation: staggerSlideUp 0.68s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes gaugeStrokeSweep {
@@ -209,37 +213,47 @@ body {
   scrollbar-width: none;
 }
 
-/* Direction-Aware Tab & Screen Transitions */
+/* Direction-Aware Linear Opening Blur Tab & Screen Transitions */
 @keyframes tabSlideInForward {
   0% {
     opacity: 0;
-    transform: translateX(20px) scale(0.99);
+    filter: blur(16px);
+    transform: translate3d(10px, 8px, 0) scale(0.986);
+  }
+  45% {
+    opacity: 0.94;
   }
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 @keyframes tabSlideInBackward {
   0% {
     opacity: 0;
-    transform: translateX(-20px) scale(0.99);
+    filter: blur(16px);
+    transform: translate3d(-10px, 8px, 0) scale(0.986);
+  }
+  45% {
+    opacity: 0.94;
   }
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
-.animate-tab-forward {
-  animation: tabSlideInForward 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
-}
+@media (prefers-reduced-motion: no-preference) {
+  .animate-tab-forward {
+    animation: tabSlideInForward 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 
-.animate-tab-backward {
-  animation: tabSlideInBackward 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity;
+  .animate-tab-backward {
+    animation: tabSlideInBackward 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }
 
 /* Exclusive Slow Blur Entry & Scope Reveal for Team Matrix */
@@ -334,18 +348,22 @@ body {
 @keyframes homeTierRise {
   0% {
     opacity: 0;
-    transform: translate3d(0, 18px, 0) scale(0.988);
+    filter: blur(16px);
+    transform: translate3d(0, 12px, 0) scale(0.986);
+  }
+  45% {
+    opacity: 0.94;
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-home-tier {
-    animation: homeTierRise 0.42s cubic-bezier(0.16, 1, 0.3, 1) var(--home-delay, 0ms) both;
-    will-change: transform, opacity;
+    animation: homeTierRise 0.72s cubic-bezier(0.16, 1, 0.3, 1) var(--home-delay, 0ms) both;
   }
 }
 

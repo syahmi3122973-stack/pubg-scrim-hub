@@ -4524,10 +4524,8 @@ export default function App() {
       }, 15);
     };
 
-    const involvesTeams =
-      normalizedNext !== normalizedCurrent &&
-      (normalizedNext === 'teams' || normalizedCurrent === 'teams');
-    runBlurSwap(involvesTeams, applyTabNavigation);
+    const shouldBlur = normalizedNext !== normalizedCurrent;
+    runBlurSwap(shouldBlur, applyTabNavigation);
   }, [runBlurSwap]);
 
   const handleNavigateBackTab = useCallback(() => {
@@ -4536,8 +4534,7 @@ export default function App() {
 
     if (tabHistory.length > 0) {
       const previousTab = tabHistory[tabHistory.length - 1] || 'playground';
-      const involvesTeams = activeTab === 'teams' || previousTab === 'teams';
-      runBlurSwap(involvesTeams, () => {
+      runBlurSwap(true, () => {
         setSelectedTeamProfile('');
         setNavDirection('backward');
         setTabHistory((prev) => prev.slice(0, -1));
@@ -4548,7 +4545,7 @@ export default function App() {
     }
 
     if (activeTab !== 'playground' && activeTab !== 'home') {
-      runBlurSwap(activeTab === 'teams', () => {
+      runBlurSwap(true, () => {
         setSelectedTeamProfile('');
         setNavDirection('backward');
         setActiveTab('playground');
@@ -9832,7 +9829,7 @@ export default function App() {
           aria-labelledby="profile-drawer-title"
           id="profile-drawer-scroll" className="fixed inset-0 z-50 bg-[#06070b]/92 backdrop-blur-2xl w-full h-[100dvh] overflow-y-auto no-scrollbar overscroll-contain animate-drawer-up flex flex-col select-none"
         >
-          <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 md:px-6 lg:px-10 xl:px-12">
+          <div className="w-full max-w-md md:max-w-[1560px] mx-auto flex-1 flex flex-col min-h-full pb-36 sm:pb-20 md:px-6 lg:px-10 xl:px-12 animate-linear-open">
             {/* Top Frosted Glass Cover Banner */}
             <div className="relative h-44 md:h-60 lg:h-64 w-full overflow-hidden glass-panel shrink-0 rounded-b-3xl md:rounded-3xl md:mt-4">
               {/* Header Navigation: Back / Close & Quick Edit */}
