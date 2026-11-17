@@ -6089,7 +6089,7 @@ export default function App() {
         return (
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[760px] sm:h-[800px] lg:h-[840px] overflow-hidden z-0"
+            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[620px] sm:h-[680px] lg:h-[720px] overflow-hidden z-0"
           >
             <AuroraPetalCanvas
               ignitionKey={theme.key}
@@ -6106,7 +6106,7 @@ export default function App() {
       })()}
 
       {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}
-      <header style={{ '--open-delay': '0ms' }} className={`bg-black/35 backdrop-blur-xl sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
+      <header style={{ '--open-delay': '0ms' }} className={`bg-black/55 backdrop-blur-sm sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}

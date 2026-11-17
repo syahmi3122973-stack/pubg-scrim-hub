@@ -22,14 +22,12 @@ uniform vec2 u_resolution;
 uniform vec2 u_anchor;
 uniform float u_radius;
 uniform float u_ignite;
-uniform float u_dpr;
 uniform float u_time;
 uniform float u_intensity;
 uniform vec3 u_primary;
 uniform vec3 u_accent;
 
 float hash21(vec2 p) {
-  // Keep coordinates bounded before hash multiply to stay crisp on mobile GPUs
   p = mod(p, 256.0);
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
   p3 += dot(p3, p3.yzx + 33.33);
@@ -40,73 +38,67 @@ float vnoise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
-  float a = hash21(i);
-  float b = hash21(i + vec2(1.0, 0.0));
-  float c = hash21(i + vec2(0.0, 1.0));
-  float d = hash21(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  return mix(
+    mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
+    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
 }
 
+// 2-octave FBM preserves organic aurora silk flow at 2x faster mobile GPU cost
 float fbm(vec2 p) {
-  float v = 0.0;
-  float a = 0.5;
-  mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
-  for (int i = 0; i < 4; i++) {
-    v += a * vnoise(p);
-    p = rot * p * 2.04;
-    a *= 0.5;
-  }
-  return v;
+  float v = 0.52 * vnoise(p);
+  p = mat2(0.80, -0.60, 0.60, 0.80) * p * 2.04;
+  return v + 0.28 * vnoise(p);
 }
 
 void main() {
-  // WebGL v_uv.y is bottom-to-top; invert Y so anchorY matches CSS top-to-bottom coordinates
   vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
   float minDim = max(min(u_resolution.x, u_resolution.y), 1.0);
   vec2 delta = (uv - u_anchor) * (u_resolution / minDim);
 
-  // Starting glow emerges strictly from inside the card center (0.42x) and expands smoothly outward (1.0x)
   float activeRadius = max(u_radius * mix(0.42, 1.0, u_ignite), 0.12);
-  float r = length(delta) / activeRadius;
+  float r2 = dot(delta, delta) / (activeRadius * activeRadius);
+  // Early out outside visible glow radius to keep mobile frame times fast
+  if (r2 > 5.8) {
+    gl_FragColor = vec4(0.0);
+    return;
+  }
+
   float ang = atan(delta.y, delta.x);
   float t = u_time;
 
-  // Domain-warped organic fluid motion inside the shader
   vec2 warp = vec2(
-    fbm(delta * 2.15 + vec2(t * 0.13, -t * 0.09)),
-    fbm(delta * 2.15 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
+    fbm(delta * 2.1 + vec2(t * 0.13, -t * 0.09)),
+    fbm(delta * 2.1 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
   );
 
-  // Flowing aurora petals (kelopak cahaya organik)
-  float petalA = sin(ang * 3.0 + t * 0.25 + warp.x * 3.8);
-  float petalB = cos(ang * 5.0 - t * 0.19 + warp.y * 3.1);
-  float petalHarmonic = clamp(0.54 + 0.28 * petalA + 0.18 * petalB, 0.08, 1.0);
+  float petalHarmonic = clamp(
+    0.54 + 0.28 * sin(ang * 3.0 + t * 0.25 + warp.x * 3.8)
+         + 0.18 * cos(ang * 5.0 - t * 0.19 + warp.y * 3.1),
+    0.08,
+    1.0
+  );
 
-  // Flowing silk wave interference with crisp defined aurora crests
-  float waveFlow = fbm(delta * 1.75 + warp * 1.35 + vec2(t * 0.05, -t * 0.15));
-  float combined = waveFlow * 0.70 + petalHarmonic * 0.42;
+  float combined = fbm(delta * 1.75 + warp * 1.3 + vec2(t * 0.05, -t * 0.15)) * 0.72 + petalHarmonic * 0.42;
 
-  float petalStretch = 1.48 - 0.56 * petalHarmonic;
-  float envelope = exp(-r * r * petalStretch);
-  float softCore = exp(-r * r * 2.45);
-
+  float envelope = exp(-r2 * (1.48 - 0.56 * petalHarmonic));
+  float softCore = exp(-r2 * 2.45);
   float ribbon = smoothstep(0.24, 0.82, combined) * envelope;
   float crispCrest = pow(smoothstep(0.46, 0.94, combined), 1.55) * envelope;
 
-  float edgeFade = smoothstep(0.0, 0.10, uv.y) * smoothstep(1.0, 0.82, uv.y);
+  float edgeFade = smoothstep(0.0, 0.12, uv.y) * smoothstep(1.0, 0.80, uv.y);
   float luma = clamp((ribbon * 0.68 + crispCrest * 0.42 + softCore * 0.30) * edgeFade, 0.0, 1.0);
 
-  // 70% crisp primary white body + 30% mood accent concentrated along crisp petal crests
   float ridgeRatio = clamp(0.28 + crispCrest * 0.24 - softCore * 0.10, 0.18, 0.44);
   vec3 tint = mix(u_primary, u_accent, ridgeRatio);
 
-  // Retina-calibrated sharp micro-grain (~1.6px physical on 2K 3x DPR phones, ~1px on 1x PC)
-  vec2 grainCoord = floor(gl_FragCoord.xy / max(u_dpr * 0.55, 1.0));
-  float grain = hash21(grainCoord + vec2(floor(fract(t * 0.75) * 64.0) * 1.37, 19.7)) - 0.5;
+  // Native 1px sharp grain on 2x HiDPI canvas (crisp on 2K displays without 3x fill-rate overhead)
+  float grain = hash21(floor(gl_FragCoord.xy) + vec2(floor(fract(t * 0.65) * 48.0) * 1.37, 19.7)) - 0.5;
 
   float activeIntensity = u_intensity * u_ignite;
   vec3 color = tint * luma * activeIntensity;
-  color += grain * 0.078 * smoothstep(0.02, 0.45, luma) * u_ignite;
+  color += grain * 0.072 * smoothstep(0.02, 0.45, luma) * u_ignite;
 
   gl_FragColor = vec4(max(color, 0.0), clamp(luma * activeIntensity * 1.22, 0.0, 1.0));
 }
@@ -153,7 +145,7 @@ function measureTargetGeometry(canvas, key, fallback) {
 
   const clampedH = Math.min(cardRect.height, 420);
   const ax = Math.min(0.88, Math.max(0.12, (cardRect.left + cardRect.width * 0.5 - canvasRect.left) / canvasRect.width));
-  const ay = Math.min(0.85, Math.max(0.16, (cardRect.top + clampedH * 0.5 - canvasRect.top) / canvasRect.height));
+  const ay = Math.min(0.82, Math.max(0.18, (cardRect.top + clampedH * 0.5 - canvasRect.top) / canvasRect.height));
   const minCanvas = Math.min(canvasRect.width, canvasRect.height);
   const cardSpan = Math.max(cardRect.width, clampedH);
   const radius = Math.min(0.92, Math.max(0.46, (cardSpan * 0.68) / minCanvas));
@@ -162,8 +154,8 @@ function measureTargetGeometry(canvas, key, fallback) {
 }
 
 /**
- * Native HiDPI (up to 3x DPR for 2K phones) WebGL petaled aurora + sharp film grain backdrop.
- * Anchors directly behind `[data-aurora-target]` and ignites from dark (0 -> 1) on tab changes.
+ * Performance-tuned 60fps WebGL petaled aurora + sharp 2x DPR micro-grain backdrop.
+ * Automatically pauses when scrolled offscreen or tab hidden; ignites behind active tab's card.
  */
 export default function AuroraPetalCanvas({
   ignitionKey = 'home',
@@ -249,7 +241,6 @@ export default function AuroraPetalCanvas({
     const uAnchor = gl.getUniformLocation(program, 'u_anchor');
     const uRadius = gl.getUniformLocation(program, 'u_radius');
     const uIgnite = gl.getUniformLocation(program, 'u_ignite');
-    const uDpr = gl.getUniformLocation(program, 'u_dpr');
     const uTime = gl.getUniformLocation(program, 'u_time');
     const uIntensity = gl.getUniformLocation(program, 'u_intensity');
     const uPrimary = gl.getUniformLocation(program, 'u_primary');
@@ -273,15 +264,13 @@ export default function AuroraPetalCanvas({
       accentRgb: [...targetRef.current.accentRgb],
     };
 
-    const getClampedDpr = () => Math.min(window.devicePixelRatio || 1, 3);
-    let currentDpr = getClampedDpr();
-
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      currentDpr = getClampedDpr();
-      const nextW = Math.round(rect.width * currentDpr);
-      const nextH = Math.round(rect.height * currentDpr);
+      // 2x cap balances razor-sharp 1px micro-grain on 2K displays with locked 60fps mobile fill-rate
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const nextW = Math.round(rect.width * dpr);
+      const nextH = Math.round(rect.height * dpr);
       if (canvas.width !== nextW || canvas.height !== nextH) {
         canvas.width = nextW;
         canvas.height = nextH;
@@ -300,13 +289,29 @@ export default function AuroraPetalCanvas({
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     let reducedMotion = motionQuery.matches;
+    let isInViewport = true;
+    let isDocVisible = !document.hidden;
     let rafId = 0;
     const startTs = performance.now();
     let lastTs = startTs;
     let igniteStartTs = startTs;
     const IGNITE_DURATION_MS = 950;
 
+    const scheduleNext = () => {
+      if (!reducedMotion && isInViewport && isDocVisible && !rafId) {
+        rafId = window.requestAnimationFrame(renderFrame);
+      }
+    };
+
+    const stopLoop = () => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    };
+
     const renderFrame = (now) => {
+      rafId = 0;
       const dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
       const tgt = targetRef.current;
@@ -349,7 +354,6 @@ export default function AuroraPetalCanvas({
       gl.uniform2f(uAnchor, current.anchorX, current.anchorY);
       gl.uniform1f(uRadius, current.radius);
       gl.uniform1f(uIgnite, easedIgnite);
-      gl.uniform1f(uDpr, currentDpr);
       gl.uniform1f(uTime, reducedMotion ? 2.4 : (now - startTs) * 0.001);
       gl.uniform1f(uIntensity, current.intensity);
       gl.uniform3fv(uPrimary, current.primaryRgb);
@@ -359,23 +363,47 @@ export default function AuroraPetalCanvas({
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-      if (!reducedMotion) {
-        rafId = window.requestAnimationFrame(renderFrame);
+      scheduleNext();
+    };
+
+    const io = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver((entries) => {
+          isInViewport = entries[0]?.isIntersecting ?? true;
+          if (isInViewport) {
+            lastTs = performance.now();
+            scheduleNext();
+          } else {
+            stopLoop();
+          }
+        })
+      : null;
+    if (io) io.observe(canvas);
+
+    const handleVisibility = () => {
+      isDocVisible = !document.hidden;
+      if (isDocVisible && isInViewport) {
+        lastTs = performance.now();
+        scheduleNext();
+      } else {
+        stopLoop();
       }
     };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const handleMotionChange = (e) => {
       reducedMotion = e.matches;
-      window.cancelAnimationFrame(rafId);
+      stopLoop();
       renderFrame(performance.now());
     };
     motionQuery.addEventListener?.('change', handleMotionChange);
 
-    rafId = window.requestAnimationFrame(renderFrame);
+    scheduleNext();
 
     return () => {
-      window.cancelAnimationFrame(rafId);
+      stopLoop();
       ro?.disconnect();
+      io?.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
       motionQuery.removeEventListener?.('change', handleMotionChange);
       gl.deleteBuffer(posBuffer);
       gl.deleteProgram(program);
