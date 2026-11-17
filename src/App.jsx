@@ -518,6 +518,9 @@ export default function App() {
     }
   });
   const [currentGuideSlide, setCurrentGuideSlide] = useState(0);
+  const [aboutGuideTab, setAboutGuideTab] = useState('host');
+  const [aboutSimRank, setAboutSimRank] = useState(1);
+  const [aboutSimKills, setAboutSimKills] = useState(8);
 
   // Admin Live Leaderboard Poster Ref & State
   const adminPosterRef = useRef(null);
@@ -6468,58 +6471,68 @@ export default function App() {
             homeMorphState,
             <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
               
-              {/* TIER 1: Specific Centered Headline + Live Counters */}
-              <div
-                className={`flex gap-3 px-1.5 md:px-1 animate-home-tier ${
-                  currentUser
-                    ? 'items-center justify-between'
-                    : 'flex-col items-center text-center'
-                }`}
-                style={{ '--home-delay': '0ms' }}
-              >
-                <div className={currentUser ? 'min-w-0' : 'max-w-xl mx-auto text-center'}>
-                  {currentUser ? (
-                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
-                      Selamat kembali, {activeOrganizationName}
-                    </h1>
-                  ) : (
-                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
-                      Kedudukan Scrim &amp; Kejohanan PUBG Mobile
-                    </h1>
-                  )}
-                  <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
-                    {currentUser
-                      ? 'Urus rekod scrim, check prestasi team & scan poster keputusan.'
-                      : 'Check ranking team, kira markah PMGC & scan poster keputusan.'}
-                  </p>
+              {/* TIER 1: Specific Centered Headline + Live Counters with Vercel Noise Gradient Backdrop */}
+              <div className="relative">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none select-none absolute -inset-x-6 -top-10 -bottom-8 -z-0 overflow-hidden"
+                >
+                  <div className="absolute inset-0 home-hero-aurora opacity-95" />
+                  <div className="absolute inset-0 home-hero-grain opacity-85" />
                 </div>
 
-                {(currentUser || scrims.length > 0 || validTeamList.length > 0) && (
-                  <div className={`items-center gap-2.5 shrink-0 ${currentUser ? 'flex' : 'hidden lg:flex'}`}>
-                    {/* Data Counters (Desktop only) */}
-                    <div className="hidden lg:flex items-center gap-2">
-                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
-                        <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
-                      </div>
-                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
-                        <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
-                      </div>
-                    </div>
-
-                    {currentUser && (
-                      <button
-                        type="button"
-                        onClick={() => setIsProfileModalOpen(true)}
-                        className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
-                        <span>{adminHostedScrims.length} Hosted</span>
-                      </button>
+                <div
+                  className={`relative z-10 flex gap-3 px-1.5 md:px-1 py-2 sm:py-3 animate-home-tier ${
+                    currentUser
+                      ? 'items-center justify-between'
+                      : 'flex-col items-center text-center'
+                  }`}
+                  style={{ '--home-delay': '0ms' }}
+                >
+                  <div className={currentUser ? 'min-w-0' : 'max-w-xl mx-auto text-center'}>
+                    {currentUser ? (
+                      <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
+                        Selamat kembali, {activeOrganizationName}
+                      </h1>
+                    ) : (
+                      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
+                        Kedudukan Scrim &amp; Kejohanan PUBG Mobile
+                      </h1>
                     )}
+                    <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
+                      {currentUser
+                        ? 'Urus rekod scrim, check prestasi team & scan poster keputusan.'
+                        : 'Check ranking team, kira markah PMGC & scan poster keputusan.'}
+                    </p>
                   </div>
-                )}
+
+                  {(currentUser || scrims.length > 0 || validTeamList.length > 0) && (
+                    <div className={`items-center gap-2.5 shrink-0 ${currentUser ? 'flex' : 'hidden lg:flex'}`}>
+                      {/* Data Counters (Desktop only) */}
+                      <div className="hidden lg:flex items-center gap-2">
+                        <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
+                          <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
+                        </div>
+                        <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
+                          <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
+                        </div>
+                      </div>
+
+                      {currentUser && (
+                        <button
+                          type="button"
+                          onClick={() => setIsProfileModalOpen(true)}
+                          className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
+                          <span>{adminHostedScrims.length} Hosted</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
                 {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
@@ -9179,303 +9192,479 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 5: ABOUT & USER GUIDE */}
-        {activeTab === 'about' && (
-          <div className="space-y-6">
-            
-            {/* Hero Card */}
-            <div className="glass-panel text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
-                <div className="lg:col-span-7 max-w-2xl space-y-3">
-                  <div className="inline-flex items-center gap-2 bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[#D7FF00] px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
-                    <Swords className="w-3.5 h-3.5"/>
-                    Esports Tournament Engine
-                  </div>
-                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-                    SCRIM HUB <span className="text-[#D7FF00]">by ry.khor</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                    Web app untuk host scrim, penganjur tournament &amp; squad PUBG Mobile. Kira markah PMGC, susun ranking, check rekod team &amp; export poster terus dari browser.
-                  </p>
-                </div>
-                <div className="lg:col-span-5">
-                  <div className="rounded-2xl overflow-hidden bg-black">
-                    <img
-                      src="/og-cover.png"
-                      alt="SCRIMHUB (SCRIM HUB) — Team Matrix, Ranking Team &amp; Rekod Scrim PUBG Mobile"
-                      width={1200}
-                      height={630}
-                      loading="lazy"
-                      className="w-full h-auto block object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* VIEW 5: ABOUT & USER GUIDE (Vercel / Geist Interactive Documentation Layout) */}
+        {activeTab === 'about' && (() => {
+          const aboutTabs = [
+            { key: 'host', label: '01 / Host Setup' },
+            { key: 'pmgc', label: '02 / Kiraan PMGC' },
+            { key: 'poster', label: '03 / Poster & OCR' },
+            { key: 'matrix', label: '04 / Team Matrix' }
+          ];
+          const simPlacePts = getPlacementPoints(aboutSimRank);
+          const simTotalPts = simPlacePts + Number(aboutSimKills || 0);
+          const waSampleText = `1. YANGON GALACTICOS\n2. 4KRV BLACK NUMBER\n3. ELIMINATOR\n4. GEEK FAM`;
 
-            {/* SECTION: STEP-BY-STEP PLATFORM USER GUIDE */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-[#D7FF00]"/>
-                <div>
-                  <h2 className="text-base sm:text-lg font-black text-white">Panduan Guna SCRIM HUB</h2>
-                  <p className="text-xs text-zinc-400">Cara guna Quick Scorer, Host Panel, Leaderboard &amp; rekod team.</p>
-                </div>
-              </div>
+          const handleCopyWaSample = async () => {
+            try {
+              await navigator.clipboard.writeText(waSampleText);
+              showToast('Contoh senarai Import WA disalin!');
+            } catch {
+              showToast('Tak dapat salin ke clipboard.');
+            }
+          };
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* GUIDE 1: HOW ADMIN STARTS A SCRIM OR TOURNAMENT */}
-                <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2">
-                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
-                      <Lock className="w-4 h-4"/>
-                    </div>
-                    <div>
-                      <h3 className="font-black text-sm text-white">1. Cara Host Mula Scrim / Tour</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">SETUP SESI &amp; MATCH</span>
-                    </div>
-                  </div>
+          const handleAboutTabKeyDown = (e, idx) => {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            e.preventDefault();
+            const nextIdx = e.key === 'ArrowRight'
+              ? (idx + 1) % aboutTabs.length
+              : (idx - 1 + aboutTabs.length) % aboutTabs.length;
+            const nextKey = aboutTabs[nextIdx].key;
+            setAboutGuideTab(nextKey);
+            document.getElementById(`about-tab-${nextKey}`)?.focus();
+          };
 
-                  <div className="space-y-2.5 text-xs text-zinc-300 leading-relaxed">
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">1</span>
-                      <div>
-                        <strong className="text-white block">Log Masuk Akaun Host</strong>
-                        Buka tab <strong>Host</strong> dan log masuk akaun anda.
+          return (
+            <div className="max-w-5xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-28 md:pb-12">
+
+              {/* 1. VERCEL-STYLE HERO OVERVIEW WITH REAL APP LOGO */}
+              <div className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 home-hero-aurora opacity-75"
+                />
+                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+                  <div className="lg:col-span-8 p-5 sm:p-8 flex flex-col justify-between gap-5">
+                    <div className="space-y-3">
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
+                        <span className="text-[#D7FF00] font-semibold">v2.7.0</span>
+                        <span className="text-zinc-600">/</span>
+                        <span>Esports Tournament Engine</span>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">2</span>
-                      <div>
-                        <strong className="text-white block">Pilih Format &amp; Isi Info</strong>
-                        Pilih <span className="bg-[#1F240D] text-[#D7FF00] px-1.5 py-0.5 rounded font-bold">Scrim</span> atau <span className="bg-[#241B0B] text-amber-300 px-1.5 py-0.5 rounded font-bold">Tournament</span>. Isi tajuk, nama host, tier, contact &amp; upload logo event kalau ada.
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">3</span>
-                      <div>
-                        <strong className="text-white block">Set Slot Team (2-24 Team)</strong>
-                        Guna butang <strong>+</strong> / <strong>-</strong> kat Slot untuk adjust jumlah team, atau guna <strong>Import WA</strong> untuk paste terus dari WhatsApp.
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">4</span>
-                      <div>
-                        <strong className="text-white block">Isi Markah &amp; Map</strong>
-                        Pilih match &amp; map (Erangel, Miramar, dll), kemudian pilih placement dan masuk jumlah Elims.
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">5</span>
-                      <div>
-                        <strong className="text-white block">Save &amp; Lock Keputusan</strong>
-                        Tekan <strong>Save</strong> untuk simpan ke Cloud. Bila semua match habis, guna menu <strong>⋮</strong> untuk lock keputusan.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* GUIDE 2: COMPETITIVE POINT SYSTEM */}
-                <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2">
-                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
-                      <Crosshair className="w-4 h-4"/>
-                    </div>
-                    <div>
-                      <h3 className="font-black text-sm text-white">2. Sistem Kiraan PMGC</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">STANDARD 10-POINT PMGC</span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Sistem ikut format rasmi PMGC 10-point. Placement &amp; elimination points dikira terus setiap pusingan:
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">1st Place (WWCD)</span>
-                      <span className="font-black text-[#D7FF00]">10 PTS</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">2nd Place</span>
-                      <span className="font-black text-white">6 PTS</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">3rd Place</span>
-                      <span className="font-black text-white">5 PTS</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">#4 Place</span>
-                      <span className="font-black text-white">4 PTS</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">#5 Place</span>
-                      <span className="font-black text-white">3 PTS</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">#6 Place</span>
-                      <span className="font-black text-white">2 PTS</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">#7 - #8 Place</span>
-                      <span className="font-black text-white">1 PT</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 flex justify-between items-center">
-                      <span className="text-zinc-300 font-bold">#9 - #24 Place</span>
-                      <span className="font-black text-zinc-500">0 PTS</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-[#1F240D] text-[11px] text-[#D7FF00] font-bold flex items-center justify-between">
-                    <span>Elimination Points:</span>
-                    <span className="font-mono font-black">1 Elim = 1 Point</span>
-                  </div>
-                </div>
-
-                {/* GUIDE 3: LIVE LEADERBOARD & INSTANT POSTER GENERATOR */}
-                <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2">
-                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
-                      <Download className="w-4 h-4"/>
-                    </div>
-                    <div>
-                      <h3 className="font-black text-sm text-white">3. Live Leaderboard &amp; Poster PNG</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">EXPORT TERUS KE WA / IG</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-xs text-zinc-300 leading-relaxed">
-                    <p>
-                      <strong>Leaderboard</strong> susun ranking ikut Total Points, Placement Points, Elims &amp; WWCD.
-                    </p>
-
-                    <div className="p-3 glass-tile rounded-2xl space-y-1.5">
-                      <span className="text-white font-black block flex items-center gap-1.5">
-                        <Download className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Poster Standings HD (Sehingga 24 Team)
-                      </span>
-                      <p className="text-[11px] text-zinc-400">
-                        Tekan <strong>Export PNG</strong> untuk download poster siap logo event, badge WWCD &amp; table markah penuh.
+                      <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white text-balance">
+                        SCRIM HUB <span className="text-zinc-500 font-normal">by</span>{' '}
+                        <span className="text-[#D7FF00]">ry.khor</span>
+                      </h1>
+                      <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl text-pretty">
+                        Platform operasi kejohanan &amp; scrim PUBG Mobile. Urus markah format rasmi PMGC, imbas poster keputusan dengan AI OCR, pantau prestasi pasukan dalam Team Matrix, dan eksport poster HD terus dari browser.
                       </p>
                     </div>
 
-                    <div className="p-2.5 glass-tile rounded-xl text-[11px] flex items-center justify-between">
-                      <span className="font-bold text-zinc-200">Salin Teks:</span>
-                      <span className="text-zinc-400">Copy table standings terus untuk WhatsApp &amp; Discord</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('teams')}
+                        className="px-3.5 py-2 min-h-[38px] rounded-md bg-[#EDEDED] hover:bg-white text-zinc-950 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
+                      >
+                        <Users className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Buka Team Matrix</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('scorer')}
+                        className="px-3.5 py-2 min-h-[38px] rounded-md border border-white/[0.12] bg-[#0F0F12] hover:bg-[#18181C] text-zinc-100 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-[#D7FF00]" aria-hidden="true" />
+                        <span>Quick Scorer</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('scrim-data')}
+                        className="px-3.5 py-2 min-h-[38px] rounded-md border border-white/[0.12] bg-[#0F0F12] hover:bg-[#18181C] text-zinc-100 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-pink-300" aria-hidden="true" />
+                        <span>Imbas Poster AI</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Cell: Clean App Logo Showcase (No AI Mockup) */}
+                  <div className="lg:col-span-4 p-5 sm:p-7 bg-[#050506]/80 flex flex-col items-center justify-center gap-4">
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-white/[0.12] bg-[#0A0A0A] shadow-[0_0_48px_rgba(215,255,0,0.08)]">
+                      <img
+                        src="/logo.png"
+                        alt="SCRIMHUB Official Logo"
+                        width={2000}
+                        height={2000}
+                        className="w-full h-full object-cover block"
+                      />
+                    </div>
+                    <div className="w-full grid grid-cols-3 divide-x divide-white/[0.08] border border-white/[0.08] rounded-lg bg-[#0A0A0A] text-center">
+                      <div className="py-2 px-1">
+                        <span className="text-[10px] font-mono text-zinc-500 block">TEAM</span>
+                        <span className="text-xs font-mono font-semibold text-white">{validTeamList.length}</span>
+                      </div>
+                      <div className="py-2 px-1">
+                        <span className="text-[10px] font-mono text-zinc-500 block">REKOD</span>
+                        <span className="text-xs font-mono font-semibold text-white">{scrims.length}</span>
+                      </div>
+                      <div className="py-2 px-1">
+                        <span className="text-[10px] font-mono text-zinc-500 block">SYSTEM</span>
+                        <span className="text-xs font-mono font-semibold text-[#D7FF00]">10-PT</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* GUIDE 4: TEAM STATS & CONTENT SHOWCASE */}
-                <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2">
-                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
-                      <Sparkles className="w-4 h-4"/>
-                    </div>
-                    <div>
-                      <h3 className="font-black text-sm text-white">4. Statistik Team, Story 9:16 &amp; Content</h3>
-                      <span className="text-[10px] text-zinc-400 font-mono">TEAM MATRIX &amp; TIKTOK LINK</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-xs text-zinc-300 leading-relaxed">
-                    <div className="p-3 glass-tile rounded-2xl space-y-1">
-                      <strong className="text-white block flex items-center gap-1.5">
-                        <BarChart2 className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Filter Rekod Team
-                      </strong>
-                      <p className="text-[11px] text-zinc-400">
-                        Tap mana-mana team dalam Team Matrix untuk filter ikut <strong>Scrim</strong>, <strong>Tournament</strong>, atau <strong>Tier</strong>.
-                      </p>
-                    </div>
-
-                    <div className="p-3 glass-tile rounded-2xl space-y-1">
-                      <strong className="text-white block flex items-center gap-1.5">
-                        <Share className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Kad IG Story 9:16
-                      </strong>
-                      <p className="text-[11px] text-zinc-400">
-                        Tekan <strong>Story 9:16</strong> kat profile team untuk export kad statistik siap dengan graf &amp; total points.
-                      </p>
-                    </div>
-
-                    <div className="p-3 glass-tile rounded-2xl space-y-1">
-                      <strong className="text-white block flex items-center gap-1.5">
-                        <Video className="w-3.5 h-3.5 text-[#D7FF00]"/>
-                        Showcase Content
-                      </strong>
-                      <p className="text-[11px] text-zinc-400">
-                        Post poster match atau link TikTok &amp; Instagram kat bahagian Content.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Platform Credits & Technical Info */}
-            <div className="glass-panel rounded-3xl p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/5 gap-2">
-                <div>
-                  <h3 className="font-black text-sm text-white">Credits &amp; Info Teknikal</h3>
-                  <p className="text-xs text-zinc-400">Info build &amp; developer.</p>
-                </div>
-                <span className="text-[10px] font-mono glass-pill text-zinc-300 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto">
-                  v2.7.0
-                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-4 glass-tile rounded-2xl space-y-3">
+              {/* 2. INTERACTIVE GEIST TABBED DOCUMENTATION & PMGC SIMULATOR */}
+              <div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0A] overflow-hidden">
+                <div className="px-4 sm:px-6 pt-4 pb-0 border-b border-white/[0.08] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Dibina Oleh</span>
-                    <span className="font-black text-white text-sm block">ry.khor (RYAN.)</span>
-                    <p className="text-zinc-400 text-[11px] mt-0.5">
-                      Frontend developer &amp; creator platform esports.
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-white">
+                      Panduan Interaktif &amp; Spesifikasi Sistem
+                    </h2>
+                    <p className="text-xs text-zinc-400">
+                      Pilih modul untuk lihat aliran kerja host, simulasi mata PMGC, dan alat eksport.
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGuide(0)}
+                    className="self-start sm:self-auto px-2.5 py-1.5 rounded-md border border-white/[0.1] bg-[#111114] hover:bg-[#19191E] text-[11px] font-mono text-zinc-300 hover:text-white inline-flex items-center gap-1.5 transition cursor-pointer mb-2 sm:mb-0"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-[#D7FF00]" aria-hidden="true" />
+                    <span>Buka Slide Ringkas</span>
+                  </button>
+                </div>
 
+                {/* Single-row accessible Tablist with border-bottom active indicator */}
+                <div
+                  role="tablist"
+                  aria-label="Panduan Platform SCRIM HUB"
+                  className="flex items-center overflow-x-auto no-scrollbar border-b border-white/[0.08] px-3 sm:px-5 bg-[#070708]"
+                >
+                  {aboutTabs.map((tab, idx) => {
+                    const isSelected = aboutGuideTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        id={`about-tab-${tab.key}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
+                        tabIndex={isSelected ? 0 : -1}
+                        onClick={() => setAboutGuideTab(tab.key)}
+                        onKeyDown={(e) => handleAboutTabKeyDown(e, idx)}
+                        className={
+                          'vercel-tab shrink-0 px-3.5 py-3 text-xs font-mono transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ' +
+                          (isSelected
+                            ? 'text-white font-semibold'
+                            : 'text-zinc-500 hover:text-zinc-200 font-medium')
+                        }
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* TAB PANEL 1: HOST SETUP */}
+                <div
+                  role="tabpanel"
+                  aria-labelledby="about-tab-host"
+                  hidden={aboutGuideTab !== 'host'}
+                  tabIndex={aboutGuideTab === 'host' ? 0 : undefined}
+                >
+                  <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div className="lg:col-span-7 space-y-2.5">
+                      {[
+                        { n: '01', title: 'Log Masuk Portal Host', desc: 'Buka tab Portal Host dan sahkan akaun untuk simpan rekod ke Supabase Cloud.' },
+                        { n: '02', title: 'Pilih Format & Info Event', desc: 'Tetapkan kategori Scrim atau Tournament, Tier (T1/T2/T3/SSS), dan muat naik logo jika ada.' },
+                        { n: '03', title: 'Set Slot Pasukan (2–24 Slot)', desc: 'Guna butang + / - atau tampal senarai pasukan terus dengan Import WA.' },
+                        { n: '04', title: 'Isi Markah & Peta Setiap Match', desc: 'Pilih map (Erangel, Miramar, Sanhok, Rondo) dan masukkan placement serta jumlah elims.' },
+                        { n: '05', title: 'Save Cloud & Lock Keputusan', desc: 'Tekan Save untuk live leaderboard. Bila tamat semua match, lock sesi melalui menu ⋮.' }
+                      ].map((step) => (
+                        <div
+                          key={step.n}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-white/[0.06] bg-[#111114]"
+                        >
+                          <span className="px-1.5 py-0.5 rounded bg-[#D7FF00]/10 border border-[#D7FF00]/25 text-[#D7FF00] font-mono text-[10px] font-semibold shrink-0 mt-0.5">
+                            {step.n}
+                          </span>
+                          <div className="min-w-0">
+                            <strong className="text-xs font-semibold text-white block">{step.title}</strong>
+                            <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">{step.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="lg:col-span-5 flex flex-col justify-between gap-4 p-4 rounded-xl border border-white/[0.08] bg-[#070708]">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-mono text-zinc-400">Contoh Format Import WA</span>
+                          <button
+                            type="button"
+                            onClick={handleCopyWaSample}
+                            className="px-2 py-1 rounded border border-white/[0.1] bg-[#141418] hover:bg-[#1E1E24] text-[10px] font-mono text-zinc-200 cursor-pointer transition"
+                          >
+                            Salin Format
+                          </button>
+                        </div>
+                        <pre className="p-3 rounded-lg bg-black border border-white/[0.06] text-[11px] font-mono text-zinc-300 leading-relaxed overflow-x-auto">
+                          {waSampleText}
+                        </pre>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed">
+                          Sistem auto-bersihkan nombor slot, emoji, dan tag supaya nama pasukan sepadan terus dengan rekod Team Matrix.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('admin')}
+                        className="w-full py-2 px-3 rounded-md bg-[#D7FF00] hover:bg-[#e3ff3b] text-zinc-950 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Buka Portal Host Sekarang</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TAB PANEL 2: INTERACTIVE PMGC CALCULATOR */}
+                <div
+                  role="tabpanel"
+                  aria-labelledby="about-tab-pmgc"
+                  hidden={aboutGuideTab !== 'pmgc'}
+                  tabIndex={aboutGuideTab === 'pmgc' ? 0 : undefined}
+                >
+                  <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div className="lg:col-span-6 p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[11px] font-mono text-[#D7FF00] block">SIMULATOR LIVE</span>
+                          <h3 className="text-sm font-semibold text-white">Cuba Kiraan 10-Point PMGC</h3>
+                        </div>
+                        <div className="text-right font-mono">
+                          <span className="text-[10px] text-zinc-500 block">TOTAL</span>
+                          <span className="text-xl font-bold text-[#D7FF00] tabular-nums">{simTotalPts} PTS</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <span className="text-[11px] font-mono text-zinc-400 block">Pilih Placement Match:</span>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[1, 2, 3, 4, 5, 6, 7, 9].map((rankVal) => {
+                            const isRankActive = aboutSimRank === rankVal;
+                            const label = rankVal === 1 ? '#1 WWCD' : rankVal === 7 ? '#7–#8' : rankVal === 9 ? '#9–#24' : `#${rankVal}`;
+                            return (
+                              <button
+                                key={rankVal}
+                                type="button"
+                                onClick={() => setAboutSimRank(rankVal)}
+                                className={
+                                  'py-2 px-1.5 rounded-md font-mono text-[11px] transition cursor-pointer border ' +
+                                  (isRankActive
+                                    ? 'bg-[#D7FF00] text-zinc-950 border-[#D7FF00] font-bold'
+                                    : 'bg-[#09090B] text-zinc-300 border-white/[0.08] hover:border-white/20')
+                                }
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#09090B] border border-white/[0.08]">
+                        <div>
+                          <span className="text-xs font-medium text-white block">Jumlah Eliminations</span>
+                          <span className="text-[11px] font-mono text-zinc-500">1 Elim = 1 Point</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAboutSimKills(prev => Math.max(0, prev - 1))}
+                            aria-label="Kurangkan jumlah elims"
+                            className="w-8 h-8 rounded-md border border-white/[0.12] bg-[#141418] hover:bg-[#1E1E24] text-white font-mono text-sm cursor-pointer"
+                          >
+                            −
+                          </button>
+                          <span className="w-10 text-center font-mono text-sm font-bold text-white tabular-nums">
+                            {aboutSimKills}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setAboutSimKills(prev => Math.min(35, prev + 1))}
+                            aria-label="Tambah jumlah elims"
+                            className="w-8 h-8 rounded-md border border-white/[0.12] bg-[#141418] hover:bg-[#1E1E24] text-white font-mono text-sm cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                        <div className="p-2.5 rounded-lg bg-[#09090B] border border-white/[0.06]">
+                          <span className="text-[10px] text-zinc-500 block">PLACE PTS</span>
+                          <span className="text-sm font-semibold text-white">{simPlacePts}</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-[#09090B] border border-white/[0.06]">
+                          <span className="text-[10px] text-zinc-500 block">ELIM PTS</span>
+                          <span className="text-sm font-semibold text-white">{aboutSimKills}</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-[#1A1F0A] border border-[#D7FF00]/30">
+                          <span className="text-[10px] text-[#D7FF00] block">JUMLAH</span>
+                          <span className="text-sm font-bold text-[#D7FF00]">{simTotalPts} PTS</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-6 p-4 rounded-xl border border-white/[0.08] bg-[#070708] space-y-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">Jadual Rasmi &amp; Tiebreaker PMGC</h3>
+                        <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                          Jika jumlah mata terikat, sistem susun secara automatik mengikut urutan: Total PTS → Placement PTS → Elims → WWCD.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                        {[
+                          ['1st (WWCD)', '10 PTS', true],
+                          ['2nd Place', '6 PTS', false],
+                          ['3rd Place', '5 PTS', false],
+                          ['#4 Place', '4 PTS', false],
+                          ['#5 Place', '3 PTS', false],
+                          ['#6 Place', '2 PTS', false],
+                          ['#7 – #8', '1 PT', false],
+                          ['#9 – #24', '0 PTS', false]
+                        ].map(([rankLabel, ptsLabel, highlight]) => (
+                          <div
+                            key={rankLabel}
+                            className="px-3 py-2 rounded-md border border-white/[0.06] bg-[#111114] flex items-center justify-between"
+                          >
+                            <span className="text-zinc-300">{rankLabel}</span>
+                            <span className={highlight ? 'text-[#D7FF00] font-bold' : 'text-white font-semibold'}>
+                              {ptsLabel}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TAB PANEL 3: POSTER & AI OCR */}
+                <div
+                  role="tabpanel"
+                  aria-labelledby="about-tab-poster"
+                  hidden={aboutGuideTab !== 'poster'}
+                  tabIndex={aboutGuideTab === 'poster' ? 0 : undefined}
+                >
+                  <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    <div className="p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-2">
+                      <Download className="w-4 h-4 text-[#D7FF00]" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Eksport Poster HD</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Hasilkan poster PNG resolusi tinggi terus dalam browser sehingga 24 pasukan dengan mod Overall atau Match-by-Match.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-2">
+                      <Upload className="w-4 h-4 text-pink-300" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Imbas Keputusan AI OCR</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Muat naik gambar poster scoreboard sedia ada untuk ekstrak ranking, WWCD, placement &amp; elims secara automatik.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Salin Jadual WhatsApp</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Salin jadual teks standings dalam 1 klik untuk terus dihantar ke grup WhatsApp atau pengumuman Discord.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TAB PANEL 4: TEAM MATRIX & STORY 9:16 */}
+                <div
+                  role="tabpanel"
+                  aria-labelledby="about-tab-matrix"
+                  hidden={aboutGuideTab !== 'matrix'}
+                  tabIndex={aboutGuideTab === 'matrix' ? 0 : undefined}
+                >
+                  <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    <div className="p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-2">
+                      <BarChart2 className="w-4 h-4 text-[#D7FF00]" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Penapis Matrix Terperinci</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Tapis ranking pasukan mengikut kategori Event (Scrim / Tournament), Tier 1–3, atau kejohanan khas SSS mengikut musim.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-2">
+                      <Share className="w-4 h-4 text-sky-300" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Kad IG Story 9:16</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Klik mana-mana pasukan untuk buka profil, semak graf trend Elims vs PP, dan eksport kad Story 9:16 sedia muat naik.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-white/[0.08] bg-[#111114] space-y-2">
+                      <Video className="w-4 h-4 text-emerald-300" aria-hidden="true" />
+                      <h3 className="text-sm font-semibold text-white">Showcase Komuniti</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        Kongsikan highlight kejuaraan atau pautan TikTok &amp; Instagram pasukan terus di ruangan Content.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. CREDITS & TECHNICAL STACK (VERCEL MONOCHROME BENTO) */}
+              <div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0A] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08]">
+                <div className="p-5 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono text-zinc-500 uppercase">Developer</span>
+                    <span className="text-[11px] font-mono text-zinc-400">scrim.rykhor.my</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">ry.khor (RYAN.)</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                      Frontend engineer &amp; pembangun platform analitik esports Malaysia.
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2 pt-1 flex-wrap">
                     <a
                       href="https://rykhor.my"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-[#D7FF00] font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition border border-white/10"
+                      className="px-3 py-1.5 rounded-md border border-white/[0.12] bg-[#121215] hover:bg-[#1B1B20] text-[#D7FF00] font-medium text-xs inline-flex items-center gap-1.5 transition-colors"
                     >
-                      <Globe className="w-3.5 h-3.5 text-[#D7FF00]" />
-                      <span>Visit Portfolio</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                      <Globe className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>rykhor.my</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-500" aria-hidden="true" />
                     </a>
-
                     <a
                       href="https://instagram.com/ry.khor"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-[#BE185D] hover:bg-[#9D174D] text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-xs"
+                      className="px-3 py-1.5 rounded-md border border-white/[0.12] bg-[#121215] hover:bg-[#1B1B20] text-zinc-100 font-medium text-xs inline-flex items-center gap-1.5 transition-colors"
                     >
-                      <InstagramIcon className="w-3.5 h-3.5" />
-                      <span>Instagram</span>
-                      <ExternalLink className="w-3 h-3 text-white/70" />
+                      <InstagramIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>@ry.khor</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-500" aria-hidden="true" />
                     </a>
                   </div>
                 </div>
 
-                <div className="p-4 glass-tile rounded-2xl space-y-2">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Technology Stack</span>
-                  <span className="font-black text-white text-sm block">React • Tailwind CSS • Supabase</span>
-                  <p className="text-zinc-400 text-[11px]">Cloud sync dengan Supabase &amp; jana poster HD terus dalam browser.</p>
+                <div className="p-5 space-y-3">
+                  <span className="text-[11px] font-mono text-zinc-500 uppercase block">Architecture</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white font-mono">React 19 • Tailwind v4 • Supabase</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                      Enjin pengiraan masa nyata dengan segerak Cloud Supabase, penapis Team Matrix, dan penjanaan poster PNG dalam browser.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1 font-mono text-[10px]">
+                    <span className="px-2 py-1 rounded border border-white/[0.08] bg-[#111114] text-zinc-300">Geist Typography</span>
+                    <span className="px-2 py-1 rounded border border-white/[0.08] bg-[#111114] text-zinc-300">AI Poster OCR</span>
+                    <span className="px-2 py-1 rounded border border-white/[0.08] bg-[#111114] text-zinc-300">9:16 Story PNG</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* VIEW 5B: RESULTS SCANNER (AI POSTER OCR) */}
         {(activeTab === 'scrim-data' || homeMorphState?.targetTab === 'scrim-data') && renderMorphFgWindow(
