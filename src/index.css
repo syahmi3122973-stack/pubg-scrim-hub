@@ -447,9 +447,17 @@ body {
 }
 
 .hof-hero-card[data-hof-slide='1'] {
-  background-color: #1A1F0C;
+  background-color: #FDE047;
   border-color: transparent;
   box-shadow: none;
+}
+
+.hof-hero-card[data-hof-slide='1']:hover {
+  background-color: #FEF08A;
+}
+
+.hof-hero-card[data-hof-slide='1'] .home-card-lime-tile {
+  background-color: #ECCB2C;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -974,6 +982,53 @@ body {
 
   .glass-sticky-cell {
     background-color: #111114;
+  }
+
+  /* Bright Solid Bento Cards (Home Command Center — High-Contrast Matte Surfaces, Zero Borders) */
+  .home-card-lime {
+    background-color: #D7FF00;
+    border: none;
+    box-shadow: none;
+  }
+
+  .home-card-lime:hover {
+    background-color: #E2FF32;
+  }
+
+  .home-card-lime-tile {
+    background-color: #C2E800;
+    border: none;
+    box-shadow: none;
+  }
+
+  .home-card-pink {
+    background-color: #FF99C8;
+    border: none;
+    box-shadow: none;
+  }
+
+  .home-card-pink:hover {
+    background-color: #FFADD4;
+  }
+
+  .home-card-blue {
+    background-color: #8CC4FF;
+    border: none;
+    box-shadow: none;
+  }
+
+  .home-card-blue:hover {
+    background-color: #A2D0FF;
+  }
+
+  .home-card-emerald {
+    background-color: #7EE8A6;
+    border: none;
+    box-shadow: none;
+  }
+
+  .home-card-emerald:hover {
+    background-color: #96EEB7;
   }
 }
 

@@ -5583,11 +5583,11 @@ export default function App() {
                 <div className={currentUser ? 'min-w-0' : 'max-w-xl mx-auto text-center'}>
                   {currentUser ? (
                     <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
-                      Selamat kembali, <span className="text-[#D7FF00]">{activeOrganizationName}</span>
+                      Selamat kembali, {activeOrganizationName}
                     </h1>
                   ) : (
                     <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
-                      Kedudukan Scrim &amp; <span className="text-[#D7FF00]">Kejohanan PUBG Mobile</span>
+                      Kedudukan Scrim &amp; Kejohanan PUBG Mobile
                     </h1>
                   )}
                   <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
@@ -5651,13 +5651,13 @@ export default function App() {
                     onFocus={() => setIsHomeHofInteracting(true)}
                     onBlur={() => setIsHomeHofInteracting(false)}
                     style={{ '--home-delay': '80ms' }}
-                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 glass-lime hof-hero-card text-white lg:hover:-translate-y-1 active:scale-[0.985] [&:has([data-hof-controls]:active)]:scale-100 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 home-card-lime hof-hero-card text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.985] [&:has([data-hof-controls]:active)]:scale-100 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
                     <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
                       {/* Top Row: Smooth Crossfading Section Label, Title & Reactive Trophy Icon */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0">
-                          <div className="hof-crossfade-stack text-[11px] font-mono font-bold text-[#D7FF00] leading-tight">
+                          <div className="hof-crossfade-stack text-[11px] font-mono font-bold text-zinc-900 leading-tight">
                             <span
                               data-active={homeHofSlide === 0}
                               aria-hidden={homeHofSlide !== 0}
@@ -5673,14 +5673,14 @@ export default function App() {
                               Tier 3
                             </span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-none pt-0.5 flex items-baseline gap-1.5">
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-zinc-950 leading-none pt-0.5 flex items-baseline gap-1.5">
                             <span className="font-team-matrix font-bold uppercase">Team</span>
-                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em] text-[#D7FF00] translate-y-[0.5px]">Matrix</span>
+                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em] translate-y-[0.5px]">Matrix</span>
                           </h2>
                         </div>
 
                         <div
-                          className={`hof-trophy-badge w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-lg group-hover:scale-105 shrink-0 ${
+                          className={`hof-trophy-badge w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-zinc-950 text-[#D7FF00] flex items-center justify-center group-hover:scale-105 shrink-0 ${
                             homeHofSlide === 1 ? '-rotate-6 scale-105' : 'rotate-0 scale-100'
                           }`}
                         >
@@ -5709,29 +5709,29 @@ export default function App() {
                             className="hof-slide-panel space-y-3"
                           >
                             <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
-                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
-                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                              <div className="hof-stat-tile home-card-lime-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-800 block">
                                   #1 Leading Clan
                                 </span>
                                 <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white truncate">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-zinc-950 truncate">
                                     {leadingTeam ? leadingTeam.name : 'Geek Fam'}
                                   </span>
-                                  <span className="text-xs font-mono font-black text-[#D7FF00] shrink-0">
+                                  <span className="text-xs font-mono font-black text-zinc-950 shrink-0">
                                     {leadingTeam ? `${leadingTeam.totalPoints} PTS` : '148 PTS'}
                                   </span>
                                 </div>
                               </div>
 
-                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
-                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                              <div className="hof-stat-tile home-card-lime-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-800 block">
                                   Elim Avg • WWCD Streak
                                 </span>
                                 <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white font-mono">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-zinc-950 font-mono">
                                     {highestKillAvgVal} Elims
                                   </span>
-                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-[#D7FF00] text-black shrink-0">
+                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-zinc-950 text-white shrink-0">
                                     {leadingTeam ? `${leadingTeam.totalWWCD} WWCD` : '4 WWCD'}
                                   </span>
                                 </div>
@@ -5740,9 +5740,9 @@ export default function App() {
 
                             {topThreePreview.length > 0 && (
                               <div className="hof-stat-tile hof-podium-strip hidden lg:flex flex-col gap-2 pt-0.5">
-                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-300 px-0.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-900 px-0.5">
                                   <span>Live Podium Top 3 • Semua</span>
-                                  <span className="inline-flex items-center gap-1 text-[#D7FF00] group-hover:translate-x-1 transition-transform">
+                                  <span className="inline-flex items-center gap-1 text-zinc-950 group-hover:translate-x-1 transition-transform">
                                     <span>Buka Leaderboard</span>
                                     <ArrowRight className="w-3 h-3" />
                                   </span>
@@ -5751,10 +5751,10 @@ export default function App() {
                                   {topThreePreview.map((team, idx) => (
                                     <div
                                       key={team.name}
-                                      className="rounded-xl glass-tile px-3 py-2 flex items-center gap-2 min-w-0"
+                                      className="rounded-xl home-card-lime-tile px-3 py-2 flex items-center gap-2 min-w-0"
                                     >
                                       <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
-                                        idx === 0 ? 'bg-[#D7FF00] text-black' : 'bg-white/10 text-white'
+                                        idx === 0 ? 'bg-zinc-950 text-[#D7FF00]' : 'bg-zinc-950 text-white'
                                       }`}>
                                         #{idx + 1}
                                       </span>
@@ -5762,14 +5762,14 @@ export default function App() {
                                         <img
                                           src={team.logo_url}
                                           alt=""
-                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/30"
+                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-zinc-950"
                                         />
                                       )}
                                       <div className="min-w-0 flex-1">
-                                        <div className="text-xs font-black text-white truncate leading-tight">
+                                        <div className="text-xs font-black text-zinc-950 truncate leading-tight">
                                           {team.name}
                                         </div>
-                                        <div className="text-[10px] font-mono font-bold text-[#D7FF00] leading-tight">
+                                        <div className="text-[10px] font-mono font-bold text-zinc-800 leading-tight">
                                           {team.totalPoints} PTS • {team.totalWWCD}W
                                         </div>
                                       </div>
@@ -5790,29 +5790,29 @@ export default function App() {
                             className="hof-slide-panel space-y-3"
                           >
                             <div className="grid grid-cols-2 gap-2.5 lg:gap-3 pt-1">
-                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
-                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                              <div className="hof-stat-tile home-card-lime-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-800 block">
                                   #1 Tier 3 Leader
                                 </span>
                                 <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white truncate">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-zinc-950 truncate">
                                     {tier3Leader ? tier3Leader.name : 'Belum ada rekod'}
                                   </span>
-                                  <span className="text-xs font-mono font-black text-[#D7FF00] shrink-0">
+                                  <span className="text-xs font-mono font-black text-zinc-950 shrink-0">
                                     {tier3Leader ? `${tier3Leader.tier3Points} PTS` : 'Tier 3'}
                                   </span>
                                 </div>
                               </div>
 
-                              <div className="hof-stat-tile glass-tile rounded-2xl p-3 lg:p-3.5">
-                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-300 block">
+                              <div className="hof-stat-tile home-card-lime-tile rounded-2xl p-3 lg:p-3.5">
+                                <span className="text-[10px] font-mono font-extrabold uppercase tracking-wider text-zinc-800 block">
                                   Tier 3 Elim Avg • Aktif
                                 </span>
                                 <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                                  <span className="text-sm sm:text-base lg:text-lg font-black text-white font-mono">
+                                  <span className="text-sm sm:text-base lg:text-lg font-black text-zinc-950 font-mono">
                                     {tier3KillAvgVal} Elims
                                   </span>
-                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-[#D7FF00] text-black shrink-0">
+                                  <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-full bg-zinc-950 text-white shrink-0">
                                     {tier3Leader ? `${tier3RankedTeams.length} Team` : 'Amateur'}
                                   </span>
                                 </div>
@@ -5821,9 +5821,9 @@ export default function App() {
 
                             {tier3TopThree.length > 0 ? (
                               <div className="hof-stat-tile hof-podium-strip hidden lg:flex flex-col gap-2 pt-0.5">
-                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-300 px-0.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider text-zinc-900 px-0.5">
                                   <span>Podium Top 3 • Tier 3 (Amateur)</span>
-                                  <span className="inline-flex items-center gap-1 text-[#D7FF00] group-hover:translate-x-1 transition-transform">
+                                  <span className="inline-flex items-center gap-1 text-zinc-950 group-hover:translate-x-1 transition-transform">
                                     <span>Buka Rank Tier 3</span>
                                     <ArrowRight className="w-3 h-3" />
                                   </span>
@@ -5832,10 +5832,10 @@ export default function App() {
                                   {tier3TopThree.map((team, idx) => (
                                     <div
                                       key={`t3_${team.name}`}
-                                      className="rounded-xl glass-tile px-3 py-2 flex items-center gap-2 min-w-0"
+                                      className="rounded-xl home-card-lime-tile px-3 py-2 flex items-center gap-2 min-w-0"
                                     >
                                       <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-mono font-black shrink-0 ${
-                                        idx === 0 ? 'bg-[#D7FF00] text-black' : 'bg-white/10 text-white'
+                                        idx === 0 ? 'bg-zinc-950 text-[#D7FF00]' : 'bg-zinc-950 text-white'
                                       }`}>
                                         #{idx + 1}
                                       </span>
@@ -5843,14 +5843,14 @@ export default function App() {
                                         <img
                                           src={team.logo_url}
                                           alt=""
-                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-black/30"
+                                          className="w-6 h-6 rounded-lg object-cover shrink-0 bg-zinc-950"
                                         />
                                       )}
                                       <div className="min-w-0 flex-1">
-                                        <div className="text-xs font-black text-white truncate leading-tight">
+                                        <div className="text-xs font-black text-zinc-950 truncate leading-tight">
                                           {team.name}
                                         </div>
-                                        <div className="text-[10px] font-mono font-bold text-[#D7FF00] leading-tight">
+                                        <div className="text-[10px] font-mono font-bold text-zinc-800 leading-tight">
                                           {team.tier3Points} PTS • {team.tier3WWCD}W
                                         </div>
                                       </div>
@@ -5859,9 +5859,9 @@ export default function App() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex items-center justify-between rounded-xl glass-tile px-3.5 py-2.5 text-xs font-bold text-zinc-200">
+                              <div className="hof-stat-tile hof-podium-strip hidden lg:flex items-center justify-between rounded-xl home-card-lime-tile px-3.5 py-2.5 text-xs font-bold text-zinc-950">
                                 <span>Rekod Tier 3 akan keluar kat sini lepas match disimpan.</span>
-                                <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase text-[#D7FF00] shrink-0">
+                                <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase text-zinc-950 shrink-0">
                                   <span>Buka Tier 3</span>
                                   <ArrowRight className="w-3 h-3" />
                                 </span>
@@ -5873,7 +5873,7 @@ export default function App() {
 
                       {/* Bottom Slide Switcher Bar + Crossfading Teaser + Sliding Toggle Control */}
                       <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-                        <div className="hof-crossfade-stack text-[10px] font-mono font-bold text-zinc-200 min-w-0 flex-1">
+                        <div className="hof-crossfade-stack text-[10px] font-mono font-bold text-zinc-900 min-w-0 flex-1">
                           <span
                             data-active={homeHofSlide === 0}
                             aria-hidden={homeHofSlide !== 0}
@@ -5896,13 +5896,13 @@ export default function App() {
 
                         <div
                           data-hof-controls
-                          className="flex items-center gap-1 glass-pill rounded-full p-0.5 touch-manipulation shrink-0"
+                          className="flex items-center gap-1 bg-zinc-950 rounded-full p-0.5 touch-manipulation shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="relative grid grid-cols-2 items-center rounded-full">
                             <span
                               aria-hidden="true"
-                              className="hof-toggle-thumb pointer-events-none absolute inset-y-0 left-0 w-1/2 rounded-full bg-[#D7FF00] shadow-[0_2px_10px_rgba(215,255,0,0.3)]"
+                              className="hof-toggle-thumb pointer-events-none absolute inset-y-0 left-0 w-1/2 rounded-full bg-[#D7FF00]"
                               style={{ transform: `translate3d(${homeHofSlide * 100}%, 0, 0)` }}
                             />
                             <button
@@ -5911,7 +5911,7 @@ export default function App() {
                               aria-label="Paparan Semua Ranking"
                               aria-current={homeHofSlide === 0 ? 'true' : undefined}
                               className={`relative z-10 px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition-colors duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-95 touch-manipulation text-center ${
-                                homeHofSlide === 0 ? 'text-black' : 'text-zinc-300 hover:text-white'
+                                homeHofSlide === 0 ? 'text-zinc-950' : 'text-zinc-300 hover:text-white'
                               }`}
                             >
                               Semua
@@ -5922,7 +5922,7 @@ export default function App() {
                               aria-label="Paparan Ranking Tier 3"
                               aria-current={homeHofSlide === 1 ? 'true' : undefined}
                               className={`relative z-10 px-2.5 py-1 rounded-full text-[10px] font-mono font-black transition-colors duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-95 touch-manipulation text-center ${
-                                homeHofSlide === 1 ? 'text-black' : 'text-zinc-300 hover:text-white'
+                                homeHofSlide === 1 ? 'text-zinc-950' : 'text-zinc-300 hover:text-white'
                               }`}
                             >
                               Tier 3
@@ -5933,7 +5933,7 @@ export default function App() {
                             onClick={() => setIsHomeHofPaused((prev) => !prev)}
                             aria-label={isHomeHofPaused ? 'Mainkan slaid' : 'Jeda slaid'}
                             title={isHomeHofPaused ? 'Mainkan slaid automatik' : 'Jeda slaid automatik'}
-                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#D7FF00] hover:text-black text-white flex items-center justify-center transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-90 touch-manipulation"
+                            className="w-6 h-6 rounded-full bg-zinc-800 hover:bg-[#D7FF00] hover:text-zinc-950 text-white flex items-center justify-center transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00] active:scale-90 touch-manipulation"
                           >
                             {isHomeHofPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
                           </button>
@@ -5942,7 +5942,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* CARD B: Left Tall Card (Pink Accent) — [Results Scanner] */}
+                  {/* CARD B: Left Tall Card (Bright Pink) — [Results Scanner] */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -5954,35 +5954,35 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '160ms' }}
-                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 glass-pink text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
+                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 home-card-pink text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
                   >
                     {/* Top Icon */}
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-11 h-11 rounded-2xl glass-tile text-pink-200 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                      <div className="w-11 h-11 rounded-2xl bg-[#EE7EB1] text-zinc-950 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <Upload className="w-5 h-5 stroke-[2]" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-pink-100 group-hover:translate-x-0.5 transition-transform" />
+                      <ArrowRight className="w-4 h-4 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
                     </div>
 
                     {/* Specific Capability Summary */}
                     <div className="my-auto py-4 relative z-10">
-                      <p className="text-xs font-medium text-pink-50 leading-relaxed text-pretty">
+                      <p className="text-xs font-semibold text-zinc-900 leading-relaxed text-pretty">
                         Upload poster untuk extract &amp; check markah.
                       </p>
                     </div>
 
                     {/* Bottom Title & Last Scanned History */}
                     <div className="space-y-1.5 relative z-10">
-                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight text-balance">
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-950 leading-tight text-balance">
                         Imbas Keputusan
                       </h2>
-                      <p className="text-[11px] font-medium text-pink-50/95 leading-snug line-clamp-2">
-                        Terkini: <strong className="text-white font-bold">{lastScannedLabel}</strong>
+                      <p className="text-[11px] font-medium text-zinc-900 leading-snug line-clamp-2">
+                        Terkini: <strong className="text-zinc-950 font-bold">{lastScannedLabel}</strong>
                       </p>
                     </div>
                   </div>
 
-                  {/* CARD C: Top-Right Card (Blue Accent) — [Quick Scorer] */}
+                  {/* CARD C: Top-Right Card (Bright Sky Blue) — [Quick Scorer] */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -5994,26 +5994,26 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '230ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 glass-blue text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 home-card-blue text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl glass-tile text-blue-200 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                      <div className="w-10 h-10 rounded-2xl bg-[#6EAEF2] text-zinc-950 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <Edit3 className="w-4 h-4 stroke-[2]" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-blue-100 group-hover:translate-x-0.5 transition-transform" />
+                      <ArrowRight className="w-4 h-4 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
                     </div>
 
                     <div className="space-y-1 pt-3 relative z-10">
-                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight text-balance">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-zinc-950 leading-tight text-balance">
                         Quick Scorer
                       </h2>
-                      <p className="text-[11px] font-medium text-blue-50 truncate">
+                      <p className="text-[11px] font-semibold text-zinc-900 truncate">
                         {quickScorerPreviewTitle}
                       </p>
                     </div>
                   </div>
 
-                  {/* CARD D: Bottom-Right Card (Green Accent) — [Rekod / Match Logs] */}
+                  {/* CARD D: Bottom-Right Card (Bright Mint Emerald) — [Rekod / Match Logs] */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -6025,22 +6025,22 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '300ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 glass-emerald text-white lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color,border-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 home-card-emerald text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="flex items-center justify-between gap-2 relative z-10">
-                      <div className="w-10 h-10 rounded-2xl glass-tile text-emerald-200 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                      <div className="w-10 h-10 rounded-2xl bg-[#61CF8B] text-zinc-950 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <Clock className="w-4 h-4 stroke-[2]" />
                       </div>
 
                       {latestRekodSession && (
                         latestRekodFinished ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-200 text-[10px] font-mono font-bold">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-950 text-white text-[10px] font-mono font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                             <span>Selesai</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-200 text-[10px] font-mono font-bold">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-950 text-white text-[10px] font-mono font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                             <span>Live</span>
                           </span>
                         )
@@ -6048,10 +6048,10 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1 pt-3 relative z-10">
-                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-white leading-tight text-balance">
+                      <h2 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-zinc-950 leading-tight text-balance">
                         Rekod Kejohanan
                       </h2>
-                      <p className="text-[11px] font-medium text-emerald-50 truncate">
+                      <p className="text-[11px] font-semibold text-zinc-900 truncate">
                         {latestRekodTitle}
                       </p>
                     </div>
