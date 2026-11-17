@@ -213,7 +213,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
   if (items.length === 0) {
     return (
       <div className="glass-panel rounded-2xl p-5 text-center text-xs text-zinc-400">
-        Belum ada rekod scrim untuk tunjuk graf Kills &amp; PP.
+        Belum ada rekod scrim untuk tunjuk graf Elims &amp; PP.
       </div>
     );
   }
@@ -234,14 +234,14 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
             <span>Prestasi Per Scrim</span>
           </span>
           <h3 className="text-sm sm:text-base font-black text-white tracking-tight mt-0.5">
-            Kills vs Placement Points
+            Elims vs Placement Points
           </h3>
         </div>
 
         <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D7FF00]/12 text-[#D7FF00]">
             <span className="w-2 h-2 rounded-full bg-[#D7FF00] shadow-[0_0_6px_#D7FF00]" />
-            <span>Kills</span>
+            <span>Elims</span>
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-500/12 text-teal-300">
             <span className="w-2 h-2 rounded-full bg-teal-400 shadow-[0_0_6px_#2dd4bf]" />
@@ -253,7 +253,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       {/* LEVEL 2: Hierarchy Insight Strip (Averages & Peak Callout) */}
       <div className="grid grid-cols-3 gap-2 relative z-10">
         <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Avg Kills</span>
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Avg Elims</span>
           <span className="text-xs sm:text-sm font-black font-mono text-[#D7FF00]">
             {avgKills} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
           </span>
@@ -283,7 +283,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
               <span className="text-zinc-400 font-mono text-[10px]">(#{activePoint.ranking})</span>
             </span>
             <div className="flex items-center gap-2.5 font-mono font-bold shrink-0">
-              <span className="text-[#D7FF00]">{activePoint.kills} K</span>
+              <span className="text-[#D7FF00]">{activePoint.kills} Elims</span>
               <span className="text-teal-300">{activePoint.pp} PP</span>
               <span className="text-white">{activePoint.points} PTS</span>
             </div>
@@ -292,13 +292,13 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
           <>
             <span className="text-zinc-400 truncate">
               {items.length === 1
-                ? `${items[0].scrimName}: ${items[0].kills} Kills • ${items[0].pp} PP`
+                ? `${items[0].scrimName}: ${items[0].kills} Elims • ${items[0].pp} PP`
                 : 'Tap mana-mana titik untuk check detail'}
             </span>
             {bestScrim && (
               <span className="font-mono text-[10px] text-zinc-400 shrink-0">
-                Max: <strong className="text-[#D7FF00]">{peakKills}K</strong> •{' '}
-                <strong className="text-teal-300">{peakPp}PP</strong>
+                Max: <strong className="text-[#D7FF00]">{peakKills} Elims</strong> •{' '}
+                <strong className="text-teal-300">{peakPp} PP</strong>
               </span>
             )}
           </>
@@ -311,7 +311,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
           viewBox={`0 0 ${svgW} ${svgH}`}
           className="w-full h-auto overflow-visible"
           role="img"
-          aria-label="Smooth chart comparing Kills and Placement Points by scrim"
+          aria-label="Smooth chart comparing Elims and Placement Points by scrim"
           onMouseLeave={() => setHoveredIdx(null)}
         >
           <defs>
@@ -477,15 +477,15 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
                 {/* Peak / Selected Numeric Value Callout */}
                 {(isPeakK || isHovered) && (
                   <text
-                    x={kPt.x}
+                    x={i === 0 ? Math.max(kPt.x, 28) : i === items.length - 1 ? Math.min(kPt.x, svgW - 28) : kPt.x}
                     y={Math.max(12, kPt.y - 10)}
                     textAnchor="middle"
                     fill="#D7FF00"
-                    fontSize="10"
+                    fontSize="9.5"
                     fontWeight="800"
                     fontFamily="ui-monospace, SFMono-Regular, monospace"
                   >
-                    {d.kills}K
+                    {d.kills} Elims
                   </text>
                 )}
                 {(isPeakP || isHovered) && (

@@ -491,7 +491,7 @@ export default function ScrimDataHubView({
         total_points: Number(r.placement_points || 0) + Number(r.kill_points || 0)
       }))
     );
-    showToast('Total (PP + KP) dah dikira semula!');
+    showToast('Total (PP + Elims) dah dikira semula!');
   };
 
   const handleResetPage = () => {
@@ -709,7 +709,7 @@ export default function ScrimDataHubView({
         <div className="p-3.5 glass-panel rounded-2xl text-xs text-zinc-200 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
           <Sparkles className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
           <p className="leading-relaxed flex-1">
-            Upload poster scrim atau tournament untuk check markah (PP + KP) &amp; save ke rekod.
+            Upload poster scrim atau tournament untuk check markah (PP + Elims) &amp; save ke rekod.
           </p>
           <button
             type="button"
@@ -831,7 +831,7 @@ export default function ScrimDataHubView({
                       <span className="text-[#D7FF00] underline">pilih file</span>
                     </p>
                     <p className="text-[11px] text-zinc-300 font-mono">
-                      Auto check kiraan (PP + KP = Total)
+                      Auto check kiraan (PP + Elims = Total)
                     </p>
                   </div>
                 </div>
@@ -943,7 +943,7 @@ export default function ScrimDataHubView({
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] text-[11px] font-bold">
                         <CheckCircle className="w-3 h-3" />
-                        <span>Semua Kiraan OK (PP+KP=Total)</span>
+                        <span>Semua Kiraan OK (PP+Elims=Total)</span>
                       </span>
                     )}
                   </div>
@@ -989,7 +989,7 @@ export default function ScrimDataHubView({
                     type="button"
                     onClick={handleAutoCalculateTotals}
                     className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-200 hover:text-black text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-                    title="Paksa kira semula Total = PP + KP untuk semua baris"
+                    title="Paksa kira semula Total = PP + Elims untuk semua baris"
                   >
                     <Zap className="w-3.5 h-3.5 text-[#D7FF00] fill-current" />
                     <span className="hidden sm:inline">Auto-Calculate</span>
@@ -1214,7 +1214,7 @@ export default function ScrimDataHubView({
 
                           <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
-                              KP
+                              Elims
                             </span>
                             <input
                               type="number"
@@ -1254,7 +1254,7 @@ export default function ScrimDataHubView({
                               <span className="text-rose-400 font-bold flex items-center gap-1">
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 <span>
-                                  PP({pp}) + KP({kp}) ≠ {tot}
+                                  PP({pp}) + Elims({kp}) ≠ {tot}
                                 </span>
                                 <button
                                   type="button"
@@ -1268,7 +1268,7 @@ export default function ScrimDataHubView({
                               </span>
                             ) : (
                               <span className="text-zinc-400 font-mono text-[10px]">
-                                ✓ PP({pp}) + KP({kp}) = {tot} PTS Sah
+                                ✓ PP({pp}) + Elims({kp}) = {tot} PTS Sah
                               </span>
                             )}
                           </div>
@@ -1300,7 +1300,7 @@ export default function ScrimDataHubView({
                         </th>
                         <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
                         <th className="py-2.5 px-2 w-20 text-center">PP</th>
-                        <th className="py-2.5 px-2 w-20 text-center">KP</th>
+                        <th className="py-2.5 px-2 w-20 text-center">ELIMS</th>
                         <th className="py-2.5 px-2 w-24 text-center">Total</th>
                         <th className="py-2.5 px-2 w-24 text-center">Status</th>
                         <th className="py-2.5 px-2 w-12 text-center">Actions</th>

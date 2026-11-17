@@ -164,7 +164,7 @@ export default function LegacyGuestLandingView({
       title: 'Kira Segera (Quick Scorer)',
       icon: Zap,
       badge: 'TANPA LOGIN',
-      description: 'Kalkulator markah scrim pantas di browser — terus isi kedudukan & kills setiap pusingan tanpa perlu daftar akaun.',
+      description: 'Kalkulator markah scrim pantas di browser — terus isi kedudukan & Elims setiap pusingan tanpa perlu daftar akaun.',
       pills: ['1–5 Match', 'Format Point PMPL', 'Tanpa Login'],
       footerText: 'Buka Quick Scorer Sekarang →',
       onAction: handleStartScoringSession,
@@ -263,7 +263,7 @@ export default function LegacyGuestLandingView({
             </div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 text-[10px] font-mono text-[#D7FF00]">
               <CheckCircle className="w-3 h-3 text-[#D7FF00]" />
-              <span>PP + KP = Total Verified</span>
+              <span>PP + Elims = Total Verified</span>
             </div>
           </div>
           <div className="relative shrink-0">
