@@ -6936,7 +6936,7 @@ export default function App() {
                   <div
                     role="group"
                     aria-label="Tapis Tier Team Matrix"
-                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-2.5 -my-2 px-1 -mx-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-5 -my-4 px-2 -mx-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {HALL_OF_FAME_FILTERS.map((cat) => {
                       const isActive = teamStatsCategory === cat.key;

@@ -537,21 +537,32 @@ body {
   }
 }
 
-/* Animated Yellow Glow Pill for Special SSS Filter */
+/* Animated Yellow Glow Pill for Special SSS Filter (Seamless Halo + Rotating Border Beam) */
+@property --sss-glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes sssYellowBorderSpin {
+  0% {
+    --sss-glow-angle: 0deg;
+  }
+  100% {
+    --sss-glow-angle: 360deg;
+  }
+}
+
 @keyframes sssYellowGlowBreath {
   0%, 100% {
-    border-color: rgba(250, 204, 21, 0.48);
     box-shadow:
-      inset 0 1px 0 rgba(254, 240, 138, 0.38),
-      0 0 10px rgba(250, 204, 21, 0.22),
-      0 0 20px rgba(234, 179, 8, 0.12);
+      inset 0 0 10px rgba(250, 204, 21, 0.12),
+      0 0 8px rgba(250, 204, 21, 0.24);
   }
   50% {
-    border-color: rgba(250, 204, 21, 0.92);
     box-shadow:
-      inset 0 1px 0 rgba(254, 240, 138, 0.68),
-      0 0 16px rgba(250, 204, 21, 0.56),
-      0 0 28px rgba(234, 179, 8, 0.26);
+      inset 0 0 14px rgba(250, 204, 21, 0.24),
+      0 0 14px rgba(250, 204, 21, 0.46);
   }
 }
 
@@ -559,14 +570,12 @@ body {
   0%, 100% {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.65),
-      0 0 14px rgba(250, 204, 21, 0.45),
-      0 0 26px rgba(234, 179, 8, 0.22);
+      0 0 10px rgba(250, 204, 21, 0.44);
   }
   50% {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 0 22px rgba(250, 204, 21, 0.82),
-      0 0 36px rgba(234, 179, 8, 0.38);
+      0 0 16px rgba(250, 204, 21, 0.72);
   }
 }
 
@@ -589,36 +598,71 @@ body {
 }
 
 .sss-filter-pill {
+  --sss-glow-angle: 0deg;
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background-color: rgba(250, 204, 21, 0.11);
-  border: 1px solid rgba(250, 204, 21, 0.58);
+  border: 1.5px solid transparent;
+  background-color: transparent;
+  background-image:
+    linear-gradient(#120f04, #120f04),
+    conic-gradient(
+      from var(--sss-glow-angle),
+      rgba(250, 204, 21, 0.22) 0deg,
+      rgba(250, 204, 21, 0.22) 205deg,
+      rgba(254, 240, 138, 0.98) 285deg,
+      #facc15 322deg,
+      rgba(250, 204, 21, 0.22) 360deg
+    );
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
   color: #fde047;
   font-weight: 800;
   letter-spacing: 0.03em;
   box-shadow:
-    inset 0 1px 0 rgba(254, 240, 138, 0.42),
-    0 0 12px rgba(250, 204, 21, 0.28);
+    inset 0 0 12px rgba(250, 204, 21, 0.14),
+    0 0 11px rgba(250, 204, 21, 0.28);
 }
 
 .sss-filter-pill:hover {
-  background-color: rgba(250, 204, 21, 0.2);
+  background-image:
+    linear-gradient(#1e1805, #1e1805),
+    conic-gradient(
+      from var(--sss-glow-angle),
+      rgba(250, 204, 21, 0.32) 0deg,
+      rgba(250, 204, 21, 0.32) 195deg,
+      #fef9c3 285deg,
+      #facc15 325deg,
+      rgba(250, 204, 21, 0.32) 360deg
+    );
   color: #fef08a;
 }
 
 .sss-filter-pill-active {
+  --sss-glow-angle: 0deg;
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background-color: #facc15;
-  border: 1px solid #fef08a;
+  border: 1.5px solid transparent;
+  background-color: transparent;
+  background-image:
+    linear-gradient(#facc15, #eab308),
+    conic-gradient(
+      from var(--sss-glow-angle),
+      rgba(250, 204, 21, 0.55) 0deg,
+      rgba(250, 204, 21, 0.55) 210deg,
+      #ffffff 290deg,
+      #fef08a 325deg,
+      rgba(250, 204, 21, 0.55) 360deg
+    );
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
   color: #09090b;
   font-weight: 900;
   letter-spacing: 0.03em;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 0 18px rgba(250, 204, 21, 0.62);
+    0 0 13px rgba(250, 204, 21, 0.52);
 }
 
 .sss-filter-pill::after,
@@ -632,7 +676,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(254, 240, 138, 0.42) 50%,
+    rgba(254, 240, 138, 0.34) 50%,
     transparent 100%
   );
   transform: translate3d(-160%, 0, 0) skewX(-22deg);
@@ -642,17 +686,21 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.62) 50%,
+    rgba(255, 255, 255, 0.56) 50%,
     transparent 100%
   );
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .sss-filter-pill {
-    animation: sssYellowGlowBreath 3s ease-in-out infinite;
+    animation:
+      sssYellowBorderSpin 3.2s linear infinite,
+      sssYellowGlowBreath 2.8s ease-in-out infinite;
   }
   .sss-filter-pill-active {
-    animation: sssYellowGlowActive 2.6s ease-in-out infinite;
+    animation:
+      sssYellowBorderSpin 2.6s linear infinite,
+      sssYellowGlowActive 2.4s ease-in-out infinite;
   }
   .sss-filter-pill::after,
   .sss-filter-pill-active::after {
