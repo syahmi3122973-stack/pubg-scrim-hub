@@ -4869,7 +4869,7 @@ export default function App() {
     const easeSpring = (u) => {
       if (u <= 0) return 0;
       if (u >= 1) return 1;
-      return 1 - Math.pow(1 - u, 3.55);
+      return 1 - Math.pow(1 - u, direction === 'open' ? 3.15 : 2.75);
     };
 
     const frames = [];
@@ -4900,7 +4900,7 @@ export default function App() {
       };
 
       if (direction === 'close') {
-        frame.opacity = i === steps ? 0 : u > 0.9 ? Math.max(0, 1 - (u - 0.9) / 0.1) : 1;
+        frame.opacity = i === steps ? 0 : u >= 0.78 ? Math.max(0, 1 - (u - 0.78) / 0.22) : 1;
       }
 
       frames.push(frame);
@@ -4915,6 +4915,7 @@ export default function App() {
 
     const isTeamMorph = Boolean(teamMorphState);
     const fgEl = morphFgWindowRef.current;
+    const fgContentEl = morphFgContentRef.current;
     const tintEl = morphTintRef.current;
     const bgEl = morphBgRef.current;
 
@@ -4925,6 +4926,7 @@ export default function App() {
     const vpH = window.innerHeight || 844;
 
     cancelElementAnimations(fgEl);
+    cancelElementAnimations(fgContentEl);
     cancelElementAnimations(tintEl);
     cancelElementAnimations(bgEl);
 
@@ -5064,7 +5066,6 @@ export default function App() {
         if (activeCardEl) {
           activeCardEl.style.transition = '';
           activeCardEl.style.opacity = '';
-          activeCardEl.focus({ preventScroll: true });
         }
         if (isTeamMorph) {
           setSelectedTeamProfile('');
@@ -5082,15 +5083,24 @@ export default function App() {
           fill: 'forwards'
         });
 
+        fgContentEl?.animate(
+          [
+            { opacity: 1, offset: 0 },
+            { opacity: 1, offset: 0.16 },
+            { opacity: 0, offset: 0.62 },
+            { opacity: 0, offset: 1 }
+          ],
+          { duration, easing: 'ease-out', fill: 'forwards' }
+        );
+
         tintEl?.animate(
           [
             { opacity: 0, offset: 0 },
-            { opacity: 0, offset: 0.34 },
-            { opacity: 0.9, offset: 0.78 },
-            { opacity: 1, offset: 0.9 },
-            { opacity: 0, offset: 1 }
+            { opacity: 0, offset: 0.18 },
+            { opacity: 1, offset: 0.66 },
+            { opacity: 1, offset: 1 }
           ],
-          { duration, easing: 'ease-in-out', fill: 'forwards' }
+          { duration, easing: 'ease-out', fill: 'forwards' }
         );
 
         bgEl?.animate(
@@ -5112,13 +5122,13 @@ export default function App() {
           bgEl.style.opacity = '';
         }
 
+        // Reveal the real card beneath while fgEl is still 100% opaque solid card-color (0 flash)
         morphRevealTimerRef.current = window.setTimeout(() => {
           if (cancelled) return;
           if (activeCardEl) {
-            activeCardEl.style.transition = 'opacity 80ms ease-out';
             activeCardEl.style.opacity = '1';
           }
-        }, Math.round(duration * 0.8));
+        }, Math.round(duration * 0.72));
 
         if (fgAnim?.finished) {
           fgAnim.finished.then(finishClose).catch(() => {});
@@ -5133,6 +5143,7 @@ export default function App() {
         window.cancelAnimationFrame(rafId);
       }
       cancelElementAnimations(fgEl);
+      cancelElementAnimations(fgContentEl);
       cancelElementAnimations(tintEl);
       cancelElementAnimations(bgEl);
       if (fgEl) {
