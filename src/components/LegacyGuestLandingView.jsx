@@ -436,7 +436,7 @@ export default function LegacyGuestLandingView({
                       )}
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-white/10">
+                    <div className="mt-4 pt-2">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-pill text-[11px] font-semibold text-zinc-100 w-full">
                         <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black flex items-center justify-center shrink-0 group-hover/card:translate-x-0.5 transition-transform">
                           <ArrowRight className="w-3 h-3 stroke-[2.5]" />

@@ -110,7 +110,7 @@ function TikTokPreviewCard({ post }) {
   const fallbackThumbnail = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80";
 
   return (
-    <div className="relative w-full max-w-[320px] mx-auto aspect-[9/15] rounded-3xl overflow-hidden bg-black border border-zinc-800 shadow-2xl flex flex-col justify-between p-4 group select-none">
+    <div className="relative w-full max-w-[320px] mx-auto aspect-[9/15] rounded-3xl overflow-hidden bg-[#111114] shadow-2xl flex flex-col justify-between p-4 group select-none">
       <img
         src={post.media_url || fallbackThumbnail}
         alt={post.title}
@@ -119,7 +119,7 @@ function TikTokPreviewCard({ post }) {
       <div className="absolute inset-0 bg-black/55" />
 
       <div className="relative z-10 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-[11px] font-bold">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141418] text-white text-[11px] font-bold">
           <TikTokIcon className="w-3.5 h-3.5 text-[#00f2fe]" />
           <span>TikTok Clip</span>
         </div>
@@ -135,7 +135,7 @@ function TikTokPreviewCard({ post }) {
         rel="noopener noreferrer"
         className="relative z-10 flex flex-col items-center justify-center my-auto group/btn cursor-pointer"
       >
-        <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:bg-lime-400 group-hover/btn:text-slate-950 group-hover/btn:border-lime-300">
+        <div className="w-16 h-16 rounded-full bg-[#1C1C22] flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:bg-lime-400 group-hover/btn:text-slate-950">
           <Play className="w-7 h-7 fill-current translate-x-0.5" />
         </div>
         <span className="mt-2.5 text-xs font-mono font-semibold text-slate-300 tracking-wide uppercase group-hover/btn:text-white transition-colors">
@@ -5023,7 +5023,7 @@ export default function App() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] glass-pill text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_25px_rgba(215,255,0,0.2)] font-bold text-xs flex items-center gap-2 border-[#D7FF00]/45 animate-feedback-pop max-w-[90vw] text-center"
+          className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] bg-[#18181D] text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.75)] font-bold text-xs flex items-center gap-2 animate-feedback-pop max-w-[90vw] text-center"
         >
           <CheckCircle className="w-4 h-4 text-[#D7FF00] shrink-0" />
           <span className="truncate">{toastMessage}</span>
@@ -5043,7 +5043,7 @@ export default function App() {
                   onClick={() => setIsProfileModalOpen(true)}
                   aria-label="Open Host Profile Drawer"
                   title="Profil Host & Ringkasan Sesi"
-                  className="relative w-10 h-10 rounded-full bg-zinc-900 border-2 border-[#D7FF00]/40 hover:border-[#D7FF00] flex items-center justify-center overflow-hidden shadow-[0_0_16px_rgba(215,255,0,0.15)] transition-all active:scale-95 cursor-pointer group"
+                  className="relative w-10 h-10 rounded-full bg-[#18181D] hover:bg-[#222229] flex items-center justify-center overflow-hidden transition-all active:scale-95 cursor-pointer group"
                 >
                   {profileAvatarUrl ? (
                     <img
@@ -5085,7 +5085,7 @@ export default function App() {
                 <img 
                   src="/logo.png" 
                   alt="RYKHOR Scrim Hub" 
-                  className="w-9 h-9 rounded-full object-cover border border-[#D7FF00]/35 group-hover:scale-105 transition-transform" 
+                  className="w-9 h-9 rounded-full object-cover group-hover:scale-105 transition-transform" 
                 />
                 <div className="flex flex-col leading-none">
                   <span className="text-sm font-black tracking-wide text-white group-hover:text-[#D7FF00] transition-colors">
@@ -5130,7 +5130,7 @@ export default function App() {
                   <div
                     role="dialog"
                     aria-label="Active User Account"
-                    className="w-full bg-black border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
+                    className="w-full bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
                   >
                     <div className="flex items-center justify-between px-1.5 pt-0.5">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
@@ -5159,10 +5159,10 @@ export default function App() {
                                 if (!isActive) handleSwitchAccount(acc);
                                 else setIsOrgPopoverOpen(false);
                               }}
-                              className={`w-full px-3 py-2 rounded-2xl border font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ${
+                              className={`w-full px-3 py-2 rounded-2xl font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ${
                                 isActive
-                                  ? 'bg-[#D7FF00]/15 text-white border-[#D7FF00]/40 shadow-sm'
-                                  : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 border-white/5 hover:border-white/10'
+                                  ? 'bg-[#1F240D] text-white'
+                                  : 'bg-[#1B1B21] hover:bg-[#23232B] text-zinc-300'
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
@@ -5207,7 +5207,7 @@ export default function App() {
                           );
                         })
                       ) : (
-                        <div className="w-full px-3 py-2 rounded-2xl bg-[#D7FF00]/15 text-white border border-[#D7FF00]/30 font-bold flex items-center justify-between gap-2 text-left text-xs">
+                        <div className="w-full px-3 py-2 rounded-2xl bg-[#1F240D] text-white font-bold flex items-center justify-between gap-2 text-left text-xs">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-8 h-8 rounded-full bg-[#D7FF00] text-black font-black text-[11px] flex items-center justify-center shrink-0">
                               {primaryAccountName.slice(0, 2).toUpperCase()}
@@ -5263,7 +5263,7 @@ export default function App() {
 
           {/* TOP RIGHT: Desktop Navigation & Menu */}
           <div className="flex items-center gap-2 z-10">
-            <nav className="hidden md:flex space-x-1 glass-pill p-1 rounded-2xl text-xs font-semibold items-center">
+            <nav className="hidden md:flex space-x-1 glass-nav-liquid p-1 rounded-2xl text-xs font-semibold items-center">
               <button
                 type="button"
                 onClick={() => navigateToTab('playground')}
@@ -5348,7 +5348,7 @@ export default function App() {
                   setPendingCloudSync(false);
                   setIsAuthModalOpen(true);
                 }}
-                className="px-4 py-1.5 rounded-full text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.3)] active:scale-95 cursor-pointer"
+                className="px-4 py-1.5 rounded-full text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
                 title="Log masuk akaun penganjur"
               >
                 <LogIn className="w-3.5 h-3.5 text-black stroke-[2.4]" />
@@ -5361,10 +5361,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-                className={'p-2 rounded-full transition flex items-center justify-center cursor-pointer ' + (
+                className={'p-2 rounded-full transition flex items-center justify-center cursor-pointer glass-nav-liquid ' + (
                   isNavMenuOpen 
-                    ? 'bg-white/[0.14] text-[#D7FF00] border border-[#D7FF00]/40 backdrop-blur-md' 
-                    : 'glass-pill glass-tile-hover text-zinc-300'
+                    ? 'text-[#D7FF00]' 
+                    : 'text-zinc-300 hover:text-white'
                 )}
                 title="Menu"
                 aria-label="Navigation Menu"
@@ -5378,9 +5378,9 @@ export default function App() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsNavMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-48 bg-black border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/10 text-xs origin-top-right animate-dropdown-reveal">
+                  <div className="absolute right-0 mt-2 w-48 bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-2xl overflow-hidden z-50 py-1.5 divide-y divide-white/5 text-xs origin-top-right animate-dropdown-reveal">
                     {isMasterAdmin && (
-                      <div className="py-1 bg-[#D7FF00]/5 border-b border-[#D7FF00]/20">
+                      <div className="py-1 bg-[#1A1F0C]">
                         <button
                           type="button"
                           onClick={() => {
@@ -6034,12 +6034,12 @@ export default function App() {
 
                       {latestRekodSession && (
                         latestRekodFinished ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 backdrop-blur-md border border-emerald-300/25 text-emerald-100 text-[10px] font-mono font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-200 text-[10px] font-mono font-bold">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
                             <span>Selesai</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/75 backdrop-blur-md border border-amber-300/25 text-amber-100 text-[10px] font-mono font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-200 text-[10px] font-mono font-bold">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
                             <span>Live</span>
                           </span>
@@ -6068,7 +6068,7 @@ export default function App() {
                   <div className="lg:col-span-7 glass-panel rounded-[2rem] p-6 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/15 border border-[#D7FF00]/25 text-[#D7FF00] flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center">
                           <Flame className="w-4 h-4" />
                         </div>
                         <div>
@@ -6159,7 +6159,7 @@ export default function App() {
                               <span
                                 className={`w-8 h-8 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
                                   idx === 0
-                                    ? (homeContendersCategory === 'TIER_3' ? 'bg-amber-400 text-black shadow-[0_0_14px_rgba(245,158,11,0.28)]' : 'bg-[#D7FF00] text-black shadow-[0_0_14px_rgba(215,255,0,0.28)]')
+                                    ? (homeContendersCategory === 'TIER_3' ? 'bg-amber-400 text-black' : 'bg-[#D7FF00] text-black')
                                     : idx === 1
                                     ? 'bg-zinc-200 text-black'
                                     : idx === 2
@@ -6485,10 +6485,10 @@ export default function App() {
                         <img
                           src={activeTeamData.logo_url}
                           alt={activeTeamData.name}
-                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover shadow-[0_0_25px_rgba(215,255,0,0.22)] shrink-0"
+                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover bg-[#19191E] shrink-0"
                         />
                       ) : (
-                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-[#D7FF00] flex items-center justify-center text-black font-black text-2xl shadow-lg shrink-0">
+                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-[#D7FF00] flex items-center justify-center text-black font-black text-2xl shrink-0">
                           {activeTeamData.tag || activeTeamData.name.slice(0, 3).toUpperCase()}
                         </div>
                       )}
@@ -6497,7 +6497,7 @@ export default function App() {
                           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
                             {activeTeamData.name}
                           </h1>
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#D7FF00]/15 text-[#D7FF00] font-mono text-xs font-black">
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#1F240D] text-[#D7FF00] font-mono text-xs font-black">
                             #{overallRank}
                           </span>
                         </div>
@@ -6526,7 +6526,7 @@ export default function App() {
                           className={`px-3 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                             isEvActive
                               ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                              : 'bg-[#19191E] text-zinc-300 hover:bg-[#222229] hover:text-white'
                           }`}
                         >
                           <span>{ev.label}</span>
@@ -6544,7 +6544,7 @@ export default function App() {
                           className={`px-3.5 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer ${
                             isActive
                               ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                              : 'bg-[#19191E] text-zinc-300 hover:bg-[#222229] hover:text-white'
                           }`}
                         >
                           {cat.label}
@@ -6889,8 +6889,8 @@ export default function App() {
                     className={
                       'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                       (isHallOfFameSearchOpen || teamSearchQuery
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white')
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                        : 'bg-[#18181D] hover:bg-[#222229] text-zinc-300 hover:text-white')
                     }
                     title="Cari pasukan"
                     aria-label="Cari pasukan"
@@ -6904,8 +6904,8 @@ export default function App() {
                     className={
                       'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                       (activeHeaderInfo === 'teams'
-                        ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white')
+                        ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                        : 'bg-[#18181D] hover:bg-[#222229] text-zinc-400 hover:text-white')
                     }
                     title="Info Team Matrix"
                     aria-label="Info Team Matrix"
@@ -6917,7 +6917,7 @@ export default function App() {
 
               {/* Expandable Info Card (if toggled) */}
               {activeHeaderInfo === 'teams' && (
-                <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
+                <div className="p-3.5 bg-[#141418] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
                   <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
                     Check ranking team, rekod WWCD &amp; buat kad Story 9:16.
@@ -6948,7 +6948,7 @@ export default function App() {
                       'px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all cursor-pointer ' +
                       (teamStatsEventType === 'ALL'
                         ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                        : 'bg-[#18181D] text-zinc-400 hover:bg-[#222229] hover:text-zinc-200')
                     }
                   >
                     Semua Event
@@ -6965,7 +6965,7 @@ export default function App() {
                           'px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ' +
                           (isEvActive
                             ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                            : 'bg-[#18181D] text-zinc-400 hover:bg-[#222229] hover:text-zinc-200')
                         }
                       >
                         <span>{ev.label}</span>
@@ -6998,7 +6998,7 @@ export default function App() {
                                 : 'sss-filter-pill'
                               : isActive
                                 ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                                : 'bg-[#18181D] text-zinc-400 hover:bg-[#222229] hover:text-zinc-200')
                           }
                         >
                           <span className="relative z-10">{cat.label}</span>
@@ -7176,12 +7176,12 @@ export default function App() {
               {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Sleek Dark Obsidian Surface, Amber Reserved for #1 & CTA) */}
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
-                  className="bg-zinc-900/95 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
+                  className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
                   style={{ '--blur-delay': '260ms' }}
                 >
                   <div className="flex items-center justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-2xl bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-2xl bg-[#19191E] text-zinc-200 flex items-center justify-center shrink-0">
                         <Award className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
@@ -7189,7 +7189,7 @@ export default function App() {
                           <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
                             Division Amateur
                           </h2>
-                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono tabular-nums font-bold text-[9px] uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-full bg-[#19191E] text-zinc-300 font-mono tabular-nums font-bold text-[9px] uppercase tracking-wider">
                             {tier3RankedTeams.length} Team
                           </span>
                         </div>
@@ -7215,15 +7215,15 @@ export default function App() {
                         key={`hof_t3_${t3Team.name}`}
                         type="button"
                         onClick={() => openTeamProfile(t3Team.name)}
-                        className="w-full text-left rounded-2xl bg-zinc-950/80 hover:bg-zinc-800/80 border border-zinc-800/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
+                        className="w-full text-left rounded-2xl bg-[#19191E] hover:bg-[#222229] px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className={`w-7 h-7 rounded-xl font-mono tabular-nums font-black text-xs flex items-center justify-center shrink-0 ${
                             idx === 0
-                              ? 'bg-amber-400 text-zinc-950 shadow-[0_0_12px_rgba(251,191,36,0.25)]'
+                              ? 'bg-amber-400 text-zinc-950'
                               : idx === 1
                               ? 'bg-zinc-200 text-zinc-950'
-                              : 'bg-zinc-800 border border-zinc-700 text-zinc-200'
+                              : 'bg-[#26262F] text-zinc-200'
                           }`}>
                             #{idx + 1}
                           </span>
@@ -7232,10 +7232,10 @@ export default function App() {
                             <img
                               src={t3Team.logo_url}
                               alt=""
-                              className="w-8 h-8 rounded-xl object-cover bg-zinc-900 shrink-0"
+                              className="w-8 h-8 rounded-xl object-cover bg-[#111114] shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 font-black text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-[#111114] text-zinc-200 font-black text-[11px] flex items-center justify-center shrink-0">
                               {(t3Team.tag || t3Team.name.slice(0, 3)).toUpperCase()}
                             </div>
                           )}
@@ -7489,7 +7489,7 @@ export default function App() {
                                 <div className="flex items-center justify-center my-2 sm:my-3">
                                   {team.logo_url ? (
                                     <div
-                                      className={`rounded-xl sm:rounded-2xl bg-black/45 border border-white/10 p-1.5 sm:p-2 shadow-lg group-hover:scale-105 transition-transform duration-300 flex items-center justify-center ${
+                                      className={`rounded-xl sm:rounded-2xl bg-[#111114] p-1.5 sm:p-2 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center ${
                                         isFirst ? 'w-14 h-14 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-16 sm:h-16'
                                       }`}
                                     >
@@ -7501,7 +7501,7 @@ export default function App() {
                                     </div>
                                   ) : (
                                     <div
-                                      className={`rounded-xl sm:rounded-2xl flex items-center justify-center font-black shadow-lg group-hover:scale-105 transition-transform duration-300 ${
+                                      className={`rounded-xl sm:rounded-2xl flex items-center justify-center font-black group-hover:scale-105 transition-transform duration-300 ${
                                         isFirst ? 'w-14 h-14 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-16 sm:h-16'
                                       } ${fallbackPedestalBg}`}
                                     >
@@ -7565,7 +7565,7 @@ export default function App() {
                                 style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
                                 className={`px-3 sm:px-4 py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
-                                    ? 'bg-white/[0.11] border border-[#D7FF00]/45 shadow-[0_0_20px_rgba(215,255,0,0.08)]'
+                                    ? 'bg-[#22280F]'
                                     : 'glass-tile glass-tile-hover'
                                 }`}
                               >
@@ -7590,16 +7590,16 @@ export default function App() {
                                     <img
                                       src={team.logo_url}
                                       alt=""
-                                      className="sm:hidden w-8 h-8 rounded-lg object-contain bg-zinc-950 border border-white/10 p-0.5 shrink-0"
+                                      className="sm:hidden w-8 h-8 rounded-lg object-contain bg-[#111114] p-0.5 shrink-0"
                                     />
                                   ) : (
-                                    <span className="sm:hidden px-1.5 py-1 min-w-[38px] text-center rounded-lg font-mono font-black text-[10px] uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
+                                    <span className="sm:hidden px-1.5 py-1 min-w-[38px] text-center rounded-lg font-mono font-black text-[10px] uppercase shrink-0 bg-[#111114] text-zinc-200">
                                       {tagText}
                                     </span>
                                   )}
 
                                   {/* Desktop Tag Pill */}
-                                  <span className="hidden sm:inline-block px-2 py-0.5 min-w-[54px] text-center rounded-md font-mono font-black text-xs uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
+                                  <span className="hidden sm:inline-block px-2 py-0.5 min-w-[54px] text-center rounded-md font-mono font-black text-xs uppercase shrink-0 bg-[#111114] text-zinc-200">
                                     {tagText}
                                   </span>
 
@@ -7619,7 +7619,7 @@ export default function App() {
                                     {/* Mobile sub-row: Tag + Tier 3 badge + Stats without cramping team name */}
                                     <div className="flex sm:hidden flex-wrap items-center gap-1.5 mt-1">
                                       {team.logo_url && (
-                                        <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-mono font-black text-[9px] uppercase text-zinc-300 leading-none">
+                                        <span className="px-1.5 py-0.5 rounded bg-[#111114] font-mono font-black text-[9px] uppercase text-zinc-300 leading-none">
                                           {tagText}
                                         </span>
                                       )}
@@ -7741,8 +7741,8 @@ export default function App() {
                   className={
                     'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                     (isHistorySearchOpen || searchScrimQuery
-                      ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white')
+                      ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                      : 'bg-[#18181D] hover:bg-[#222229] text-zinc-300 hover:text-white')
                   }
                   title="Cari sesi scrim atau kejohanan"
                   aria-label="Cari sesi scrim atau kejohanan"
@@ -7756,8 +7756,8 @@ export default function App() {
                   className={
                     'w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ' +
                     (activeHeaderInfo === 'history'
-                      ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white')
+                      ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                      : 'bg-[#18181D] hover:bg-[#222229] text-zinc-400 hover:text-white')
                   }
                   title="Info Rekod & Arkib"
                   aria-label="Info Rekod & Arkib"
@@ -7769,7 +7769,7 @@ export default function App() {
 
             {/* Expandable Info Card (if toggled) */}
             {activeHeaderInfo === 'history' && (
-              <div className="p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal shadow-lg mx-1">
+              <div className="p-3.5 bg-[#141418] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
                 <Flame className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                 <p className="leading-relaxed flex-1">
                   Arkib rekod scrim &amp; tournament, status sesi, dan export poster HD.
@@ -7796,14 +7796,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => navigateToTab('admin')}
-                    className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
+                    className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition flex items-center gap-1.5 active:scale-95 cursor-pointer shrink-0"
                     title="Cipta atau urus sesi kejohanan baru di Portal Host"
                   >
                     <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
                     <span>Sesi Baru</span>
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-semibold text-zinc-300 shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#18181D] text-[11px] font-semibold text-zinc-300 shrink-0">
                     <Eye className="w-3.5 h-3.5 text-[#D7FF00]" />
                     <span>Paparan Umum</span>
                   </span>
@@ -7855,7 +7855,7 @@ export default function App() {
                       'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 cursor-pointer ' +
                       (pill.isActive
                         ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                        : 'bg-[#18181D] text-zinc-400 hover:bg-[#222229] hover:text-zinc-200')
                     }
                   >
                     {pill.label}
@@ -7931,7 +7931,7 @@ export default function App() {
             ) : filteredScrims.length === 0 ? (
               <div
                 key={`rekod_empty_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
-                className="min-h-[340px] flex flex-col items-center justify-center my-4 py-14 px-6 text-center bg-zinc-900/90 border border-zinc-800 rounded-3xl space-y-3.5 mx-1 animate-filter-reveal"
+                className="min-h-[340px] flex flex-col items-center justify-center my-4 py-14 px-6 text-center bg-[#111114] rounded-3xl space-y-3.5 mx-1 animate-filter-reveal"
               >
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Lagi</h3>
@@ -8084,17 +8084,17 @@ export default function App() {
                           <img 
                             src={host.avatar_url} 
                             alt={host.name} 
-                            className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-sm"
+                            className="w-12 h-12 rounded-2xl object-cover bg-[#19191E]"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-[#D7FF00] text-black font-black flex items-center justify-center text-base shadow-sm">
+                          <div className="w-12 h-12 rounded-2xl bg-[#D7FF00] text-black font-black flex items-center justify-center text-base">
                             {host.name.slice(0, 2).toUpperCase()}
                           </div>
                         )}
 
                         <div>
                           <h3 className="font-black text-base text-white">{host.name}</h3>
-                          <span className="text-[10px] bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/25 px-2 py-0.5 rounded-full font-mono font-bold">
+                          <span className="text-[10px] bg-[#1F240D] text-[#D7FF00] px-2 py-0.5 rounded-full font-mono font-bold">
                             {host.scrims.length} Sesi
                           </span>
                         </div>
@@ -8290,7 +8290,7 @@ export default function App() {
                   </p>
                 </div>
                 <div className="lg:col-span-5">
-                  <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+                  <div className="rounded-2xl overflow-hidden bg-black">
                     <img
                       src="/og-cover.png"
                       alt="SCRIMHUB (SCRIM HUB) — Team Matrix, Ranking Team &amp; Rekod Scrim PUBG Mobile"
@@ -8318,8 +8318,8 @@ export default function App() {
                 
                 {/* GUIDE 1: HOW ADMIN STARTS A SCRIM OR TOURNAMENT */}
                 <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
-                    <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
+                  <div className="flex items-center gap-2.5 pb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
                       <Lock className="w-4 h-4"/>
                     </div>
                     <div>
@@ -8341,7 +8341,7 @@ export default function App() {
                       <span className="w-5 h-5 rounded-full bg-[#D7FF00] text-black font-black flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">2</span>
                       <div>
                         <strong className="text-white block">Pilih Format &amp; Isi Info</strong>
-                        Pilih <span className="bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30 px-1.5 py-0.5 rounded font-bold">Scrim</span> atau <span className="bg-amber-400/15 text-amber-300 border border-amber-400/30 px-1.5 py-0.5 rounded font-bold">Tournament</span>. Isi tajuk, nama host, tier, contact &amp; upload logo event kalau ada.
+                        Pilih <span className="bg-[#1F240D] text-[#D7FF00] px-1.5 py-0.5 rounded font-bold">Scrim</span> atau <span className="bg-[#241B0B] text-amber-300 px-1.5 py-0.5 rounded font-bold">Tournament</span>. Isi tajuk, nama host, tier, contact &amp; upload logo event kalau ada.
                       </div>
                     </div>
 
@@ -8373,8 +8373,8 @@ export default function App() {
 
                 {/* GUIDE 2: COMPETITIVE POINT SYSTEM */}
                 <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
-                    <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
+                  <div className="flex items-center gap-2.5 pb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
                       <Crosshair className="w-4 h-4"/>
                     </div>
                     <div>
@@ -8422,7 +8422,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#D7FF00]/10 border border-[#D7FF00]/20 text-[11px] text-[#D7FF00] font-bold flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-[#1F240D] text-[11px] text-[#D7FF00] font-bold flex items-center justify-between">
                     <span>Elimination Points:</span>
                     <span className="font-mono font-black">1 Elim = 1 Point</span>
                   </div>
@@ -8430,8 +8430,8 @@ export default function App() {
 
                 {/* GUIDE 3: LIVE LEADERBOARD & INSTANT POSTER GENERATOR */}
                 <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
-                    <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
+                  <div className="flex items-center gap-2.5 pb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
                       <Trophy className="w-4 h-4"/>
                     </div>
                     <div>
@@ -8464,8 +8464,8 @@ export default function App() {
 
                 {/* GUIDE 4: TEAM STATS & CONTENT SHOWCASE */}
                 <div className="glass-panel rounded-3xl p-5 space-y-3">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
-                    <div className="w-9 h-9 rounded-xl bg-[#D7FF00]/10 text-[#D7FF00] border border-[#D7FF00]/20 flex items-center justify-center font-black">
+                  <div className="flex items-center gap-2.5 pb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
                       <Sparkles className="w-4 h-4"/>
                     </div>
                     <div>
@@ -8697,7 +8697,7 @@ export default function App() {
               <div className="space-y-4 sm:space-y-6 pb-28 md:pb-12">
                 
                 {/* STRATEGIC PAGE HEADER: OFFICIAL SCRIM SCORING */}
-                <div className="bg-zinc-900/90 border border-zinc-800/70 rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
+                <div className="bg-[#111114] rounded-2xl sm:rounded-3xl p-5 sm:p-6 relative overflow-hidden space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
                     <div className="space-y-2.5 flex-1 min-w-0">
                       {/* Top Bar: Navigation Back Link (Left) & Info Action (Right) */}
@@ -8705,7 +8705,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => navigateToTab('playground')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#19191E] hover:bg-[#222229] text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
                           title="Kembali ke Laman Utama"
                         >
                           <ChevronLeft className="w-3.5 h-3.5" />
@@ -8717,8 +8717,8 @@ export default function App() {
                           onClick={() => toggleHeaderInfo('admin')}
                           className={'p-1.5 sm:p-2 rounded-xl transition cursor-pointer shrink-0 ' + (
                             activeHeaderInfo === 'admin'
-                              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
+                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                              : 'bg-[#19191E] hover:bg-[#222229] text-zinc-400 hover:text-white'
                           )}
                           title="Info portal penganjur"
                           aria-label="Info portal penganjur"
@@ -8739,7 +8739,7 @@ export default function App() {
 
                       {/* Expandable Info Card */}
                       {activeHeaderInfo === 'admin' && (
-                        <div className="p-3 sm:p-3.5 bg-zinc-950/90 border border-zinc-800 rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal max-w-xl shadow-md">
+                        <div className="p-3 sm:p-3.5 bg-[#19191E] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal max-w-xl">
                           <ShieldCheck className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                           <p className="leading-relaxed flex-1">
                             Urus scrim, invite Co-Host &amp; save rekod ke Cloud.
@@ -8758,7 +8758,7 @@ export default function App() {
 
                     {/* Right User Badge / Relocated Poster Jump Trigger / Logout Action */}
                     <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                      <div className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs font-mono text-zinc-300 flex items-center gap-2">
+                      <div className="px-3 py-1.5 rounded-xl bg-[#19191E] text-xs font-mono text-zinc-300 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
                         <span className="font-bold text-white truncate max-w-[140px]">{profileName || currentUser.email.split('@')[0]}</span>
                       </div>
@@ -8768,7 +8768,7 @@ export default function App() {
                         onClick={() => {
                           document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-[#1F1F26] hover:bg-[#292932] text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                         title="Lihat pratonton & eksport poster"
                       >
                         <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
@@ -8778,7 +8778,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 border border-zinc-700 text-xs font-bold transition active:scale-95 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-[#1F1F26] hover:bg-rose-950 hover:text-rose-300 text-zinc-300 text-xs font-bold transition active:scale-95 cursor-pointer"
                         title="Log Keluar Akaun Host"
                       >
                         <LogOut className="w-3.5 h-3.5" />
@@ -8788,10 +8788,10 @@ export default function App() {
                 </div>
 
                 {/* 1. ADVANCE SESSION CONTROL BAR (No Overflow, Consolidated More Actions Menu) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-zinc-900/90 border border-zinc-800/70 rounded-3xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-[#111114] rounded-3xl">
                   {/* Left: Active Session Dropdown Selector */}
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 text-[#D7FF00] font-black flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#19191E] text-[#D7FF00] font-black flex items-center justify-center shrink-0">
                       {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
                     </div>
                     
@@ -8807,7 +8807,7 @@ export default function App() {
                               }}
                               aria-haspopup="dialog"
                               aria-expanded={isSessionPickerOpen}
-                              className="w-full bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-800/70 rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] min-w-0"
+                              className="w-full bg-[#19191E] hover:bg-[#222229] rounded-xl px-3 py-2 text-xs text-white font-black transition flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] min-w-0"
                               title="Tukar atau cari sesi kejohanan / scrim"
                             >
                               <span className="flex items-center gap-2 min-w-0 flex-1">
@@ -8815,7 +8815,7 @@ export default function App() {
                                   className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black uppercase shrink-0 ${
                                     activeAdminScrim?.event_type === 'Tour'
                                       ? 'bg-amber-500/20 text-amber-300'
-                                      : 'bg-zinc-800 text-zinc-200'
+                                      : 'bg-[#26262F] text-zinc-200'
                                   }`}
                                 >
                                   {activeAdminScrim?.event_type === 'Tour' ? 'Tour' : 'Scrim'}
@@ -8825,7 +8825,7 @@ export default function App() {
                                 </span>
                               </span>
                               <span className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                                <span className="text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300">
+                                <span className="text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded-md bg-[#26262F] text-zinc-300">
                                   {adminHostedScrims.length}
                                 </span>
                                 <ChevronDown className={`w-4 h-4 transition-transform ${isSessionPickerOpen ? 'rotate-180 text-[#D7FF00]' : ''}`} />
@@ -8834,7 +8834,7 @@ export default function App() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-zinc-800/70 truncate">
+                            <span className="text-xs font-black text-white px-2.5 py-1 rounded-xl bg-[#19191E] truncate">
                               {activeAdminScrim?.title || 'Official Scrim - Session 1'}
                             </span>
                             <span className="text-[10px] font-mono text-zinc-400 font-bold shrink-0">
@@ -8845,8 +8845,8 @@ export default function App() {
 
                         <span className={'inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ' + (
                           activeAdminScrim?.is_finished 
-                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
-                            : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                            ? 'bg-amber-950 text-amber-300' 
+                            : 'bg-[#19191E] text-zinc-200'
                         )}>
                           <span className={'w-1.5 h-1.5 rounded-full ' + (activeAdminScrim?.is_finished ? 'bg-amber-400' : 'bg-emerald-400')} />
                           <span>{activeAdminScrim?.is_finished ? 'LOCKED' : (activeAdminScrim?.is_draft ? 'READY' : 'CLOUD')}</span>
@@ -8860,7 +8860,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleQuickNewSession}
-                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
                       title="Buat sesi baru"
                     >
                       <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[3]" />
@@ -8875,7 +8875,7 @@ export default function App() {
                           aria-label="More Session Actions"
                           aria-expanded={isScorerActionsMenuOpen}
                           title="Menu sesi (Edit, Lock, Co-Host, Padam)"
-                          className="w-9 h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-[#19191E] hover:bg-[#23232A] text-zinc-100 flex items-center justify-center transition active:scale-95 cursor-pointer"
                         >
                           <MoreVertical className="w-4 h-4" />
                         </button>
@@ -8886,7 +8886,7 @@ export default function App() {
                               className="fixed inset-0 z-30"
                               onClick={() => setIsScorerActionsMenuOpen(false)}
                             />
-                            <div className="absolute right-0 mt-2 w-48 bg-black border border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-zinc-800/80 text-xs origin-top-right animate-dropdown-reveal">
+                            <div className="absolute right-0 mt-2 w-48 bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.92)] rounded-2xl overflow-hidden z-40 py-1.5 divide-y divide-white/5 text-xs origin-top-right animate-dropdown-reveal">
                               <div className="py-1">
                                 <button
                                   type="button"
@@ -8963,12 +8963,12 @@ export default function App() {
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    <div className="bg-zinc-900/90 border border-zinc-800/70 rounded-3xl p-4 sm:p-5 space-y-4">
+                    <div className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-4">
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/70">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 text-[#D7FF00] flex items-center justify-center font-black shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-[#19191E] text-[#D7FF00] flex items-center justify-center font-black shrink-0">
                             <Zap className="w-5 h-5 fill-current"/>
                           </div>
                           <div>
@@ -8987,7 +8987,7 @@ export default function App() {
                             type="button"
                             onClick={() => setIsImportModalOpen(true)}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/40 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            className="px-2.5 py-1.5 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
                             title="Paste list team dari WhatsApp / Discord"
                           >
                             <Copy className="w-3.5 h-3.5 text-emerald-300"/>
@@ -8998,7 +8998,7 @@ export default function App() {
                             type="button"
                             onClick={handleRandomizeTestData}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            className="px-2.5 py-1.5 bg-[#19191E] hover:bg-[#23232A] disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
                             title="Isi markah demo untuk test"
                           >
                             <Eye className="w-3.5 h-3.5 text-zinc-100"/>
@@ -9009,7 +9009,7 @@ export default function App() {
                             type="button"
                             onClick={handleClearAdminForm}
                             disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 border border-zinc-700 disabled:opacity-40 cursor-pointer"
+                            className="px-2.5 py-1.5 bg-[#19191E] hover:bg-rose-950 hover:text-rose-300 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 disabled:opacity-40 cursor-pointer"
                             title="Clear markah match ni"
                           >
                             <Trash2 className="w-3.5 h-3.5"/>
@@ -9020,7 +9020,7 @@ export default function App() {
 
                       {/* Match Navigation Selector Bar & Dynamic + / - Match */}
                       <div className="relative group">
-                        <div className="p-1 bg-zinc-950/70 rounded-2xl flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="p-1 bg-[#16161B] rounded-2xl flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           {adminMatchesList.map((m, mIdx) => {
                             const isSelected = selectedMatchIdx === mIdx;
                             const savedMap = m.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
@@ -9033,8 +9033,8 @@ export default function App() {
                                 onClick={() => setSelectedMatchIdx(mIdx)}
                                 className={'py-1.5 px-3 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[76px] sm:flex-1 shrink-0 ' + (
                                   isSelected 
-                                    ? 'bg-zinc-800 text-[#D7FF00] shadow-sm border border-white/10' 
-                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                                    ? 'bg-[#23232A] text-[#D7FF00]' 
+                                    : 'text-zinc-400 hover:text-white hover:bg-[#1C1C22]'
                                 )}
                               >
                                 <div className="flex items-center gap-1">
@@ -9104,7 +9104,7 @@ export default function App() {
                                 }
                               }
                             }}
-                            className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:border-[#D7FF00] transition cursor-pointer"
+                            className="bg-[#19191E] rounded-lg px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] transition cursor-pointer"
                           >
                             <option value="Erangel" className="bg-zinc-950 text-white">Erangel</option>
                             <option value="Miramar" className="bg-zinc-950 text-white">Miramar</option>
@@ -9127,14 +9127,14 @@ export default function App() {
                         </button>
 
                         {/* Inline Team Slot Stepper (Exact same design as Quick Scorer!) */}
-                        <div className="flex items-center justify-between sm:justify-end gap-2 bg-zinc-950/70 px-3 py-1.5 rounded-xl shrink-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 bg-[#16161B] px-3 py-1.5 rounded-xl shrink-0">
                           <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
                               onClick={handleRemoveTeamSlot}
                               disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
-                              className="w-6 h-6 rounded-lg bg-zinc-800 border border-white/10 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition shadow-2xs"
+                              className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-rose-950 hover:text-rose-300 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition"
                               title="Buang slot terakhir"
                             >
                               <Minus className="w-3 h-3" />
@@ -9156,10 +9156,10 @@ export default function App() {
                       </div>
 
                       {/* Quick Input Grid Table (Identikal seperti Scorer) */}
-                      <div className="rounded-2xl overflow-hidden bg-zinc-950/80 shadow-md">
+                      <div className="rounded-2xl overflow-hidden bg-[#0D0D10]">
                         <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           <table className="w-full text-left text-xs">
-                            <thead className="bg-zinc-950 text-zinc-400 uppercase text-[10px] font-bold tracking-wider border-b border-white/10">
+                            <thead className="bg-[#16161B] text-zinc-400 uppercase text-[10px] font-bold tracking-wider">
                               <tr>
                                 <th className="py-2.5 px-3 w-12 text-center">Slot</th>
                                 <th className="py-2.5 px-3 min-w-[150px]">Team Name</th>
@@ -9192,7 +9192,7 @@ export default function App() {
                                         onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
                                         onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
                                         placeholder={`Squad ${row.slot}...`}
-                                        className="w-full bg-zinc-900/90 border border-zinc-800/70 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:border-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
+                                        className="w-full bg-[#19191E] rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
                                       />
                                     </td>
 
@@ -9204,7 +9204,7 @@ export default function App() {
                                         value={row.placement || ''}
                                         onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
                                         onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
-                                        className="w-full bg-zinc-900/90 border border-zinc-800/70 rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:border-[#D7FF00] text-xs text-center disabled:opacity-40"
+                                        className="w-full bg-[#19191E] rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] text-xs text-center disabled:opacity-40"
                                       >
                                         <option value="" className="bg-zinc-950 text-white">--</option>
                                         {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
@@ -9222,7 +9222,7 @@ export default function App() {
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, -1)}
-                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           -
                                         </button>
@@ -9234,13 +9234,13 @@ export default function App() {
                                           value={row.kills}
                                           onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
                                           onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
-                                          className="w-11 bg-zinc-900/90 border border-zinc-800/70 rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:border-[#D7FF00] disabled:opacity-40 font-mono"
+                                          className="w-11 bg-[#19191E] rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] disabled:opacity-40 font-mono"
                                         />
                                         <button
                                           type="button"
                                           disabled={activeAdminScrim?.is_finished}
                                           onClick={() => handleAdjustKills(idx, 1)}
-                                          className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                          className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
                                         >
                                           +
                                         </button>
@@ -9316,14 +9316,14 @@ export default function App() {
                   <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
                     
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
-                    <div className="flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800/70 p-1 rounded-2xl text-xs">
+                    <div className="flex items-center gap-1.5 bg-[#111114] p-1 rounded-2xl text-xs">
                       <button
                         type="button"
                         onClick={() => setAdminPosterViewMode('overall')}
                         className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
                           adminPosterViewMode === 'overall'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                            : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
                         )}
                       >
                         <Trophy className="w-3.5 h-3.5"/>
@@ -9334,8 +9334,8 @@ export default function App() {
                         onClick={() => setAdminPosterViewMode('match')}
                         className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
                           adminPosterViewMode === 'match'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                            : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
                         )}
                       >
                         <Zap className="w-3.5 h-3.5"/>
@@ -11102,7 +11102,7 @@ export default function App() {
                       {potentialDuplicatePairs.map((pair, pIdx) => (
                         <div
                           key={`${pair.source.name}_${pair.target.name}_${pIdx}`}
-                          className="p-2.5 rounded-xl bg-zinc-950 border border-white/10 flex items-center justify-between gap-2"
+                          className="p-2.5 rounded-xl bg-[#19191E] flex items-center justify-between gap-2"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-white truncate">
@@ -11132,7 +11132,7 @@ export default function App() {
                 )}
 
                 {/* Manual Source -> Target Merge Form */}
-                <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-3.5">
+                <div className="p-4 rounded-2xl bg-[#19191E] space-y-3.5">
                   <div>
                     <label className="block text-[11px] uppercase font-bold text-zinc-400 mb-1.5">
                       Team Lama / Salah Ejaan (Akan Digabung)
@@ -11140,7 +11140,7 @@ export default function App() {
                     <select
                       value={mergeTeamDraft.sourceName || ''}
                       onChange={(e) => setMergeTeamDraft(prev => ({ ...prev, sourceName: e.target.value }))}
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-bold focus:outline-none focus:border-[#D7FF00]"
+                      className="w-full bg-[#111114] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
                     >
                       <option value="">-- Pilih team asal --</option>
                       {allManageableTeams.map(t => (
@@ -11235,7 +11235,7 @@ export default function App() {
                 </div>
 
                 {/* Logo Editor Card */}
-                <div className="p-4 rounded-2xl bg-zinc-950/70 border border-white/5 space-y-3">
+                <div className="p-4 rounded-2xl bg-[#19191E] space-y-3">
                   <label className="block text-[11px] uppercase font-bold text-zinc-400">
                     Gambar Logo Pasukan
                   </label>
@@ -11245,7 +11245,7 @@ export default function App() {
                         <img
                           src={editingTeam.logo_url}
                           alt="Logo Preview"
-                          className="w-18 h-18 sm:w-20 sm:h-20 rounded-3xl object-cover border-2 border-[#D7FF00]/50 shadow-[0_0_20px_rgba(215,255,0,0.2)]"
+                          className="w-18 h-18 sm:w-20 sm:h-20 rounded-3xl object-cover bg-[#111114]"
                         />
                         <button
                           type="button"
@@ -11268,7 +11268,7 @@ export default function App() {
                         type="button"
                         onClick={() => logoFileInputRef.current?.click()}
                         disabled={isUploadingTeamLogo}
-                        className="w-full py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border border-white/10 active:scale-[0.98]"
+                        className="w-full py-2.5 px-3 rounded-xl bg-[#25252D] hover:bg-[#2F2F38] text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
                       >
                         {isUploadingTeamLogo ? (
                           <>
@@ -11288,7 +11288,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={handleOpenExistingLogoCrop}
-                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-bold text-[#D7FF00] inline-flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-[0.98]"
+                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#25252D] hover:bg-[#2F2F38] text-[10px] font-bold text-[#D7FF00] inline-flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-[0.98]"
                           >
                             <Crop className="w-3 h-3" />
                             <span>Crop Logo Ini</span>
@@ -11475,17 +11475,17 @@ export default function App() {
                       return (
                         <div
                           key={team.id || team.name}
-                          className="p-3 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900/80 border border-white/5 flex items-center justify-between gap-3 transition group"
+                          className="p-3 rounded-2xl bg-[#19191E] hover:bg-[#222229] flex items-center justify-between gap-3 transition group"
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             {team.logo_url ? (
                               <img
                                 src={team.logo_url}
                                 alt={team.name}
-                                className="w-11 h-11 rounded-2xl object-cover shrink-0 border border-white/10 shadow-sm"
+                                className="w-11 h-11 rounded-2xl object-cover shrink-0 bg-[#111114]"
                               />
                             ) : (
-                              <div className="w-11 h-11 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center font-black text-xs text-[#D7FF00] shrink-0">
+                              <div className="w-11 h-11 rounded-2xl bg-[#111114] flex items-center justify-center font-black text-xs text-[#D7FF00] shrink-0">
                                 {team.tag || team.name.slice(0, 3).toUpperCase()}
                               </div>
                             )}
@@ -11515,7 +11515,7 @@ export default function App() {
                                 _originalName: team.name
                               });
                             }}
-                            className="px-3 py-1.5 rounded-xl bg-zinc-900 group-hover:bg-[#D7FF00] text-zinc-300 group-hover:text-black border border-white/10 group-hover:border-transparent text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                            className="px-3 py-1.5 rounded-xl bg-[#25252D] group-hover:bg-[#D7FF00] text-zinc-200 group-hover:text-black text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit</span>
@@ -11557,7 +11557,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="flex items-center bg-zinc-900 p-1 rounded-2xl border border-white/10 text-xs">
+            <div className="flex items-center bg-[#19191E] p-1 rounded-2xl text-xs">
               <button
                 type="button"
                 onClick={() => setNewEventType('Scrim')}
@@ -11868,7 +11868,7 @@ export default function App() {
                     setIsEditScrimModalOpen(false);
                     setEditTargetScrim(null);
                   }}
-                  className="w-1/3 sm:w-auto px-4 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold active:scale-95 transition text-center"
+                  className="w-1/3 sm:w-auto px-4 py-3 rounded-xl bg-[#19191E] hover:bg-[#23232A] text-zinc-300 font-bold active:scale-95 transition text-center"
                 >
                   Cancel
                 </button>
@@ -11896,12 +11896,12 @@ export default function App() {
             className="glass-modal rounded-3xl max-w-2xl lg:max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-4 lg:space-y-5 animate-card-entrance"
           >
             
-            <div className="flex items-start justify-between border-b border-white/5 pb-3.5 gap-3">
+            <div className="flex items-start justify-between pb-2 gap-3">
               <div className="flex items-start gap-3 min-w-0 flex-1">
                 {inspectedScrim.logo_url ? (
-                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-sm shrink-0 mt-0.5" />
+                  <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover bg-[#19191E] shrink-0 mt-0.5" />
                 ) : (
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                  <div className="w-12 h-12 rounded-2xl bg-[#19191E] text-[#D7FF00] font-black flex items-center justify-center shrink-0 mt-0.5">
                     {inspectedScrim.event_type === 'Tour' ? (
                       <Trophy className="w-5 h-5 text-[#D7FF00]" />
                     ) : (
@@ -11918,13 +11918,13 @@ export default function App() {
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                     <span className={'text-[10px] font-black px-2.5 py-0.5 rounded-full font-mono shrink-0 ' + (
                       inspectedScrim.event_type === 'Tour'
-                        ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
-                        : 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/30'
+                        ? 'bg-[#241B0B] text-amber-300'
+                        : 'bg-[#1F240D] text-[#D7FF00]'
                     )}>
                       {(inspectedScrim.event_type || 'Scrim').toUpperCase()}
                     </span>
 
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-white/10 font-mono shrink-0">
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#19191E] text-zinc-300 font-mono shrink-0">
                       {inspectedScrim.tier || 'Tier 1'}
                     </span>
 
@@ -11933,7 +11933,7 @@ export default function App() {
                         type="button"
                         onClick={() => openEditScrimModal(inspectedScrim)}
                         title="Klik untuk ubah tarikh sesi"
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-300 hover:text-[#D7FF00] bg-zinc-900/60 hover:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/5 hover:border-[#D7FF00]/40 transition shrink-0 cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-300 hover:text-[#D7FF00] bg-[#19191E] hover:bg-[#23232A] px-2.5 py-0.5 rounded-full transition shrink-0 cursor-pointer"
                       >
                         <Clock className="w-2.5 h-2.5 text-zinc-400" />
                         <span>{inspectedScrim.date || 'Set Tarikh'}</span>
@@ -11941,7 +11941,7 @@ export default function App() {
                       </button>
                     ) : (
                       inspectedScrim.date && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-400 bg-zinc-900/60 px-2.5 py-0.5 rounded-full border border-white/5 shrink-0">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-400 bg-[#19191E] px-2.5 py-0.5 rounded-full shrink-0">
                           <Clock className="w-2.5 h-2.5 text-zinc-500" />
                           <span>{inspectedScrim.date}</span>
                         </span>
@@ -11949,7 +11949,7 @@ export default function App() {
                     )}
 
                     {inspectedScrim.is_finished && (
-                      <span className="inline-flex items-center gap-1 text-[10px] bg-[#D7FF00] text-black font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm shrink-0">
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-[#D7FF00] text-black font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                         <Check className="w-3 h-3 stroke-[3]" />
                         <span>Final</span>
                       </span>
@@ -11961,14 +11961,14 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => setInspectedScrim(null)} 
-                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition shrink-0 cursor-pointer active:scale-95"
+                className="w-8 h-8 rounded-full bg-[#19191E] hover:bg-[#23232A] flex items-center justify-center text-zinc-400 hover:text-white transition shrink-0 cursor-pointer active:scale-95"
                 aria-label="Tutup"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="bg-zinc-900/60 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-[#19191E] p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div>
                 <span className="text-[10px] text-zinc-500 uppercase font-bold block">Host / Organizer</span>
                 <span className="font-bold text-white">{inspectedScrim.host_name || 'Official Host'}</span>
@@ -12005,7 +12005,7 @@ export default function App() {
                 {calculateLeaderboard(inspectedScrim, 'overall').map((teamRow) => (
                   <div
                     key={teamRow.teamId}
-                    className="p-2.5 bg-zinc-900/60 rounded-xl flex items-center justify-between text-xs"
+                    className="p-2.5 bg-[#19191E] rounded-xl flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center space-x-2.5">
                       <span className={'w-6 text-center font-black ' + (teamRow.rank === 1 ? 'text-[#D7FF00]' : 'text-zinc-500')}>
@@ -12013,7 +12013,7 @@ export default function App() {
                       </span>
                       <span className="font-bold text-white">{teamRow.teamName}</span>
                       {teamRow.wwcd > 0 && (
-                        <span className="text-[9px] text-[#D7FF00] bg-[#D7FF00]/10 border border-[#D7FF00]/20 px-1.5 py-0.2 rounded font-mono font-bold">
+                        <span className="text-[9px] text-[#D7FF00] bg-[#1F240D] px-1.5 py-0.2 rounded font-mono font-bold">
                           WWCD{teamRow.wwcd > 1 ? ` x${teamRow.wwcd}` : ''}
                         </span>
                       )}
@@ -12032,14 +12032,14 @@ export default function App() {
               </p>
             </div>
 
-            <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-2 flex-wrap">
+            <div className="pt-3 flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
                 {isAuthorizedAdmin(inspectedScrim) ? (
                   <>
                     <button
                       type="button"
                       onClick={() => openEditScrimModal(inspectedScrim)}
-                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.18)] cursor-pointer active:scale-95"
+                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                     >
                       <Edit3 className="w-3.5 h-3.5"/>
                       <span>Ubah Info &amp; Tarikh</span>
@@ -12052,14 +12052,14 @@ export default function App() {
                         setInspectedScrim(null);
                         navigateToTab('admin');
                       }}
-                      className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                      className="px-3 py-2 bg-[#19191E] hover:bg-[#23232A] text-zinc-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5"/>
                       <span>Portal Host</span>
                     </button>
                   </>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-[11px] font-semibold text-zinc-400">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#19191E] text-[11px] font-semibold text-zinc-400">
                     <Lock className="w-3 h-3 text-zinc-500" />
                     <span>Lihat Sahaja</span>
                   </span>
@@ -12068,7 +12068,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => handleCopyDiscordText(inspectedScrim)}
-                  className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                  className="px-3 py-2 bg-[#19191E] hover:bg-[#23232A] text-zinc-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5 text-zinc-400"/>
                   <span>Salin Teks</span>
@@ -12307,14 +12307,14 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsShowcaseModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/10 font-bold"
+                  className="px-4 py-2 rounded-xl bg-[#19191E] hover:bg-[#222229] text-zinc-300 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploadingShowcase}
-                  className="px-5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black shadow-[0_0_20px_rgba(215, 255, 0,0.18)]"
+                  className="px-5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black"
                 >
                   {isUploadingShowcase ? 'Publishing...' : 'Publish Content'}
                 </button>
@@ -12378,7 +12378,7 @@ export default function App() {
                   setIsQuickCreateModalOpen(false);
                   navigateToTab('scrim-data');
                 }}
-                className="w-full p-3.5 rounded-2xl bg-[#D7FF00]/10 hover:bg-[#D7FF00]/15 border border-[#D7FF00]/25 transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
+                className="w-full p-3.5 rounded-2xl bg-[#1A1F0C] hover:bg-[#232A10] transition flex items-center gap-3 text-left group active:scale-[0.99] cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl glass-tile text-[#D7FF00] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Upload className="w-5 h-5 stroke-[2]" />

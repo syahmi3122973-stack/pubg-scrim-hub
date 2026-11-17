@@ -220,12 +220,6 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
   return (
     <div className="relative overflow-hidden glass-panel rounded-2xl p-4 sm:p-5 space-y-3.5">
-      {/* Subtle Ambient Corner Glow */}
-      <div
-        aria-hidden="true"
-        className="absolute -top-16 -right-16 w-48 h-48 bg-[#D7FF00]/8 rounded-full blur-3xl pointer-events-none"
-      />
-
       {/* LEVEL 1: Header & Unified Legend */}
       <div className="flex flex-wrap items-start justify-between gap-2 relative z-10">
         <div>
@@ -239,12 +233,12 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
         </div>
 
         <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D7FF00]/12 text-[#D7FF00]">
-            <span className="w-2 h-2 rounded-full bg-[#D7FF00] shadow-[0_0_6px_#D7FF00]" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1E220D] text-[#D7FF00]">
+            <span className="w-2 h-2 rounded-full bg-[#D7FF00]" />
             <span>Elims</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-500/12 text-teal-300">
-            <span className="w-2 h-2 rounded-full bg-teal-400 shadow-[0_0_6px_#2dd4bf]" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0E2421] text-teal-300">
+            <span className="w-2 h-2 rounded-full bg-teal-400" />
             <span>PP</span>
           </span>
         </div>
@@ -275,7 +269,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       </div>
 
       {/* Interactive Inspector Strip on Hover / Tap */}
-      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-black/35 border border-white/10 text-[11px] relative z-10">
+      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[#19191E] text-[11px] relative z-10">
         {activePoint ? (
           <>
             <span className="font-bold text-white truncate">

@@ -773,9 +773,9 @@ export default function ScrimDataHubView({
               }}
               onClick={() => fileInputRef.current?.click()}
               className={
-                'rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[170px] border-dashed ' +
+                'rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[170px] ' +
                 (isDragging
-                  ? 'bg-[#D7FF00]/12 border border-[#D7FF00]/50 scale-[0.99]'
+                  ? 'bg-[#1D220D] scale-[0.99]'
                   : 'glass-tile glass-tile-hover')
               }
             >
@@ -844,7 +844,7 @@ export default function ScrimDataHubView({
             style={{ animationDelay: '150ms' }}
             className="glass-panel rounded-3xl p-4 sm:p-5 space-y-3.5 animate-stagger-card"
           >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-[#D7FF00]" />
                 <span className="text-sm font-bold text-white">Info Sesi (OCR)</span>
@@ -927,7 +927,7 @@ export default function ScrimDataHubView({
             className="glass-panel rounded-3xl overflow-hidden animate-stagger-card"
           >
             {/* Header Control Strip */}
-            <div className="p-4 sm:p-5 bg-white/[0.03] border-b border-white/10 space-y-3">
+            <div className="p-4 sm:p-5 bg-[#16161B] space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1111,7 +1111,7 @@ export default function ScrimDataHubView({
                         className={
                           'glass-tile rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all ' +
                           (isMismatch
-                            ? '!bg-rose-500/12 !border-rose-400/30'
+                            ? '!bg-[#241319]'
                             : 'glass-tile-hover')
                         }
                       >
@@ -1174,7 +1174,7 @@ export default function ScrimDataHubView({
 
                         {/* Metrics Grid (4 compact columns - 100% visible on any phone) */}
                         <div className="grid grid-cols-4 gap-2 text-center text-xs font-mono">
-                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
+                          <div className="bg-[#23232A] p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               WWCD
                             </span>
@@ -1193,7 +1193,7 @@ export default function ScrimDataHubView({
                             />
                           </div>
 
-                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
+                          <div className="bg-[#23232A] p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               PP
                             </span>
@@ -1212,7 +1212,7 @@ export default function ScrimDataHubView({
                             />
                           </div>
 
-                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl">
+                          <div className="bg-[#23232A] p-2 rounded-xl">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               Elims
                             </span>
@@ -1231,7 +1231,7 @@ export default function ScrimDataHubView({
                             />
                           </div>
 
-                          <div className="bg-white/[0.06] border border-white/10 p-2 rounded-xl flex flex-col justify-center items-center">
+                          <div className="bg-[#23232A] p-2 rounded-xl flex flex-col justify-center items-center">
                             <span className="text-[10px] text-zinc-400 block font-sans">
                               Semak
                             </span>
@@ -1466,7 +1466,7 @@ export default function ScrimDataHubView({
             </div>
 
             {/* Footer Commit Bar */}
-            <div className="bg-white/[0.04] backdrop-blur-md px-4 sm:px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/10">
+            <div className="bg-[#16161B] px-4 sm:px-5 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="text-xs text-zinc-400 font-mono">
                 Total Team: <strong className="text-white">{standings.length}</strong> •{' '}
                 {mismatchCount > 0 ? (
@@ -1482,7 +1482,7 @@ export default function ScrimDataHubView({
                 type="button"
                 disabled={isSaving}
                 onClick={handleCommitToDatabase}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-50 text-black text-xs font-black flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(215,255,0,0.25)] transition cursor-pointer active:scale-95"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] disabled:opacity-50 text-black text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
               >
                 {isSaving ? (
                   <>
