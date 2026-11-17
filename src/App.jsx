@@ -4955,7 +4955,7 @@ export default function App() {
     let cancelled = false;
 
     if (activeMorph.phase === 'open') {
-      const duration = 460;
+      const duration = 420;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
       activeCardEl = findCardEl();
@@ -5039,7 +5039,7 @@ export default function App() {
         morphTimerRef.current = window.setTimeout(finishOpen, duration + 32);
       });
     } else {
-      const duration = 420;
+      const duration = 380;
       const bgScrollY = activeMorph.bgScrollY || 0;
       window.scrollTo({ top: bgScrollY, left: 0, behavior: 'instant' });
 
@@ -5090,21 +5090,11 @@ export default function App() {
           fill: 'forwards'
         });
 
-        fgContentEl?.animate(
-          [
-            { opacity: 1, offset: 0 },
-            { opacity: 1, offset: 0.16 },
-            { opacity: 0, offset: 0.62 },
-            { opacity: 0, offset: 1 }
-          ],
-          { duration, easing: 'ease-out', fill: 'forwards' }
-        );
-
         tintEl?.animate(
           [
             { opacity: 0, offset: 0 },
-            { opacity: 0, offset: 0.18 },
-            { opacity: 1, offset: 0.66 },
+            { opacity: 0, offset: 0.14 },
+            { opacity: 1, offset: 0.6 },
             { opacity: 1, offset: 1 }
           ],
           { duration, easing: 'ease-out', fill: 'forwards' }
@@ -5444,7 +5434,7 @@ export default function App() {
     (isOrgPopoverOpen ? 1 : 0) +
     (isTeamManagerModalOpen ? 1 : 0) +
     (isNavMenuOpen ? 1 : 0) +
-    (activeTab === 'teams' && selectedTeamProfile ? 1 : 0) +
+    (activeTab === 'teams' && selectedTeamProfile && teamMorphState?.phase !== 'close' ? 1 : 0) +
     (activeHeaderInfo ? 1 : 0);
 
   const closeTopmostOverlay = useCallback(() => {
@@ -5490,7 +5480,7 @@ export default function App() {
     }
     if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
     if (isNavMenuOpen) { setIsNavMenuOpen(false); return true; }
-    if (activeTab === 'teams' && selectedTeamProfile) {
+    if (activeTab === 'teams' && selectedTeamProfile && teamMorphState?.phase !== 'close') {
       closeTeamProfile();
       return true;
     }
@@ -5521,6 +5511,7 @@ export default function App() {
     isNavMenuOpen,
     activeTab,
     selectedTeamProfile,
+    teamMorphState,
     closeTeamProfile,
     activeHeaderInfo
   ]);
@@ -5740,11 +5731,10 @@ export default function App() {
                 zIndex: 42,
                 backgroundColor: '#000000',
                 overflow: 'hidden',
-                contain: 'layout paint',
+                contain: 'strict',
                 pointerEvents: 'none',
                 transformOrigin: '0 0',
                 willChange: 'transform, clip-path, opacity',
-                boxShadow: '0 28px 90px rgba(0, 0, 0, 0.9)',
               }
             : undefined
         }
