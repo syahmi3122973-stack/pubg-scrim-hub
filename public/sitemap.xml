@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://scrim.rykhor.my/</loc>
+    <lastmod>2026-11-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://scrim.rykhor.my/og-cover.png</image:loc>
+      <image:title>SCRIMHUB — Ranking Team, Team Matrix &amp; Rekod Scrim PUBG Mobile</image:title>
+      <image:caption>SCRIMHUB (Scrim Hub) Team Matrix, Ranking Team PUBG Mobile, Rekod Scrim &amp; Live Leaderboard Malaysia</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://scrim.rykhor.my/logo.png</image:loc>
+      <image:title>Logo Rasmi SCRIMHUB (SCRIM HUB)</image:title>
+      <image:caption>Logo Rasmi Aplikasi Web SCRIMHUB oleh ry.khor</image:caption>
+    </image:image>
+  </url>
+</urlset>

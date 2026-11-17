@@ -4886,6 +4886,28 @@ export default function App() {
     } catch {}
   }, []);
 
+  useEffect(() => {
+    const titleMap = {
+      playground: 'SCRIMHUB (SCRIM HUB) — Ranking Team, Team Matrix & Rekod Scrim PUBG Mobile',
+      home: 'SCRIMHUB (SCRIM HUB) — Ranking Team, Team Matrix & Rekod Scrim PUBG Mobile',
+      teams: selectedTeamProfile
+        ? `${selectedTeamProfile} — Profil & Ranking Team | SCRIMHUB`
+        : 'Team Matrix & Ranking Team — SCRIMHUB (SCRIM HUB)',
+      history: 'Rekod Scrim & Live Leaderboard — SCRIMHUB (SCRIM HUB)',
+      leaderboard: 'Rekod Scrim & Live Leaderboard — SCRIMHUB (SCRIM HUB)',
+      admin: 'Live Standings Scorer — SCRIMHUB (SCRIM HUB)',
+      scorer: 'Live Standings Scorer — SCRIMHUB (SCRIM HUB)',
+      'scrim-data': 'Scrim Data Hub & Analytics — SCRIMHUB (SCRIM HUB)',
+      hosts: 'Senarai Host & Scrim Organizers — SCRIMHUB',
+      showcase: 'Showcase Poster & Kad Story — SCRIMHUB',
+      about: 'Tentang SCRIMHUB — Platform Esports PUBG Mobile by ry.khor',
+      privacy: 'Dasar Privasi — SCRIMHUB',
+      terms: 'Terma Penggunaan — SCRIMHUB',
+      profile: 'Profil Pengguna — SCRIMHUB',
+    };
+    document.title = titleMap[activeTab] || 'SCRIMHUB (SCRIM HUB) — by ry.khor';
+  }, [activeTab, selectedTeamProfile]);
+
   // --- MOBILE BACK BUTTON, MODAL SAFETY & PAGE HISTORY NAVIGATION ---
   const activeOverlayCount =
     (isImportModalOpen ? 1 : 0) +
@@ -8254,17 +8276,31 @@ export default function App() {
             
             {/* Hero Card */}
             <div className="glass-panel text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden">
-              <div className="max-w-2xl space-y-3 relative z-10">
-                <div className="inline-flex items-center gap-2 bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[#D7FF00] px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
-                  <Swords className="w-3.5 h-3.5"/>
-                  Esports Tournament Engine
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
+                <div className="lg:col-span-7 max-w-2xl space-y-3">
+                  <div className="inline-flex items-center gap-2 bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[#D7FF00] px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+                    <Swords className="w-3.5 h-3.5"/>
+                    Esports Tournament Engine
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
+                    SCRIM HUB <span className="text-[#D7FF00]">by ry.khor</span>
+                  </h1>
+                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                    Web app untuk host scrim, penganjur tournament &amp; squad PUBG Mobile. Kira markah PMGC, susun ranking, check rekod team &amp; export poster terus dari browser.
+                  </p>
                 </div>
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-                  SCRIM HUB <span className="text-[#D7FF00]">by ry.khor</span>
-                </h1>
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                  Web app untuk host scrim, penganjur tournament &amp; squad PUBG Mobile. Kira markah PMGC, susun ranking, check rekod team &amp; export poster terus dari browser.
-                </p>
+                <div className="lg:col-span-5">
+                  <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+                    <img
+                      src="/og-cover.png"
+                      alt="SCRIMHUB (SCRIM HUB) — Team Matrix, Ranking Team &amp; Rekod Scrim PUBG Mobile"
+                      width={1200}
+                      height={630}
+                      loading="lazy"
+                      className="w-full h-auto block object-cover"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
