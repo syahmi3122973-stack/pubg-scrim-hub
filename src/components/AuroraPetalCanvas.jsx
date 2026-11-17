@@ -17,6 +17,8 @@ varying vec2 v_uv;
 uniform vec2 u_resolution;
 uniform vec2 u_anchor;
 uniform float u_radius;
+uniform float u_ignite;
+uniform float u_dpr;
 uniform float u_time;
 uniform float u_intensity;
 uniform vec3 u_primary;
@@ -57,43 +59,47 @@ void main() {
   float minDim = max(min(u_resolution.x, u_resolution.y), 1.0);
   vec2 delta = (uv - u_anchor) * (u_resolution / minDim);
 
-  float r = length(delta) / max(u_radius, 0.12);
+  float activeRadius = max(u_radius * mix(0.58, 1.0, u_ignite), 0.12);
+  float r = length(delta) / activeRadius;
   float ang = atan(delta.y, delta.x);
   float t = u_time;
 
-  // Domain-warped organic fluid motion inside the shader (no box sliding)
+  // Domain-warped organic fluid motion inside the shader
   vec2 warp = vec2(
-    fbm(delta * 2.3 + vec2(t * 0.14, -t * 0.10)),
-    fbm(delta * 2.3 + vec2(-t * 0.11, t * 0.15) + vec2(4.2, 1.7))
+    fbm(delta * 2.0 + vec2(t * 0.13, -t * 0.09)),
+    fbm(delta * 2.0 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
   );
 
   // Flowing aurora petals (kelopak cahaya organik)
-  float petalA = sin(ang * 3.0 + t * 0.28 + warp.x * 3.8);
-  float petalB = cos(ang * 5.0 - t * 0.21 + warp.y * 3.1);
+  float petalA = sin(ang * 3.0 + t * 0.25 + warp.x * 3.6);
+  float petalB = cos(ang * 5.0 - t * 0.19 + warp.y * 2.9);
   float petalHarmonic = clamp(0.54 + 0.28 * petalA + 0.18 * petalB, 0.08, 1.0);
 
   // Flowing silk wave interference
-  float waveFlow = fbm(delta * 1.85 + warp * 1.35 + vec2(t * 0.06, -t * 0.16));
+  float waveFlow = fbm(delta * 1.65 + warp * 1.3 + vec2(t * 0.05, -t * 0.15));
 
-  // Compact exponential envelope so glow melts smoothly into pure #000000
-  float petalStretch = 1.65 - 0.62 * petalHarmonic;
+  // Generous backlit envelope that still fades smoothly to #000000 at canvas bounds
+  float petalStretch = 1.55 - 0.58 * petalHarmonic;
   float envelope = exp(-r * r * petalStretch);
-  float softCore = exp(-r * r * 3.6);
+  float softCore = exp(-r * r * 3.1);
 
-  float ribbon = smoothstep(0.22, 0.86, waveFlow * 0.72 + petalHarmonic * 0.40) * envelope;
-  float edgeFade = smoothstep(1.0, 0.82, uv.y);
-  float luma = clamp((ribbon * 0.78 + softCore * 0.42) * edgeFade, 0.0, 1.0);
+  float ribbon = smoothstep(0.20, 0.85, waveFlow * 0.72 + petalHarmonic * 0.40) * envelope;
+  float edgeFade = smoothstep(0.0, 0.12, uv.y) * smoothstep(1.0, 0.78, uv.y);
+  float luma = clamp((ribbon * 0.80 + softCore * 0.44) * edgeFade, 0.0, 1.0);
 
-  // Strict ~70% primary (white) + ~30% accent mood blend along aurora ridges
+  // 70% crisp primary white body + 30% mood accent along aurora petal ridges
   float ridgeRatio = clamp(0.30 + (ribbon - softCore) * 0.18, 0.18, 0.42);
   vec3 tint = mix(u_primary, u_accent, ridgeRatio);
 
-  // Procedural 1px film grain dither to prevent gradient banding on OLED screens
-  float grain = hash21(gl_FragCoord.xy + fract(t * 1.7) * 53.0) - 0.5;
-  vec3 color = tint * luma * u_intensity;
-  color += grain * 0.042 * smoothstep(0.025, 0.45, luma);
+  // Crisp ~1.4px logical film grain so noise texture stays visible & tactile on HiDPI screens
+  vec2 grainCoord = floor(gl_FragCoord.xy / max(u_dpr * 1.4, 1.35));
+  float grain = hash21(grainCoord + fract(t * 1.5) * 47.0) - 0.5;
 
-  gl_FragColor = vec4(max(color, 0.0), clamp(luma * u_intensity * 1.15, 0.0, 1.0));
+  float activeIntensity = u_intensity * u_ignite;
+  vec3 color = tint * luma * activeIntensity;
+  color += grain * 0.058 * smoothstep(0.02, 0.46, luma) * u_ignite;
+
+  gl_FragColor = vec4(max(color, 0.0), clamp(luma * activeIntensity * 1.2, 0.0, 1.0));
 }
 `;
 
@@ -123,20 +129,22 @@ function compileShader(gl, type, source) {
 }
 
 /**
- * Compact WebGL domain-warped petaled aurora + procedural 1px film grain backdrop.
- * Smoothly interpolates anchor, scale, and mood colors across tab hierarchy transitions.
+ * Compact WebGL domain-warped petaled aurora + visible tactile film grain backdrop.
+ * Ignites from dark (0 -> 1) directly behind the target tab's card region whenever `ignitionKey` switches.
  */
 export default function AuroraPetalCanvas({
+  ignitionKey = 'home',
   anchorX = 0.5,
-  anchorY = 0.34,
-  radius = 0.52,
+  anchorY = 0.54,
+  radius = 0.62,
   primaryColor = '#FFFFFF',
   accentColor = '#D7FF00',
-  intensity = 0.36,
+  intensity = 0.38,
   className = '',
 }) {
   const canvasRef = useRef(null);
   const targetRef = useRef({
+    ignitionKey,
     anchorX,
     anchorY,
     radius,
@@ -144,9 +152,12 @@ export default function AuroraPetalCanvas({
     primaryRgb: hexToRgbNorm(primaryColor),
     accentRgb: hexToRgbNorm(accentColor),
   });
+  const ignitePendingRef = useRef(true);
 
   useEffect(() => {
+    const isNewTab = targetRef.current.ignitionKey !== ignitionKey;
     targetRef.current = {
+      ignitionKey,
       anchorX,
       anchorY,
       radius,
@@ -154,7 +165,10 @@ export default function AuroraPetalCanvas({
       primaryRgb: hexToRgbNorm(primaryColor),
       accentRgb: hexToRgbNorm(accentColor),
     };
-  }, [anchorX, anchorY, radius, primaryColor, accentColor, intensity]);
+    if (isNewTab) {
+      ignitePendingRef.current = true;
+    }
+  }, [ignitionKey, anchorX, anchorY, radius, primaryColor, accentColor, intensity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -196,6 +210,8 @@ export default function AuroraPetalCanvas({
     const uResolution = gl.getUniformLocation(program, 'u_resolution');
     const uAnchor = gl.getUniformLocation(program, 'u_anchor');
     const uRadius = gl.getUniformLocation(program, 'u_radius');
+    const uIgnite = gl.getUniformLocation(program, 'u_ignite');
+    const uDpr = gl.getUniformLocation(program, 'u_dpr');
     const uTime = gl.getUniformLocation(program, 'u_time');
     const uIntensity = gl.getUniformLocation(program, 'u_intensity');
     const uPrimary = gl.getUniformLocation(program, 'u_primary');
@@ -210,12 +226,13 @@ export default function AuroraPetalCanvas({
       accentRgb: [...targetRef.current.accentRgb],
     };
 
+    let currentDpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      const nextW = Math.round(rect.width * dpr);
-      const nextH = Math.round(rect.height * dpr);
+      currentDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const nextW = Math.round(rect.width * currentDpr);
+      const nextH = Math.round(rect.height * currentDpr);
       if (canvas.width !== nextW || canvas.height !== nextH) {
         canvas.width = nextW;
         canvas.height = nextH;
@@ -232,21 +249,38 @@ export default function AuroraPetalCanvas({
     let rafId = 0;
     const startTs = performance.now();
     let lastTs = startTs;
+    let igniteStartTs = startTs;
+    const IGNITE_DURATION_MS = 920;
 
     const renderFrame = (now) => {
       const dt = Math.min((now - lastTs) / 1000, 0.05);
       lastTs = now;
-      const smooth = reducedMotion ? 1 : 1 - Math.exp(-dt * 4.5);
       const tgt = targetRef.current;
 
-      current.anchorX += (tgt.anchorX - current.anchorX) * smooth;
-      current.anchorY += (tgt.anchorY - current.anchorY) * smooth;
-      current.radius += (tgt.radius - current.radius) * smooth;
-      current.intensity += (tgt.intensity - current.intensity) * smooth;
-      for (let i = 0; i < 3; i += 1) {
-        current.primaryRgb[i] += (tgt.primaryRgb[i] - current.primaryRgb[i]) * smooth;
-        current.accentRgb[i] += (tgt.accentRgb[i] - current.accentRgb[i]) * smooth;
+      if (ignitePendingRef.current) {
+        // Snap immediately to new card anchor & mood color, then ignite from 0 behind card
+        ignitePendingRef.current = false;
+        igniteStartTs = now;
+        current.anchorX = tgt.anchorX;
+        current.anchorY = tgt.anchorY;
+        current.radius = tgt.radius;
+        current.intensity = tgt.intensity;
+        current.primaryRgb = [...tgt.primaryRgb];
+        current.accentRgb = [...tgt.accentRgb];
+      } else {
+        const smooth = reducedMotion ? 1 : 1 - Math.exp(-dt * 5.0);
+        current.anchorX += (tgt.anchorX - current.anchorX) * smooth;
+        current.anchorY += (tgt.anchorY - current.anchorY) * smooth;
+        current.radius += (tgt.radius - current.radius) * smooth;
+        current.intensity += (tgt.intensity - current.intensity) * smooth;
+        for (let i = 0; i < 3; i += 1) {
+          current.primaryRgb[i] += (tgt.primaryRgb[i] - current.primaryRgb[i]) * smooth;
+          current.accentRgb[i] += (tgt.accentRgb[i] - current.accentRgb[i]) * smooth;
+        }
       }
+
+      const rawIgnite = reducedMotion ? 1 : Math.min((now - igniteStartTs) / IGNITE_DURATION_MS, 1);
+      const easedIgnite = 1 - Math.pow(1 - rawIgnite, 3);
 
       gl.useProgram(program);
       gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
@@ -256,6 +290,8 @@ export default function AuroraPetalCanvas({
       gl.uniform2f(uResolution, canvas.width, canvas.height);
       gl.uniform2f(uAnchor, current.anchorX, current.anchorY);
       gl.uniform1f(uRadius, current.radius);
+      gl.uniform1f(uIgnite, easedIgnite);
+      gl.uniform1f(uDpr, currentDpr);
       gl.uniform1f(uTime, reducedMotion ? 2.4 : (now - startTs) * 0.001);
       gl.uniform1f(uIntensity, current.intensity);
       gl.uniform3fv(uPrimary, current.primaryRgb);

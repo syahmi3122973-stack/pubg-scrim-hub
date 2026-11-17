@@ -81,20 +81,20 @@ import {
 } from './utils/teamAlias';
 
 const TAB_AURORA_THEMES = {
-  home: { anchorX: 0.5, anchorY: 0.28, radius: 0.42, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
-  playground: { anchorX: 0.5, anchorY: 0.28, radius: 0.42, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
-  teams: { anchorX: 0.5, anchorY: 0.54, radius: 0.4, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.3 },
-  database: { anchorX: 0.5, anchorY: 0.54, radius: 0.4, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.3 },
-  history: { anchorX: 0.24, anchorY: 0.34, radius: 0.38, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.32 },
-  leaderboard: { anchorX: 0.24, anchorY: 0.34, radius: 0.38, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.32 },
-  'scrim-data': { anchorX: 0.74, anchorY: 0.38, radius: 0.38, primaryColor: '#FFFFFF', accentColor: '#F472B6', intensity: 0.32 },
-  scorer: { anchorX: 0.26, anchorY: 0.46, radius: 0.36, primaryColor: '#FFFFFF', accentColor: '#60A5FA', intensity: 0.32 },
-  admin: { anchorX: 0.72, anchorY: 0.28, radius: 0.36, primaryColor: '#FFFFFF', accentColor: '#A78BFA', intensity: 0.32 },
-  hosts: { anchorX: 0.32, anchorY: 0.36, radius: 0.35, primaryColor: '#FFFFFF', accentColor: '#FBBF24', intensity: 0.3 },
-  showcase: { anchorX: 0.68, anchorY: 0.4, radius: 0.36, primaryColor: '#FFFFFF', accentColor: '#FB7185', intensity: 0.3 },
-  about: { anchorX: 0.5, anchorY: 0.26, radius: 0.34, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.28 },
-  privacy: { anchorX: 0.22, anchorY: 0.28, radius: 0.32, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.24 },
-  terms: { anchorX: 0.78, anchorY: 0.28, radius: 0.32, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.24 },
+  home: { key: 'home', anchorX: 0.46, anchorY: 0.56, radius: 0.64, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.4 },
+  playground: { key: 'home', anchorX: 0.46, anchorY: 0.56, radius: 0.64, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.4 },
+  teams: { key: 'teams', anchorX: 0.5, anchorY: 0.58, radius: 0.6, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
+  database: { key: 'teams', anchorX: 0.5, anchorY: 0.58, radius: 0.6, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
+  history: { key: 'history', anchorX: 0.34, anchorY: 0.56, radius: 0.58, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.36 },
+  leaderboard: { key: 'history', anchorX: 0.34, anchorY: 0.56, radius: 0.58, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.36 },
+  'scrim-data': { key: 'scrim-data', anchorX: 0.66, anchorY: 0.54, radius: 0.58, primaryColor: '#FFFFFF', accentColor: '#F472B6', intensity: 0.36 },
+  scorer: { key: 'scorer', anchorX: 0.32, anchorY: 0.58, radius: 0.56, primaryColor: '#FFFFFF', accentColor: '#60A5FA', intensity: 0.36 },
+  admin: { key: 'admin', anchorX: 0.66, anchorY: 0.5, radius: 0.56, primaryColor: '#FFFFFF', accentColor: '#A78BFA', intensity: 0.36 },
+  hosts: { key: 'hosts', anchorX: 0.38, anchorY: 0.52, radius: 0.55, primaryColor: '#FFFFFF', accentColor: '#FBBF24', intensity: 0.34 },
+  showcase: { key: 'showcase', anchorX: 0.64, anchorY: 0.54, radius: 0.56, primaryColor: '#FFFFFF', accentColor: '#FB7185', intensity: 0.34 },
+  about: { key: 'about', anchorX: 0.5, anchorY: 0.44, radius: 0.56, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.34 },
+  privacy: { key: 'privacy', anchorX: 0.3, anchorY: 0.46, radius: 0.5, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.28 },
+  terms: { key: 'terms', anchorX: 0.7, anchorY: 0.46, radius: 0.5, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.28 },
 };
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
@@ -6080,7 +6080,7 @@ export default function App() {
         })()}
       </aside>
 
-      {/* PERSISTENT COMPACT WEBGL PETALED AURORA BACKDROP (Hierarchy-positioned & mood-tinted per tab) */}
+      {/* PERSISTENT BACKLIT WEBGL PETALED AURORA (Ignites cleanly behind primary cards per tab) */}
       {(() => {
         const base = TAB_AURORA_THEMES[activeTab] || TAB_AURORA_THEMES.home;
         const theme = (activeTab === 'teams' || activeTab === 'database') && teamMatrixFilterState?.category === 'TIER_3'
@@ -6089,9 +6089,10 @@ export default function App() {
         return (
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[370px] sm:h-[400px] lg:h-[430px] overflow-hidden z-0"
+            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[540px] sm:h-[600px] lg:h-[640px] overflow-hidden z-0"
           >
             <AuroraPetalCanvas
+              ignitionKey={theme.key}
               anchorX={theme.anchorX}
               anchorY={theme.anchorY}
               radius={theme.radius}
