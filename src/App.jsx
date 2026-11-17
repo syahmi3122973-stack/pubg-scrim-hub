@@ -6936,10 +6936,11 @@ export default function App() {
                   <div
                     role="group"
                     aria-label="Tapis Tier Team Matrix"
-                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-2.5 -my-2 px-1 -mx-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {HALL_OF_FAME_FILTERS.map((cat) => {
                       const isActive = teamStatsCategory === cat.key;
+                      const isSssFilter = cat.key === 'SSS';
                       return (
                         <button
                           key={cat.key}
@@ -6947,13 +6948,17 @@ export default function App() {
                           aria-pressed={isActive}
                           onClick={() => handleSelectTeamStatsCategory(cat.key)}
                           className={
-                            'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ' +
-                            (isActive
-                              ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
+                            'px-4 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95 ' +
+                            (isSssFilter
+                              ? isActive
+                                ? 'sss-filter-pill-active'
+                                : 'sss-filter-pill'
+                              : isActive
+                                ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200')
                           }
                         >
-                          <span>{cat.label}</span>
+                          <span className="relative z-10">{cat.label}</span>
                         </button>
                       );
                     })}
