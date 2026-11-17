@@ -6571,9 +6571,9 @@ export default function App() {
                               Tier 3
                             </span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-zinc-950 leading-none pt-0.5 flex items-baseline gap-1.5">
-                            <span className="font-team-matrix font-bold uppercase">Team</span>
-                            <span className="font-jetbrains font-extrabold uppercase text-[0.88em] translate-y-[0.5px]">Matrix</span>
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight text-zinc-950 leading-none pt-0.5 flex items-baseline gap-2">
+                            <span className="font-team-matrix font-extrabold uppercase">Team</span>
+                            <span className="font-jetbrains font-extrabold uppercase tracking-tight">Matrix</span>
                           </h2>
                         </div>
 
@@ -8029,11 +8029,11 @@ export default function App() {
                   className="-mt-14 sm:-mt-16 relative z-10 px-4 space-y-2.5 max-w-2xl animate-teams-blur"
                   style={{ '--blur-delay': '140ms' }}
                 >
-                  <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-bold uppercase flex items-center justify-center gap-2.5 sm:gap-3.5">
-                    <span className="font-team-matrix tracking-[0.1em] text-white">
+                  <h1 className="text-[clamp(2rem,1.25rem+3.4vw,3.65rem)] font-extrabold uppercase leading-none flex items-baseline justify-center gap-2.5 sm:gap-3.5">
+                    <span className="font-team-matrix tracking-[-0.02em] text-white">
                       TEAM
                     </span>
-                    <span className="font-jetbrains font-extrabold tracking-[0.06em] text-[#D7FF00]">
+                    <span className="font-jetbrains font-extrabold tracking-tight text-[#D7FF00]">
                       MATRIX
                     </span>
                   </h1>
