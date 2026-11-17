@@ -6333,14 +6333,11 @@ export default function App() {
 
         {/* VIEW 1: TEAM STATS (TEAM MATRIX - REFERENCE DIAL & SUMMARY LAYOUT) */}
         {activeTab === 'teams' && (() => {
-          const totalTeamsCount = validTeamList.length;
-          const totalScrimsCount = scrims.filter(s => (s.event_type || 'Scrim') !== 'Tour').length;
-          const totalToursCount = scrims.filter(s => s.event_type === 'Tour').length;
+          const { category, eventType, season, stage } = teamMatrixFilterState;
+          const sssScope = { season, stage };
 
           const allRankedTeamsWithStats = categoryTeamList.map((t) => {
             const allRes = t.scrimResults || [];
-            const { category, eventType, season, stage } = teamMatrixFilterState;
-            const sssScope = { season, stage };
             const scopedRes = (category === 'ALL' && eventType === 'ALL')
               ? allRes
               : allRes.filter(r => matchesStatsFilter(r, category, eventType, sssScope));
@@ -6364,6 +6361,29 @@ export default function App() {
             ...t,
             globalRank: idx + 1
           }));
+
+          const scopedScrimList = (category === 'ALL' && eventType === 'ALL')
+            ? scrims
+            : scrims.filter((s) =>
+                matchesStatsFilter(
+                  {
+                    scrimName: s.title,
+                    scrimData: s,
+                    scrimTier: s.tier || 'Tier 1 (Pro)',
+                    eventType: s.event_type || 'Scrim',
+                    hostName: s.host_name || 'Tournament Organizer'
+                  },
+                  category,
+                  eventType,
+                  sssScope
+                )
+              );
+
+          const totalTeamsCount = (category === 'ALL' && eventType === 'ALL')
+            ? validTeamList.length
+            : allRankedTeamsWithStats.length;
+          const totalScrimsCount = scopedScrimList.filter(s => (s.event_type || 'Scrim') !== 'Tour').length;
+          const totalToursCount = scopedScrimList.filter(s => s.event_type === 'Tour').length;
 
           const query = teamSearchQuery.toLowerCase().trim();
           const rankedTeamsWithStats = query
@@ -7102,6 +7122,12 @@ export default function App() {
                     </span>
                   </h1>
 
+                  {teamStatsCategory === 'SSS' && (
+                    <p className="text-[10px] sm:text-[11px] font-mono tracking-wide text-zinc-400 -mt-1">
+                      Scrim Saja-Saja powered by <span className="text-yellow-300/90 font-semibold">Scrimlabs</span>
+                    </p>
+                  )}
+
                   {/* Stats Line: Jumlah Team - Jumlah Scrim - Jumlah Tournament */}
                   <div className="flex items-center justify-center gap-4 sm:gap-5 text-xs sm:text-sm font-mono tabular-nums text-zinc-300">
                     <span>
@@ -7110,9 +7136,11 @@ export default function App() {
                     <span>
                       <strong className="text-white font-bold">{totalScrimsCount}</strong> Scrim
                     </span>
-                    <span>
-                      <strong className="text-white font-bold">{totalToursCount}</strong> Tournament
-                    </span>
+                    {(teamStatsCategory !== 'SSS' || totalToursCount > 0) && (
+                      <span>
+                        <strong className="text-white font-bold">{totalToursCount}</strong> Tournament
+                      </span>
+                    )}
                   </div>
 
                   {/* Description Paragraph */}
