@@ -63,22 +63,17 @@ body {
 @keyframes linearOpenBlur {
   0% {
     opacity: 0;
-    filter: blur(20px);
-    transform: translate3d(0, 12px, 0) scale(0.986);
-  }
-  45% {
-    opacity: 1;
+    transform: translate3d(0, 10px, 0) scale(0.99);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-linear-open {
-    animation: linearOpenBlur 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--open-delay, 0ms) both;
+    animation: linearOpenBlur 0.45s cubic-bezier(0.2, 1, 0.3, 1) var(--open-delay, 0ms) both;
   }
 }
 
@@ -102,12 +97,10 @@ body {
 @keyframes filterContentReveal {
   0% {
     opacity: 0;
-    filter: blur(12px);
-    transform: translate3d(0, 8px, 0) scale(0.99);
+    transform: translate3d(0, 6px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
@@ -115,44 +108,37 @@ body {
 @keyframes dropdownReveal {
   0% {
     opacity: 0;
-    filter: blur(8px);
-    transform: translate3d(0, -6px, 0) scale(0.96);
+    transform: translate3d(0, -6px, 0) scale(0.97);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-filter-reveal {
-    animation: filterContentReveal 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: filterContentReveal 0.28s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 
   .animate-dropdown-reveal {
-    animation: dropdownReveal 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: dropdownReveal 0.22s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 }
 
 @keyframes staggerSlideUp {
   0% {
     opacity: 0;
-    filter: blur(14px);
-    transform: translate3d(0, 12px, 0) scale(0.985);
-  }
-  48% {
-    opacity: 0.94;
+    transform: translate3d(0, 10px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
 
 .animate-stagger-card {
-  animation: staggerSlideUp 0.68s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: staggerSlideUp 0.38s cubic-bezier(0.2, 1, 0.3, 1) both;
 }
 
 @keyframes gaugeStrokeSweep {
@@ -230,19 +216,14 @@ body {
   scrollbar-width: none;
 }
 
-/* Direction-Aware Linear Opening Blur Tab & Screen Transitions */
+/* Direction-Aware Crisp Tab & Screen Transitions (Zero Blur) */
 @keyframes tabSlideInForward {
   0% {
     opacity: 0;
-    filter: blur(16px);
-    transform: translate3d(10px, 8px, 0) scale(0.986);
-  }
-  45% {
-    opacity: 0.94;
+    transform: translate3d(8px, 0, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
@@ -250,15 +231,10 @@ body {
 @keyframes tabSlideInBackward {
   0% {
     opacity: 0;
-    filter: blur(16px);
-    transform: translate3d(-10px, 8px, 0) scale(0.986);
-  }
-  45% {
-    opacity: 0.94;
+    transform: translate3d(-8px, 0, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
@@ -266,46 +242,36 @@ body {
 @keyframes tabSlideInFromBottom {
   0% {
     opacity: 0;
-    filter: blur(16px);
-    transform: translate3d(0, 28px, 0) scale(0.984);
-  }
-  45% {
-    opacity: 0.94;
+    transform: translate3d(0, 14px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-tab-forward {
-    animation: tabSlideInForward 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: tabSlideInForward 0.28s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 
   .animate-tab-backward {
-    animation: tabSlideInBackward 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: tabSlideInBackward 0.28s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 
   .animate-tab-bottom {
-    animation: tabSlideInFromBottom 0.64s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: tabSlideInFromBottom 0.3s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 }
 
-/* Exclusive Slow Blur Entry & Scope Reveal for Team Matrix */
+/* Crisp Entry & Scope Reveal for Team Matrix (Zero Blur) */
 @keyframes teamsBlurIn {
   0% {
     opacity: 0;
-    filter: blur(22px);
-    transform: translate3d(0, 12px, 0) scale(0.985);
-  }
-  45% {
-    opacity: 0.92;
+    transform: translate3d(0, 8px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
@@ -313,15 +279,10 @@ body {
 @keyframes teamsBlurItem {
   0% {
     opacity: 0;
-    filter: blur(24px);
-    transform: translate3d(0, 14px, 0) scale(0.984);
-  }
-  48% {
-    opacity: 0.94;
+    transform: translate3d(0, 8px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
@@ -329,38 +290,34 @@ body {
 @keyframes teamsScopeBlurIn {
   0% {
     opacity: 0;
-    filter: blur(14px);
-    transform: translate3d(0, 8px, 0) scale(0.99);
+    transform: translate3d(0, 6px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
 
 .tab-blur-stage {
-  transition: opacity 0.14s ease, transform 0.14s ease, filter 0.14s ease;
+  transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .tab-blur-exiting {
-    opacity: 0.08;
-    filter: blur(8px);
-    transform: scale(0.984);
-    transition: opacity 0.14s cubic-bezier(0.22, 1, 0.36, 1), transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), filter 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity: 0;
+    transition: opacity 0.1s ease;
   }
 
   .animate-teams-enter {
-    animation: teamsBlurIn 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: teamsBlurIn 0.32s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 
   .animate-teams-blur {
-    animation: teamsBlurItem 1.3s cubic-bezier(0.16, 1, 0.3, 1) var(--blur-delay, 0ms) both;
+    animation: teamsBlurItem 0.36s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 
   .animate-teams-scope {
-    animation: teamsScopeBlurIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: teamsScopeBlurIn 0.28s cubic-bezier(0.2, 1, 0.3, 1) both;
   }
 }
 
@@ -381,26 +338,21 @@ body {
   will-change: transform, opacity;
 }
 
-/* Home Command Center: Hierarchical Choreographed Motion (Motion Guide Compliant) */
+/* Home Command Center: Hierarchical Choreographed Motion (Zero Blur) */
 @keyframes homeTierRise {
   0% {
     opacity: 0;
-    filter: blur(16px);
-    transform: translate3d(0, 12px, 0) scale(0.986);
-  }
-  45% {
-    opacity: 0.94;
+    transform: translate3d(0, 10px, 0);
   }
   100% {
     opacity: 1;
-    filter: none;
     transform: none;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-home-tier {
-    animation: homeTierRise 0.72s cubic-bezier(0.16, 1, 0.3, 1) var(--home-delay, 0ms) both;
+    animation: homeTierRise 0.38s cubic-bezier(0.2, 1, 0.3, 1) var(--home-delay, 0ms) both;
   }
 }
 
@@ -1183,73 +1135,20 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
   }
 }
 
-/* iOS-Style Shared Card Opening & Closing Morph (Home Bento Cards & Team Matrix Cards Only) */
-html[data-vt-card-mode] .tab-blur-stage,
-html[data-vt-card-mode] .animate-home-tier,
-html[data-vt-card-mode] .animate-teams-enter,
-html[data-vt-card-mode] .animate-teams-blur,
-html[data-vt-card-mode] .animate-teams-scope,
-html[data-vt-card-mode] .animate-tab-forward,
-html[data-vt-card-mode] .animate-tab-backward,
-html[data-vt-card-mode] .animate-tab-bottom {
+/* iOS 26 Dual-Layer Floating Card Morph (Home Bento Cards & Team Matrix Cards) */
+.ios-morph-freeze,
+.ios-morph-freeze .tab-blur-stage,
+.ios-morph-freeze .animate-home-tier,
+.ios-morph-freeze .animate-teams-enter,
+.ios-morph-freeze .animate-teams-blur,
+.ios-morph-freeze .animate-teams-scope,
+.ios-morph-freeze .animate-stagger-card,
+.ios-morph-freeze .animate-filter-reveal,
+.ios-morph-freeze .animate-tab-forward,
+.ios-morph-freeze .animate-tab-backward,
+.ios-morph-freeze .animate-tab-bottom {
   animation: none !important;
-  filter: none !important;
   opacity: 1 !important;
   transform: none !important;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  @media (max-width: 767px) {
-    html[data-vt-card-mode] .vt-mobile-nav {
-      view-transition-name: scrimhub-nav-bar;
-    }
-  }
-
-  @media (min-width: 768px) {
-    html[data-vt-card-mode] .vt-desktop-nav {
-      view-transition-name: scrimhub-nav-bar;
-    }
-  }
-
-  ::view-transition-group(scrimhub-nav-bar) {
-    z-index: 60;
-    animation: none;
-  }
-
-  ::view-transition-group(card-expand-hero) {
-    z-index: 40;
-    overflow: clip;
-    border-radius: 1.75rem;
-    animation-duration: 0.42s;
-    animation-timing-function: cubic-bezier(0.22, 1.08, 0.32, 1);
-  }
-
-  html[data-vt-card-mode='close']::view-transition-group(card-expand-hero) {
-    animation-duration: 0.36s;
-    animation-timing-function: cubic-bezier(0.2, 1.04, 0.32, 1);
-  }
-
-  ::view-transition-old(card-expand-hero),
-  ::view-transition-new(card-expand-hero) {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-    object-position: top;
-    animation-duration: 0.24s;
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  html[data-vt-card-mode] ::view-transition-old(root),
-  html[data-vt-card-mode] ::view-transition-new(root) {
-    animation-duration: 0.26s;
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
+  filter: none !important;
 }

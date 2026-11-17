@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { flushSync } from 'react-dom';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { toPng } from 'html-to-image';
 import { 
   Trophy, 
@@ -4777,152 +4776,288 @@ export default function App() {
   const mainStageRef = useRef(null);
   const lastExpandedHomeCardRef = useRef(null);
   const lastExpandedTeamCardRef = useRef(null);
+  const [homeMorphState, setHomeMorphState] = useState(null);
+  const [teamMorphState, setTeamMorphState] = useState(null);
+  const [isCardMorphSettled, setIsCardMorphSettled] = useState(false);
+  const morphFgWindowRef = useRef(null);
+  const morphTintRef = useRef(null);
+  const morphBgRef = useRef(null);
+  const morphTimerRef = useRef(null);
+  const morphRevealTimerRef = useRef(null);
 
-  const cleanupCardViewTransitions = useCallback(() => {
-    if (typeof document === 'undefined') return;
-    delete document.documentElement.dataset.vtCardMode;
-    if (mainStageRef.current) {
-      mainStageRef.current.style.viewTransitionName = '';
+  const clearMorphTimers = useCallback(() => {
+    if (morphTimerRef.current) {
+      window.clearTimeout(morphTimerRef.current);
+      morphTimerRef.current = null;
     }
-    document.querySelectorAll('[data-vt-card], [data-vt-team-slot]').forEach((el) => {
-      el.style.viewTransitionName = '';
-    });
+    if (morphRevealTimerRef.current) {
+      window.clearTimeout(morphRevealTimerRef.current);
+      morphRevealTimerRef.current = null;
+    }
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('[data-vt-card], [data-vt-team-slot]').forEach((el) => {
+        el.style.opacity = '';
+        el.style.transition = '';
+      });
+    }
   }, []);
 
-  const runSharedCardTransition = useCallback(({
-    mode = 'open',
-    sourceEl = null,
-    findTargetEl = null,
-    updateDom,
-    afterUpdate
-  }) => {
-    const reducedMotion =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (typeof document === 'undefined' || typeof document.startViewTransition !== 'function' || reducedMotion) {
-      updateDom();
-      afterUpdate?.();
-      return;
-    }
+  useEffect(() => {
+    return () => clearMorphTimers();
+  }, [clearMorphTimers]);
 
-    cleanupCardViewTransitions();
-    document.documentElement.dataset.vtCardMode = mode;
+  const measureElementMorphRect = useCallback((el) => {
+    if (!el || typeof window === 'undefined') return null;
+    const r = el.getBoundingClientRect();
+    const cs = window.getComputedStyle(el);
+    const borderRadius = parseFloat(cs.borderTopLeftRadius) || 28;
+    const bg =
+      cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent'
+        ? cs.backgroundColor
+        : '#19191E';
+    return {
+      left: r.left,
+      top: r.top,
+      width: Math.max(r.width, 44),
+      height: Math.max(r.height, 44),
+      borderRadius,
+      bg
+    };
+  }, []);
 
-    const outgoingStage = mainStageRef.current;
-    if (mode === 'open' && sourceEl) {
-      sourceEl.style.viewTransitionName = 'card-expand-hero';
-    } else if (mode === 'close' && outgoingStage) {
-      outgoingStage.style.viewTransitionName = 'card-expand-hero';
-    }
+  const computeCardMorphFrame = useCallback((rect, vw, vh) => {
+    const safeRect = rect || { left: vw * 0.1, top: vh * 0.2, width: vw * 0.8, height: 180, borderRadius: 28 };
+    const scale = Math.min(0.95, Math.max(safeRect.width / vw, safeRect.height / vh, 0.08));
+    const unscaledW = Math.min(vw, safeRect.width / scale);
+    const unscaledH = Math.min(vh, safeRect.height / scale);
+    const clipX = Math.max(0, (vw - unscaledW) / 2);
+    const clipBottom = Math.max(0, vh - unscaledH);
+    const tx = safeRect.left - clipX * scale;
+    const ty = safeRect.top;
+    const r = Math.min(180, (safeRect.borderRadius || 28) / scale);
+    return {
+      transform: `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`,
+      clipPath: `inset(0px ${clipX.toFixed(1)}px ${clipBottom.toFixed(1)}px ${clipX.toFixed(1)}px round ${r.toFixed(1)}px)`
+    };
+  }, []);
 
-    let transition;
-    try {
-      transition = document.startViewTransition(() => {
-        flushSync(() => {
-          updateDom();
-        });
-        if (sourceEl) sourceEl.style.viewTransitionName = '';
-        if (outgoingStage) outgoingStage.style.viewTransitionName = '';
-        afterUpdate?.();
+  useLayoutEffect(() => {
+    const activeMorph = teamMorphState || homeMorphState;
+    if (!activeMorph || typeof window === 'undefined') return;
 
-        if (mode === 'open') {
-          if (mainStageRef.current) {
-            mainStageRef.current.style.viewTransitionName = 'card-expand-hero';
-          }
-        } else {
-          const restoredCard = findTargetEl?.();
-          if (restoredCard) {
-            restoredCard.style.viewTransitionName = 'card-expand-hero';
-          }
-        }
-      });
-    } catch {
-      cleanupCardViewTransitions();
-      updateDom();
-      afterUpdate?.();
-      return;
-    }
+    const isTeamMorph = Boolean(teamMorphState);
+    const vw = window.innerWidth || 390;
+    const vh = window.innerHeight || 844;
+    const fgEl = morphFgWindowRef.current;
+    const tintEl = morphTintRef.current;
+    const bgEl = morphBgRef.current;
 
-    transition.finished.finally(() => {
-      cleanupCardViewTransitions();
-      if (mode === 'open' && mainStageRef.current) {
-        mainStageRef.current.focus({ preventScroll: true });
-      } else if (mode === 'close') {
-        const restoredCard = findTargetEl?.();
-        if (restoredCard) {
-          restoredCard.focus({ preventScroll: true });
-        } else if (mainStageRef.current) {
-          mainStageRef.current.focus({ preventScroll: true });
-        }
+    const findCardEl = () => {
+      if (isTeamMorph) {
+        const slotEl = Array.from(document.querySelectorAll('[data-vt-team-slot]'))
+          .find((el) => el.dataset.vtTeamSlot === activeMorph.slotKey);
+        if (slotEl) return slotEl;
+        return Array.from(document.querySelectorAll('[data-vt-team]'))
+          .find((el) => el.dataset.vtTeam === activeMorph.teamName) || null;
       }
-    });
-  }, [cleanupCardViewTransitions]);
+      return Array.from(document.querySelectorAll('[data-vt-card]'))
+        .find((el) => el.dataset.vtCard === activeMorph.cardId) || null;
+    };
 
-  const runBlurSwap = useCallback((shouldBlurOut, applyUpdate) => {
+    const springEasing = 'cubic-bezier(0.19, 1, 0.22, 1)';
+
+    if (activeMorph.phase === 'open') {
+      const duration = 560;
+      const cardEl = findCardEl();
+      if (cardEl) {
+        cardEl.style.transition = 'none';
+        cardEl.style.opacity = '0';
+      }
+
+      const cardFrame = computeCardMorphFrame(activeMorph.rect, vw, vh);
+      const fullFrame = {
+        transform: 'translate3d(0px, 0px, 0) scale(1)',
+        clipPath: 'inset(0px 0px 0px 0px round 0px)'
+      };
+
+      fgEl?.animate([cardFrame, fullFrame], {
+        duration,
+        easing: springEasing,
+        fill: 'forwards'
+      });
+
+      tintEl?.animate(
+        [
+          { opacity: 0.88, offset: 0 },
+          { opacity: 0, offset: 0.42 },
+          { opacity: 0, offset: 1 }
+        ],
+        { duration, easing: 'ease-out', fill: 'forwards' }
+      );
+
+      bgEl?.animate(
+        [
+          { transform: 'scale(1)', opacity: 1 },
+          { transform: 'scale(0.93)', opacity: 0.32 }
+        ],
+        { duration, easing: springEasing, fill: 'forwards' }
+      );
+
+      morphTimerRef.current = window.setTimeout(() => {
+        if (cardEl) {
+          cardEl.style.opacity = '';
+          cardEl.style.transition = '';
+        }
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        if (isTeamMorph) {
+          setTeamMorphState(null);
+        } else {
+          setHomeMorphState(null);
+        }
+        mainStageRef.current?.focus({ preventScroll: true });
+      }, duration);
+    } else {
+      const duration = 520;
+      window.scrollTo({ top: activeMorph.bgScrollY || 0, left: 0, behavior: 'instant' });
+
+      const cardEl = findCardEl();
+      const liveRect = (cardEl ? measureElementMorphRect(cardEl) : null) || activeMorph.rect;
+      if (cardEl) {
+        cardEl.style.transition = 'none';
+        cardEl.style.opacity = '0';
+      }
+
+      const cardFrame = computeCardMorphFrame(liveRect, vw, vh);
+      const fullFrame = {
+        transform: 'translate3d(0px, 0px, 0) scale(1)',
+        clipPath: 'inset(0px 0px 0px 0px round 0px)',
+        opacity: 1
+      };
+
+      fgEl?.animate(
+        [
+          fullFrame,
+          { ...cardFrame, opacity: 1, offset: 0.86 },
+          { ...cardFrame, opacity: 0, offset: 1 }
+        ],
+        { duration, easing: springEasing, fill: 'forwards' }
+      );
+
+      tintEl?.animate(
+        [
+          { opacity: 0, offset: 0 },
+          { opacity: 0, offset: 0.46 },
+          { opacity: 0.84, offset: 0.86 },
+          { opacity: 0, offset: 1 }
+        ],
+        { duration, easing: 'ease-in-out', fill: 'forwards' }
+      );
+
+      bgEl?.animate(
+        [
+          { transform: 'scale(0.93)', opacity: 0.32 },
+          { transform: 'scale(1)', opacity: 1 }
+        ],
+        { duration, easing: springEasing, fill: 'forwards' }
+      );
+
+      morphRevealTimerRef.current = window.setTimeout(() => {
+        if (cardEl) {
+          cardEl.style.transition = 'opacity 95ms ease-out';
+          cardEl.style.opacity = '1';
+        }
+      }, Math.round(duration * 0.8));
+
+      morphTimerRef.current = window.setTimeout(() => {
+        if (cardEl) {
+          cardEl.style.transition = '';
+          cardEl.style.opacity = '';
+          cardEl.focus({ preventScroll: true });
+        }
+        if (isTeamMorph) {
+          setSelectedTeamProfile('');
+          setTeamMorphState(null);
+        } else {
+          setHomeMorphState(null);
+        }
+      }, duration);
+    }
+  }, [homeMorphState, teamMorphState, computeCardMorphFrame, measureElementMorphRect]);
+
+  const runBlurSwap = useCallback((_shouldBlurOut, applyUpdate) => {
     if (tabTransitionTimerRef.current) {
       window.clearTimeout(tabTransitionTimerRef.current);
       tabTransitionTimerRef.current = null;
     }
-    const reducedMotion =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (shouldBlurOut && !reducedMotion) {
-      setTabBlurStage('out');
-      tabTransitionTimerRef.current = window.setTimeout(() => {
-        applyUpdate();
-        setTabBlurStage('idle');
-        tabTransitionTimerRef.current = null;
-      }, 110);
-    } else {
-      setTabBlurStage('idle');
-      applyUpdate();
-    }
+    setTabBlurStage('idle');
+    applyUpdate();
   }, []);
 
   const openTeamProfile = useCallback((teamName, sourceEl = null, slotKey = null) => {
     if (!teamName) return;
+    clearMorphTimers();
     const savedScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
     const resolvedSlotKey = slotKey || `main_${teamName}`;
+    const cardEl =
+      sourceEl ||
+      Array.from(document.querySelectorAll('[data-vt-team-slot]')).find((el) => el.dataset.vtTeamSlot === resolvedSlotKey) ||
+      Array.from(document.querySelectorAll('[data-vt-team]')).find((el) => el.dataset.vtTeam === teamName) ||
+      null;
+    const rect = measureElementMorphRect(cardEl);
+
     lastExpandedTeamCardRef.current = {
       teamName,
       slotKey: resolvedSlotKey,
-      scrollY: savedScrollY
+      scrollY: savedScrollY,
+      rect
     };
 
-    runSharedCardTransition({
-      mode: 'open',
-      sourceEl,
-      updateDom: () => {
-        setNavDirection('forward');
-        setSelectedTeamProfile(teamName);
-      },
-      afterUpdate: () => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }
-    });
-  }, [runSharedCardTransition]);
+    const reducedMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    setIsCardMorphSettled(true);
+    setNavDirection('forward');
+    setSelectedTeamProfile(teamName);
+
+    if (rect && !reducedMotion) {
+      setTeamMorphState({
+        phase: 'open',
+        teamName,
+        slotKey: resolvedSlotKey,
+        rect,
+        bgScrollY: savedScrollY,
+        fgScrollY: 0
+      });
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [clearMorphTimers, measureElementMorphRect]);
 
   const closeTeamProfile = useCallback(() => {
+    clearMorphTimers();
     const saved = lastExpandedTeamCardRef.current;
     lastExpandedTeamCardRef.current = null;
+    const reducedMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    runSharedCardTransition({
-      mode: 'close',
-      updateDom: () => {
-        setNavDirection('backward');
-        setSelectedTeamProfile('');
-      },
-      afterUpdate: () => {
-        window.scrollTo({ top: saved?.scrollY ?? 0, left: 0, behavior: 'instant' });
-      },
-      findTargetEl: () => {
-        if (!saved) return null;
-        const slotEl = Array.from(document.querySelectorAll('[data-vt-team-slot]'))
-          .find((el) => el.dataset.vtTeamSlot === saved.slotKey);
-        if (slotEl) return slotEl;
-        return Array.from(document.querySelectorAll('[data-vt-team]'))
-          .find((el) => el.dataset.vtTeam === saved.teamName) || null;
-      }
-    });
-  }, [runSharedCardTransition]);
+    setIsCardMorphSettled(true);
+    setNavDirection('backward');
+
+    if (saved && !reducedMotion) {
+      const currentFgScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+      setTeamMorphState({
+        phase: 'close',
+        teamName: saved.teamName,
+        slotKey: saved.slotKey,
+        rect: saved.rect,
+        bgScrollY: saved.scrollY ?? 0,
+        fgScrollY: currentFgScrollY
+      });
+    } else {
+      setSelectedTeamProfile('');
+      window.scrollTo({ top: saved?.scrollY ?? 0, left: 0, behavior: 'instant' });
+    }
+  }, [clearMorphTimers]);
 
   const navigateToTab = useCallback((tab, options = {}) => {
     const { sourceCardId = null, sourceEl = null } = options;
@@ -4934,6 +5069,11 @@ export default function App() {
     setIsScorerActionsMenuOpen(false);
     setIsNavMenuOpen(false);
     setActiveHeaderInfo(null);
+    clearMorphTimers();
+    setTeamMorphState(null);
+
+    const reducedMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const applyTabNavigation = () => {
       setSelectedTeamProfile('');
@@ -4951,20 +5091,29 @@ export default function App() {
 
     if (sourceCardId && sourceEl) {
       const savedScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+      const rect = measureElementMorphRect(sourceEl);
       lastExpandedHomeCardRef.current = {
         cardId: sourceCardId,
         targetTab: normalizedNext,
-        scrollY: savedScrollY
+        scrollY: savedScrollY,
+        rect
       };
       lastExpandedTeamCardRef.current = null;
-      runSharedCardTransition({
-        mode: 'open',
-        sourceEl,
-        updateDom: applyTabNavigation,
-        afterUpdate: () => {
-          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        }
-      });
+      setIsCardMorphSettled(true);
+      applyTabNavigation();
+
+      if (rect && !reducedMotion) {
+        setHomeMorphState({
+          phase: 'open',
+          cardId: sourceCardId,
+          targetTab: normalizedNext,
+          rect,
+          bgScrollY: savedScrollY,
+          fgScrollY: 0
+        });
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
       return;
     }
 
@@ -4974,43 +5123,42 @@ export default function App() {
       activeHomeOrigin &&
       activeHomeOrigin.targetTab === normalizedCurrent
     ) {
+      const currentFgScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
       lastExpandedHomeCardRef.current = null;
       lastExpandedTeamCardRef.current = null;
-      runSharedCardTransition({
-        mode: 'close',
-        updateDom: () => {
-          setSelectedTeamProfile('');
-          setNavDirection('backward');
-          setTabHistory([]);
-          setActiveTab('playground');
-        },
-        afterUpdate: () => {
-          window.scrollTo({ top: activeHomeOrigin.scrollY ?? 0, left: 0, behavior: 'instant' });
-        },
-        findTargetEl: () =>
-          Array.from(document.querySelectorAll('[data-vt-card]'))
-            .find((el) => el.dataset.vtCard === activeHomeOrigin.cardId) || null
-      });
+      setIsCardMorphSettled(true);
+      setSelectedTeamProfile('');
+      setNavDirection('backward');
+      setTabHistory([]);
+      setActiveTab('playground');
+
+      if (!reducedMotion) {
+        setHomeMorphState({
+          phase: 'close',
+          cardId: activeHomeOrigin.cardId,
+          targetTab: activeHomeOrigin.targetTab,
+          rect: activeHomeOrigin.rect,
+          bgScrollY: activeHomeOrigin.scrollY ?? 0,
+          fgScrollY: currentFgScrollY
+        });
+      } else {
+        window.scrollTo({ top: activeHomeOrigin.scrollY ?? 0, left: 0, behavior: 'instant' });
+      }
       return;
     }
 
+    setIsCardMorphSettled(false);
+    setHomeMorphState(null);
     lastExpandedHomeCardRef.current = null;
     lastExpandedTeamCardRef.current = null;
-    const shouldBlur = normalizedNext !== normalizedCurrent;
-    runBlurSwap(shouldBlur, () => {
-      applyTabNavigation();
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }, 15);
-    });
-  }, [runBlurSwap, runSharedCardTransition]);
+    applyTabNavigation();
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [clearMorphTimers, measureElementMorphRect]);
 
   const handleNavigateBackTab = useCallback(() => {
     setActiveHeaderInfo(null);
     setIsNavMenuOpen(false);
     const normalizedCurrent = activeTab === 'home' ? 'playground' : activeTab;
-
     const previousTab = tabHistory.length > 0 ? (tabHistory[tabHistory.length - 1] || 'playground') : 'playground';
     const activeHomeOrigin = lastExpandedHomeCardRef.current;
 
@@ -5019,49 +5167,34 @@ export default function App() {
       activeHomeOrigin &&
       activeHomeOrigin.targetTab === normalizedCurrent
     ) {
-      lastExpandedHomeCardRef.current = null;
-      lastExpandedTeamCardRef.current = null;
-      runSharedCardTransition({
-        mode: 'close',
-        updateDom: () => {
-          setSelectedTeamProfile('');
-          setNavDirection('backward');
-          setTabHistory([]);
-          setActiveTab('playground');
-        },
-        afterUpdate: () => {
-          window.scrollTo({ top: activeHomeOrigin.scrollY ?? 0, left: 0, behavior: 'instant' });
-        },
-        findTargetEl: () =>
-          Array.from(document.querySelectorAll('[data-vt-card]'))
-            .find((el) => el.dataset.vtCard === activeHomeOrigin.cardId) || null
-      });
+      navigateToTab('playground');
       return true;
     }
 
+    clearMorphTimers();
+    setHomeMorphState(null);
+    setTeamMorphState(null);
+    setIsCardMorphSettled(false);
+
     if (tabHistory.length > 0) {
-      runBlurSwap(true, () => {
-        setSelectedTeamProfile('');
-        setNavDirection('backward');
-        setTabHistory((prev) => prev.slice(0, -1));
-        setActiveTab(previousTab);
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      });
+      setSelectedTeamProfile('');
+      setNavDirection('backward');
+      setTabHistory((prev) => prev.slice(0, -1));
+      setActiveTab(previousTab);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       return true;
     }
 
     if (activeTab !== 'playground' && activeTab !== 'home') {
-      runBlurSwap(true, () => {
-        setSelectedTeamProfile('');
-        setNavDirection('backward');
-        setActiveTab('playground');
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      });
+      setSelectedTeamProfile('');
+      setNavDirection('backward');
+      setActiveTab('playground');
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       return true;
     }
 
     return false;
-  }, [tabHistory, activeTab, runBlurSwap, runSharedCardTransition]);
+  }, [tabHistory, activeTab, navigateToTab, clearMorphTimers]);
 
   const handleStartScoringSession = () => {
     navigateToTab('scorer');
@@ -5339,6 +5472,77 @@ export default function App() {
         </div>
       </div>
     </>
+  );
+
+  // =========================================================================================
+  // DUAL-LAYER iOS 26 CARD MORPH WRAPPERS (Preserves DOM Tree Depth so Unwrap = 0 Remount)
+  // =========================================================================================
+  const renderMorphBgLayer = (morphState, content) => (
+    <div
+      ref={morphState ? morphBgRef : undefined}
+      style={
+        morphState
+          ? {
+              transformOrigin: `${Math.round(morphState.rect.left + morphState.rect.width / 2)}px ${Math.round(
+                morphState.rect.top + morphState.rect.height / 2
+              )}px`,
+              willChange: 'transform, opacity',
+              pointerEvents: 'none',
+            }
+          : undefined
+      }
+      className={morphState ? 'ios-morph-freeze select-none' : undefined}
+    >
+      {content}
+    </div>
+  );
+
+  const renderMorphFgWindow = (morphState, content) => (
+    <div
+      ref={morphState ? morphFgWindowRef : undefined}
+      style={
+        morphState
+          ? {
+              position: 'fixed',
+              inset: 0,
+              zIndex: 45,
+              backgroundColor: '#000000',
+              overflow: 'hidden',
+              pointerEvents: 'none',
+              transformOrigin: '0 0',
+              willChange: 'transform, clip-path',
+              boxShadow: '0 28px 90px rgba(0, 0, 0, 0.85)',
+            }
+          : undefined
+      }
+      className={morphState ? 'ios-morph-freeze' : undefined}
+    >
+      <div
+        className={
+          morphState
+            ? 'max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 pt-16 sm:pt-20 md:pt-6 pb-28 md:pb-10 md:pl-60 lg:pl-64'
+            : undefined
+        }
+      >
+        {content}
+      </div>
+      <div
+        ref={morphState ? morphTintRef : undefined}
+        style={
+          morphState
+            ? {
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: morphState.tint || '#131316',
+                pointerEvents: 'none',
+                zIndex: 50,
+                opacity: morphState.phase === 'open' ? 0.94 : 0,
+                willChange: 'opacity',
+              }
+            : { display: 'none' }
+        }
+      />
+    </div>
   );
 
   return (
@@ -5966,9 +6170,10 @@ export default function App() {
         <div
           ref={mainStageRef}
           tabIndex={-1}
-          key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
           className={`tab-blur-stage focus:outline-none ${
-            tabBlurStage === 'out'
+            isCardMorphSettled || homeMorphState || teamMorphState
+              ? 'ios-morph-freeze'
+              : tabBlurStage === 'out'
               ? 'tab-blur-exiting'
               : activeTab === 'teams'
               ? 'animate-teams-enter'
@@ -5981,7 +6186,7 @@ export default function App() {
         >
 
         {/* VIEW 0: AUTHENTICATION GUARD & BENTO-GRID COMMAND CENTER (ROOT ROUTE /) */}
-        {(activeTab === 'playground' || activeTab === 'home') && (() => {
+        {(activeTab === 'playground' || activeTab === 'home' || Boolean(homeMorphState)) && (() => {
           // 1. LOADING SESSION STATE: Semantic Spinner & Frosted Glass Skeleton
           if (isAuthChecking) {
             return (
@@ -6060,7 +6265,8 @@ export default function App() {
           const latestRekodTitle = latestRekodSession?.title || 'Belum ada sesi lagi';
           const latestRekodFinished = latestRekodSession ? Boolean(latestRekodSession.is_finished) : true;
 
-          return (
+          return renderMorphBgLayer(
+            homeMorphState,
             <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
               
               {/* TIER 1: Specific Centered Headline + Live Counters */}
@@ -6838,7 +7044,7 @@ export default function App() {
         {/* NOTA: Quick Scorer kini telah dinaiktaraf sepenuhnya menggunakan enjin Admin Scorer */}
 
         {/* VIEW 1: TEAM STATS (TEAM MATRIX - REFERENCE DIAL & SUMMARY LAYOUT) */}
-        {activeTab === 'teams' && (() => {
+        {(activeTab === 'teams' || homeMorphState?.targetTab === 'teams') && (() => {
           const { category, eventType, season, stage } = teamMatrixFilterState;
           const sssScope = { season, stage };
 
@@ -6900,6 +7106,7 @@ export default function App() {
             : allRankedTeamsWithStats;
 
           // DEDICATED FULL-PAGE VIEW FOR TEAM PROFILE & INTERACTIVE STATS (Replaces floating modal card)
+          let teamProfileNode = null;
           if (selectedTeamProfile && activeTeamData && activeTeamScopedStats) {
             const teamInRanked = allRankedTeamsWithStats.find(t => t.name === activeTeamData.name);
             const globalFallbackIndex = validTeamList.findIndex(t => t.name === activeTeamData.name);
@@ -6919,7 +7126,7 @@ export default function App() {
               ? Math.round((activeTeamScopedStats.totalWWCD / activeTeamScopedStats.matchesCount) * 100)
               : 0;
 
-            return (
+            teamProfileNode = (
               <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-28 md:pb-10 animate-teams-enter relative">
                 {/* 1. TOP NAVIGATION BAR */}
                 <div className="flex items-center justify-between px-1">
@@ -7328,6 +7535,13 @@ export default function App() {
             );
           }
 
+          if (teamProfileNode && !teamMorphState) {
+            return renderMorphFgWindow(
+              homeMorphState?.targetTab === 'teams' ? homeMorphState : null,
+              teamProfileNode
+            );
+          }
+
           const showAllTeams = isHallOfFameFullView || Boolean(teamSearchQuery.trim());
           const displayedRankedTeams = showAllTeams
             ? rankedTeamsWithStats
@@ -7351,7 +7565,8 @@ export default function App() {
             dialTicks.push({ deg, x1, y1, x2, y2, opacity, isCardinal });
           }
 
-          return (
+          const teamListNode = renderMorphBgLayer(
+            teamMorphState,
             <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-7 pt-1 pb-28 md:pb-12 relative">
               {/* 1. TOP NAVIGATION BAR (Top-level tab: no back chevron) */}
               <div className="flex items-center justify-between px-1">
@@ -8144,7 +8359,11 @@ export default function App() {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      openTeamProfile(team.name);
+                                      openTeamProfile(
+                                        team.name,
+                                        e.currentTarget.closest('[data-vt-team-slot]') || e.currentTarget,
+                                        `main_${team.name}`
+                                      );
                                     }}
                                     className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] transition shrink-0 cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
@@ -8204,10 +8423,21 @@ export default function App() {
 
             </div>
           );
+
+          return renderMorphFgWindow(
+            homeMorphState?.targetTab === 'teams' ? homeMorphState : null,
+            <>
+              {teamListNode}
+              {teamMorphState && teamProfileNode
+                ? renderMorphFgWindow(teamMorphState, teamProfileNode)
+                : null}
+            </>
+          );
         })()}
 
         {/* VIEW 2: LIVE LEADERBOARD & REKOD KEJOHANAN */}
-        {(activeTab === 'history' || activeTab === 'leaderboard') && (
+        {(activeTab === 'history' || activeTab === 'leaderboard' || homeMorphState?.targetTab === 'history') && renderMorphFgWindow(
+          homeMorphState?.targetTab === 'history' ? homeMorphState : null,
           <div className="max-w-xl md:max-w-full mx-auto space-y-5 sm:space-y-6 pt-1 pb-28 md:pb-12">
             
             {/* 1. TOP NAVIGATION BAR (Top-level tab: no back chevron) */}
@@ -9046,7 +9276,8 @@ export default function App() {
         )}
 
         {/* VIEW 5B: RESULTS SCANNER (AI POSTER OCR) */}
-        {activeTab === 'scrim-data' && (
+        {(activeTab === 'scrim-data' || homeMorphState?.targetTab === 'scrim-data') && renderMorphFgWindow(
+          homeMorphState?.targetTab === 'scrim-data' ? homeMorphState : null,
           <ScrimDataHubView
             navigateToTab={navigateToTab}
             onBack={handleNavigateBackTab}
@@ -9063,7 +9294,8 @@ export default function App() {
         )}
 
         {/* VIEW 6: QUICK SCORER (POWERED BY FULL ADMIN SCORER ENGINE) */}
-        {(activeTab === 'scorer' || activeTab === 'admin') && (
+        {(activeTab === 'scorer' || activeTab === 'admin' || homeMorphState?.targetTab === 'scorer') && renderMorphFgWindow(
+          homeMorphState?.targetTab === 'scorer' ? homeMorphState : null,
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
