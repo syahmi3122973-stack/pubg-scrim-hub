@@ -5007,6 +5007,143 @@ export default function App() {
     activeHeaderInfo
   ]);
 
+  const renderOrgPopoverCard = (positionClass) => (
+    <>
+      <div
+        className="fixed inset-0 z-30"
+        onClick={() => setIsOrgPopoverOpen(false)}
+      />
+      <div className={`absolute z-40 ${positionClass}`}>
+        <div
+          role="dialog"
+          aria-label="Active User Account"
+          className="w-full bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
+        >
+          <div className="flex items-center justify-between px-1.5 pt-0.5">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+              Akaun Log Masuk
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsOrgPopoverOpen(false)}
+              aria-label="Tutup"
+              className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="space-y-1.5 max-h-56 overflow-y-auto no-scrollbar">
+            {savedAccounts.length > 0 ? (
+              savedAccounts.map((acc) => {
+                const isActive = currentUser?.email?.toLowerCase() === acc.email?.toLowerCase();
+                const displayName = acc.name || acc.email.split('@')[0];
+                return (
+                  <div
+                    key={acc.email}
+                    onClick={() => {
+                      if (!isActive) handleSwitchAccount(acc);
+                      else setIsOrgPopoverOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 rounded-2xl font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ${
+                      isActive
+                        ? 'bg-[#1F240D] text-white'
+                        : 'bg-[#1B1B21] hover:bg-[#23232B] text-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-8 h-8 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 ${
+                        isActive ? 'bg-[#D7FF00] text-black' : 'bg-zinc-800 text-zinc-300'
+                      }`}>
+                        {displayName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>{displayName}</span>
+                          {isActive && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#D7FF00] text-black font-black">
+                              Aktif
+                            </span>
+                          )}
+                        </div>
+                        <div className="truncate text-[10px] text-zinc-400">{acc.email}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isActive ? (
+                        <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                      ) : (
+                        <span className="text-[10px] font-mono text-zinc-400 group-hover:text-[#D7FF00]">
+                          Pilih
+                        </span>
+                      )}
+                      {savedAccounts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleRemoveSavedAccount(e, acc.email)}
+                          title="Padam akaun dari senarai ini"
+                          className="w-5 h-5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-rose-400 flex items-center justify-center transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="w-full px-3 py-2 rounded-2xl bg-[#1F240D] text-white font-bold flex items-center justify-between gap-2 text-left text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-[#D7FF00] text-black font-black text-[11px] flex items-center justify-center shrink-0">
+                    {primaryAccountName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
+                    <div className="truncate text-[10px] text-zinc-400">{currentUser?.email}</div>
+                  </div>
+                </div>
+                <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-white/10 space-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOrgPopoverOpen(false);
+                setIsRegisterMode(false);
+                setAuthEmail('');
+                setAuthPassword('');
+                setIsAuthModalOpen(true);
+              }}
+              className="w-full px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-[#D7FF00] text-xs font-bold flex items-center justify-between transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Tambah Akaun</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOrgPopoverOpen(false);
+                handleLogout();
+              }}
+              className="w-full px-3 py-1.5 rounded-xl hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
+            >
+              <span>Log Keluar Akaun Ini</span>
+              <LogOut className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
       <BackButtonHandler
@@ -5017,20 +5154,313 @@ export default function App() {
         onNavigateBackTab={handleNavigateBackTab}
       />
       
-      {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & kemas di desktop */}
+      {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & centered pada workspace PC */}
       {toastMessage && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-[70] bg-[#18181D] text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.75)] font-bold text-xs flex items-center gap-2 animate-feedback-pop max-w-[90vw] text-center"
+          className="fixed bottom-20 md:bottom-8 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[70] bg-[#18181D] text-[#D7FF00] px-4 py-2.5 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.75)] font-bold text-xs flex items-center gap-2 animate-feedback-pop max-w-[90vw] text-center"
         >
           <CheckCircle className="w-4 h-4 text-[#D7FF00] shrink-0" />
           <span className="truncate">{toastMessage}</span>
         </div>
       )}
 
-      {/* HEADER & TOP NAVIGATION BAR (ON MOBILE: ONLY ON HOME PAGE; ON TABLET/DESKTOP: ALWAYS AVAILABLE) */}
-      <header style={{ '--open-delay': '0ms' }} className={`bg-black sticky top-0 z-40 px-4 sm:px-6 lg:px-10 xl:px-12 pt-3 pb-2 md:py-3.5 animate-linear-open ${(activeTab === 'playground' || activeTab === 'home') ? 'block' : 'hidden md:block'}`}>
+      {/* PC / DESKTOP FIXED LEFT SAAS SIDEBAR NAVIGATION (Liquid Glass Surface) */}
+      <aside
+        aria-label="Desktop Sidebar Navigation"
+        className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64 p-3"
+      >
+        <div className="glass-nav-liquid rounded-[1.75rem] flex-1 min-h-0 flex flex-col p-3 relative">
+          {/* Sidebar Top: Brand & Workspace Account Switcher */}
+          <div className="relative pb-3 mb-2 border-b border-white/10 space-y-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => navigateToTab('playground')}
+              className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/[0.06] transition text-left cursor-pointer group"
+              title="Kembali ke Laman Utama"
+            >
+              <img
+                src="/logo.png"
+                alt="RYKHOR Scrim Hub"
+                className="w-8 h-8 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform"
+              />
+              <div className="min-w-0 flex-1 leading-none">
+                <span className="text-sm font-black tracking-wide text-white group-hover:text-[#D7FF00] transition-colors block">
+                  SCRIMHUB
+                </span>
+                <span className="text-[10px] text-zinc-400 font-mono mt-1 block truncate">
+                  by ry.khor
+                </span>
+              </div>
+            </button>
+
+            {currentUser && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsOrgPopoverOpen(prev => !prev)}
+                  aria-expanded={isOrgPopoverOpen}
+                  aria-haspopup="dialog"
+                  className="w-full px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-between gap-2 transition cursor-pointer group"
+                  title="Tukar atau urus akaun aktif"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="relative w-7 h-7 rounded-full bg-[#18181D] flex items-center justify-center overflow-hidden shrink-0">
+                      {profileAvatarUrl ? (
+                        <img
+                          src={profileAvatarUrl}
+                          alt={primaryAccountName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[10px] font-black text-[#D7FF00]">
+                          {primaryAccountName.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#111114]" />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <span className="text-xs font-bold text-white truncate block leading-tight">
+                        {activeOrganizationName}
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-mono truncate block leading-tight">
+                        {adminHostedScrims.length} Hosted
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={
+                      'w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ' +
+                      (isOrgPopoverOpen ? 'rotate-180 text-[#D7FF00]' : '')
+                    }
+                  />
+                </button>
+                {isOrgPopoverOpen && renderOrgPopoverCard('left-0 top-full mt-2 w-60 lg:w-64')}
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar Scrollable Navigation Sections */}
+          <nav
+            aria-label="Navigasi Utama PC"
+            className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-4 py-1 pr-0.5"
+          >
+            {/* Group 1: Utama */}
+            <div className="space-y-1">
+              <div className="px-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                Utama
+              </div>
+              <button
+                type="button"
+                onClick={() => navigateToTab('playground')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'playground' || activeTab === 'home'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Home className="w-4 h-4 shrink-0" />
+                <span>Home</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToTab('history')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'history' || activeTab === 'leaderboard'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Trophy className="w-4 h-4 shrink-0" />
+                <span>Rekod</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToTab('teams')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'teams' || activeTab === 'database'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Users className="w-4 h-4 shrink-0" />
+                <span>Teams</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToTab('admin')}
+                className={'w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'admin'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <span className="flex items-center gap-2.5 min-w-0">
+                  {currentUser ? (
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                  ) : (
+                    <Lock className="w-4 h-4 shrink-0" />
+                  )}
+                  <span className="truncate">Portal Host</span>
+                </span>
+              </button>
+            </div>
+
+            {/* Group 2: Alat Kerja */}
+            <div className="space-y-1">
+              <div className="px-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                Alatan
+              </div>
+              <button
+                type="button"
+                onClick={() => navigateToTab('scorer')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'scorer'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Edit3 className="w-4 h-4 shrink-0" />
+                <span>Quick Scorer</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToTab('scrim-data')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'scrim-data'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Upload className="w-4 h-4 shrink-0" />
+                <span>Imbas Keputusan</span>
+              </button>
+
+              {isMasterAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setIsTeamManagerModalOpen(true)}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-[#D7FF00] hover:bg-white/[0.08] font-semibold transition cursor-pointer"
+                >
+                  <Database className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Urus Pasukan &amp; Logo</span>
+                </button>
+              )}
+            </div>
+
+            {/* Group 3: Komuniti & Info */}
+            <div className="space-y-1">
+              <div className="px-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+                Lain-lain
+              </div>
+              <button
+                type="button"
+                onClick={() => navigateToTab('hosts')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'hosts'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Award className="w-4 h-4 shrink-0" />
+                <span>Direktori Host</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToTab('showcase')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'showcase'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Video className="w-4 h-4 shrink-0" />
+                <span>Content</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenGuide(0)}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium transition cursor-pointer"
+              >
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span>Slide Panduan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToTab('about')}
+                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                  activeTab === 'about'
+                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+                )}
+              >
+                <Info className="w-4 h-4 shrink-0" />
+                <span>About Scrim Hub</span>
+              </button>
+            </div>
+          </nav>
+
+          {/* Sidebar Footer: Profile, Feedback & Auth Action */}
+          <div className="pt-2.5 mt-2 border-t border-white/10 space-y-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => navigateToTab('profile')}
+              className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
+                activeTab === 'profile'
+                  ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
+                  : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
+              )}
+            >
+              <User className="w-4 h-4 shrink-0" />
+              <span className="truncate">{currentUser ? primaryAccountName : 'Profile'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-zinc-400 hover:text-white hover:bg-white/[0.06] font-medium transition cursor-pointer"
+            >
+              <Bug className="w-4 h-4 shrink-0" />
+              <span>Feedback / Bug</span>
+            </button>
+
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-500/10 font-semibold transition cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span>Log Keluar</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegisterMode(false);
+                  setPendingCloudSync(false);
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full mt-1.5 px-3 py-2.5 rounded-xl text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5 text-black stroke-[2.4]" />
+                <span>Log Masuk</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}
+      <header style={{ '--open-delay': '0ms' }} className={`bg-black sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 animate-linear-open ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -5119,144 +5549,7 @@ export default function App() {
               </button>
 
               {/* Non-Intrusive Floating Popover Card (Shows Only Logged-In User Account) */}
-              {isOrgPopoverOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setIsOrgPopoverOpen(false)}
-                  />
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72 z-40">
-                  <div
-                    role="dialog"
-                    aria-label="Active User Account"
-                    className="w-full bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
-                  >
-                    <div className="flex items-center justify-between px-1.5 pt-0.5">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
-                        Akaun Log Masuk
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsOrgPopoverOpen(false)}
-                        aria-label="Tutup"
-                        className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Multi-Account List (1-Tap Switch) */}
-                    <div className="space-y-1.5 max-h-56 overflow-y-auto no-scrollbar">
-                      {savedAccounts.length > 0 ? (
-                        savedAccounts.map((acc) => {
-                          const isActive = currentUser?.email?.toLowerCase() === acc.email?.toLowerCase();
-                          const displayName = acc.name || acc.email.split('@')[0];
-                          return (
-                            <div
-                              key={acc.email}
-                              onClick={() => {
-                                if (!isActive) handleSwitchAccount(acc);
-                                else setIsOrgPopoverOpen(false);
-                              }}
-                              className={`w-full px-3 py-2 rounded-2xl font-bold flex items-center justify-between gap-2 text-left text-xs transition cursor-pointer ${
-                                isActive
-                                  ? 'bg-[#1F240D] text-white'
-                                  : 'bg-[#1B1B21] hover:bg-[#23232B] text-zinc-300'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-8 h-8 rounded-full font-black text-[11px] flex items-center justify-center shrink-0 ${
-                                  isActive ? 'bg-[#D7FF00] text-black' : 'bg-zinc-800 text-zinc-300'
-                                }`}>
-                                  {displayName.slice(0, 2).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="truncate text-xs font-bold text-white flex items-center gap-1.5">
-                                    <span>{displayName}</span>
-                                    {isActive && (
-                                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#D7FF00] text-black font-black">
-                                        Aktif
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="truncate text-[10px] text-zinc-400">{acc.email}</div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isActive ? (
-                                  <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
-                                ) : (
-                                  <span className="text-[10px] font-mono text-zinc-400 group-hover:text-[#D7FF00]">
-                                    Pilih
-                                  </span>
-                                )}
-                                {savedAccounts.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => handleRemoveSavedAccount(e, acc.email)}
-                                    title="Padam akaun dari senarai ini"
-                                    className="w-5 h-5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-rose-400 flex items-center justify-center transition"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="w-full px-3 py-2 rounded-2xl bg-[#1F240D] text-white font-bold flex items-center justify-between gap-2 text-left text-xs">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-[#D7FF00] text-black font-black text-[11px] flex items-center justify-center shrink-0">
-                              {primaryAccountName.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="truncate text-xs font-bold text-white">{primaryAccountName}</div>
-                              <div className="truncate text-[10px] text-zinc-400">{currentUser.email}</div>
-                            </div>
-                          </div>
-                          <Check className="w-4 h-4 text-[#D7FF00] shrink-0" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Account Actions */}
-                    <div className="pt-2 border-t border-white/10 space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsOrgPopoverOpen(false);
-                          setIsRegisterMode(false);
-                          setAuthEmail('');
-                          setAuthPassword('');
-                          setIsAuthModalOpen(true);
-                        }}
-                        className="w-full px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-[#D7FF00] text-xs font-bold flex items-center justify-between transition cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Tambah Akaun</span>
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsOrgPopoverOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full px-3 py-1.5 rounded-xl hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 text-[11px] font-semibold flex items-center justify-between transition cursor-pointer"
-                      >
-                        <span>Log Keluar Akaun Ini</span>
-                        <LogOut className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                  </div>
-                </>
-              )}
+              {isOrgPopoverOpen && renderOrgPopoverCard('left-1/2 -translate-x-1/2 top-full mt-2.5 w-64 sm:w-72')}
             </div>
           )}
 
@@ -5470,8 +5763,9 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN CONTAINER */}
-      <main style={{ '--open-delay': '90ms' }} className="flex-1 max-w-[1600px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10 animate-linear-open">
+      {/* MAIN CONTAINER (Shifted right on md+ for Fixed Left Sidebar) */}
+      <main style={{ '--open-delay': '90ms' }} className="flex-1 w-full md:pl-60 lg:pl-64 animate-linear-open">
+        <div className="max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
           key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
           className={`tab-blur-stage ${
@@ -9283,7 +9577,7 @@ export default function App() {
                   </div>
 
                   {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
-                  <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-20 space-y-3.5 scroll-mt-20">
+                  <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-6 space-y-3.5 scroll-mt-6">
                     
                     {/* Mode Selector Toggle: Overall Standings vs Current Match */}
                     <div className="flex items-center gap-1.5 bg-[#111114] p-1 rounded-2xl text-xs">
@@ -9713,6 +10007,7 @@ export default function App() {
             </button>
           </div>
         </footer>
+        </div>
 
       </main>
 
