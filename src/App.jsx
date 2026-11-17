@@ -6952,11 +6952,11 @@ export default function App() {
                 </div>
 
                 {/* Tier 1 (Category Pills) + Tier 2 (Conditional SSS Season Dropdown) */}
-                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 min-w-0">
                   <div
                     role="group"
                     aria-label="Tapis Tier Team Matrix"
-                    className="flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-5 -my-4 px-2 -mx-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="relative z-10 flex items-center gap-2 overflow-x-auto no-scrollbar pr-6 max-w-full py-4 -my-3 px-2 -mx-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
                     {HALL_OF_FAME_FILTERS.map((cat) => {
                       const isActive = teamStatsCategory === cat.key;
@@ -6988,9 +6988,9 @@ export default function App() {
                   {teamStatsCategory === 'SSS' && (
                     <div
                       key="sss-tier2-selector"
-                      className="sss-tier2-reveal grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0 w-full sm:w-auto"
+                      className="sss-tier2-reveal relative z-20 flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 shrink-0">
                         <label htmlFor="team-matrix-sss-season-select" className="sr-only">
                           Pilih Musim SSS
                         </label>
@@ -6999,7 +6999,7 @@ export default function App() {
                           name="sssSeason"
                           value={String(sssFilterSelection.season)}
                           onChange={(e) => handleSelectSssSeason(e.target.value)}
-                          className="sss-brand-select w-full sm:w-auto"
+                          className="sss-brand-select w-auto max-w-full"
                         >
                           {SSS_SEASON_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -7009,7 +7009,7 @@ export default function App() {
                         </select>
                       </div>
 
-                      <div className="min-w-0">
+                      <div className="min-w-0 shrink-0">
                         <label htmlFor="team-matrix-sss-stage-select" className="sr-only">
                           Pilih Stage SSS
                         </label>
@@ -7018,7 +7018,7 @@ export default function App() {
                           name="sssStage"
                           value={sssFilterSelection.stage}
                           onChange={(e) => handleSelectSssStage(e.target.value)}
-                          className="sss-brand-select w-full sm:w-auto"
+                          className="sss-brand-select w-auto max-w-full"
                         >
                           {SSS_STAGE_OPTIONS.map((st) => (
                             <option key={st.key} value={st.key}>
