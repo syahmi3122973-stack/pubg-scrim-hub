@@ -76,7 +76,6 @@ export default function LegacyGuestLandingView({
               cy="40"
               r="4.5"
               fill="#FFFFFF"
-              className={isActive ? 'animate-pulse' : ''}
             />
           </svg>
           <div
@@ -198,9 +197,6 @@ export default function LegacyGuestLandingView({
             </div>
           </div>
           <div className="relative shrink-0">
-            {isActive && (
-              <span className="absolute inset-0 rounded-2xl bg-[#D7FF00]/30 animate-ping pointer-events-none" />
-            )}
             <div className={'relative w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center ' + (isActive ? 'animate-hero-float' : '')}>
               <Edit3 className="w-5 h-5 text-black" />
             </div>
@@ -228,10 +224,7 @@ export default function LegacyGuestLandingView({
             </div>
             {/* Animated Live Cloud Sync Status Bar */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 text-[10px] font-mono text-zinc-300">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D7FF00] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D7FF00]" />
-              </span>
+              <span className="inline-flex rounded-full h-2 w-2 bg-[#D7FF00]" />
               <span>Auto-Save &amp; Live Standings</span>
             </div>
           </div>
@@ -267,9 +260,6 @@ export default function LegacyGuestLandingView({
             </div>
           </div>
           <div className="relative shrink-0">
-            {isActive && (
-              <span className="absolute inset-0 rounded-2xl bg-[#D7FF00]/25 animate-ping pointer-events-none" />
-            )}
             <div className={'relative w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-[0_0_18px_rgba(215,255,0,0.35)] ' + (isActive ? 'animate-hero-float' : '')}>
               <Database className="w-6 h-6 text-black" />
             </div>

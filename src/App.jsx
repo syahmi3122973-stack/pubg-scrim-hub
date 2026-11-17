@@ -8272,7 +8272,7 @@ export default function App() {
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                                 <span>Pending</span>
                               </span>
                             )}
@@ -12253,9 +12253,8 @@ export default function App() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#D7FF00] animate-pulse"></span>
-                  <span>Live Official Standings</span>
+                <span className="text-xs font-black uppercase text-white tracking-wider">
+                  Live Official Standings
                 </span>
               </div>
 
