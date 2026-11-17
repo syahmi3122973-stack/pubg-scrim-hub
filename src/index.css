@@ -1136,7 +1136,6 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
 }
 
 /* iOS 26 Dual-Layer Floating Card Morph (Home Bento Cards & Team Matrix Cards) */
-.ios-morph-freeze,
 .ios-morph-freeze .tab-blur-stage,
 .ios-morph-freeze .animate-home-tier,
 .ios-morph-freeze .animate-teams-enter,
@@ -1146,9 +1145,7 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
 .ios-morph-freeze .animate-filter-reveal,
 .ios-morph-freeze .animate-tab-forward,
 .ios-morph-freeze .animate-tab-backward,
-.ios-morph-freeze .animate-tab-bottom {
+.ios-morph-freeze .animate-tab-bottom,
+.ios-morph-freeze .animate-card-entrance {
   animation: none !important;
-  opacity: 1 !important;
-  transform: none !important;
-  filter: none !important;
 }

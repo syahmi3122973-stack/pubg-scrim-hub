@@ -4780,10 +4780,20 @@ export default function App() {
   const [teamMorphState, setTeamMorphState] = useState(null);
   const [isCardMorphSettled, setIsCardMorphSettled] = useState(false);
   const morphFgWindowRef = useRef(null);
+  const morphFgContentRef = useRef(null);
   const morphTintRef = useRef(null);
   const morphBgRef = useRef(null);
   const morphTimerRef = useRef(null);
   const morphRevealTimerRef = useRef(null);
+
+  const cancelElementAnimations = useCallback((el) => {
+    if (!el || typeof el.getAnimations !== 'function') return;
+    el.getAnimations().forEach((anim) => {
+      try {
+        anim.cancel();
+      } catch {}
+    });
+  }, []);
 
   const clearMorphTimers = useCallback(() => {
     if (morphTimerRef.current) {
@@ -4794,13 +4804,17 @@ export default function App() {
       window.clearTimeout(morphRevealTimerRef.current);
       morphRevealTimerRef.current = null;
     }
+    cancelElementAnimations(morphFgWindowRef.current);
+    cancelElementAnimations(morphFgContentRef.current);
+    cancelElementAnimations(morphTintRef.current);
+    cancelElementAnimations(morphBgRef.current);
     if (typeof document !== 'undefined') {
       document.querySelectorAll('[data-vt-card], [data-vt-team-slot]').forEach((el) => {
         el.style.opacity = '';
         el.style.transition = '';
       });
     }
-  }, []);
+  }, [cancelElementAnimations]);
 
   useEffect(() => {
     return () => clearMorphTimers();
@@ -4814,43 +4828,103 @@ export default function App() {
     const bg =
       cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent'
         ? cs.backgroundColor
-        : '#19191E';
+        : '#18181D';
+    let cardHtml = '';
+    try {
+      const clone = el.cloneNode(true);
+      clone.removeAttribute('data-vt-card');
+      clone.removeAttribute('data-vt-team');
+      clone.removeAttribute('data-vt-team-slot');
+      clone.style.opacity = '1';
+      clone.style.transform = 'none';
+      clone.style.transition = 'none';
+      clone.style.animation = 'none';
+      clone.style.margin = '0';
+      clone.style.width = `${Math.round(r.width)}px`;
+      clone.style.height = `${Math.round(r.height)}px`;
+      clone.style.pointerEvents = 'none';
+      cardHtml = clone.outerHTML;
+    } catch {}
     return {
       left: r.left,
       top: r.top,
       width: Math.max(r.width, 44),
       height: Math.max(r.height, 44),
       borderRadius,
-      bg
+      bg,
+      cardHtml
     };
   }, []);
 
-  const computeCardMorphFrame = useCallback((rect, vw, vh) => {
-    const safeRect = rect || { left: vw * 0.1, top: vh * 0.2, width: vw * 0.8, height: 180, borderRadius: 28 };
-    const scale = Math.min(0.95, Math.max(safeRect.width / vw, safeRect.height / vh, 0.08));
-    const unscaledW = Math.min(vw, safeRect.width / scale);
-    const unscaledH = Math.min(vh, safeRect.height / scale);
-    const clipX = Math.max(0, (vw - unscaledW) / 2);
-    const clipBottom = Math.max(0, vh - unscaledH);
-    const tx = safeRect.left - clipX * scale;
-    const ty = safeRect.top;
-    const r = Math.min(180, (safeRect.borderRadius || 28) / scale);
+  const computeCardMorphGeometry = useCallback((rect, vw, vh) => {
+    const safeRect = rect || {
+      left: vw * 0.1,
+      top: vh * 0.2,
+      width: vw * 0.8,
+      height: 180,
+      borderRadius: 28,
+      bg: '#18181D'
+    };
+    const scale = Math.min(0.95, Math.max(safeRect.width / vw, 0.14));
+    const canvasH = Math.max(vh, Math.ceil(safeRect.height / scale) + 4);
+    const unscaledH = safeRect.height / scale;
+    const cardClipBottom = Math.max(0, canvasH - unscaledH);
+    const fullClipBottom = Math.max(0, canvasH - vh);
+    const r = Math.min(200, (safeRect.borderRadius || 28) / scale);
+    const isWideCard = safeRect.width > vw * 0.72;
+
+    const cardFrame = {
+      transform: `translate3d(${safeRect.left.toFixed(1)}px, ${safeRect.top.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`,
+      clipPath: `inset(0px 0px ${cardClipBottom.toFixed(1)}px 0px round ${r.toFixed(1)}px)`
+    };
+
+    const fullFrame = {
+      transform: 'translate3d(0px, 0px, 0) scale(1)',
+      clipPath: `inset(0px 0px ${fullClipBottom.toFixed(1)}px 0px round 0px)`
+    };
+
+    // Mid-flight floating rounded window for wide mobile cards/rows so they detach from screen edges like iOS 26
+    const midScale = isWideCard ? 0.76 : Math.min(0.84, scale + (1 - scale) * 0.56);
+    const midLeft = isWideCard
+      ? (vw * (1 - midScale)) / 2
+      : safeRect.left * 0.42;
+    const midTop = Math.max(36, safeRect.top * 0.52);
+    const midVisualH = Math.min(vh * 0.68, Math.max(safeRect.height * 2.1, vh * 0.44));
+    const midUnscaledH = Math.min(canvasH, midVisualH / midScale);
+    const midClipBottom = Math.max(0, canvasH - midUnscaledH);
+    const midRadius = 40 / midScale;
+
+    const midCloseFrame = {
+      transform: `translate3d(${midLeft.toFixed(1)}px, ${midTop.toFixed(1)}px, 0) scale(${midScale.toFixed(4)})`,
+      clipPath: `inset(0px 0px ${midClipBottom.toFixed(1)}px 0px round ${midRadius.toFixed(1)}px)`
+    };
+
     return {
-      transform: `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`,
-      clipPath: `inset(0px ${clipX.toFixed(1)}px ${clipBottom.toFixed(1)}px ${clipX.toFixed(1)}px round ${r.toFixed(1)}px)`
+      scale,
+      canvasH,
+      isWideCard,
+      cardFrame,
+      fullFrame,
+      midCloseFrame
     };
   }, []);
 
   useLayoutEffect(() => {
     const activeMorph = teamMorphState || homeMorphState;
-    if (!activeMorph || typeof window === 'undefined') return;
+    if (!activeMorph || typeof window === 'undefined') return undefined;
 
     const isTeamMorph = Boolean(teamMorphState);
     const vw = window.innerWidth || 390;
     const vh = window.innerHeight || 844;
     const fgEl = morphFgWindowRef.current;
+    const fgContentEl = morphFgContentRef.current;
     const tintEl = morphTintRef.current;
     const bgEl = morphBgRef.current;
+
+    cancelElementAnimations(fgEl);
+    cancelElementAnimations(fgContentEl);
+    cancelElementAnimations(tintEl);
+    cancelElementAnimations(bgEl);
 
     const findCardEl = () => {
       if (isTeamMorph) {
@@ -4864,32 +4938,46 @@ export default function App() {
         .find((el) => el.dataset.vtCard === activeMorph.cardId) || null;
     };
 
-    const springEasing = 'cubic-bezier(0.19, 1, 0.22, 1)';
+    // Authentic iOS 26 spring deceleration curve
+    const springEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    let activeCardEl = null;
 
     if (activeMorph.phase === 'open') {
-      const duration = 560;
-      const cardEl = findCardEl();
-      if (cardEl) {
-        cardEl.style.transition = 'none';
-        cardEl.style.opacity = '0';
+      const duration = 540;
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+      activeCardEl = findCardEl();
+      if (activeCardEl) {
+        activeCardEl.style.transition = 'none';
+        activeCardEl.style.opacity = '0';
       }
 
-      const cardFrame = computeCardMorphFrame(activeMorph.rect, vw, vh);
-      const fullFrame = {
-        transform: 'translate3d(0px, 0px, 0) scale(1)',
-        clipPath: 'inset(0px 0px 0px 0px round 0px)'
-      };
+      const geom = computeCardMorphGeometry(activeMorph.rect, vw, vh);
+      if (fgEl) {
+        fgEl.style.height = `${geom.canvasH}px`;
+      }
 
-      fgEl?.animate([cardFrame, fullFrame], {
+      fgEl?.animate([geom.cardFrame, geom.fullFrame], {
         duration,
         easing: springEasing,
         fill: 'forwards'
       });
 
+      if (geom.isWideCard && fgContentEl) {
+        fgContentEl.animate(
+          [
+            { transform: 'scale(0.82)', opacity: 0.55 },
+            { transform: 'scale(1)', opacity: 1 }
+          ],
+          { duration, easing: springEasing, fill: 'forwards' }
+        );
+      }
+
       tintEl?.animate(
         [
-          { opacity: 0.88, offset: 0 },
-          { opacity: 0, offset: 0.42 },
+          { opacity: 1, offset: 0 },
+          { opacity: 0.72, offset: 0.16 },
+          { opacity: 0, offset: 0.44 },
           { opacity: 0, offset: 1 }
         ],
         { duration, easing: 'ease-out', fill: 'forwards' }
@@ -4897,18 +4985,17 @@ export default function App() {
 
       bgEl?.animate(
         [
-          { transform: 'scale(1)', opacity: 1 },
-          { transform: 'scale(0.93)', opacity: 0.32 }
+          { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' },
+          { transform: 'scale(0.91)', opacity: 0.28, filter: 'blur(14px)' }
         ],
         { duration, easing: springEasing, fill: 'forwards' }
       );
 
       morphTimerRef.current = window.setTimeout(() => {
-        if (cardEl) {
-          cardEl.style.opacity = '';
-          cardEl.style.transition = '';
+        if (activeCardEl) {
+          activeCardEl.style.opacity = '';
+          activeCardEl.style.transition = '';
         }
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         if (isTeamMorph) {
           setTeamMorphState(null);
         } else {
@@ -4920,34 +5007,54 @@ export default function App() {
       const duration = 520;
       window.scrollTo({ top: activeMorph.bgScrollY || 0, left: 0, behavior: 'instant' });
 
-      const cardEl = findCardEl();
-      const liveRect = (cardEl ? measureElementMorphRect(cardEl) : null) || activeMorph.rect;
-      if (cardEl) {
-        cardEl.style.transition = 'none';
-        cardEl.style.opacity = '0';
+      activeCardEl = findCardEl();
+      const liveRect = (activeCardEl ? measureElementMorphRect(activeCardEl) : null) || activeMorph.rect;
+      if (activeCardEl) {
+        activeCardEl.style.transition = 'none';
+        activeCardEl.style.opacity = '0';
       }
 
-      const cardFrame = computeCardMorphFrame(liveRect, vw, vh);
-      const fullFrame = {
-        transform: 'translate3d(0px, 0px, 0) scale(1)',
-        clipPath: 'inset(0px 0px 0px 0px round 0px)',
-        opacity: 1
-      };
+      const geom = computeCardMorphGeometry(liveRect, vw, vh);
+      if (fgEl) {
+        fgEl.style.height = `${geom.canvasH}px`;
+      }
 
-      fgEl?.animate(
-        [
-          fullFrame,
-          { ...cardFrame, opacity: 1, offset: 0.86 },
-          { ...cardFrame, opacity: 0, offset: 1 }
-        ],
-        { duration, easing: springEasing, fill: 'forwards' }
-      );
+      const fgKeyframes = geom.isWideCard
+        ? [
+            { ...geom.fullFrame, opacity: 1, offset: 0 },
+            { ...geom.midCloseFrame, opacity: 1, offset: 0.36 },
+            { ...geom.cardFrame, opacity: 1, offset: 0.9 },
+            { ...geom.cardFrame, opacity: 0, offset: 1 }
+          ]
+        : [
+            { ...geom.fullFrame, opacity: 1, offset: 0 },
+            { ...geom.cardFrame, opacity: 1, offset: 0.88 },
+            { ...geom.cardFrame, opacity: 0, offset: 1 }
+          ];
+
+      fgEl?.animate(fgKeyframes, {
+        duration,
+        easing: springEasing,
+        fill: 'forwards'
+      });
+
+      if (geom.isWideCard && fgContentEl) {
+        fgContentEl.animate(
+          [
+            { transform: 'scale(1)', opacity: 1, offset: 0 },
+            { transform: 'scale(0.8)', opacity: 0.35, offset: 0.72 },
+            { transform: 'scale(0.76)', opacity: 0, offset: 1 }
+          ],
+          { duration, easing: springEasing, fill: 'forwards' }
+        );
+      }
 
       tintEl?.animate(
         [
           { opacity: 0, offset: 0 },
-          { opacity: 0, offset: 0.46 },
-          { opacity: 0.84, offset: 0.86 },
+          { opacity: 0, offset: 0.32 },
+          { opacity: 0.96, offset: 0.78 },
+          { opacity: 1, offset: 0.9 },
           { opacity: 0, offset: 1 }
         ],
         { duration, easing: 'ease-in-out', fill: 'forwards' }
@@ -4955,24 +5062,24 @@ export default function App() {
 
       bgEl?.animate(
         [
-          { transform: 'scale(0.93)', opacity: 0.32 },
-          { transform: 'scale(1)', opacity: 1 }
+          { transform: 'scale(0.91)', opacity: 0.28, filter: 'blur(14px)' },
+          { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' }
         ],
         { duration, easing: springEasing, fill: 'forwards' }
       );
 
       morphRevealTimerRef.current = window.setTimeout(() => {
-        if (cardEl) {
-          cardEl.style.transition = 'opacity 95ms ease-out';
-          cardEl.style.opacity = '1';
+        if (activeCardEl) {
+          activeCardEl.style.transition = 'opacity 85ms ease-out';
+          activeCardEl.style.opacity = '1';
         }
-      }, Math.round(duration * 0.8));
+      }, Math.round(duration * 0.84));
 
       morphTimerRef.current = window.setTimeout(() => {
-        if (cardEl) {
-          cardEl.style.transition = '';
-          cardEl.style.opacity = '';
-          cardEl.focus({ preventScroll: true });
+        if (activeCardEl) {
+          activeCardEl.style.transition = '';
+          activeCardEl.style.opacity = '';
+          activeCardEl.focus({ preventScroll: true });
         }
         if (isTeamMorph) {
           setSelectedTeamProfile('');
@@ -4982,7 +5089,21 @@ export default function App() {
         }
       }, duration);
     }
-  }, [homeMorphState, teamMorphState, computeCardMorphFrame, measureElementMorphRect]);
+
+    return () => {
+      cancelElementAnimations(fgEl);
+      cancelElementAnimations(fgContentEl);
+      cancelElementAnimations(tintEl);
+      cancelElementAnimations(bgEl);
+      if (fgEl) {
+        fgEl.style.height = '';
+      }
+      if (activeCardEl) {
+        activeCardEl.style.opacity = '';
+        activeCardEl.style.transition = '';
+      }
+    };
+  }, [homeMorphState, teamMorphState, computeCardMorphGeometry, measureElementMorphRect, cancelElementAnimations]);
 
   const runBlurSwap = useCallback((_shouldBlurOut, applyUpdate) => {
     if (tabTransitionTimerRef.current) {
@@ -5483,10 +5604,14 @@ export default function App() {
       style={
         morphState
           ? {
+              marginTop:
+                morphState.phase === 'open' && morphState.bgScrollY
+                  ? `-${Math.round(morphState.bgScrollY)}px`
+                  : undefined,
               transformOrigin: `${Math.round(morphState.rect.left + morphState.rect.width / 2)}px ${Math.round(
-                morphState.rect.top + morphState.rect.height / 2
+                morphState.rect.top + morphState.rect.height / 2 + (morphState.phase === 'open' ? morphState.bgScrollY || 0 : 0)
               )}px`,
-              willChange: 'transform, opacity',
+              willChange: 'transform, opacity, filter',
               pointerEvents: 'none',
             }
           : undefined
@@ -5497,53 +5622,91 @@ export default function App() {
     </div>
   );
 
-  const renderMorphFgWindow = (morphState, content) => (
-    <div
-      ref={morphState ? morphFgWindowRef : undefined}
-      style={
-        morphState
-          ? {
-              position: 'fixed',
-              inset: 0,
-              zIndex: 45,
-              backgroundColor: '#000000',
-              overflow: 'hidden',
-              pointerEvents: 'none',
-              transformOrigin: '0 0',
-              willChange: 'transform, clip-path',
-              boxShadow: '0 28px 90px rgba(0, 0, 0, 0.85)',
-            }
-          : undefined
-      }
-      className={morphState ? 'ios-morph-freeze' : undefined}
-    >
+  const renderMorphFgWindow = (morphState, content) => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth || 390 : 390;
+    const cardScale = morphState?.rect
+      ? Math.min(0.95, Math.max(morphState.rect.width / vw, 0.14))
+      : 1;
+
+    return (
       <div
-        className={
-          morphState
-            ? 'max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 pt-16 sm:pt-20 md:pt-6 pb-28 md:pb-10 md:pl-60 lg:pl-64'
-            : undefined
-        }
-      >
-        {content}
-      </div>
-      <div
-        ref={morphState ? morphTintRef : undefined}
+        ref={morphState ? morphFgWindowRef : undefined}
         style={
           morphState
             ? {
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: morphState.tint || '#131316',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                minHeight: '100dvh',
+                zIndex: 25,
+                backgroundColor: '#000000',
+                overflow: 'hidden',
                 pointerEvents: 'none',
-                zIndex: 50,
-                opacity: morphState.phase === 'open' ? 0.94 : 0,
-                willChange: 'opacity',
+                transformOrigin: '0 0',
+                willChange: 'transform, clip-path, opacity',
+                boxShadow: '0 32px 100px rgba(0, 0, 0, 0.92)',
               }
-            : { display: 'none' }
+            : undefined
         }
-      />
-    </div>
-  );
+        className={morphState ? 'ios-morph-freeze' : undefined}
+      >
+        <div className={morphState ? 'w-full md:pl-60 lg:pl-64' : undefined}>
+          <div
+            ref={morphState ? morphFgContentRef : undefined}
+            style={
+              morphState
+                ? {
+                    transformOrigin: '50% 180px',
+                    marginTop:
+                      morphState.phase === 'close' && morphState.fgScrollY
+                        ? `-${Math.round(morphState.fgScrollY)}px`
+                        : undefined,
+                  }
+                : undefined
+            }
+            className={
+              morphState
+                ? 'max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 pt-[72px] sm:pt-[88px] pb-28 md:pb-10'
+                : undefined
+            }
+          >
+            {content}
+          </div>
+        </div>
+        <div
+          ref={morphState ? morphTintRef : undefined}
+          style={
+            morphState
+              ? {
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: morphState.rect?.bg || '#18181D',
+                  pointerEvents: 'none',
+                  zIndex: 50,
+                  opacity: morphState.phase === 'open' ? 1 : 0,
+                  willChange: 'opacity',
+                  overflow: 'hidden',
+                }
+              : { display: 'none' }
+          }
+        >
+          {morphState?.rect?.cardHtml ? (
+            <div
+              style={{
+                width: `${Math.round(morphState.rect.width)}px`,
+                height: `${Math.round(morphState.rect.height)}px`,
+                transformOrigin: '0 0',
+                transform: `scale(${(1 / cardScale).toFixed(4)})`,
+                pointerEvents: 'none',
+              }}
+              dangerouslySetInnerHTML={{ __html: morphState.rect.cardHtml }}
+            />
+          ) : null}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
