@@ -67,6 +67,9 @@ export function useMobileBackButton({
     isInitializedRef.current = true;
 
     try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
       const currentState = window.history.state || {};
       window.history.replaceState(
         {

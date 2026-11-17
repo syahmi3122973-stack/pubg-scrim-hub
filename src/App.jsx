@@ -670,11 +670,18 @@ export default function App() {
     }
   }, [playgroundSession]);
 
-  // Pastikan skrin sentiasa kembali ke atas (scroll to top) apabila bertukar tab/feature
+  const skipTabScrollUntilRef = useRef(0);
+
+  // Pastikan skrin sentiasa kembali ke atas (scroll to top) apabila bertukar tab/feature (kecuali card morph)
   useEffect(() => {
+    if (Date.now() < skipTabScrollUntilRef.current) {
+      return undefined;
+    }
     window.scrollTo(0, 0);
     const timer = setTimeout(() => {
-      window.scrollTo(0, 0);
+      if (Date.now() >= skipTabScrollUntilRef.current) {
+        window.scrollTo(0, 0);
+      }
     }, 20);
     return () => clearTimeout(timer);
   }, [activeTab]);
@@ -5269,6 +5276,7 @@ export default function App() {
     };
 
     if (sourceCardId && sourceEl) {
+      skipTabScrollUntilRef.current = Date.now() + 250;
       const savedScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
       const rect = measureElementMorphRect(sourceEl);
       lastExpandedHomeCardRef.current = {
@@ -5302,6 +5310,7 @@ export default function App() {
       activeHomeOrigin &&
       activeHomeOrigin.targetTab === normalizedCurrent
     ) {
+      skipTabScrollUntilRef.current = Date.now() + 600;
       const currentFgScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
       lastExpandedHomeCardRef.current = null;
       lastExpandedTeamCardRef.current = null;
