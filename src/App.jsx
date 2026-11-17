@@ -6062,8 +6062,21 @@ export default function App() {
         })()}
       </aside>
 
+      {/* FULL-BLEED HOME AMBIENT NOISE AURORA (Phone spans behind translucent header; PC spans full workspace right of sidebar) */}
+      {(activeTab === 'playground' || activeTab === 'home') && (
+        <div
+          aria-hidden="true"
+          className="home-hero-canvas pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[430px] sm:h-[490px] lg:h-[550px] overflow-hidden z-0"
+        >
+          <div className="home-hero-aurora absolute -inset-[22%] opacity-95" />
+          <div className="home-hero-aurora-alt absolute -inset-[22%] opacity-85" />
+          <div className="home-hero-grid absolute inset-0" />
+          <div className="home-hero-grain absolute -inset-[12%] opacity-85" />
+        </div>
+      )}
+
       {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}
-      <header style={{ '--open-delay': '0ms' }} className={`bg-black sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
+      <header style={{ '--open-delay': '0ms' }} className={`bg-black/35 backdrop-blur-xl sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -6367,7 +6380,7 @@ export default function App() {
       </header>
 
       {/* MAIN CONTAINER (Shifted right on md+ for Fixed Left Sidebar) */}
-      <main style={{ '--open-delay': '90ms' }} className={`flex-1 w-full md:pl-60 lg:pl-64 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'}`}>
+      <main style={{ '--open-delay': '90ms' }} className={`relative z-10 flex-1 w-full md:pl-60 lg:pl-64 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'}`}>
         <div className="max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
           ref={mainStageRef}
@@ -6469,26 +6482,17 @@ export default function App() {
 
           return renderMorphBgLayer(
             homeMorphState,
-            <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-1 pb-6 md:pb-12 relative">
+            <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-2 sm:pt-3 pb-6 md:pb-12 relative">
               
-              {/* TIER 1: Specific Centered Headline + Live Counters with Vercel Noise Gradient Backdrop */}
-              <div className="relative">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none select-none absolute -inset-x-6 -top-10 -bottom-8 -z-0 overflow-hidden"
-                >
-                  <div className="absolute inset-0 home-hero-aurora opacity-95" />
-                  <div className="absolute inset-0 home-hero-grain opacity-85" />
-                </div>
-
-                <div
-                  className={`relative z-10 flex gap-3 px-1.5 md:px-1 py-2 sm:py-3 animate-home-tier ${
-                    currentUser
-                      ? 'items-center justify-between'
-                      : 'flex-col items-center text-center'
-                  }`}
-                  style={{ '--home-delay': '0ms' }}
-                >
+              {/* TIER 1: Specific Centered Headline + Live Counters */}
+              <div
+                className={`relative z-10 flex gap-3 px-1.5 md:px-1 py-2.5 sm:py-4 animate-home-tier ${
+                  currentUser
+                    ? 'items-center justify-between'
+                    : 'flex-col items-center text-center'
+                }`}
+                style={{ '--home-delay': '0ms' }}
+              >
                   <div className={currentUser ? 'min-w-0' : 'max-w-xl mx-auto text-center'}>
                     {currentUser ? (
                       <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
@@ -6532,7 +6536,6 @@ export default function App() {
                       )}
                     </div>
                   )}
-                </div>
               </div>
 
                 {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
@@ -9231,7 +9234,7 @@ export default function App() {
               <div className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 home-hero-aurora opacity-75"
+                  className="pointer-events-none absolute -inset-12 home-hero-aurora opacity-75"
                 />
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
                   <div className="lg:col-span-8 p-5 sm:p-8 flex flex-col justify-between gap-5">
