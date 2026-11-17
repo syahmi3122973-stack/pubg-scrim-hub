@@ -23,7 +23,6 @@ import {
   ArrowRight, 
   Lock, 
   Mail, 
-  Flame, 
   MessageCircle, 
   Share2, 
   ExternalLink, 
@@ -46,8 +45,7 @@ import {
   Link as LinkIcon, 
   Video, 
   HelpCircle, 
-  Zap, 
-  Cloud, 
+  Cloud,  
   ShieldCheck, 
   Menu, 
   Database, 
@@ -62,7 +60,8 @@ import {
   Camera,
   Crop,
   MoreVertical,
-  GitMerge
+  GitMerge,
+  Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import ScrimDataHubView from './components/ScrimDataHubView';
@@ -5606,7 +5605,7 @@ export default function App() {
                         <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
                       </div>
                       <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
-                        <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                        <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
                         <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
                       </div>
                     </div>
@@ -5679,13 +5678,7 @@ export default function App() {
                           </h2>
                         </div>
 
-                        <div
-                          className={`hof-trophy-badge w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl bg-zinc-950 text-[#D7FF00] flex items-center justify-center group-hover:scale-105 shrink-0 ${
-                            homeHofSlide === 1 ? '-rotate-6 scale-105' : 'rotate-0 scale-100'
-                          }`}
-                        >
-                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 stroke-[2]" />
-                        </div>
+                        <ArrowRight className="w-5 h-5 text-zinc-950 group-hover:translate-x-0.5 transition-transform shrink-0 mt-1" />
                       </div>
 
                       {/* Slide Carousel Viewport (Composited Slide + Soft Depth Breath) */}
@@ -6068,9 +6061,6 @@ export default function App() {
                   <div className="lg:col-span-7 glass-panel rounded-[2rem] p-6 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center">
-                          <Flame className="w-4 h-4" />
-                        </div>
                         <div>
                           <h3 className="text-base font-black text-white tracking-tight">
                             {homeContendersCategory === 'TIER_3' ? 'Top Contenders • Tier 3' : 'Top Contenders Semasa'}
@@ -6286,12 +6276,8 @@ export default function App() {
                                     className="w-9 h-9 rounded-xl object-cover shrink-0 bg-zinc-900"
                                   />
                                 ) : (
-                                  <div className="w-9 h-9 rounded-xl bg-zinc-900 text-[#D7FF00] flex items-center justify-center shrink-0">
-                                    {s.event_type === 'Tour' ? (
-                                      <Trophy className="w-4 h-4" />
-                                    ) : (
-                                      <Flame className="w-4 h-4" />
-                                    )}
+                                  <div className="w-9 h-9 rounded-xl bg-[#19191E] text-[#D7FF00] font-mono font-black text-[11px] flex items-center justify-center shrink-0">
+                                    {s.event_type === 'Tour' ? 'TR' : 'SC'}
                                   </div>
                                 )}
                                 <div className="min-w-0">
@@ -6621,8 +6607,7 @@ export default function App() {
                   {/* WWCD */}
                   <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
                     <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">WWCD Dinners</span>
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1 flex items-center justify-center gap-1">
-                      <Trophy className="w-5 h-5 text-[#D7FF00]" />
+                    <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1">
                       {activeTeamScopedStats.totalWWCD}
                     </span>
                     <span className="text-[10px] text-zinc-400 font-mono font-medium">
@@ -6918,7 +6903,6 @@ export default function App() {
               {/* Expandable Info Card (if toggled) */}
               {activeHeaderInfo === 'teams' && (
                 <div className="p-3.5 bg-[#141418] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
-                  <Trophy className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                   <p className="leading-relaxed flex-1">
                     Check ranking team, rekod WWCD &amp; buat kad Story 9:16.
                   </p>
@@ -7351,7 +7335,7 @@ export default function App() {
                       className="min-h-[320px] flex flex-col items-center justify-center py-10 px-4 text-center space-y-3 glass-tile rounded-2xl animate-teams-scope"
                     >
                       <div className="w-11 h-11 rounded-2xl glass-pill text-zinc-400 flex items-center justify-center mx-auto">
-                        {teamSearchQuery.trim() ? <Search className="w-5 h-5" /> : <Trophy className="w-5 h-5 text-[#D7FF00]/80" />}
+                        {teamSearchQuery.trim() ? <Search className="w-5 h-5" /> : <Users className="w-5 h-5 text-[#D7FF00]/80" />}
                       </div>
                       <div className="space-y-1 max-w-xs mx-auto">
                         <p className="text-xs sm:text-sm font-bold text-white">
@@ -7770,7 +7754,6 @@ export default function App() {
             {/* Expandable Info Card (if toggled) */}
             {activeHeaderInfo === 'history' && (
               <div className="p-3.5 bg-[#141418] rounded-2xl text-xs text-zinc-300 flex items-start sm:items-center gap-2.5 origin-top animate-dropdown-reveal mx-1">
-                <Flame className="w-4 h-4 text-[#D7FF00] shrink-0 mt-0.5 sm:mt-0" />
                 <p className="leading-relaxed flex-1">
                   Arkib rekod scrim &amp; tournament, status sesi, dan export poster HD.
                 </p>
@@ -7974,12 +7957,8 @@ export default function App() {
                             className="w-12 h-12 rounded-2xl object-cover bg-zinc-900 shrink-0 shadow-md"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-[#D7FF00] font-black flex items-center justify-center shrink-0 shadow-md">
-                            {s.event_type === 'Tour' ? (
-                              <Trophy className="w-5 h-5 text-[#D7FF00]" />
-                            ) : (
-                              <Flame className="w-5 h-5 text-[#D7FF00]" />
-                            )}
+                          <div className="w-12 h-12 rounded-2xl bg-[#19191E] text-[#D7FF00] font-mono font-black text-xs flex items-center justify-center shrink-0">
+                            {s.event_type === 'Tour' ? 'TR' : 'SC'}
                           </div>
                         )}
 
@@ -8432,7 +8411,7 @@ export default function App() {
                 <div className="glass-panel rounded-3xl p-5 space-y-3">
                   <div className="flex items-center gap-2.5 pb-2">
                     <div className="w-9 h-9 rounded-xl bg-[#1F240D] text-[#D7FF00] flex items-center justify-center font-black">
-                      <Trophy className="w-4 h-4"/>
+                      <Download className="w-4 h-4"/>
                     </div>
                     <div>
                       <h3 className="font-black text-sm text-white">3. Live Leaderboard &amp; Poster PNG</h3>
@@ -8771,7 +8750,7 @@ export default function App() {
                         className="px-3 py-1.5 rounded-xl bg-[#1F1F26] hover:bg-[#292932] text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                         title="Lihat pratonton & eksport poster"
                       >
-                        <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
+                        <ImageIcon className="w-3.5 h-3.5 text-[#D7FF00]" />
                         <span>Poster</span>
                       </button>
 
@@ -8791,10 +8770,6 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-[#111114] rounded-3xl">
                   {/* Left: Active Session Dropdown Selector */}
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#19191E] text-[#D7FF00] font-black flex items-center justify-center shrink-0">
-                      {activeAdminScrim?.event_type === 'Tour' ? <Trophy className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
-                    </div>
-                    
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 min-w-0">
                         {adminHostedScrims.length > 0 ? (
@@ -8967,18 +8942,13 @@ export default function App() {
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-[#19191E] text-[#D7FF00] flex items-center justify-center font-black shrink-0">
-                            <Zap className="w-5 h-5 fill-current"/>
-                          </div>
-                          <div>
-                            <h2 className="text-sm sm:text-base font-black text-white">
-                              Isi Markah Match
-                            </h2>
-                            <p className="text-[11px] font-mono tabular-nums text-zinc-400">
-                              Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
-                            </p>
-                          </div>
+                        <div>
+                          <h2 className="text-sm sm:text-base font-black text-white">
+                            Isi Markah Match
+                          </h2>
+                          <p className="text-[11px] font-mono tabular-nums text-zinc-400">
+                            Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
+                          </p>
                         </div>
 
                         <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
@@ -9302,9 +9272,9 @@ export default function App() {
                           onClick={() => {
                             document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                           }}
-                          className="lg:hidden w-full py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 border border-white/10 active:scale-98 uppercase tracking-wider"
+                          className="lg:hidden w-full py-3 px-4 bg-[#19191E] hover:bg-[#23232A] text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 active:scale-98 uppercase tracking-wider"
                         >
-                          <Trophy className="w-4 h-4 text-[#D7FF00]" />
+                          <ImageIcon className="w-4 h-4 text-[#D7FF00]" />
                           <span>Lihat Poster ↓</span>
                         </button>
                       </div>
@@ -9326,7 +9296,6 @@ export default function App() {
                             : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
                         )}
                       >
-                        <Trophy className="w-3.5 h-3.5"/>
                         <span>Overall</span>
                       </button>
                       <button
@@ -9338,7 +9307,6 @@ export default function App() {
                             : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
                         )}
                       >
-                        <Zap className="w-3.5 h-3.5"/>
                         <span>Match {selectedMatchIdx + 1}</span>
                       </button>
                     </div>
@@ -10073,9 +10041,9 @@ export default function App() {
                         handleCloseGuide();
                         navigateToTab('scorer');
                       }}
-                      className="w-full sm:w-auto px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(215, 255, 0,0.18)] shrink-0 active:scale-95"
+                      className="w-full sm:w-auto px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center justify-center gap-1.5 shrink-0 active:scale-95"
                     >
-                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <Edit3 className="w-3.5 h-3.5" />
                       <span>Buka Quick Scorer →</span>
                     </button>
                   </div>
@@ -10748,7 +10716,9 @@ export default function App() {
                         {s.poster_url ? (
                           <img src={s.poster_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <Trophy className="w-5 h-5 text-[#D7FF00]" />
+                          <span className="font-mono font-black text-xs text-[#D7FF00]">
+                            {s.event_type === 'Tour' ? 'TR' : 'SC'}
+                          </span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -10771,7 +10741,6 @@ export default function App() {
                   ))
                 ) : (
                   <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl glass-tile flex items-center gap-3 text-zinc-400 text-xs">
-                    <Trophy className="w-4 h-4 text-[#D7FF00]/50" />
                     <span>Belum ada sesi dianjurkan</span>
                   </div>
                 )}
@@ -11567,7 +11536,6 @@ export default function App() {
                     : 'text-zinc-400 hover:text-white'
                 )}
               >
-                <Flame className="w-3.5 h-3.5" />
                 <span>Scrim</span>
               </button>
               <button
@@ -11579,7 +11547,6 @@ export default function App() {
                     : 'text-zinc-400 hover:text-white'
                 )}
               >
-                <Trophy className="w-3.5 h-3.5" />
                 <span>Tournament</span>
               </button>
             </div>
@@ -11901,12 +11868,8 @@ export default function App() {
                 {inspectedScrim.logo_url ? (
                   <img src={inspectedScrim.logo_url} alt="" className="w-12 h-12 rounded-2xl object-cover bg-[#19191E] shrink-0 mt-0.5" />
                 ) : (
-                  <div className="w-12 h-12 rounded-2xl bg-[#19191E] text-[#D7FF00] font-black flex items-center justify-center shrink-0 mt-0.5">
-                    {inspectedScrim.event_type === 'Tour' ? (
-                      <Trophy className="w-5 h-5 text-[#D7FF00]" />
-                    ) : (
-                      <Flame className="w-5 h-5 text-[#D7FF00]" />
-                    )}
+                  <div className="w-12 h-12 rounded-2xl bg-[#19191E] text-[#D7FF00] font-mono font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    {inspectedScrim.event_type === 'Tour' ? 'TR' : 'SC'}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
@@ -12651,13 +12614,13 @@ export default function App() {
                             />
                           ) : (
                             <div
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              className={`w-9 h-9 rounded-xl font-mono font-black text-[11px] flex items-center justify-center shrink-0 ${
                                 isTour
-                                  ? 'bg-amber-500/18 text-amber-300'
-                                  : 'bg-[#D7FF00]/14 text-[#D7FF00]'
+                                  ? 'bg-[#241B0B] text-amber-300'
+                                  : 'bg-[#1F240D] text-[#D7FF00]'
                               }`}
                             >
-                              {isTour ? <Trophy className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
+                              {isTour ? 'TR' : 'SC'}
                             </div>
                           )}
 

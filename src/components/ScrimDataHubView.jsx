@@ -9,7 +9,7 @@ import {
   Trash2,
   Plus,
   Sparkles,
-  Trophy,
+  RefreshCw,
   Database,
   Search,
   LayoutGrid,
@@ -17,8 +17,7 @@ import {
   Calendar,
   Filter,
   User,
-  Users,
-  Zap
+  Users
 } from 'lucide-react';
 import {
   cleanTeamDisplayName,
@@ -846,7 +845,6 @@ export default function ScrimDataHubView({
           >
             <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-[#D7FF00]" />
                 <span className="text-sm font-bold text-white">Info Sesi (OCR)</span>
               </div>
               <div className="flex items-center gap-2 text-xs font-mono">
@@ -991,7 +989,7 @@ export default function ScrimDataHubView({
                     className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-[#D7FF00] text-zinc-200 hover:text-black text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                     title="Paksa kira semula Total = PP + Elims untuk semua baris"
                   >
-                    <Zap className="w-3.5 h-3.5 text-[#D7FF00] fill-current" />
+                    <RefreshCw className="w-3.5 h-3.5 text-[#D7FF00]" />
                     <span className="hidden sm:inline">Auto-Calculate</span>
                   </button>
 

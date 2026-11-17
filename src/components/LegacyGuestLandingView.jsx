@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Zap,
+  Edit3,
   Award,
   ShieldCheck,
   Sparkles,
@@ -40,7 +40,7 @@ export default function LegacyGuestLandingView({
     {
       id: 'cara-baru-cepat',
       title: 'Cara Baru & Cepat',
-      icon: Zap,
+      icon: Edit3,
       badge: 'VS GOOGLE SHEET',
       description: 'Sheet mudah rosak & tiada auto-tiebreaker. Di sini kiraan PMGC dan poster Standings HD siap serentak dalam saat.',
       footerText: 'Ganti Google Sheet & Canva serentak',
@@ -162,7 +162,7 @@ export default function LegacyGuestLandingView({
     {
       id: 'quick-scorer',
       title: 'Kira Segera (Quick Scorer)',
-      icon: Zap,
+      icon: Edit3,
       badge: 'TANPA LOGIN',
       description: 'Kalkulator markah scrim pantas di browser — terus isi kedudukan & Elims setiap pusingan tanpa perlu daftar akaun.',
       pills: ['1–5 Match', 'Format Point PMPL', 'Tanpa Login'],
@@ -201,8 +201,8 @@ export default function LegacyGuestLandingView({
             {isActive && (
               <span className="absolute inset-0 rounded-2xl bg-[#D7FF00]/30 animate-ping pointer-events-none" />
             )}
-            <div className={'relative w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center shadow-[0_0_18px_rgba(215,255,0,0.35)] ' + (isActive ? 'animate-hero-float' : '')}>
-              <Zap className="w-6 h-6 fill-black text-black" />
+            <div className={'relative w-12 h-12 rounded-2xl bg-[#D7FF00] text-black flex items-center justify-center ' + (isActive ? 'animate-hero-float' : '')}>
+              <Edit3 className="w-5 h-5 text-black" />
             </div>
           </div>
         </div>
