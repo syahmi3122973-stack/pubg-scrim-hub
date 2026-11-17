@@ -10,7 +10,11 @@ void main() {
 `;
 
 const FRAG_SRC = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 
 varying vec2 v_uv;
 
@@ -25,9 +29,11 @@ uniform vec3 u_primary;
 uniform vec3 u_accent;
 
 float hash21(vec2 p) {
-  p = fract(p * vec2(123.34, 456.21));
-  p += dot(p, p + 45.32);
-  return fract(p.x * p.y);
+  // Keep coordinates bounded before hash multiply to stay crisp on mobile GPUs
+  p = mod(p, 256.0);
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
 }
 
 float vnoise(vec2 p) {
@@ -45,9 +51,9 @@ float fbm(vec2 p) {
   float v = 0.0;
   float a = 0.5;
   mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     v += a * vnoise(p);
-    p = rot * p * 2.02;
+    p = rot * p * 2.04;
     a *= 0.5;
   }
   return v;
@@ -67,40 +73,42 @@ void main() {
 
   // Domain-warped organic fluid motion inside the shader
   vec2 warp = vec2(
-    fbm(delta * 1.9 + vec2(t * 0.13, -t * 0.09)),
-    fbm(delta * 1.9 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
+    fbm(delta * 2.15 + vec2(t * 0.13, -t * 0.09)),
+    fbm(delta * 2.15 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
   );
 
   // Flowing aurora petals (kelopak cahaya organik)
-  float petalA = sin(ang * 3.0 + t * 0.25 + warp.x * 3.6);
-  float petalB = cos(ang * 5.0 - t * 0.19 + warp.y * 2.9);
+  float petalA = sin(ang * 3.0 + t * 0.25 + warp.x * 3.8);
+  float petalB = cos(ang * 5.0 - t * 0.19 + warp.y * 3.1);
   float petalHarmonic = clamp(0.54 + 0.28 * petalA + 0.18 * petalB, 0.08, 1.0);
 
-  // Flowing silk wave interference
-  float waveFlow = fbm(delta * 1.55 + warp * 1.3 + vec2(t * 0.05, -t * 0.15));
+  // Flowing silk wave interference with crisp defined aurora crests
+  float waveFlow = fbm(delta * 1.75 + warp * 1.35 + vec2(t * 0.05, -t * 0.15));
+  float combined = waveFlow * 0.70 + petalHarmonic * 0.42;
 
-  // Diffuse backlit envelope so aurora swells organically behind & around card perimeter
   float petalStretch = 1.48 - 0.56 * petalHarmonic;
   float envelope = exp(-r * r * petalStretch);
-  float softCore = exp(-r * r * 2.35);
+  float softCore = exp(-r * r * 2.45);
 
-  float ribbon = smoothstep(0.20, 0.85, waveFlow * 0.72 + petalHarmonic * 0.40) * envelope;
+  float ribbon = smoothstep(0.24, 0.82, combined) * envelope;
+  float crispCrest = pow(smoothstep(0.46, 0.94, combined), 1.55) * envelope;
+
   float edgeFade = smoothstep(0.0, 0.10, uv.y) * smoothstep(1.0, 0.82, uv.y);
-  float luma = clamp((ribbon * 0.82 + softCore * 0.36) * edgeFade, 0.0, 1.0);
+  float luma = clamp((ribbon * 0.68 + crispCrest * 0.42 + softCore * 0.30) * edgeFade, 0.0, 1.0);
 
-  // 70% crisp primary white body + 30% mood accent along aurora petal ridges
-  float ridgeRatio = clamp(0.30 + (ribbon - softCore) * 0.18, 0.18, 0.42);
+  // 70% crisp primary white body + 30% mood accent concentrated along crisp petal crests
+  float ridgeRatio = clamp(0.28 + crispCrest * 0.24 - softCore * 0.10, 0.18, 0.44);
   vec3 tint = mix(u_primary, u_accent, ridgeRatio);
 
-  // Crisp ~1.45px logical film grain so noise stays textured and neat across HiDPI mobile & PC
-  vec2 grainCoord = floor(gl_FragCoord.xy / max(u_dpr * 1.45, 1.4));
-  float grain = hash21(grainCoord + fract(t * 1.5) * 47.0) - 0.5;
+  // Retina-calibrated sharp micro-grain (~1.6px physical on 2K 3x DPR phones, ~1px on 1x PC)
+  vec2 grainCoord = floor(gl_FragCoord.xy / max(u_dpr * 0.55, 1.0));
+  float grain = hash21(grainCoord + vec2(floor(fract(t * 0.75) * 64.0) * 1.37, 19.7)) - 0.5;
 
   float activeIntensity = u_intensity * u_ignite;
   vec3 color = tint * luma * activeIntensity;
-  color += grain * 0.058 * smoothstep(0.02, 0.46, luma) * u_ignite;
+  color += grain * 0.078 * smoothstep(0.02, 0.45, luma) * u_ignite;
 
-  gl_FragColor = vec4(max(color, 0.0), clamp(luma * activeIntensity * 1.2, 0.0, 1.0));
+  gl_FragColor = vec4(max(color, 0.0), clamp(luma * activeIntensity * 1.22, 0.0, 1.0));
 }
 `;
 
@@ -154,7 +162,7 @@ function measureTargetGeometry(canvas, key, fallback) {
 }
 
 /**
- * WebGL domain-warped petaled aurora + visible tactile film grain backdrop.
+ * Native HiDPI (up to 3x DPR for 2K phones) WebGL petaled aurora + sharp film grain backdrop.
  * Anchors directly behind `[data-aurora-target]` and ignites from dark (0 -> 1) on tab changes.
  */
 export default function AuroraPetalCanvas({
@@ -265,11 +273,13 @@ export default function AuroraPetalCanvas({
       accentRgb: [...targetRef.current.accentRgb],
     };
 
-    let currentDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const getClampedDpr = () => Math.min(window.devicePixelRatio || 1, 3);
+    let currentDpr = getClampedDpr();
+
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      currentDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      currentDpr = getClampedDpr();
       const nextW = Math.round(rect.width * currentDpr);
       const nextH = Math.round(rect.height * currentDpr);
       if (canvas.width !== nextW || canvas.height !== nextH) {
@@ -302,7 +312,6 @@ export default function AuroraPetalCanvas({
       const tgt = targetRef.current;
 
       if (ignitePendingRef.current) {
-        // Re-measure right before frame 0 of ignition in case layout settled post-commit
         const freshGeo = measureTargetGeometry(canvas, tgt.ignitionKey, tgt);
         tgt.anchorX = freshGeo.anchorX;
         tgt.anchorY = freshGeo.anchorY;
