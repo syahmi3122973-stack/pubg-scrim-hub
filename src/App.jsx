@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { toPng } from 'html-to-image';
 import { 
   Trophy, 
@@ -4773,6 +4774,89 @@ export default function App() {
     }
   };
 
+  const mainStageRef = useRef(null);
+  const lastExpandedHomeCardRef = useRef(null);
+  const lastExpandedTeamCardRef = useRef(null);
+
+  const cleanupCardViewTransitions = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    delete document.documentElement.dataset.vtCardMode;
+    if (mainStageRef.current) {
+      mainStageRef.current.style.viewTransitionName = '';
+    }
+    document.querySelectorAll('[data-vt-card], [data-vt-team-slot]').forEach((el) => {
+      el.style.viewTransitionName = '';
+    });
+  }, []);
+
+  const runSharedCardTransition = useCallback(({
+    mode = 'open',
+    sourceEl = null,
+    findTargetEl = null,
+    updateDom,
+    afterUpdate
+  }) => {
+    const reducedMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof document === 'undefined' || typeof document.startViewTransition !== 'function' || reducedMotion) {
+      updateDom();
+      afterUpdate?.();
+      return;
+    }
+
+    cleanupCardViewTransitions();
+    document.documentElement.dataset.vtCardMode = mode;
+
+    const outgoingStage = mainStageRef.current;
+    if (mode === 'open' && sourceEl) {
+      sourceEl.style.viewTransitionName = 'card-expand-hero';
+    } else if (mode === 'close' && outgoingStage) {
+      outgoingStage.style.viewTransitionName = 'card-expand-hero';
+    }
+
+    let transition;
+    try {
+      transition = document.startViewTransition(() => {
+        flushSync(() => {
+          updateDom();
+        });
+        if (sourceEl) sourceEl.style.viewTransitionName = '';
+        if (outgoingStage) outgoingStage.style.viewTransitionName = '';
+        afterUpdate?.();
+
+        if (mode === 'open') {
+          if (mainStageRef.current) {
+            mainStageRef.current.style.viewTransitionName = 'card-expand-hero';
+          }
+        } else {
+          const restoredCard = findTargetEl?.();
+          if (restoredCard) {
+            restoredCard.style.viewTransitionName = 'card-expand-hero';
+          }
+        }
+      });
+    } catch {
+      cleanupCardViewTransitions();
+      updateDom();
+      afterUpdate?.();
+      return;
+    }
+
+    transition.finished.finally(() => {
+      cleanupCardViewTransitions();
+      if (mode === 'open' && mainStageRef.current) {
+        mainStageRef.current.focus({ preventScroll: true });
+      } else if (mode === 'close') {
+        const restoredCard = findTargetEl?.();
+        if (restoredCard) {
+          restoredCard.focus({ preventScroll: true });
+        } else if (mainStageRef.current) {
+          mainStageRef.current.focus({ preventScroll: true });
+        }
+      }
+    });
+  }, [cleanupCardViewTransitions]);
+
   const runBlurSwap = useCallback((shouldBlurOut, applyUpdate) => {
     if (tabTransitionTimerRef.current) {
       window.clearTimeout(tabTransitionTimerRef.current);
@@ -4793,19 +4877,55 @@ export default function App() {
     }
   }, []);
 
-  const openTeamProfile = useCallback((teamName) => {
+  const openTeamProfile = useCallback((teamName, sourceEl = null, slotKey = null) => {
     if (!teamName) return;
-    runBlurSwap(true, () => {
-      setNavDirection('forward');
-      setSelectedTeamProfile(teamName);
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }, 15);
-    });
-  }, [runBlurSwap]);
+    const savedScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    const resolvedSlotKey = slotKey || `main_${teamName}`;
+    lastExpandedTeamCardRef.current = {
+      teamName,
+      slotKey: resolvedSlotKey,
+      scrollY: savedScrollY
+    };
 
-  const navigateToTab = useCallback((tab) => {
+    runSharedCardTransition({
+      mode: 'open',
+      sourceEl,
+      updateDom: () => {
+        setNavDirection('forward');
+        setSelectedTeamProfile(teamName);
+      },
+      afterUpdate: () => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
+    });
+  }, [runSharedCardTransition]);
+
+  const closeTeamProfile = useCallback(() => {
+    const saved = lastExpandedTeamCardRef.current;
+    lastExpandedTeamCardRef.current = null;
+
+    runSharedCardTransition({
+      mode: 'close',
+      updateDom: () => {
+        setNavDirection('backward');
+        setSelectedTeamProfile('');
+      },
+      afterUpdate: () => {
+        window.scrollTo({ top: saved?.scrollY ?? 0, left: 0, behavior: 'instant' });
+      },
+      findTargetEl: () => {
+        if (!saved) return null;
+        const slotEl = Array.from(document.querySelectorAll('[data-vt-team-slot]'))
+          .find((el) => el.dataset.vtTeamSlot === saved.slotKey);
+        if (slotEl) return slotEl;
+        return Array.from(document.querySelectorAll('[data-vt-team]'))
+          .find((el) => el.dataset.vtTeam === saved.teamName) || null;
+      }
+    });
+  }, [runSharedCardTransition]);
+
+  const navigateToTab = useCallback((tab, options = {}) => {
+    const { sourceCardId = null, sourceEl = null } = options;
     const normalizedNext = tab === 'home' ? 'playground' : tab;
     const normalizedCurrent = activeTabRef.current === 'home' ? 'playground' : activeTabRef.current;
     setIsQuickCreateModalOpen(false);
@@ -4827,22 +4947,99 @@ export default function App() {
         }
         return normalizedNext;
       });
+    };
+
+    if (sourceCardId && sourceEl) {
+      const savedScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+      lastExpandedHomeCardRef.current = {
+        cardId: sourceCardId,
+        targetTab: normalizedNext,
+        scrollY: savedScrollY
+      };
+      lastExpandedTeamCardRef.current = null;
+      runSharedCardTransition({
+        mode: 'open',
+        sourceEl,
+        updateDom: applyTabNavigation,
+        afterUpdate: () => {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        }
+      });
+      return;
+    }
+
+    const activeHomeOrigin = lastExpandedHomeCardRef.current;
+    if (
+      normalizedNext === 'playground' &&
+      activeHomeOrigin &&
+      activeHomeOrigin.targetTab === normalizedCurrent
+    ) {
+      lastExpandedHomeCardRef.current = null;
+      lastExpandedTeamCardRef.current = null;
+      runSharedCardTransition({
+        mode: 'close',
+        updateDom: () => {
+          setSelectedTeamProfile('');
+          setNavDirection('backward');
+          setTabHistory([]);
+          setActiveTab('playground');
+        },
+        afterUpdate: () => {
+          window.scrollTo({ top: activeHomeOrigin.scrollY ?? 0, left: 0, behavior: 'instant' });
+        },
+        findTargetEl: () =>
+          Array.from(document.querySelectorAll('[data-vt-card]'))
+            .find((el) => el.dataset.vtCard === activeHomeOrigin.cardId) || null
+      });
+      return;
+    }
+
+    lastExpandedHomeCardRef.current = null;
+    lastExpandedTeamCardRef.current = null;
+    const shouldBlur = normalizedNext !== normalizedCurrent;
+    runBlurSwap(shouldBlur, () => {
+      applyTabNavigation();
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       setTimeout(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }, 15);
-    };
-
-    const shouldBlur = normalizedNext !== normalizedCurrent;
-    runBlurSwap(shouldBlur, applyTabNavigation);
-  }, [runBlurSwap]);
+    });
+  }, [runBlurSwap, runSharedCardTransition]);
 
   const handleNavigateBackTab = useCallback(() => {
     setActiveHeaderInfo(null);
     setIsNavMenuOpen(false);
+    const normalizedCurrent = activeTab === 'home' ? 'playground' : activeTab;
+
+    const previousTab = tabHistory.length > 0 ? (tabHistory[tabHistory.length - 1] || 'playground') : 'playground';
+    const activeHomeOrigin = lastExpandedHomeCardRef.current;
+
+    if (
+      previousTab === 'playground' &&
+      activeHomeOrigin &&
+      activeHomeOrigin.targetTab === normalizedCurrent
+    ) {
+      lastExpandedHomeCardRef.current = null;
+      lastExpandedTeamCardRef.current = null;
+      runSharedCardTransition({
+        mode: 'close',
+        updateDom: () => {
+          setSelectedTeamProfile('');
+          setNavDirection('backward');
+          setTabHistory([]);
+          setActiveTab('playground');
+        },
+        afterUpdate: () => {
+          window.scrollTo({ top: activeHomeOrigin.scrollY ?? 0, left: 0, behavior: 'instant' });
+        },
+        findTargetEl: () =>
+          Array.from(document.querySelectorAll('[data-vt-card]'))
+            .find((el) => el.dataset.vtCard === activeHomeOrigin.cardId) || null
+      });
+      return true;
+    }
 
     if (tabHistory.length > 0) {
-      const previousTab = tabHistory[tabHistory.length - 1] || 'playground';
       runBlurSwap(true, () => {
         setSelectedTeamProfile('');
         setNavDirection('backward');
@@ -4864,7 +5061,7 @@ export default function App() {
     }
 
     return false;
-  }, [tabHistory, activeTab, runBlurSwap]);
+  }, [tabHistory, activeTab, runBlurSwap, runSharedCardTransition]);
 
   const handleStartScoringSession = () => {
     navigateToTab('scorer');
@@ -4973,8 +5170,7 @@ export default function App() {
     if (isOrgPopoverOpen) { setIsOrgPopoverOpen(false); return true; }
     if (isNavMenuOpen) { setIsNavMenuOpen(false); return true; }
     if (activeTab === 'teams' && selectedTeamProfile) {
-      setNavDirection('backward');
-      setSelectedTeamProfile('');
+      closeTeamProfile();
       return true;
     }
     if (activeHeaderInfo) { setActiveHeaderInfo(null); return true; }
@@ -5004,6 +5200,7 @@ export default function App() {
     isNavMenuOpen,
     activeTab,
     selectedTeamProfile,
+    closeTeamProfile,
     activeHeaderInfo
   ]);
 
@@ -5169,7 +5366,7 @@ export default function App() {
       {/* PC / DESKTOP FIXED LEFT SAAS SIDEBAR NAVIGATION (Liquid Glass Surface) */}
       <aside
         aria-label="Desktop Sidebar Navigation"
-        className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64 p-3"
+        className="vt-desktop-nav hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64 p-3"
       >
         <div className="glass-nav-liquid rounded-[1.75rem] flex-1 min-h-0 flex flex-col p-3 relative">
           {/* Sidebar Top: Brand & Workspace Account Switcher */}
@@ -5767,8 +5964,10 @@ export default function App() {
       <main style={{ '--open-delay': '90ms' }} className="flex-1 w-full md:pl-60 lg:pl-64 animate-linear-open">
         <div className="max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
+          ref={mainStageRef}
+          tabIndex={-1}
           key={`${activeTab}_${selectedTeamProfile ? 'profile' : 'main'}_${navDirection}`}
-          className={`tab-blur-stage ${
+          className={`tab-blur-stage focus:outline-none ${
             tabBlurStage === 'out'
               ? 'tab-blur-exiting'
               : activeTab === 'teams'
@@ -5925,18 +6124,19 @@ export default function App() {
                   <div
                     role="button"
                     tabIndex={0}
+                    data-vt-card="home-teams"
                     data-hof-slide={homeHofSlide}
-                    onClick={() => {
+                    onClick={(e) => {
                       setTeamStatsEventType('ALL');
                       handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
-                      navigateToTab('teams');
+                      navigateToTab('teams', { sourceCardId: 'home-teams', sourceEl: e.currentTarget });
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         setTeamStatsEventType('ALL');
                         handleSelectTeamStatsCategory(homeHofSlide === 1 ? 'TIER_3' : 'ALL');
-                        navigateToTab('teams');
+                        navigateToTab('teams', { sourceCardId: 'home-teams', sourceEl: e.currentTarget });
                       }
                     }}
                     onMouseEnter={() => setIsHomeHofInteracting(true)}
@@ -6233,11 +6433,12 @@ export default function App() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigateToTab('scrim-data')}
+                    data-vt-card="home-scrim-data"
+                    onClick={(e) => navigateToTab('scrim-data', { sourceCardId: 'home-scrim-data', sourceEl: e.currentTarget })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        navigateToTab('scrim-data');
+                        navigateToTab('scrim-data', { sourceCardId: 'home-scrim-data', sourceEl: e.currentTarget });
                       }
                     }}
                     style={{ '--home-delay': '160ms' }}
@@ -6273,11 +6474,12 @@ export default function App() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigateToTab('scorer')}
+                    data-vt-card="home-scorer"
+                    onClick={(e) => navigateToTab('scorer', { sourceCardId: 'home-scorer', sourceEl: e.currentTarget })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        navigateToTab('scorer');
+                        navigateToTab('scorer', { sourceCardId: 'home-scorer', sourceEl: e.currentTarget });
                       }
                     }}
                     style={{ '--home-delay': '230ms' }}
@@ -6304,11 +6506,12 @@ export default function App() {
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigateToTab('history')}
+                    data-vt-card="home-history"
+                    onClick={(e) => navigateToTab('history', { sourceCardId: 'home-history', sourceEl: e.currentTarget })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        navigateToTab('history');
+                        navigateToTab('history', { sourceCardId: 'home-history', sourceEl: e.currentTarget });
                       }
                     }}
                     style={{ '--home-delay': '300ms' }}
@@ -6722,12 +6925,7 @@ export default function App() {
                 <div className="flex items-center justify-between px-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      runBlurSwap(true, () => {
-                        setNavDirection('backward');
-                        setSelectedTeamProfile('');
-                      });
-                    }}
+                    onClick={closeTeamProfile}
                     className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1 active:scale-95"
                     title="Kembali ke Team Matrix"
                   >
@@ -7492,7 +7690,9 @@ export default function App() {
                       <button
                         key={`hof_t3_${t3Team.name}`}
                         type="button"
-                        onClick={() => openTeamProfile(t3Team.name)}
+                        data-vt-team={t3Team.name}
+                        data-vt-team-slot={`t3_${t3Team.name}`}
+                        onClick={(e) => openTeamProfile(t3Team.name, e.currentTarget, `t3_${t3Team.name}`)}
                         className="w-full text-left rounded-2xl bg-[#19191E] hover:bg-[#222229] px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -7731,11 +7931,13 @@ export default function App() {
                                 key={team.name}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => openTeamProfile(team.name)}
+                                data-vt-team={team.name}
+                                data-vt-team-slot={`main_${team.name}`}
+                                onClick={(e) => openTeamProfile(team.name, e.currentTarget, `main_${team.name}`)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    openTeamProfile(team.name);
+                                    openTeamProfile(team.name, e.currentTarget, `main_${team.name}`);
                                   }
                                 }}
                                 style={{ '--blur-delay': podiumDelay }}
@@ -7833,11 +8035,13 @@ export default function App() {
                                 key={team.name}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => openTeamProfile(team.name)}
+                                data-vt-team={team.name}
+                                data-vt-team-slot={`main_${team.name}`}
+                                onClick={(e) => openTeamProfile(team.name, e.currentTarget, `main_${team.name}`)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    openTeamProfile(team.name);
+                                    openTeamProfile(team.name, e.currentTarget, `main_${team.name}`);
                                   }
                                 }}
                                 style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
@@ -8977,7 +9181,7 @@ export default function App() {
                       <div className="flex items-center justify-between gap-3">
                         <button
                           type="button"
-                          onClick={() => navigateToTab('playground')}
+                          onClick={handleNavigateBackTab}
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#19191E] hover:bg-[#222229] text-zinc-300 hover:text-white text-xs font-medium transition active:scale-95 cursor-pointer"
                           title="Kembali ke Laman Utama"
                         >
@@ -12986,7 +13190,7 @@ export default function App() {
       {/* MINIMALIST FLOATING PILL MOBILE NAVBAR (FIXED SLOTS, ZERO JITTER, SLEEK & THIN) */}
       <nav
         aria-label="Mobile Navigation"
-        className={'md:hidden fixed bottom-3 sm:bottom-4 inset-x-0 mx-auto z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
+        className={'vt-mobile-nav md:hidden fixed bottom-3 sm:bottom-4 inset-x-0 mx-auto z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
       >
         <div className="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between [text-shadow:0_1px_4px_rgba(0,0,0,0.65)]">
           

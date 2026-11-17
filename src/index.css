@@ -1182,3 +1182,74 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
     box-shadow: none;
   }
 }
+
+/* iOS-Style Shared Card Opening & Closing Morph (Home Bento Cards & Team Matrix Cards Only) */
+html[data-vt-card-mode] .tab-blur-stage,
+html[data-vt-card-mode] .animate-home-tier,
+html[data-vt-card-mode] .animate-teams-enter,
+html[data-vt-card-mode] .animate-teams-blur,
+html[data-vt-card-mode] .animate-teams-scope,
+html[data-vt-card-mode] .animate-tab-forward,
+html[data-vt-card-mode] .animate-tab-backward,
+html[data-vt-card-mode] .animate-tab-bottom {
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @media (max-width: 767px) {
+    html[data-vt-card-mode] .vt-mobile-nav {
+      view-transition-name: scrimhub-nav-bar;
+    }
+  }
+
+  @media (min-width: 768px) {
+    html[data-vt-card-mode] .vt-desktop-nav {
+      view-transition-name: scrimhub-nav-bar;
+    }
+  }
+
+  ::view-transition-group(scrimhub-nav-bar) {
+    z-index: 60;
+    animation: none;
+  }
+
+  ::view-transition-group(card-expand-hero) {
+    z-index: 40;
+    overflow: clip;
+    border-radius: 1.75rem;
+    animation-duration: 0.42s;
+    animation-timing-function: cubic-bezier(0.22, 1.08, 0.32, 1);
+  }
+
+  html[data-vt-card-mode='close']::view-transition-group(card-expand-hero) {
+    animation-duration: 0.36s;
+    animation-timing-function: cubic-bezier(0.2, 1.04, 0.32, 1);
+  }
+
+  ::view-transition-old(card-expand-hero),
+  ::view-transition-new(card-expand-hero) {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: top;
+    animation-duration: 0.24s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  html[data-vt-card-mode] ::view-transition-old(root),
+  html[data-vt-card-mode] ::view-transition-new(root) {
+    animation-duration: 0.26s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
