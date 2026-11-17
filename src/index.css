@@ -1153,96 +1153,18 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
   contain-intrinsic-size: auto 58px;
 }
 
-/* Vercel-style Full-Bleed Animated Aurora Mesh + Fine Film Grain Noise */
-.home-hero-canvas {
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 54%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 54%, transparent 100%);
-}
-
-.home-hero-aurora {
-  background:
-    radial-gradient(ellipse 52% 48% at 48% 28%, rgba(215, 255, 0, 0.17), transparent 66%),
-    radial-gradient(ellipse 46% 52% at 24% 38%, rgba(56, 189, 248, 0.16), transparent 64%),
-    radial-gradient(ellipse 44% 50% at 76% 40%, rgba(244, 114, 182, 0.14), transparent 65%),
-    conic-gradient(from 195deg at 50% 34%, rgba(215, 255, 0, 0.08), rgba(56, 189, 248, 0.09), rgba(192, 132, 252, 0.09), rgba(16, 185, 129, 0.08), rgba(215, 255, 0, 0.08));
-}
-
-.home-hero-aurora-alt {
-  background:
-    radial-gradient(ellipse 42% 44% at 64% 30%, rgba(56, 189, 248, 0.14), transparent 65%),
-    radial-gradient(ellipse 44% 46% at 34% 46%, rgba(16, 185, 129, 0.13), transparent 66%),
-    radial-gradient(ellipse 38% 42% at 52% 24%, rgba(215, 255, 0, 0.12), transparent 62%);
-}
-
+/* Vercel-style ultra-faint architectural hairline grid overlay for WebGL Aurora Canvas */
 .home-hero-grid {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.038) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 40px 40px;
-  -webkit-mask-image: radial-gradient(ellipse 92% 85% at 50% 18%, #000 18%, transparent 86%);
-  mask-image: radial-gradient(ellipse 92% 85% at 50% 18%, #000 18%, transparent 86%);
-}
-
-.home-hero-grain {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.52'/%3E%3C/svg%3E");
-  background-size: 220px 220px;
-  background-repeat: repeat;
-  mix-blend-mode: overlay;
-}
-
-@keyframes homeAuroraDrift {
-  0% {
-    transform: translate3d(-3%, -2%, 0) scale(1) rotate(-2deg);
-  }
-  50% {
-    transform: translate3d(3%, 2.5%, 0) scale(1.06) rotate(2deg);
-  }
-  100% {
-    transform: translate3d(-1.5%, 3%, 0) scale(1.03) rotate(4deg);
-  }
-}
-
-@keyframes homeAuroraCounter {
-  0% {
-    transform: translate3d(3.5%, 2%, 0) scale(1.04) rotate(2deg);
-    opacity: 0.72;
-  }
-  50% {
-    transform: translate3d(-3%, -2%, 0) scale(0.98) rotate(-2deg);
-    opacity: 0.95;
-  }
-  100% {
-    transform: translate3d(2%, -2.5%, 0) scale(1.05) rotate(-3deg);
-    opacity: 0.78;
-  }
-}
-
-@keyframes homeGrainDrift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-32px, -24px, 0);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .home-hero-aurora {
-    animation: homeAuroraDrift 18s ease-in-out infinite alternate;
-    will-change: transform;
-  }
-  .home-hero-aurora-alt {
-    animation: homeAuroraCounter 24s ease-in-out infinite alternate;
-    will-change: transform, opacity;
-  }
-  .home-hero-grain {
-    animation: homeGrainDrift 22s linear infinite alternate;
-    will-change: transform;
-  }
+  -webkit-mask-image: radial-gradient(ellipse 84% 78% at 50% 24%, #000 10%, transparent 82%);
+  mask-image: radial-gradient(ellipse 84% 78% at 50% 24%, #000 10%, transparent 82%);
 }
 
 .vercel-grid-surface {
-  background-color: #070708;
+  background-color: rgba(7, 7, 8, 0.68);
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
@@ -1262,11 +1184,7 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
 }
 
 @media (forced-colors: active) {
-  .home-hero-canvas,
-  .home-hero-aurora,
-  .home-hero-aurora-alt,
-  .home-hero-grid,
-  .home-hero-grain {
+  .home-hero-grid {
     display: none;
   }
   .vercel-tab[aria-selected="true"]::after {

@@ -68,6 +68,7 @@ import ScrimDataHubView from './components/ScrimDataHubView';
 import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
 import TeamLogoCropper from './components/TeamLogoCropper';
+import AuroraPetalCanvas from './components/AuroraPetalCanvas';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 import {
   cleanTeamDisplayName,
@@ -78,6 +79,23 @@ import {
   saveCustomTeamAlias,
   findPotentialDuplicatePairs
 } from './utils/teamAlias';
+
+const TAB_AURORA_THEMES = {
+  home: { anchorX: 0.5, anchorY: 0.28, radius: 0.42, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
+  playground: { anchorX: 0.5, anchorY: 0.28, radius: 0.42, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
+  teams: { anchorX: 0.5, anchorY: 0.54, radius: 0.4, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.3 },
+  database: { anchorX: 0.5, anchorY: 0.54, radius: 0.4, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.3 },
+  history: { anchorX: 0.24, anchorY: 0.34, radius: 0.38, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.32 },
+  leaderboard: { anchorX: 0.24, anchorY: 0.34, radius: 0.38, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.32 },
+  'scrim-data': { anchorX: 0.74, anchorY: 0.38, radius: 0.38, primaryColor: '#FFFFFF', accentColor: '#F472B6', intensity: 0.32 },
+  scorer: { anchorX: 0.26, anchorY: 0.46, radius: 0.36, primaryColor: '#FFFFFF', accentColor: '#60A5FA', intensity: 0.32 },
+  admin: { anchorX: 0.72, anchorY: 0.28, radius: 0.36, primaryColor: '#FFFFFF', accentColor: '#A78BFA', intensity: 0.32 },
+  hosts: { anchorX: 0.32, anchorY: 0.36, radius: 0.35, primaryColor: '#FFFFFF', accentColor: '#FBBF24', intensity: 0.3 },
+  showcase: { anchorX: 0.68, anchorY: 0.4, radius: 0.36, primaryColor: '#FFFFFF', accentColor: '#FB7185', intensity: 0.3 },
+  about: { anchorX: 0.5, anchorY: 0.26, radius: 0.34, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.28 },
+  privacy: { anchorX: 0.22, anchorY: 0.28, radius: 0.32, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.24 },
+  terms: { anchorX: 0.78, anchorY: 0.28, radius: 0.32, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.24 },
+};
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
   <svg 
@@ -6062,18 +6080,29 @@ export default function App() {
         })()}
       </aside>
 
-      {/* FULL-BLEED HOME AMBIENT NOISE AURORA (Phone spans behind translucent header; PC spans full workspace right of sidebar) */}
-      {(activeTab === 'playground' || activeTab === 'home') && (
-        <div
-          aria-hidden="true"
-          className="home-hero-canvas pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[430px] sm:h-[490px] lg:h-[550px] overflow-hidden z-0"
-        >
-          <div className="home-hero-aurora absolute -inset-[22%] opacity-95" />
-          <div className="home-hero-aurora-alt absolute -inset-[22%] opacity-85" />
-          <div className="home-hero-grid absolute inset-0" />
-          <div className="home-hero-grain absolute -inset-[12%] opacity-85" />
-        </div>
-      )}
+      {/* PERSISTENT COMPACT WEBGL PETALED AURORA BACKDROP (Hierarchy-positioned & mood-tinted per tab) */}
+      {(() => {
+        const base = TAB_AURORA_THEMES[activeTab] || TAB_AURORA_THEMES.home;
+        const theme = (activeTab === 'teams' || activeTab === 'database') && teamMatrixFilterState?.category === 'TIER_3'
+          ? { ...base, accentColor: '#FACC15' }
+          : base;
+        return (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[370px] sm:h-[400px] lg:h-[430px] overflow-hidden z-0"
+          >
+            <AuroraPetalCanvas
+              anchorX={theme.anchorX}
+              anchorY={theme.anchorY}
+              radius={theme.radius}
+              primaryColor={theme.primaryColor}
+              accentColor={theme.accentColor}
+              intensity={theme.intensity}
+            />
+            <div className="home-hero-grid absolute inset-0" />
+          </div>
+        );
+      })()}
 
       {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}
       <header style={{ '--open-delay': '0ms' }} className={`bg-black/35 backdrop-blur-xl sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
@@ -9232,10 +9261,6 @@ export default function App() {
 
               {/* 1. VERCEL-STYLE HERO OVERVIEW WITH REAL APP LOGO */}
               <div className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -inset-12 home-hero-aurora opacity-75"
-                />
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
                   <div className="lg:col-span-8 p-5 sm:p-8 flex flex-col justify-between gap-5">
                     <div className="space-y-3">
