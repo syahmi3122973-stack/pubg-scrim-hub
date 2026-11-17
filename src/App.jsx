@@ -5805,297 +5805,258 @@ export default function App() {
         </div>
       )}
 
-      {/* PC / DESKTOP FIXED LEFT SAAS SIDEBAR NAVIGATION (Liquid Glass Surface) */}
+      {/* PC / DESKTOP FIXED LEFT VERCEL GEIST SIDEBAR NAVIGATION */}
       <aside
         aria-label="Desktop Sidebar Navigation"
-        className="vt-desktop-nav hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64 p-3"
+        className="vt-desktop-nav geist-sidebar hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64"
       >
-        <div className="glass-nav-liquid rounded-[1.75rem] flex-1 min-h-0 flex flex-col p-3 relative">
-          {/* Sidebar Top: Brand & Workspace Account Switcher */}
-          <div className="relative pb-3 mb-2 border-b border-white/10 space-y-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => navigateToTab('playground')}
-              className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/[0.06] transition text-left cursor-pointer group"
-              title="Kembali ke Laman Utama"
-            >
-              <img
-                src="/logo.png"
-                alt="RYKHOR Scrim Hub"
-                className="w-8 h-8 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform"
-              />
-              <div className="min-w-0 flex-1 leading-none">
-                <span className="text-sm font-black tracking-wide text-white group-hover:text-[#D7FF00] transition-colors block">
-                  SCRIMHUB
-                </span>
-                <span className="text-[10px] text-zinc-400 font-mono mt-1 block truncate">
-                  by ry.khor
-                </span>
-              </div>
-            </button>
+        {(() => {
+          const getNavBtnClass = (isActive) =>
+            'relative w-full flex items-center gap-2.5 px-2.5 py-1.5 min-h-[34px] rounded-md text-[13px] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ' +
+            (isActive
+              ? 'bg-[#1A1A1D] text-white font-medium shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]'
+              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] font-normal');
 
-            {currentUser && (
-              <div className="relative">
+          const renderActiveRail = (isActive) =>
+            isActive ? (
+              <span
+                aria-hidden="true"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-r-full bg-[#D7FF00]"
+              />
+            ) : null;
+
+          const primaryItems = [
+            { id: 'playground', label: 'Home', Icon: Home, active: activeTab === 'playground' || activeTab === 'home' },
+            { id: 'history', label: 'Rekod', Icon: Trophy, active: activeTab === 'history' || activeTab === 'leaderboard' },
+            { id: 'teams', label: 'Teams', Icon: Users, active: activeTab === 'teams' || activeTab === 'database' },
+            { id: 'admin', label: 'Portal Host', Icon: currentUser ? ShieldCheck : Lock, active: activeTab === 'admin' }
+          ];
+
+          const toolItems = [
+            { id: 'scorer', label: 'Quick Scorer', Icon: Edit3, active: activeTab === 'scorer' },
+            { id: 'scrim-data', label: 'Imbas Keputusan', Icon: Upload, active: activeTab === 'scrim-data' }
+          ];
+
+          const otherItems = [
+            { id: 'hosts', label: 'Direktori Host', Icon: Award, active: activeTab === 'hosts' },
+            { id: 'showcase', label: 'Content', Icon: Video, active: activeTab === 'showcase' }
+          ];
+
+          return (
+            <div className="flex-1 min-h-0 flex flex-col relative">
+              {/* Sidebar Top: Geist Brand Path & Workspace Switcher */}
+              <div className="relative px-3 py-3 border-b border-white/[0.08] space-y-2.5 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setIsOrgPopoverOpen(prev => !prev)}
-                  aria-expanded={isOrgPopoverOpen}
-                  aria-haspopup="dialog"
-                  className="w-full px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-between gap-2 transition cursor-pointer group"
-                  title="Tukar atau urus akaun aktif"
+                  onClick={() => navigateToTab('playground')}
+                  className="w-full flex items-center justify-between gap-2 px-1.5 py-1 rounded-md hover:bg-white/[0.04] transition-colors text-left cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  title="Kembali ke Laman Utama"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="relative w-7 h-7 rounded-full bg-[#18181D] flex items-center justify-center overflow-hidden shrink-0">
-                      {profileAvatarUrl ? (
-                        <img
-                          src={profileAvatarUrl}
-                          alt={primaryAccountName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[10px] font-black text-[#D7FF00]">
-                          {primaryAccountName.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#111114]" />
-                    </div>
-                    <div className="min-w-0 text-left">
-                      <span className="text-xs font-bold text-white truncate block leading-tight">
-                        {activeOrganizationName}
-                      </span>
-                      <span className="text-[10px] text-zinc-400 font-mono truncate block leading-tight">
-                        {adminHostedScrims.length} Hosted
-                      </span>
-                    </div>
+                    <img
+                      src="/logo.png"
+                      alt="RYKHOR Scrim Hub"
+                      className="w-6 h-6 rounded-md object-cover shrink-0 border border-white/10"
+                    />
+                    <span className="text-zinc-600 text-xs font-mono select-none" aria-hidden="true">/</span>
+                    <span className="text-[13px] font-semibold tracking-tight text-zinc-100 group-hover:text-white truncate">
+                      scrimhub
+                    </span>
                   </div>
-                  <ChevronDown
-                    className={
-                      'w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ' +
-                      (isOrgPopoverOpen ? 'rotate-180 text-[#D7FF00]' : '')
-                    }
-                  />
+                  <span className="text-[10px] font-mono text-zinc-500 px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.02] shrink-0">
+                    ry.khor
+                  </span>
                 </button>
-                {isOrgPopoverOpen && renderOrgPopoverCard('left-0 top-full mt-2 w-60 lg:w-64')}
+
+                {currentUser && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsOrgPopoverOpen(prev => !prev)}
+                      aria-expanded={isOrgPopoverOpen}
+                      aria-haspopup="dialog"
+                      className="w-full px-2.5 py-1.5 rounded-md border border-white/[0.08] bg-[#111113] hover:bg-[#17171A] hover:border-white/[0.14] flex items-center justify-between gap-2 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      title="Tukar atau urus akaun aktif"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="relative w-6 h-6 rounded-full bg-[#1C1C20] flex items-center justify-center overflow-hidden shrink-0 border border-white/10">
+                          {profileAvatarUrl ? (
+                            <img
+                              src={profileAvatarUrl}
+                              alt={primaryAccountName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-semibold text-[#D7FF00]">
+                              {primaryAccountName.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full bg-emerald-400 ring-1 ring-[#0A0A0A]" />
+                        </div>
+                        <div className="min-w-0 text-left">
+                          <span className="text-[12px] font-medium text-zinc-100 truncate block leading-tight">
+                            {activeOrganizationName}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono truncate block leading-tight">
+                            {adminHostedScrims.length} hosted
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronDown
+                        className={
+                          'w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 shrink-0 transition-transform duration-200 ' +
+                          (isOrgPopoverOpen ? 'rotate-180 text-white' : '')
+                        }
+                      />
+                    </button>
+                    {isOrgPopoverOpen && renderOrgPopoverCard('left-0 top-full mt-1.5 w-60 lg:w-64')}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Sidebar Scrollable Navigation Sections */}
-          <nav
-            aria-label="Navigasi Utama PC"
-            className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-4 py-1 pr-0.5"
-          >
-            {/* Group 1: Utama */}
-            <div className="space-y-1">
-              <div className="px-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
-                Utama
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateToTab('playground')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'playground' || activeTab === 'home'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
+              {/* Sidebar Scrollable Navigation Sections */}
+              <nav
+                aria-label="Navigasi Utama PC"
+                className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-2.5 py-3 space-y-4"
               >
-                <Home className="w-4 h-4 shrink-0" />
-                <span>Home</span>
-              </button>
+                <div className="space-y-0.5">
+                  <div className="px-2.5 pb-1 text-[11px] font-medium text-zinc-500">
+                    Utama
+                  </div>
+                  {primaryItems.map(({ id, label, Icon, active }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => navigateToTab(id)}
+                      className={getNavBtnClass(active)}
+                    >
+                      {renderActiveRail(active)}
+                      <Icon className={'w-4 h-4 shrink-0 ' + (active ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  ))}
+                </div>
 
-              <button
-                type="button"
-                onClick={() => navigateToTab('history')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'history' || activeTab === 'leaderboard'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Trophy className="w-4 h-4 shrink-0" />
-                <span>Rekod</span>
-              </button>
+                <div className="space-y-0.5">
+                  <div className="px-2.5 pb-1 text-[11px] font-medium text-zinc-500">
+                    Alatan
+                  </div>
+                  {toolItems.map(({ id, label, Icon, active }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => navigateToTab(id)}
+                      className={getNavBtnClass(active)}
+                    >
+                      {renderActiveRail(active)}
+                      <Icon className={'w-4 h-4 shrink-0 ' + (active ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  ))}
 
-              <button
-                type="button"
-                onClick={() => navigateToTab('teams')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'teams' || activeTab === 'database'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Users className="w-4 h-4 shrink-0" />
-                <span>Teams</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigateToTab('admin')}
-                className={'w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'admin'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <span className="flex items-center gap-2.5 min-w-0">
-                  {currentUser ? (
-                    <ShieldCheck className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <Lock className="w-4 h-4 shrink-0" />
+                  {isMasterAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTeamManagerModalOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 min-h-[34px] rounded-md text-[13px] text-[#D7FF00] hover:bg-white/[0.04] font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      <Database className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      <span className="truncate">Urus Pasukan &amp; Logo</span>
+                    </button>
                   )}
-                  <span className="truncate">Portal Host</span>
-                </span>
-              </button>
-            </div>
+                </div>
 
-            {/* Group 2: Alat Kerja */}
-            <div className="space-y-1">
-              <div className="px-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
-                Alatan
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateToTab('scorer')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'scorer'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Edit3 className="w-4 h-4 shrink-0" />
-                <span>Quick Scorer</span>
-              </button>
+                <div className="space-y-0.5">
+                  <div className="px-2.5 pb-1 text-[11px] font-medium text-zinc-500">
+                    Lain-lain
+                  </div>
+                  {otherItems.map(({ id, label, Icon, active }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => navigateToTab(id)}
+                      className={getNavBtnClass(active)}
+                    >
+                      {renderActiveRail(active)}
+                      <Icon className={'w-4 h-4 shrink-0 ' + (active ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  ))}
 
-              <button
-                type="button"
-                onClick={() => navigateToTab('scrim-data')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'scrim-data'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Upload className="w-4 h-4 shrink-0" />
-                <span>Imbas Keputusan</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGuide(0)}
+                    className={getNavBtnClass(false)}
+                  >
+                    <BookOpen className="w-4 h-4 shrink-0 text-zinc-500" aria-hidden="true" />
+                    <span className="truncate">Slide Panduan</span>
+                  </button>
 
-              {isMasterAdmin && (
+                  <button
+                    type="button"
+                    aria-current={activeTab === 'about' ? 'page' : undefined}
+                    onClick={() => navigateToTab('about')}
+                    className={getNavBtnClass(activeTab === 'about')}
+                  >
+                    {renderActiveRail(activeTab === 'about')}
+                    <Info className={'w-4 h-4 shrink-0 ' + (activeTab === 'about' ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
+                    <span className="truncate">About Scrim Hub</span>
+                  </button>
+                </div>
+              </nav>
+
+              {/* Sidebar Footer: Profile, Feedback & Auth Action */}
+              <div className="p-2.5 border-t border-white/[0.08] space-y-0.5 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setIsTeamManagerModalOpen(true)}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-[#D7FF00] hover:bg-white/[0.08] font-semibold transition cursor-pointer"
+                  aria-current={activeTab === 'profile' ? 'page' : undefined}
+                  onClick={() => navigateToTab('profile')}
+                  className={getNavBtnClass(activeTab === 'profile')}
                 >
-                  <Database className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Urus Pasukan &amp; Logo</span>
+                  {renderActiveRail(activeTab === 'profile')}
+                  <User className={'w-4 h-4 shrink-0 ' + (activeTab === 'profile' ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
+                  <span className="truncate">{currentUser ? primaryAccountName : 'Profile'}</span>
                 </button>
-              )}
-            </div>
 
-            {/* Group 3: Komuniti & Info */}
-            <div className="space-y-1">
-              <div className="px-2.5 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
-                Lain-lain
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                  className={getNavBtnClass(false)}
+                >
+                  <Bug className="w-4 h-4 shrink-0 text-zinc-500" aria-hidden="true" />
+                  <span className="truncate">Feedback / Bug</span>
+                </button>
+
+                {currentUser ? (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-1.5 min-h-[34px] rounded-md text-[13px] text-rose-400 hover:bg-rose-500/10 font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50"
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span>Log Keluar</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegisterMode(false);
+                      setPendingCloudSync(false);
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full mt-2 px-3 py-2 min-h-[36px] rounded-md text-[13px] font-semibold bg-[#EDEDED] hover:bg-white text-zinc-950 transition-colors flex items-center justify-center gap-1.5 active:scale-[0.985] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-zinc-950 stroke-[2.2]" aria-hidden="true" />
+                    <span>Log Masuk</span>
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => navigateToTab('hosts')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'hosts'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Award className="w-4 h-4 shrink-0" />
-                <span>Direktori Host</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigateToTab('showcase')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'showcase'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Video className="w-4 h-4 shrink-0" />
-                <span>Content</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenGuide(0)}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium transition cursor-pointer"
-              >
-                <BookOpen className="w-4 h-4 shrink-0" />
-                <span>Slide Panduan</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigateToTab('about')}
-                className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                  activeTab === 'about'
-                    ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-                )}
-              >
-                <Info className="w-4 h-4 shrink-0" />
-                <span>About Scrim Hub</span>
-              </button>
             </div>
-          </nav>
-
-          {/* Sidebar Footer: Profile, Feedback & Auth Action */}
-          <div className="pt-2.5 mt-2 border-t border-white/10 space-y-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => navigateToTab('profile')}
-              className={'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition cursor-pointer ' + (
-                activeTab === 'profile'
-                  ? 'bg-white/[0.12] text-[#D7FF00] font-bold'
-                  : 'text-zinc-300 hover:text-white hover:bg-white/[0.06] font-medium'
-              )}
-            >
-              <User className="w-4 h-4 shrink-0" />
-              <span className="truncate">{currentUser ? primaryAccountName : 'Profile'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsFeedbackModalOpen(true)}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-zinc-400 hover:text-white hover:bg-white/[0.06] font-medium transition cursor-pointer"
-            >
-              <Bug className="w-4 h-4 shrink-0" />
-              <span>Feedback / Bug</span>
-            </button>
-
-            {currentUser ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-500/10 font-semibold transition cursor-pointer"
-              >
-                <LogOut className="w-4 h-4 shrink-0" />
-                <span>Log Keluar</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegisterMode(false);
-                  setPendingCloudSync(false);
-                  setIsAuthModalOpen(true);
-                }}
-                className="w-full mt-1.5 px-3 py-2.5 rounded-xl text-xs font-black bg-[#D7FF00] hover:bg-[#c2e600] text-black transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
-              >
-                <LogIn className="w-3.5 h-3.5 text-black stroke-[2.4]" />
-                <span>Log Masuk</span>
-              </button>
-            )}
-          </div>
-        </div>
+          );
+        })()}
       </aside>
 
       {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}

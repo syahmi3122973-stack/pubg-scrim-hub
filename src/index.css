@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-display: 'Oswald', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 :root {
@@ -17,7 +18,9 @@ html,
 body {
   background-color: #000000;
   color: #F4F4F5;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size-adjust: from-font;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   line-height: 1.5;
   overflow-x: hidden;
 }
@@ -476,28 +479,29 @@ body {
   }
 }
 
-/* Team Matrix Display & Technical Lockup Typography (Oswald + JetBrains Mono) */
+/* Team Matrix Display & Technical Lockup Typography (Geist + Geist Mono) */
 .font-team-matrix {
-  font-family: 'Oswald', system-ui, -apple-system, sans-serif;
+  font-family: 'Geist', system-ui, -apple-system, sans-serif;
   font-size-adjust: from-font;
   font-feature-settings: 'kern' 1, 'liga' 1;
+  letter-spacing: -0.03em;
   text-wrap: balance;
-  line-height: 1.08;
+  line-height: 1.05;
 }
 
 .font-jetbrains {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size-adjust: from-font;
   font-feature-settings: 'kern' 1, 'tnum' 1;
 }
 
 @supports not (font-size-adjust: from-font) {
   .font-team-matrix {
-    line-height: 1.12;
+    line-height: 1.08;
   }
   .font-jetbrains {
     font-size: 0.94em;
-    line-height: 1.14;
+    line-height: 1.12;
   }
 }
 
@@ -832,6 +836,11 @@ body {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1.5px 0 rgba(0, 0, 0, 0.48), 0 12px 32px rgba(0, 0, 0, 0.58);
   }
 
+  .geist-sidebar {
+    background-color: #0A0A0A;
+    border-inline-end: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
   .glass-dock {
     background-color: rgba(8, 8, 8, 0.56);
     -webkit-backdrop-filter: blur(22px) saturate(175%);
@@ -1116,6 +1125,7 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
 @media (forced-colors: active) {
   .glass-header,
   .glass-nav-liquid,
+  .geist-sidebar,
   .glass-panel,
   .glass-tile,
   .glass-pill,
