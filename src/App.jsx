@@ -7505,13 +7505,13 @@ export default function App() {
                                   }
                                 }}
                                 style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
-                                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
+                                className={`px-3 sm:px-4 py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
                                     ? 'bg-white/[0.11] border border-[#D7FF00]/45 shadow-[0_0_20px_rgba(215,255,0,0.08)]'
                                     : 'glass-tile glass-tile-hover'
                                 }`}
                               >
-                                {/* Left: Rank # + Compact Tag Pill + Uppercase Team Name */}
+                                {/* Left: Rank # + Avatar/Tag + Full Readable Team Identity */}
                                 <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
                                   <span
                                     className={`w-6 sm:w-7 text-center font-mono tabular-nums font-black text-xs sm:text-sm shrink-0 ${
@@ -7527,22 +7527,57 @@ export default function App() {
                                     {rankNum}
                                   </span>
 
-                                  <span className="px-2 py-0.5 min-w-[44px] sm:min-w-[54px] text-center rounded-md font-mono font-black text-[10px] sm:text-xs uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
+                                  {/* Mobile: Show Logo (if available) or Tag badge in left slot so team name gets full width */}
+                                  {team.logo_url ? (
+                                    <img
+                                      src={team.logo_url}
+                                      alt=""
+                                      className="sm:hidden w-8 h-8 rounded-lg object-contain bg-zinc-950 border border-white/10 p-0.5 shrink-0"
+                                    />
+                                  ) : (
+                                    <span className="sm:hidden px-1.5 py-1 min-w-[38px] text-center rounded-lg font-mono font-black text-[10px] uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
+                                      {tagText}
+                                    </span>
+                                  )}
+
+                                  {/* Desktop Tag Pill */}
+                                  <span className="hidden sm:inline-block px-2 py-0.5 min-w-[54px] text-center rounded-md font-mono font-black text-xs uppercase shrink-0 bg-zinc-900 border border-zinc-800 text-zinc-200">
                                     {tagText}
                                   </span>
 
-                                  <span className="text-xs sm:text-sm font-black uppercase tracking-tight text-white truncate">
-                                    {team.name}
-                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-[13px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight break-words sm:truncate">
+                                        {team.name}
+                                      </span>
 
-                                  {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
-                                    <span className="px-1.5 py-0.5 rounded-md font-mono tabular-nums font-black text-[9px] sm:text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
-                                      T3 #{tier3RankByTeam.get(team.name).tier3Rank}
-                                    </span>
-                                  )}
+                                      {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
+                                        <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-md font-mono tabular-nums font-black text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
+                                          T3 #{tier3RankByTeam.get(team.name).tier3Rank}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Mobile sub-row: Tag + Tier 3 badge + Stats without cramping team name */}
+                                    <div className="flex sm:hidden flex-wrap items-center gap-1.5 mt-1">
+                                      {team.logo_url && (
+                                        <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-mono font-black text-[9px] uppercase text-zinc-300 leading-none">
+                                          {tagText}
+                                        </span>
+                                      )}
+                                      {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
+                                        <span className="px-1.5 py-0.5 rounded font-mono tabular-nums font-black text-[9px] bg-amber-400/15 text-amber-300 leading-none">
+                                          T3 #{tier3RankByTeam.get(team.name).tier3Rank}
+                                        </span>
+                                      )}
+                                      <span className="font-mono tabular-nums text-[10px] text-zinc-500 leading-none">
+                                        {team.scopedKills}K · {team.scopedWWCD}W · {team.scopedMatches}M
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
 
-                                {/* Right: Mini Logo + Stats + Points + Small Eye View Button */}
+                                {/* Right: Desktop Mini Logo + Stats + Points + Eye View Button */}
                                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                   <span className="hidden sm:inline font-mono tabular-nums text-[11px] text-zinc-500">
                                     {team.scopedKills}K • {team.scopedWWCD}W • {team.scopedMatches}M
@@ -7552,11 +7587,11 @@ export default function App() {
                                     <img
                                       src={team.logo_url}
                                       alt=""
-                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-contain bg-zinc-950 p-0.5 shrink-0"
+                                      className="hidden sm:block w-7 h-7 rounded-lg object-contain bg-zinc-950 p-0.5 shrink-0"
                                     />
                                   )}
 
-                                  <div className="flex items-baseline gap-0.5 font-mono tabular-nums font-black min-w-[52px] sm:min-w-[62px] justify-end">
+                                  <div className="flex items-baseline gap-0.5 font-mono tabular-nums font-black min-w-[48px] sm:min-w-[62px] justify-end">
                                     <span className="text-sm sm:text-base text-white">
                                       {team.scopedPoints}
                                     </span>
@@ -7571,7 +7606,7 @@ export default function App() {
                                       e.stopPropagation();
                                       openTeamProfile(team.name);
                                     }}
-                                    className="w-7 h-7 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] transition shrink-0 cursor-pointer"
+                                    className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] transition shrink-0 cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
                                     aria-label={`Lihat maklumat ${team.name}`}
                                   >
@@ -11373,7 +11408,7 @@ export default function App() {
                             )}
 
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-[#D7FF00] transition">
+                              <h4 className="text-xs sm:text-sm font-bold text-white leading-snug break-words group-hover:text-[#D7FF00] transition">
                                 {team.name}
                               </h4>
                               <p className="text-[10px] text-zinc-400 font-mono mt-0.5 flex items-center gap-2">
