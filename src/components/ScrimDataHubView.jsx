@@ -739,6 +739,7 @@ export default function ScrimDataHubView({
       <div className="space-y-4 px-1">
         {/* Upload / Dropzone Card */}
         <div
+          data-aurora-target="scrim-data"
           style={{ animationDelay: '120ms' }}
           className="glass-panel rounded-3xl p-5 sm:p-6 space-y-4 animate-stagger-card"
         >

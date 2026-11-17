@@ -6089,7 +6089,7 @@ export default function App() {
         return (
           <div
             aria-hidden="true"
-            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[540px] sm:h-[600px] lg:h-[640px] overflow-hidden z-0"
+            className="pointer-events-none select-none absolute top-0 left-0 right-0 md:left-60 lg:left-64 h-[760px] sm:h-[800px] lg:h-[840px] overflow-hidden z-0"
           >
             <AuroraPetalCanvas
               ignitionKey={theme.key}
@@ -6576,6 +6576,7 @@ export default function App() {
                     role="button"
                     tabIndex={0}
                     data-vt-card="home-teams"
+                    data-aurora-target="home"
                     data-hof-slide={homeHofSlide}
                     onClick={(e) => {
                       setTeamStatsEventType('ALL');
@@ -8207,6 +8208,7 @@ export default function App() {
 
               {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
               <div
+                data-aurora-target="teams"
                 className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 min-h-[420px] animate-teams-blur"
                 style={{ '--blur-delay': '360ms' }}
               >
@@ -8890,6 +8892,7 @@ export default function App() {
             ) : filteredScrims.length === 0 ? (
               <div
                 key={`rekod_empty_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
+                data-aurora-target="history"
                 className="min-h-[340px] flex flex-col items-center justify-center my-4 py-14 px-6 text-center bg-[#111114] rounded-3xl space-y-3.5 mx-1 animate-filter-reveal"
               >
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
@@ -8920,6 +8923,7 @@ export default function App() {
                   return (
                     <div
                       key={s.id}
+                      data-aurora-target={idx === 0 ? 'history' : undefined}
                       onClick={() => setInspectedScrim(s)}
                       style={{ animationDelay: `${80 + Math.min(idx, 8) * 60}ms` }}
                       className="glass-panel glass-panel-hover rounded-3xl p-3.5 sm:p-4 lg:p-5 transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
@@ -9031,7 +9035,7 @@ export default function App() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {organizersList.map((host, idx) => (
-                <div key={idx} className="glass-panel glass-panel-hover rounded-3xl p-5 space-y-3 flex flex-col justify-between transition">
+                <div key={idx} data-aurora-target={idx === 0 ? 'hosts' : undefined} className="glass-panel glass-panel-hover rounded-3xl p-5 space-y-3 flex flex-col justify-between transition">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
@@ -9151,11 +9155,11 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {posts.map((post) => {
+              {posts.map((post, postIdx) => {
                 const isMyPost = currentUser && (post.created_by === currentUser.id || post.author === currentUser.email?.split('@')[0]);
 
                 return (
-                  <div key={post.id} className="glass-panel rounded-3xl overflow-hidden flex flex-col justify-between">
+                  <div key={post.id} data-aurora-target={postIdx === 0 ? 'showcase' : undefined} className="glass-panel rounded-3xl overflow-hidden flex flex-col justify-between">
                     <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
                       {post.media_type === 'video' ? (
                         <video src={post.media_url} controls className="w-full h-full object-cover" />
@@ -9261,7 +9265,7 @@ export default function App() {
             <div className="max-w-5xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-28 md:pb-12">
 
               {/* 1. VERCEL-STYLE HERO OVERVIEW WITH REAL APP LOGO */}
-              <div className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
+              <div data-aurora-target="about" className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
                   <div className="lg:col-span-8 p-5 sm:p-8 flex flex-col justify-between gap-5">
                     <div className="space-y-3">
@@ -9719,7 +9723,7 @@ export default function App() {
           <div className="space-y-4 sm:space-y-6">
             
             {!currentUser ? (
-              <div className="glass-modal rounded-3xl max-w-md mx-auto my-6 sm:my-10 p-6 sm:p-7 space-y-5">
+              <div data-aurora-target={activeTab === 'admin' ? 'admin' : 'scorer'} className="glass-modal rounded-3xl max-w-md mx-auto my-6 sm:my-10 p-6 sm:p-7 space-y-5">
                 <div className="space-y-1.5 text-center">
                   <h2 id="admin-login-heading" className="text-xl font-black tracking-tight text-white text-balance">
                     {isRegisterMode ? 'Create Host Account' : 'Host Account Portal'}
@@ -10088,7 +10092,7 @@ export default function App() {
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
                     
-                    <div className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-4">
+                    <div data-aurora-target={activeTab === 'admin' ? 'admin' : 'scorer'} className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-4">
                       
                       {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
@@ -10660,7 +10664,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5">
+            <div data-aurora-target="privacy" className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5">
               <div className="space-y-1.5 border-b border-zinc-800 pb-4">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
                   Keselamatan &amp; Data
@@ -10764,7 +10768,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5">
+            <div data-aurora-target="terms" className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5">
               <div className="space-y-1.5 border-b border-zinc-800 pb-4">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D7FF00]">
                   Syarat &amp; Penafian

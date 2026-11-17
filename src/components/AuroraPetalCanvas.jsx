@@ -59,15 +59,16 @@ void main() {
   float minDim = max(min(u_resolution.x, u_resolution.y), 1.0);
   vec2 delta = (uv - u_anchor) * (u_resolution / minDim);
 
-  float activeRadius = max(u_radius * mix(0.58, 1.0, u_ignite), 0.12);
+  // Starting glow emerges strictly from inside the card center (0.42x) and expands smoothly outward (1.0x)
+  float activeRadius = max(u_radius * mix(0.42, 1.0, u_ignite), 0.12);
   float r = length(delta) / activeRadius;
   float ang = atan(delta.y, delta.x);
   float t = u_time;
 
   // Domain-warped organic fluid motion inside the shader
   vec2 warp = vec2(
-    fbm(delta * 2.0 + vec2(t * 0.13, -t * 0.09)),
-    fbm(delta * 2.0 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
+    fbm(delta * 1.9 + vec2(t * 0.13, -t * 0.09)),
+    fbm(delta * 1.9 + vec2(-t * 0.10, t * 0.14) + vec2(4.2, 1.7))
   );
 
   // Flowing aurora petals (kelopak cahaya organik)
@@ -76,23 +77,23 @@ void main() {
   float petalHarmonic = clamp(0.54 + 0.28 * petalA + 0.18 * petalB, 0.08, 1.0);
 
   // Flowing silk wave interference
-  float waveFlow = fbm(delta * 1.65 + warp * 1.3 + vec2(t * 0.05, -t * 0.15));
+  float waveFlow = fbm(delta * 1.55 + warp * 1.3 + vec2(t * 0.05, -t * 0.15));
 
-  // Generous backlit envelope that still fades smoothly to #000000 at canvas bounds
-  float petalStretch = 1.55 - 0.58 * petalHarmonic;
+  // Diffuse backlit envelope so aurora swells organically behind & around card perimeter
+  float petalStretch = 1.48 - 0.56 * petalHarmonic;
   float envelope = exp(-r * r * petalStretch);
-  float softCore = exp(-r * r * 3.1);
+  float softCore = exp(-r * r * 2.35);
 
   float ribbon = smoothstep(0.20, 0.85, waveFlow * 0.72 + petalHarmonic * 0.40) * envelope;
-  float edgeFade = smoothstep(0.0, 0.12, uv.y) * smoothstep(1.0, 0.78, uv.y);
-  float luma = clamp((ribbon * 0.80 + softCore * 0.44) * edgeFade, 0.0, 1.0);
+  float edgeFade = smoothstep(0.0, 0.10, uv.y) * smoothstep(1.0, 0.82, uv.y);
+  float luma = clamp((ribbon * 0.82 + softCore * 0.36) * edgeFade, 0.0, 1.0);
 
   // 70% crisp primary white body + 30% mood accent along aurora petal ridges
   float ridgeRatio = clamp(0.30 + (ribbon - softCore) * 0.18, 0.18, 0.42);
   vec3 tint = mix(u_primary, u_accent, ridgeRatio);
 
-  // Crisp ~1.4px logical film grain so noise texture stays visible & tactile on HiDPI screens
-  vec2 grainCoord = floor(gl_FragCoord.xy / max(u_dpr * 1.4, 1.35));
+  // Crisp ~1.45px logical film grain so noise stays textured and neat across HiDPI mobile & PC
+  vec2 grainCoord = floor(gl_FragCoord.xy / max(u_dpr * 1.45, 1.4));
   float grain = hash21(grainCoord + fract(t * 1.5) * 47.0) - 0.5;
 
   float activeIntensity = u_intensity * u_ignite;
@@ -129,17 +130,41 @@ function compileShader(gl, type, source) {
 }
 
 /**
- * Compact WebGL domain-warped petaled aurora + visible tactile film grain backdrop.
- * Ignites from dark (0 -> 1) directly behind the target tab's card region whenever `ignitionKey` switches.
+ * Measure `[data-aurora-target]` in DOM so the ignition origin starts strictly behind the
+ * primary card center on both phone and desktop viewports, then blooms around its perimeter.
+ */
+function measureTargetGeometry(canvas, key, fallback) {
+  const canvasRect = canvas?.getBoundingClientRect();
+  if (!canvasRect || canvasRect.width <= 0 || canvasRect.height <= 0) return fallback;
+
+  const targetEl = document.querySelector(`[data-aurora-target="${key}"]`);
+  if (!targetEl) return fallback;
+
+  const cardRect = targetEl.getBoundingClientRect();
+  if (cardRect.width <= 24 || cardRect.height <= 24) return fallback;
+
+  const clampedH = Math.min(cardRect.height, 420);
+  const ax = Math.min(0.88, Math.max(0.12, (cardRect.left + cardRect.width * 0.5 - canvasRect.left) / canvasRect.width));
+  const ay = Math.min(0.85, Math.max(0.16, (cardRect.top + clampedH * 0.5 - canvasRect.top) / canvasRect.height));
+  const minCanvas = Math.min(canvasRect.width, canvasRect.height);
+  const cardSpan = Math.max(cardRect.width, clampedH);
+  const radius = Math.min(0.92, Math.max(0.46, (cardSpan * 0.68) / minCanvas));
+
+  return { anchorX: ax, anchorY: ay, radius };
+}
+
+/**
+ * WebGL domain-warped petaled aurora + visible tactile film grain backdrop.
+ * Anchors directly behind `[data-aurora-target]` and ignites from dark (0 -> 1) on tab changes.
  */
 export default function AuroraPetalCanvas({
   ignitionKey = 'home',
   anchorX = 0.5,
-  anchorY = 0.54,
-  radius = 0.62,
+  anchorY = 0.52,
+  radius = 0.6,
   primaryColor = '#FFFFFF',
   accentColor = '#D7FF00',
-  intensity = 0.38,
+  intensity = 0.4,
   className = '',
 }) {
   const canvasRef = useRef(null);
@@ -156,11 +181,16 @@ export default function AuroraPetalCanvas({
 
   useEffect(() => {
     const isNewTab = targetRef.current.ignitionKey !== ignitionKey;
-    targetRef.current = {
-      ignitionKey,
+    const measured = measureTargetGeometry(canvasRef.current, ignitionKey, {
       anchorX,
       anchorY,
       radius,
+    });
+    targetRef.current = {
+      ignitionKey,
+      anchorX: measured.anchorX,
+      anchorY: measured.anchorY,
+      radius: measured.radius,
       intensity,
       primaryRgb: hexToRgbNorm(primaryColor),
       accentRgb: hexToRgbNorm(accentColor),
@@ -217,10 +247,19 @@ export default function AuroraPetalCanvas({
     const uPrimary = gl.getUniformLocation(program, 'u_primary');
     const uAccent = gl.getUniformLocation(program, 'u_accent');
 
-    const current = {
+    const initialGeo = measureTargetGeometry(canvas, targetRef.current.ignitionKey, {
       anchorX: targetRef.current.anchorX,
       anchorY: targetRef.current.anchorY,
       radius: targetRef.current.radius,
+    });
+    targetRef.current.anchorX = initialGeo.anchorX;
+    targetRef.current.anchorY = initialGeo.anchorY;
+    targetRef.current.radius = initialGeo.radius;
+
+    const current = {
+      anchorX: initialGeo.anchorX,
+      anchorY: initialGeo.anchorY,
+      radius: initialGeo.radius,
       intensity: targetRef.current.intensity,
       primaryRgb: [...targetRef.current.primaryRgb],
       accentRgb: [...targetRef.current.accentRgb],
@@ -238,6 +277,11 @@ export default function AuroraPetalCanvas({
         canvas.height = nextH;
       }
       gl.viewport(0, 0, canvas.width, canvas.height);
+
+      const resynced = measureTargetGeometry(canvas, targetRef.current.ignitionKey, targetRef.current);
+      targetRef.current.anchorX = resynced.anchorX;
+      targetRef.current.anchorY = resynced.anchorY;
+      targetRef.current.radius = resynced.radius;
     };
 
     resize();
@@ -250,7 +294,7 @@ export default function AuroraPetalCanvas({
     const startTs = performance.now();
     let lastTs = startTs;
     let igniteStartTs = startTs;
-    const IGNITE_DURATION_MS = 920;
+    const IGNITE_DURATION_MS = 950;
 
     const renderFrame = (now) => {
       const dt = Math.min((now - lastTs) / 1000, 0.05);
@@ -258,7 +302,12 @@ export default function AuroraPetalCanvas({
       const tgt = targetRef.current;
 
       if (ignitePendingRef.current) {
-        // Snap immediately to new card anchor & mood color, then ignite from 0 behind card
+        // Re-measure right before frame 0 of ignition in case layout settled post-commit
+        const freshGeo = measureTargetGeometry(canvas, tgt.ignitionKey, tgt);
+        tgt.anchorX = freshGeo.anchorX;
+        tgt.anchorY = freshGeo.anchorY;
+        tgt.radius = freshGeo.radius;
+
         ignitePendingRef.current = false;
         igniteStartTs = now;
         current.anchorX = tgt.anchorX;
