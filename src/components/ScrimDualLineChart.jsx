@@ -337,7 +337,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
                   y={gy + 3.5}
                   fill="#71717a"
                   fontSize="9.5"
-                  fontFamily="ui-monospace, SFMono-Regular, monospace"
+                  fontFamily="'Geist Mono', ui-monospace, SFMono-Regular, monospace"
                 >
                   {val}
                 </text>
@@ -477,7 +477,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
                     fill="#D7FF00"
                     fontSize="9.5"
                     fontWeight="800"
-                    fontFamily="ui-monospace, SFMono-Regular, monospace"
+                    fontFamily="'Geist Mono', ui-monospace, SFMono-Regular, monospace"
                   >
                     {d.kills} Elims
                   </text>
@@ -494,7 +494,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
                     fill="#2DD4BF"
                     fontSize="10"
                     fontWeight="800"
-                    fontFamily="ui-monospace, SFMono-Regular, monospace"
+                    fontFamily="'Geist Mono', ui-monospace, SFMono-Regular, monospace"
                   >
                     {d.pp}PP
                   </text>
@@ -510,7 +510,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
                       fill={isHovered ? '#ffffff' : '#a1a1aa'}
                       fontSize="9"
                       fontWeight="700"
-                      fontFamily="system-ui, sans-serif"
+                      fontFamily="'Geist', system-ui, sans-serif"
                     >
                       {d.shortLabel}
                     </text>
@@ -521,7 +521,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
                         textAnchor="middle"
                         fill="#52525b"
                         fontSize="8"
-                        fontFamily="ui-monospace, SFMono-Regular, monospace"
+                        fontFamily="'Geist Mono', ui-monospace, SFMono-Regular, monospace"
                       >
                         {d.shortDate}
                       </text>
