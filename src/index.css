@@ -9,6 +9,10 @@
   color-scheme: dark;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 html,
 body {
   background-color: #000000;
@@ -1133,6 +1137,12 @@ progress.loading-spinner:indeterminate::-moz-progress-bar {
     -webkit-backdrop-filter: none;
     box-shadow: none;
   }
+}
+
+/* Virtualize offscreen Team Matrix list rows to keep animations at 60/120fps */
+.team-list-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 58px;
 }
 
 /* iOS 26 Dual-Layer Floating Card Morph (Home Bento Cards & Team Matrix Cards) */

@@ -4823,90 +4823,90 @@ export default function App() {
   const measureElementMorphRect = useCallback((el) => {
     if (!el || typeof window === 'undefined') return null;
     const r = el.getBoundingClientRect();
+    const stageEl = mainStageRef.current;
+    const stageR = stageEl ? stageEl.getBoundingClientRect() : null;
+    const mainEl = stageEl?.closest('main');
+    const vpLeft = mainEl ? parseFloat(window.getComputedStyle(mainEl).paddingLeft) || 0 : 0;
+    const clientW = document.documentElement.clientWidth || window.innerWidth || 390;
+    const vpW = Math.max(clientW - vpLeft, 240);
+    const vpH = window.innerHeight || 844;
     const cs = window.getComputedStyle(el);
     const borderRadius = parseFloat(cs.borderTopLeftRadius) || 28;
     const bg =
       cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent'
         ? cs.backgroundColor
         : '#18181D';
-    let cardHtml = '';
-    try {
-      const clone = el.cloneNode(true);
-      clone.removeAttribute('data-vt-card');
-      clone.removeAttribute('data-vt-team');
-      clone.removeAttribute('data-vt-team-slot');
-      clone.style.opacity = '1';
-      clone.style.transform = 'none';
-      clone.style.transition = 'none';
-      clone.style.animation = 'none';
-      clone.style.margin = '0';
-      clone.style.width = `${Math.round(r.width)}px`;
-      clone.style.height = `${Math.round(r.height)}px`;
-      clone.style.pointerEvents = 'none';
-      cardHtml = clone.outerHTML;
-    } catch {}
     return {
       left: r.left,
       top: r.top,
       width: Math.max(r.width, 44),
       height: Math.max(r.height, 44),
+      vpLeft,
+      vpW,
+      vpH,
+      stageLeft: stageR ? stageR.left : vpLeft,
+      stageTop: stageR ? stageR.top : 0,
+      stageWidth: stageR ? stageR.width : vpW,
       borderRadius,
-      bg,
-      cardHtml
+      bg
     };
   }, []);
 
-  const computeCardMorphGeometry = useCallback((rect, vw, vh) => {
+  const buildSpringMorphKeyframes = useCallback((rect, vpLeft, vpW, vpH, direction = 'open', steps = 20) => {
     const safeRect = rect || {
-      left: vw * 0.1,
-      top: vh * 0.2,
-      width: vw * 0.8,
+      left: vpLeft + vpW * 0.1,
+      top: vpH * 0.2,
+      width: vpW * 0.8,
       height: 180,
-      borderRadius: 28,
-      bg: '#18181D'
+      borderRadius: 28
     };
-    const scale = Math.min(0.95, Math.max(safeRect.width / vw, 0.14));
-    const canvasH = Math.max(vh, Math.ceil(safeRect.height / scale) + 4);
-    const unscaledH = safeRect.height / scale;
-    const cardClipBottom = Math.max(0, canvasH - unscaledH);
-    const fullClipBottom = Math.max(0, canvasH - vh);
-    const r = Math.min(200, (safeRect.borderRadius || 28) / scale);
-    const isWideCard = safeRect.width > vw * 0.72;
+    const x0 = safeRect.left - vpLeft;
+    const y0 = safeRect.top;
+    const w0 = Math.max(safeRect.width, 44);
+    const h0 = Math.max(safeRect.height, 44);
+    const r0 = safeRect.borderRadius || 28;
 
-    const cardFrame = {
-      transform: `translate3d(${safeRect.left.toFixed(1)}px, ${safeRect.top.toFixed(1)}px, 0) scale(${scale.toFixed(4)})`,
-      clipPath: `inset(0px 0px ${cardClipBottom.toFixed(1)}px 0px round ${r.toFixed(1)}px)`
+    const easeSpring = (u) => {
+      if (u <= 0) return 0;
+      if (u >= 1) return 1;
+      return 1 - Math.pow(1 - u, 3.55);
     };
 
-    const fullFrame = {
-      transform: 'translate3d(0px, 0px, 0) scale(1)',
-      clipPath: `inset(0px 0px ${fullClipBottom.toFixed(1)}px 0px round 0px)`
-    };
+    const frames = [];
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const e = easeSpring(u);
+      const p = direction === 'open' ? e : 1 - e;
 
-    // Mid-flight floating rounded window for wide mobile cards/rows so they detach from screen edges like iOS 26
-    const midScale = isWideCard ? 0.76 : Math.min(0.84, scale + (1 - scale) * 0.56);
-    const midLeft = isWideCard
-      ? (vw * (1 - midScale)) / 2
-      : safeRect.left * 0.42;
-    const midTop = Math.max(36, safeRect.top * 0.52);
-    const midVisualH = Math.min(vh * 0.68, Math.max(safeRect.height * 2.1, vh * 0.44));
-    const midUnscaledH = Math.min(canvasH, midVisualH / midScale);
-    const midClipBottom = Math.max(0, canvasH - midUnscaledH);
-    const midRadius = 40 / midScale;
+      const x = x0 * (1 - p);
+      const y = y0 * (1 - p);
+      const w = w0 + (vpW - w0) * p;
+      const h = h0 + (vpH - h0) * p;
+      const rad = r0 * (1 - p);
 
-    const midCloseFrame = {
-      transform: `translate3d(${midLeft.toFixed(1)}px, ${midTop.toFixed(1)}px, 0) scale(${midScale.toFixed(4)})`,
-      clipPath: `inset(0px 0px ${midClipBottom.toFixed(1)}px 0px round ${midRadius.toFixed(1)}px)`
-    };
+      const s = Math.min(1, Math.max(w / vpW, h / vpH, 0.08));
+      const clipW = Math.min(vpW, w / s);
+      const clipH = Math.min(vpH, h / s);
+      const clipX = Math.max(0, (vpW - clipW) / 2);
+      const clipBottom = Math.max(0, vpH - clipH);
+      const tx = x - clipX * s;
+      const ty = y;
+      const clipR = Math.min(260, rad / s);
 
-    return {
-      scale,
-      canvasH,
-      isWideCard,
-      cardFrame,
-      fullFrame,
-      midCloseFrame
-    };
+      const frame = {
+        transform: `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) scale(${s.toFixed(5)})`,
+        clipPath: `inset(0px ${clipX.toFixed(2)}px ${clipBottom.toFixed(2)}px ${clipX.toFixed(2)}px round ${clipR.toFixed(2)}px)`,
+        offset: u
+      };
+
+      if (direction === 'close') {
+        frame.opacity = i === steps ? 0 : u > 0.9 ? Math.max(0, 1 - (u - 0.9) / 0.1) : 1;
+      }
+
+      frames.push(frame);
+    }
+
+    return frames;
   }, []);
 
   useLayoutEffect(() => {
@@ -4914,15 +4914,17 @@ export default function App() {
     if (!activeMorph || typeof window === 'undefined') return undefined;
 
     const isTeamMorph = Boolean(teamMorphState);
-    const vw = window.innerWidth || 390;
-    const vh = window.innerHeight || 844;
     const fgEl = morphFgWindowRef.current;
-    const fgContentEl = morphFgContentRef.current;
     const tintEl = morphTintRef.current;
     const bgEl = morphBgRef.current;
 
+    const mainEl = mainStageRef.current?.closest('main');
+    const vpLeft = mainEl ? parseFloat(window.getComputedStyle(mainEl).paddingLeft) || 0 : activeMorph.rect?.vpLeft || 0;
+    const clientW = document.documentElement.clientWidth || window.innerWidth || 390;
+    const vpW = Math.max(clientW - vpLeft, 240);
+    const vpH = window.innerHeight || 844;
+
     cancelElementAnimations(fgEl);
-    cancelElementAnimations(fgContentEl);
     cancelElementAnimations(tintEl);
     cancelElementAnimations(bgEl);
 
@@ -4938,12 +4940,13 @@ export default function App() {
         .find((el) => el.dataset.vtCard === activeMorph.cardId) || null;
     };
 
-    // Authentic iOS 26 spring deceleration curve
-    const springEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const bgSpringEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
     let activeCardEl = null;
+    let rafId = 0;
+    let cancelled = false;
 
     if (activeMorph.phase === 'open') {
-      const duration = 540;
+      const duration = 460;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
       activeCardEl = findCardEl();
@@ -4952,46 +4955,26 @@ export default function App() {
         activeCardEl.style.opacity = '0';
       }
 
-      const geom = computeCardMorphGeometry(activeMorph.rect, vw, vh);
-      if (fgEl) {
-        fgEl.style.height = `${geom.canvasH}px`;
+      const frames = buildSpringMorphKeyframes(activeMorph.rect, vpLeft, vpW, vpH, 'open', 20);
+      if (fgEl && frames[0]) {
+        fgEl.style.transform = frames[0].transform;
+        fgEl.style.clipPath = frames[0].clipPath;
+        fgEl.style.opacity = '1';
+      }
+      if (tintEl) {
+        tintEl.style.opacity = '1';
+      }
+      if (bgEl) {
+        bgEl.style.transform = 'scale(1)';
+        bgEl.style.opacity = '1';
       }
 
-      fgEl?.animate([geom.cardFrame, geom.fullFrame], {
-        duration,
-        easing: springEasing,
-        fill: 'forwards'
-      });
-
-      if (geom.isWideCard && fgContentEl) {
-        fgContentEl.animate(
-          [
-            { transform: 'scale(0.82)', opacity: 0.55 },
-            { transform: 'scale(1)', opacity: 1 }
-          ],
-          { duration, easing: springEasing, fill: 'forwards' }
-        );
-      }
-
-      tintEl?.animate(
-        [
-          { opacity: 1, offset: 0 },
-          { opacity: 0.72, offset: 0.16 },
-          { opacity: 0, offset: 0.44 },
-          { opacity: 0, offset: 1 }
-        ],
-        { duration, easing: 'ease-out', fill: 'forwards' }
-      );
-
-      bgEl?.animate(
-        [
-          { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' },
-          { transform: 'scale(0.91)', opacity: 0.28, filter: 'blur(14px)' }
-        ],
-        { duration, easing: springEasing, fill: 'forwards' }
-      );
-
-      morphTimerRef.current = window.setTimeout(() => {
+      const finishOpen = () => {
+        if (cancelled) return;
+        if (morphTimerRef.current) {
+          window.clearTimeout(morphTimerRef.current);
+          morphTimerRef.current = null;
+        }
         if (activeCardEl) {
           activeCardEl.style.opacity = '';
           activeCardEl.style.transition = '';
@@ -5001,11 +4984,55 @@ export default function App() {
         } else {
           setHomeMorphState(null);
         }
-        mainStageRef.current?.focus({ preventScroll: true });
-      }, duration);
+      };
+
+      // Defer WAAPI clock start to next frame so heavy DOM mount does not swallow initial progress
+      rafId = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        const fgAnim = fgEl?.animate(frames, {
+          duration,
+          easing: 'linear',
+          fill: 'forwards'
+        });
+
+        tintEl?.animate(
+          [
+            { opacity: 1, offset: 0 },
+            { opacity: 0.72, offset: 0.14 },
+            { opacity: 0, offset: 0.36 },
+            { opacity: 0, offset: 1 }
+          ],
+          { duration, easing: 'ease-out', fill: 'forwards' }
+        );
+
+        bgEl?.animate(
+          [
+            { transform: 'scale(1)', opacity: 1 },
+            { transform: 'scale(0.95)', opacity: 0.32 }
+          ],
+          { duration, easing: bgSpringEasing, fill: 'forwards' }
+        );
+
+        if (fgEl) {
+          fgEl.style.transform = '';
+          fgEl.style.clipPath = '';
+          fgEl.style.opacity = '';
+        }
+        if (tintEl) tintEl.style.opacity = '';
+        if (bgEl) {
+          bgEl.style.transform = '';
+          bgEl.style.opacity = '';
+        }
+
+        if (fgAnim?.finished) {
+          fgAnim.finished.then(finishOpen).catch(() => {});
+        }
+        morphTimerRef.current = window.setTimeout(finishOpen, duration + 32);
+      });
     } else {
-      const duration = 520;
-      window.scrollTo({ top: activeMorph.bgScrollY || 0, left: 0, behavior: 'instant' });
+      const duration = 420;
+      const bgScrollY = activeMorph.bgScrollY || 0;
+      window.scrollTo({ top: bgScrollY, left: 0, behavior: 'instant' });
 
       activeCardEl = findCardEl();
       const liveRect = (activeCardEl ? measureElementMorphRect(activeCardEl) : null) || activeMorph.rect;
@@ -5014,68 +5041,26 @@ export default function App() {
         activeCardEl.style.opacity = '0';
       }
 
-      const geom = computeCardMorphGeometry(liveRect, vw, vh);
-      if (fgEl) {
-        fgEl.style.height = `${geom.canvasH}px`;
+      const frames = buildSpringMorphKeyframes(liveRect, vpLeft, vpW, vpH, 'close', 20);
+      if (fgEl && frames[0]) {
+        fgEl.style.transform = frames[0].transform;
+        fgEl.style.clipPath = frames[0].clipPath;
+        fgEl.style.opacity = '1';
+      }
+      if (tintEl) {
+        tintEl.style.opacity = '0';
+      }
+      if (bgEl) {
+        bgEl.style.transform = 'scale(0.95)';
+        bgEl.style.opacity = '0.32';
       }
 
-      const fgKeyframes = geom.isWideCard
-        ? [
-            { ...geom.fullFrame, opacity: 1, offset: 0 },
-            { ...geom.midCloseFrame, opacity: 1, offset: 0.36 },
-            { ...geom.cardFrame, opacity: 1, offset: 0.9 },
-            { ...geom.cardFrame, opacity: 0, offset: 1 }
-          ]
-        : [
-            { ...geom.fullFrame, opacity: 1, offset: 0 },
-            { ...geom.cardFrame, opacity: 1, offset: 0.88 },
-            { ...geom.cardFrame, opacity: 0, offset: 1 }
-          ];
-
-      fgEl?.animate(fgKeyframes, {
-        duration,
-        easing: springEasing,
-        fill: 'forwards'
-      });
-
-      if (geom.isWideCard && fgContentEl) {
-        fgContentEl.animate(
-          [
-            { transform: 'scale(1)', opacity: 1, offset: 0 },
-            { transform: 'scale(0.8)', opacity: 0.35, offset: 0.72 },
-            { transform: 'scale(0.76)', opacity: 0, offset: 1 }
-          ],
-          { duration, easing: springEasing, fill: 'forwards' }
-        );
-      }
-
-      tintEl?.animate(
-        [
-          { opacity: 0, offset: 0 },
-          { opacity: 0, offset: 0.32 },
-          { opacity: 0.96, offset: 0.78 },
-          { opacity: 1, offset: 0.9 },
-          { opacity: 0, offset: 1 }
-        ],
-        { duration, easing: 'ease-in-out', fill: 'forwards' }
-      );
-
-      bgEl?.animate(
-        [
-          { transform: 'scale(0.91)', opacity: 0.28, filter: 'blur(14px)' },
-          { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' }
-        ],
-        { duration, easing: springEasing, fill: 'forwards' }
-      );
-
-      morphRevealTimerRef.current = window.setTimeout(() => {
-        if (activeCardEl) {
-          activeCardEl.style.transition = 'opacity 85ms ease-out';
-          activeCardEl.style.opacity = '1';
+      const finishClose = () => {
+        if (cancelled) return;
+        if (morphTimerRef.current) {
+          window.clearTimeout(morphTimerRef.current);
+          morphTimerRef.current = null;
         }
-      }, Math.round(duration * 0.84));
-
-      morphTimerRef.current = window.setTimeout(() => {
         if (activeCardEl) {
           activeCardEl.style.transition = '';
           activeCardEl.style.opacity = '';
@@ -5087,23 +5072,85 @@ export default function App() {
         } else {
           setHomeMorphState(null);
         }
-      }, duration);
+      };
+
+      rafId = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        const fgAnim = fgEl?.animate(frames, {
+          duration,
+          easing: 'linear',
+          fill: 'forwards'
+        });
+
+        tintEl?.animate(
+          [
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.34 },
+            { opacity: 0.9, offset: 0.78 },
+            { opacity: 1, offset: 0.9 },
+            { opacity: 0, offset: 1 }
+          ],
+          { duration, easing: 'ease-in-out', fill: 'forwards' }
+        );
+
+        bgEl?.animate(
+          [
+            { transform: 'scale(0.95)', opacity: 0.32 },
+            { transform: 'scale(1)', opacity: 1 }
+          ],
+          { duration, easing: bgSpringEasing, fill: 'forwards' }
+        );
+
+        if (fgEl) {
+          fgEl.style.transform = '';
+          fgEl.style.clipPath = '';
+          fgEl.style.opacity = '';
+        }
+        if (tintEl) tintEl.style.opacity = '';
+        if (bgEl) {
+          bgEl.style.transform = '';
+          bgEl.style.opacity = '';
+        }
+
+        morphRevealTimerRef.current = window.setTimeout(() => {
+          if (cancelled) return;
+          if (activeCardEl) {
+            activeCardEl.style.transition = 'opacity 80ms ease-out';
+            activeCardEl.style.opacity = '1';
+          }
+        }, Math.round(duration * 0.8));
+
+        if (fgAnim?.finished) {
+          fgAnim.finished.then(finishClose).catch(() => {});
+        }
+        morphTimerRef.current = window.setTimeout(finishClose, duration + 32);
+      });
     }
 
     return () => {
+      cancelled = true;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
       cancelElementAnimations(fgEl);
-      cancelElementAnimations(fgContentEl);
       cancelElementAnimations(tintEl);
       cancelElementAnimations(bgEl);
       if (fgEl) {
-        fgEl.style.height = '';
+        fgEl.style.transform = '';
+        fgEl.style.clipPath = '';
+        fgEl.style.opacity = '';
+      }
+      if (tintEl) tintEl.style.opacity = '';
+      if (bgEl) {
+        bgEl.style.transform = '';
+        bgEl.style.opacity = '';
       }
       if (activeCardEl) {
         activeCardEl.style.opacity = '';
         activeCardEl.style.transition = '';
       }
     };
-  }, [homeMorphState, teamMorphState, computeCardMorphGeometry, measureElementMorphRect, cancelElementAnimations]);
+  }, [homeMorphState, teamMorphState, buildSpringMorphKeyframes, measureElementMorphRect, cancelElementAnimations]);
 
   const runBlurSwap = useCallback((_shouldBlurOut, applyUpdate) => {
     if (tabTransitionTimerRef.current) {
@@ -5598,36 +5645,68 @@ export default function App() {
   // =========================================================================================
   // DUAL-LAYER iOS 26 CARD MORPH WRAPPERS (Preserves DOM Tree Depth so Unwrap = 0 Remount)
   // =========================================================================================
-  const renderMorphBgLayer = (morphState, content) => (
-    <div
-      ref={morphState ? morphBgRef : undefined}
-      style={
-        morphState
-          ? {
-              marginTop:
-                morphState.phase === 'open' && morphState.bgScrollY
-                  ? `-${Math.round(morphState.bgScrollY)}px`
-                  : undefined,
-              transformOrigin: `${Math.round(morphState.rect.left + morphState.rect.width / 2)}px ${Math.round(
-                morphState.rect.top + morphState.rect.height / 2 + (morphState.phase === 'open' ? morphState.bgScrollY || 0 : 0)
-              )}px`,
-              willChange: 'transform, opacity, filter',
-              pointerEvents: 'none',
-            }
-          : undefined
-      }
-      className={morphState ? 'ios-morph-freeze select-none' : undefined}
-    >
-      {content}
-    </div>
-  );
+  const renderMorphBgLayer = (morphState, content) => {
+    const isFixedBackdrop = morphState?.phase === 'open';
+    const rect = morphState?.rect;
+    return (
+      <div
+        ref={morphState ? morphBgRef : undefined}
+        style={
+          morphState
+            ? isFixedBackdrop
+              ? {
+                  position: 'fixed',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 30,
+                  overflow: 'hidden',
+                  backgroundColor: '#000000',
+                  pointerEvents: 'none',
+                  transformOrigin: `${Math.round(
+                    (rect?.left ?? 0) - (rect?.vpLeft ?? 0) + (rect?.width ?? 200) / 2
+                  )}px ${Math.round((rect?.top ?? 120) + (rect?.height ?? 120) / 2)}px`,
+                  willChange: 'transform, opacity',
+                }
+              : {
+                  position: 'relative',
+                  zIndex: 10,
+                  pointerEvents: 'none',
+                  transformOrigin: `50% ${Math.round(
+                    (morphState.bgScrollY || 0) + (rect?.vpH || 844) * 0.42
+                  )}px`,
+                  willChange: 'transform, opacity',
+                }
+            : undefined
+        }
+        className={
+          morphState
+            ? isFixedBackdrop
+              ? 'left-0 md:left-60 lg:left-64 ios-morph-freeze select-none'
+              : 'ios-morph-freeze select-none'
+            : undefined
+        }
+      >
+        <div
+          style={
+            isFixedBackdrop && rect
+              ? {
+                  position: 'absolute',
+                  left: `${Math.round((rect.stageLeft ?? rect.vpLeft ?? 0) - (rect.vpLeft ?? 0))}px`,
+                  top: `${Math.round(rect.stageTop ?? 0)}px`,
+                  width: `${Math.round(rect.stageWidth ?? rect.vpW ?? 362)}px`,
+                  pointerEvents: 'none',
+                }
+              : undefined
+          }
+        >
+          {content}
+        </div>
+      </div>
+    );
+  };
 
   const renderMorphFgWindow = (morphState, content) => {
-    const vw = typeof window !== 'undefined' ? window.innerWidth || 390 : 390;
-    const cardScale = morphState?.rect
-      ? Math.min(0.95, Math.max(morphState.rect.width / vw, 0.14))
-      : 1;
-
     return (
       <div
         ref={morphState ? morphFgWindowRef : undefined}
@@ -5636,38 +5715,38 @@ export default function App() {
             ? {
                 position: 'fixed',
                 top: 0,
-                left: 0,
-                width: '100vw',
-                minHeight: '100dvh',
-                zIndex: 25,
+                right: 0,
+                bottom: 0,
+                zIndex: 42,
                 backgroundColor: '#000000',
                 overflow: 'hidden',
+                contain: 'layout paint',
                 pointerEvents: 'none',
                 transformOrigin: '0 0',
                 willChange: 'transform, clip-path, opacity',
-                boxShadow: '0 32px 100px rgba(0, 0, 0, 0.92)',
+                boxShadow: '0 28px 90px rgba(0, 0, 0, 0.9)',
               }
             : undefined
         }
-        className={morphState ? 'ios-morph-freeze' : undefined}
+        className={morphState ? 'left-0 md:left-60 lg:left-64 ios-morph-freeze' : undefined}
       >
-        <div className={morphState ? 'w-full md:pl-60 lg:pl-64' : undefined}>
+        <div
+          className={
+            morphState
+              ? 'max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10'
+              : undefined
+          }
+        >
           <div
             ref={morphState ? morphFgContentRef : undefined}
             style={
               morphState
                 ? {
-                    transformOrigin: '50% 180px',
                     marginTop:
                       morphState.phase === 'close' && morphState.fgScrollY
                         ? `-${Math.round(morphState.fgScrollY)}px`
                         : undefined,
                   }
-                : undefined
-            }
-            className={
-              morphState
-                ? 'max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 pt-[72px] sm:pt-[88px] pb-28 md:pb-10'
                 : undefined
             }
           >
@@ -5686,24 +5765,10 @@ export default function App() {
                   zIndex: 50,
                   opacity: morphState.phase === 'open' ? 1 : 0,
                   willChange: 'opacity',
-                  overflow: 'hidden',
                 }
               : { display: 'none' }
           }
-        >
-          {morphState?.rect?.cardHtml ? (
-            <div
-              style={{
-                width: `${Math.round(morphState.rect.width)}px`,
-                height: `${Math.round(morphState.rect.height)}px`,
-                transformOrigin: '0 0',
-                transform: `scale(${(1 / cardScale).toFixed(4)})`,
-                pointerEvents: 'none',
-              }}
-              dangerouslySetInnerHTML={{ __html: morphState.rect.cardHtml }}
-            />
-          ) : null}
-        </div>
+        />
       </div>
     );
   };
@@ -6024,7 +6089,7 @@ export default function App() {
       </aside>
 
       {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}
-      <header style={{ '--open-delay': '0ms' }} className={`bg-black sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 animate-linear-open ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
+      <header style={{ '--open-delay': '0ms' }} className={`bg-black sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -6328,12 +6393,12 @@ export default function App() {
       </header>
 
       {/* MAIN CONTAINER (Shifted right on md+ for Fixed Left Sidebar) */}
-      <main style={{ '--open-delay': '90ms' }} className="flex-1 w-full md:pl-60 lg:pl-64 animate-linear-open">
+      <main style={{ '--open-delay': '90ms' }} className={`flex-1 w-full md:pl-60 lg:pl-64 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'}`}>
         <div className="max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
           ref={mainStageRef}
           tabIndex={-1}
-          className={`tab-blur-stage focus:outline-none ${
+          className={`tab-blur-stage relative focus:outline-none ${
             isCardMorphSettled || homeMorphState || teamMorphState
               ? 'ios-morph-freeze'
               : tabBlurStage === 'out'
@@ -7701,7 +7766,10 @@ export default function App() {
           if (teamProfileNode && !teamMorphState) {
             return renderMorphFgWindow(
               homeMorphState?.targetTab === 'teams' ? homeMorphState : null,
-              teamProfileNode
+              <>
+                {null}
+                {renderMorphFgWindow(null, teamProfileNode)}
+              </>
             );
           }
 
@@ -8423,7 +8491,7 @@ export default function App() {
                                   }
                                 }}
                                 style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
-                                className={`px-3 sm:px-4 py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
+                                className={`team-list-row px-3 sm:px-4 py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
                                     ? 'bg-[#22280F]'
                                     : 'glass-tile glass-tile-hover'
