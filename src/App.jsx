@@ -1778,6 +1778,9 @@ export default function App() {
 
   const isAuthorizedAdmin = useCallback((scrim) => {
     if (!currentUser || !scrim) return false;
+    if (currentUser.email && currentUser.email.trim().toLowerCase() === 'syahmi3122973@gmail.com') {
+      return true;
+    }
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
     const isCoHost = scrim.co_hosts && scrim.co_hosts.includes(currentUser.id);
     return isOwner || isCoHost;
@@ -2126,12 +2129,9 @@ export default function App() {
     });
   }, [activeAdminScrim, selectedMatchIdx]);
 
-  // Restorasi filteredScrims dan activePublicScrim yang hilang
+  // Rekod Scrim: semua pelawat boleh tengok maklumat & leaderboard, tapi akses edit dikawal ketat
   const filteredScrims = useMemo(() => {
-    if (!currentUser) return [];
-
     return scrims.filter(s => {
-      const isOwner = isAuthorizedAdmin(s) || s.created_by === 'public_ocr';
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
       const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
       const matchStatus =
@@ -2142,12 +2142,13 @@ export default function App() {
           : !s.is_finished;
       const q = searchScrimQuery.toLowerCase();
       const matchSearch =
+        !q ||
         s.title.toLowerCase().includes(q) ||
         (s.tier && s.tier.toLowerCase().includes(q)) ||
         (s.host_name && s.host_name.toLowerCase().includes(q));
-      return isOwner && matchTier && matchType && matchStatus && matchSearch;
+      return matchTier && matchType && matchStatus && matchSearch;
     });
-  }, [scrims, tierFilter, leaderboardEventTypeFilter, historyStatusFilter, searchScrimQuery, currentUser, isAuthorizedAdmin]);
+  }, [scrims, tierFilter, leaderboardEventTypeFilter, historyStatusFilter, searchScrimQuery]);
 
   const activePublicScrim = useMemo(() => {
     if (!filteredScrims.length) return null;
@@ -2163,7 +2164,7 @@ export default function App() {
   const handleDeleteScrim = async (scrimId) => {
     if (!currentUser) return;
     const target = scrims.find(s => s.id === scrimId);
-    if (!target || (!isAuthorizedAdmin(target) && target.created_by !== 'public_ocr')) {
+    if (!target || !isAuthorizedAdmin(target)) {
       showToast('Awak tak ada akses untuk padam sesi ni.');
       return;
     }
@@ -7734,15 +7735,22 @@ export default function App() {
                   Rekod Kejohanan &amp; Scrim
                 </h1>
 
-                <button
-                  type="button"
-                  onClick={() => navigateToTab('admin')}
-                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
-                  title="Cipta atau urus sesi kejohanan baru di Portal Host"
-                >
-                  <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
-                  <span>Sesi Baru</span>
-                </button>
+                {currentUser ? (
+                  <button
+                    type="button"
+                    onClick={() => navigateToTab('admin')}
+                    className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.22)] active:scale-95 cursor-pointer shrink-0"
+                    title="Cipta atau urus sesi kejohanan baru di Portal Host"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
+                    <span>Sesi Baru</span>
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-semibold text-zinc-300 shrink-0">
+                    <Eye className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <span>Paparan Umum</span>
+                  </span>
+                )}
               </div>
 
               {/* High-Contrast Neutral Filter Pills Row */}
@@ -7871,15 +7879,19 @@ export default function App() {
                 <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
                 <h3 className="font-black text-white text-base">Tiada Rekod Lagi</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
-                  Tak ada rekod untuk filter ni. Boleh buat sesi baru kat Portal Host.
+                  {currentUser
+                    ? 'Tak ada rekod untuk filter ni. Boleh buat sesi baru kat Portal Host.'
+                    : 'Tak ada rekod untuk filter ni buat masa ni.'}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => navigateToTab('admin')}
-                  className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
-                >
-                  Buka Portal Host →
-                </button>
+                {currentUser && (
+                  <button
+                    type="button"
+                    onClick={() => navigateToTab('admin')}
+                    className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
+                  >
+                    Buka Portal Host →
+                  </button>
+                )}
               </div>
             ) : (
               <div
@@ -11936,7 +11948,8 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="flex items-center space-x-3 text-right font-mono">
+                    <div className="flex items-center space-x-3 text-right font-mono shrink-0">
+                      <span className="hidden sm:inline text-zinc-500 text-[11px]">{teamRow.placePts} P</span>
                       <span className="text-zinc-400 text-[11px]">{teamRow.killPts} K</span>
                       <span className="text-[#D7FF00] font-black text-sm">{teamRow.totalPts} PTS</span>
                     </div>
@@ -11950,38 +11963,41 @@ export default function App() {
 
             <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
-                {isAuthorizedAdmin(inspectedScrim) && (
-                  <button
-                    type="button"
-                    onClick={() => openEditScrimModal(inspectedScrim)}
-                    className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.18)] cursor-pointer active:scale-95"
-                  >
-                    <Edit3 className="w-3.5 h-3.5"/>
-                    <span>Ubah Info &amp; Tarikh</span>
-                  </button>
+                {isAuthorizedAdmin(inspectedScrim) ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openEditScrimModal(inspectedScrim)}
+                      className="px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.18)] cursor-pointer active:scale-95"
+                    >
+                      <Edit3 className="w-3.5 h-3.5"/>
+                      <span>Ubah Info &amp; Tarikh</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminSelectedScrimId(inspectedScrim.id);
+                        setInspectedScrim(null);
+                        navigateToTab('admin');
+                      }}
+                      className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5"/>
+                      <span>Portal Host</span>
+                    </button>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-[11px] font-semibold text-zinc-400">
+                    <Lock className="w-3 h-3 text-zinc-500" />
+                    <span>Lihat Sahaja</span>
+                  </span>
                 )}
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setAdminSelectedScrimId(inspectedScrim.id);
-                    setInspectedScrim(null);
-                    navigateToTab('admin');
-                  }}
-                  className={
-                    isAuthorizedAdmin(inspectedScrim)
-                      ? 'px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10 cursor-pointer'
-                      : 'px-3.5 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(215,255,0,0.18)] cursor-pointer'
-                  }
-                >
-                  <Edit3 className="w-3.5 h-3.5"/>
-                  <span>{isAuthorizedAdmin(inspectedScrim) ? 'Portal Host' : 'Edit'}</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => handleCopyDiscordText(inspectedScrim)}
-                  className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10"
+                  className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-white/10 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5 text-zinc-400"/>
                   <span>Salin Teks</span>
