@@ -171,28 +171,35 @@ function readPosterFileAsBase64(selectedFile) {
   });
 }
 
-// Downscale oversized screenshots client-side so mobile uploads are faster and Edge Worker memory stays low
+// Downscale & normalize uploaded posters client-side so Gemini vision extraction stays fast (2-5s) and MIME matches bytes
 function optimizePosterForOcr(selectedFile) {
   return new Promise((resolve) => {
-    const MAX_DIM = 1800;
-    const shouldOptimize =
-      selectedFile.size > 900 * 1024 ||
-      selectedFile.type === 'image/png' ||
-      selectedFile.type === 'image/webp';
-
-    if (!shouldOptimize) {
-      readPosterFileAsBase64(selectedFile)
-        .then((dataUrl) => resolve({ dataUrl, mimeType: selectedFile.type || 'image/jpeg' }))
-        .catch(() => resolve(null));
-      return;
-    }
+    const MAX_DIM = 1440;
+    const inferMimeFromDataUrl = (dataUrl) => {
+      const m = String(dataUrl || '').match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/i);
+      return m ? m[1].toLowerCase() : (selectedFile.type && selectedFile.type.startsWith('image/') ? selectedFile.type : 'image/jpeg');
+    };
 
     const img = new Image();
     const tempUrl = URL.createObjectURL(selectedFile);
     img.onload = () => {
       try {
         const { naturalWidth: w, naturalHeight: h } = img;
-        const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        const maxSide = Math.max(w, h);
+        const needsCanvas =
+          maxSide > MAX_DIM ||
+          selectedFile.size > 650 * 1024 ||
+          selectedFile.type !== 'image/jpeg';
+
+        if (!needsCanvas) {
+          URL.revokeObjectURL(tempUrl);
+          readPosterFileAsBase64(selectedFile)
+            .then((dataUrl) => resolve({ dataUrl, mimeType: inferMimeFromDataUrl(dataUrl) }))
+            .catch(() => resolve(null));
+          return;
+        }
+
+        const scale = Math.min(1, MAX_DIM / maxSide);
         const targetW = Math.max(1, Math.round(w * scale));
         const targetH = Math.max(1, Math.round(h * scale));
 
@@ -202,20 +209,20 @@ function optimizePosterForOcr(selectedFile) {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('2D context unavailable');
         ctx.drawImage(img, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         URL.revokeObjectURL(tempUrl);
         resolve({ dataUrl, mimeType: 'image/jpeg' });
       } catch {
         URL.revokeObjectURL(tempUrl);
         readPosterFileAsBase64(selectedFile)
-          .then((dataUrl) => resolve({ dataUrl, mimeType: selectedFile.type || 'image/jpeg' }))
+          .then((dataUrl) => resolve({ dataUrl, mimeType: inferMimeFromDataUrl(dataUrl) }))
           .catch(() => resolve(null));
       }
     };
     img.onerror = () => {
       URL.revokeObjectURL(tempUrl);
       readPosterFileAsBase64(selectedFile)
-        .then((dataUrl) => resolve({ dataUrl, mimeType: selectedFile.type || 'image/jpeg' }))
+        .then((dataUrl) => resolve({ dataUrl, mimeType: inferMimeFromDataUrl(dataUrl) }))
         .catch(() => resolve(null));
     };
     img.src = tempUrl;
@@ -264,7 +271,11 @@ export async function executePosterOcrExtraction({
       } else if (data && data.error) {
         edgeFunctionErrorMsg = data.details || data.error;
       } else if (error) {
-        edgeFunctionErrorMsg = error.message;
+        let parsedErrBody = null;
+        if (error.context && typeof error.context.json === 'function') {
+          parsedErrBody = await error.context.json().catch(() => null);
+        }
+        edgeFunctionErrorMsg = parsedErrBody?.details || parsedErrBody?.error || error.message;
       }
     } catch (sbErr) {
       console.warn('Supabase edge function invoke status:', sbErr);
@@ -397,6 +408,7 @@ export default function ScrimDataHubView({
     previewUrl,
     isProcessing,
     progress: ocrProgress = 0,
+    errorMsg: ocrErrorMsg = '',
     scrimName,
     scrimDate,
     scrimTier,
@@ -869,11 +881,14 @@ export default function ScrimDataHubView({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg,image/webp,image/*"
                 className="hidden"
                 onChange={(e) => {
                   const selected = e.target.files?.[0];
-                  if (selected) handleProcessImage(selected);
+                  if (selected) {
+                    handleProcessImage(selected);
+                  }
+                  e.target.value = '';
                 }}
               />
 
@@ -903,9 +918,15 @@ export default function ScrimDataHubView({
                     <p className="text-sm font-bold text-white truncate max-w-xs">
                       {file?.name || 'Poster Standings'}
                     </p>
-                    <p className="text-xs text-zinc-300">
-                      Tap untuk tukar poster lain
-                    </p>
+                    {ocrErrorMsg ? (
+                      <p className="text-xs text-rose-400 font-medium">
+                        {ocrErrorMsg}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-zinc-300">
+                        Tap untuk tukar poster lain
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (

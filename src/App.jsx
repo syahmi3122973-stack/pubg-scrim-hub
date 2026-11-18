@@ -510,6 +510,7 @@ export default function App() {
   const [ocrJob, setOcrJob] = useState(() => ({
     isProcessing: false,
     progress: 0,
+    errorMsg: '',
     file: null,
     previewUrl: null,
     scrimName: '',
@@ -4341,6 +4342,7 @@ export default function App() {
       ...prev,
       isProcessing: false,
       progress: 0,
+      errorMsg: '',
       file: null,
       previewUrl: null,
       scrimName: '',
@@ -4371,6 +4373,7 @@ export default function App() {
       ...prev,
       isProcessing: true,
       progress: 6,
+      errorMsg: '',
       file: selectedFile,
       previewUrl: objectUrl,
       scrimName: '',
@@ -4407,6 +4410,7 @@ export default function App() {
       ...prev,
       progress: res.ok ? 100 : 0,
       isProcessing: Boolean(res.ok),
+      errorMsg: res.ok ? '' : (res.toastMessage || 'Tak dapat ekstrak poster.'),
       scrimName: res.scrimName ?? prev.scrimName,
       scrimDate: res.scrimDate ?? prev.scrimDate,
       standings: res.standings ?? prev.standings

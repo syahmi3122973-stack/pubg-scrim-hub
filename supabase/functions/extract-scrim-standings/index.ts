@@ -156,10 +156,10 @@ interface ModelCandidate {
 }
 
 const MODEL_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-3.5-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-2.5-flash", thinkingConfig: { thinkingBudget: 0 } },
+  { name: "gemini-2.5-flash-lite", thinkingConfig: { thinkingBudget: 0 } },
+  { name: "gemini-2.0-flash" },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-flash-latest" },
 ];
 
 Deno.serve(async (req: Request) => {
@@ -247,7 +247,7 @@ Extract every single row accurately from this tournament standings poster:
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(22000),
+            signal: AbortSignal.timeout(16000),
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
