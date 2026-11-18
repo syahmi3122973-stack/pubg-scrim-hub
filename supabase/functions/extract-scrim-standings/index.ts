@@ -156,8 +156,8 @@ interface ModelCandidate {
 }
 
 const MODEL_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
   { name: "gemini-flash-latest" },
 ];
@@ -222,7 +222,7 @@ Extract every single row accurately from this tournament standings poster:
    - Map columns strictly by column header alignment:
      * Rank column: '#', '#1', 'RANK', 'NO' -> rank (integer).
      * Team column: 'TEAMS', 'TEAM', 'TEAM NAME' -> exact team_name string (ignore small logo icon left of the name).
-     * WWCD column: 'WWCD', 'WIN', or icon header (frying pan, chicken, helmet, spider icon). VERY IMPORTANT: Blank/empty cells mean 0. Do NOT shift PLACE into WWCD when WWCD is blank!
+     * WWCD column: 'WWCD', 'WIN', or icon header (frying pan, chicken, helmet, spider icon). VERY IMPORTANT: Blank/empty cells (or if no WWCD column exists) mean 0. Do NOT shift PLACE into WWCD when WWCD is blank!
      * Placement column: 'PLACE.', 'PLACE', 'PP', 'PLACEMENT' -> placement_points.
      * Elims/Kills column: 'ELIMS.', 'ELIMS', 'KP', 'KILLS' -> kill_points.
      * Total column: 'TOTAL', 'TOT', 'PTS' -> total_points.
@@ -233,7 +233,7 @@ Extract every single row accurately from this tournament standings poster:
     let lastError = "";
     const modelErrors: string[] = [];
     const reqStartedAt = Date.now();
-    const TOTAL_BUDGET_MS = 42000;
+    const TOTAL_BUDGET_MS = 45000;
 
     for (const candidate of MODEL_CANDIDATES) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
@@ -257,7 +257,7 @@ Extract every single row accurately from this tournament standings poster:
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(Math.min(20000, remainingMs)),
+            signal: AbortSignal.timeout(Math.min(26000, remainingMs)),
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
