@@ -56,7 +56,6 @@ import {
   ChevronDown,
   Home,
   Crown,
-  Phone,
   Camera,
   Crop,
   MoreVertical,
@@ -7146,33 +7145,31 @@ export default function App() {
 
                 </div>
 
-                {/* TIER 3: DESKTOP IMMERSIVE LIVE ARENA DOCK (Hidden on mobile so phone view remains compact & identical) */}
+                {/* TIER 3: DESKTOP IMMERSIVE LIVE ARENA DOCK (Vercel Hairline Panels — Zero Card-in-Card) */}
                 <div
                   className="hidden lg:grid lg:grid-cols-12 lg:gap-5 animate-home-tier"
                   style={{ '--home-delay': '370ms' }}
                 >
                   {/* Left: Top Contenders Live Standings */}
-                  <div className="lg:col-span-7 glass-panel rounded-3xl p-6 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <div>
-                          <h3 className="text-base font-black text-white tracking-tight">
-                            {homeContendersCategory === 'TIER_3' ? 'Top Contenders • Tier 3' : 'Top Contenders Semasa'}
-                          </h3>
-                          <p className="text-[11px] text-zinc-400">
-                            Tap nama team untuk tengok rekod &amp; graf
-                          </p>
-                        </div>
+                  <div className="lg:col-span-7 rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden flex flex-col">
+                    <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-base font-semibold text-white tracking-tight">
+                          {homeContendersCategory === 'TIER_3' ? 'Top Contenders · Tier 3' : 'Top Contenders Semasa'}
+                        </h3>
+                        <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                          Tap nama team untuk tengok rekod &amp; graf
+                        </p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center glass-pill rounded-full p-0.5">
+                        <div className="inline-flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5">
                           <button
                             type="button"
                             onClick={() => setHomeContendersCategory('ALL')}
-                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
                               homeContendersCategory === 'ALL'
-                                ? 'bg-[#D7FF00] text-black'
+                                ? 'bg-zinc-100 text-zinc-950 font-semibold'
                                 : 'text-zinc-400 hover:text-white'
                             }`}
                           >
@@ -7181,9 +7178,9 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setHomeContendersCategory('TIER_3')}
-                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer flex items-center gap-1 ${
                               homeContendersCategory === 'TIER_3'
-                                ? 'bg-amber-400 text-black'
+                                ? 'bg-amber-400 text-zinc-950 font-semibold'
                                 : 'text-amber-300/80 hover:text-amber-200'
                             }`}
                           >
@@ -7199,7 +7196,7 @@ export default function App() {
                             handleSelectTeamStatsCategory(homeContendersCategory);
                             navigateToTab('teams');
                           }}
-                          className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-[#D7FF00] flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                          className="h-8 px-3 rounded-lg border border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.04] text-xs font-medium text-zinc-200 hover:text-white flex items-center gap-1.5 transition cursor-pointer shrink-0"
                         >
                           <span>Team Matrix</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -7208,20 +7205,20 @@ export default function App() {
                     </div>
 
                     {isDataLoading && desktopContenders.length === 0 ? (
-                      <div className="space-y-2.5" aria-busy="true" aria-label="Memuatkan kedudukan pasukan">
+                      <div className="divide-y divide-white/[0.06]" aria-busy="true" aria-label="Memuatkan kedudukan pasukan">
                         {[0, 1, 2, 3].map((i) => (
-                          <div key={i} className="w-full rounded-2xl glass-tile px-4 py-3 flex items-center gap-3.5 animate-pulse">
-                            <div className="w-8 h-8 rounded-xl bg-white/[0.08] shrink-0" />
-                            <div className="w-9 h-9 rounded-xl bg-white/[0.06] shrink-0" />
+                          <div key={i} className="px-5 py-3.5 flex items-center gap-3.5 animate-pulse">
+                            <div className="w-5 h-4 rounded bg-white/[0.08] shrink-0" />
+                            <div className="w-7 h-7 rounded-md bg-white/[0.06] shrink-0" />
                             <div className="flex-1 space-y-2">
-                              <div className="h-3.5 w-36 rounded-full bg-white/[0.08]" />
-                              <div className="h-2 w-48 rounded-full bg-white/[0.05]" />
+                              <div className="h-3.5 w-36 rounded bg-white/[0.08]" />
+                              <div className="h-1.5 w-48 rounded bg-white/[0.05]" />
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : desktopContenders.length > 0 ? (
-                      <div className="space-y-2.5">
+                      <div className="divide-y divide-white/[0.06] flex-1">
                         {desktopContenders.map((team, idx) => {
                           const pts = homeContendersCategory === 'TIER_3' ? team.tier3Points : team.totalPoints;
                           const kills = homeContendersCategory === 'TIER_3' ? team.tier3Kills : team.totalKills;
@@ -7238,17 +7235,17 @@ export default function App() {
                                 navigateToTab('teams');
                                 setSelectedTeamProfile(team.name);
                               }}
-                              className="w-full text-left rounded-2xl glass-tile glass-tile-hover px-4 py-3 flex items-center gap-3.5 transition-[transform,background-color,border-color] duration-200 hover:translate-x-1 cursor-pointer group"
+                              className="w-full text-left px-5 py-3.5 hover:bg-white/[0.03] flex items-center gap-3.5 transition-colors cursor-pointer group"
                             >
                               <span
-                                className={`w-8 h-8 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 ${
+                                className={`w-6 font-mono tabular-nums font-bold text-xs shrink-0 ${
                                   idx === 0
-                                    ? (homeContendersCategory === 'TIER_3' ? 'bg-amber-400 text-black' : 'bg-[#D7FF00] text-black')
+                                    ? (homeContendersCategory === 'TIER_3' ? 'text-amber-300' : 'text-[#D7FF00]')
                                     : idx === 1
-                                    ? 'bg-zinc-200 text-black'
+                                    ? 'text-zinc-200'
                                     : idx === 2
-                                    ? 'bg-amber-400 text-black'
-                                    : 'bg-zinc-800 text-zinc-300'
+                                    ? 'text-amber-400'
+                                    : 'text-zinc-500'
                                 }`}
                               >
                                 #{idx + 1}
@@ -7258,39 +7255,39 @@ export default function App() {
                                 <img
                                   src={team.logo_url}
                                   alt=""
-                                  className="w-9 h-9 rounded-xl object-cover shrink-0 bg-zinc-900"
+                                  className="w-7 h-7 rounded-md object-contain shrink-0"
                                 />
                               ) : (
-                                <div className="w-9 h-9 rounded-xl bg-zinc-900 text-[#D7FF00] font-black text-xs flex items-center justify-center shrink-0">
+                                <span className="w-7 h-7 rounded-md border border-white/[0.08] text-zinc-300 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
                                   {(team.tag || team.name.slice(0, 3)).toUpperCase()}
-                                </div>
+                                </span>
                               )}
 
                               <div className="min-w-0 flex-1 space-y-1.5">
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                                    <span className="text-[13px] font-semibold text-white truncate group-hover:text-[#D7FF00] transition-colors">
                                       {team.name}
                                     </span>
                                     {team.tag && (
-                                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-800/90 text-zinc-400 shrink-0">
+                                      <span className="text-[10px] font-mono font-semibold text-zinc-500 shrink-0">
                                         {team.tag}
                                       </span>
                                     )}
                                     {tier3Info && (
-                                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 shrink-0">
+                                      <span className="text-[10px] font-mono font-semibold text-amber-300/90 shrink-0">
                                         T3 #{tier3Info.tier3Rank}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-3 text-xs font-mono shrink-0">
-                                    <span className="text-zinc-400">{kills} Elims</span>
-                                    <span className="text-emerald-400 font-bold">{wwcd} WWCD</span>
-                                    <span className={`${homeContendersCategory === 'TIER_3' ? 'text-amber-300' : 'text-[#D7FF00]'} font-black`}>{pts} PTS</span>
+                                  <div className="flex items-center gap-3 text-xs font-mono tabular-nums shrink-0">
+                                    <span className="text-zinc-500">{kills} Elims</span>
+                                    <span className="text-emerald-400 font-semibold">{wwcd}W</span>
+                                    <span className={`${homeContendersCategory === 'TIER_3' ? 'text-amber-300' : 'text-[#D7FF00]'} font-bold`}>{pts} PTS</span>
                                   </div>
                                 </div>
 
-                                <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                                <div className="w-full h-1 rounded-full bg-white/[0.06] overflow-hidden">
                                   <div
                                     style={{ width: `${pct}%` }}
                                     className={`h-full rounded-full transition-all duration-500 ${
@@ -7306,7 +7303,7 @@ export default function App() {
                         })}
                       </div>
                     ) : (
-                      <div className="py-10 text-center text-xs text-zinc-400 rounded-2xl glass-tile">
+                      <div className="py-12 text-center text-xs text-zinc-500">
                         {homeContendersCategory === 'TIER_3'
                           ? 'Belum ada rekod Tier 3 lagi.'
                           : 'Belum ada data ranking team lagi.'}
@@ -7315,26 +7312,21 @@ export default function App() {
                   </div>
 
                   {/* Right: Recent Sessions & Quick Portal Actions */}
-                  <div className="lg:col-span-5 glass-panel rounded-3xl p-6 flex flex-col justify-between gap-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                            <Clock className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className="text-base font-black text-white tracking-tight">
-                              Arkib Sesi Terkini
-                            </h3>
-                            <p className="text-[11px] text-zinc-400">
-                              Tap sesi untuk tengok scoreboard penuh
-                            </p>
-                          </div>
+                  <div className="lg:col-span-5 rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden flex flex-col justify-between">
+                    <div className="flex-1 flex flex-col">
+                      <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="text-sm sm:text-base font-semibold text-white tracking-tight">
+                            Arkib Sesi Terkini
+                          </h3>
+                          <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                            Tap sesi untuk tengok scoreboard penuh
+                          </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => navigateToTab('history')}
-                          className="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-emerald-400 flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                          className="h-8 px-3 rounded-lg border border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.04] text-xs font-medium text-emerald-300 hover:text-emerald-200 flex items-center gap-1.5 transition cursor-pointer shrink-0"
                         >
                           <span>Semua Rekod</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -7342,83 +7334,93 @@ export default function App() {
                       </div>
 
                       {isDataLoading && recentSessionsDock.length === 0 ? (
-                        <div className="space-y-2.5" aria-busy="true" aria-label="Memuatkan arkib sesi">
+                        <div className="divide-y divide-white/[0.06]" aria-busy="true" aria-label="Memuatkan arkib sesi">
                           {[0, 1, 2].map((i) => (
-                            <div key={i} className="w-full rounded-2xl glass-tile px-4 py-3 flex items-center gap-3 animate-pulse">
-                              <div className="w-9 h-9 rounded-xl bg-white/[0.07] shrink-0" />
+                            <div key={i} className="px-5 py-3.5 flex items-center gap-3 animate-pulse">
+                              <div className="w-7 h-7 rounded-md bg-white/[0.07] shrink-0" />
                               <div className="flex-1 space-y-1.5">
-                                <div className="h-3.5 w-40 rounded-full bg-white/[0.08]" />
-                                <div className="h-2.5 w-24 rounded-full bg-white/[0.05]" />
+                                <div className="h-3.5 w-40 rounded bg-white/[0.08]" />
+                                <div className="h-2.5 w-24 rounded bg-white/[0.05]" />
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : recentSessionsDock.length > 0 ? (
-                        <div className="space-y-2.5">
+                        <div className="divide-y divide-white/[0.06]">
                           {recentSessionsDock.map((s) => (
                             <button
                               key={s.id}
                               type="button"
                               onClick={() => setInspectedScrim(s)}
-                              className="w-full text-left rounded-2xl glass-tile glass-tile-hover px-4 py-3 flex items-center justify-between gap-3 transition-[transform,background-color,border-color] duration-200 hover:translate-x-1 cursor-pointer group"
+                              className="w-full text-left px-5 py-3.5 hover:bg-white/[0.03] flex items-center justify-between gap-3 transition-colors cursor-pointer group"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 {s.logo_url ? (
                                   <img
                                     src={s.logo_url}
                                     alt=""
-                                    className="w-9 h-9 rounded-xl object-cover shrink-0 bg-zinc-900"
+                                    className="w-7 h-7 rounded-md object-cover shrink-0"
                                   />
                                 ) : (
-                                  <div className="w-9 h-9 rounded-xl bg-[#19191E] text-[#D7FF00] font-mono font-black text-[11px] flex items-center justify-center shrink-0">
+                                  <span className="w-7 h-7 rounded-md border border-white/[0.08] text-[#D7FF00] font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
                                     {s.event_type === 'Tour' ? 'TR' : 'SC'}
-                                  </div>
+                                  </span>
                                 )}
                                 <div className="min-w-0">
-                                  <div className="text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                                  <div className="text-[13px] font-semibold text-white truncate group-hover:text-[#D7FF00] transition-colors">
                                     {s.title}
                                   </div>
-                                  <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono">
+                                  <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-mono">
                                     <span>{s.date || 'Tarikh -'}</span>
-                                    <span>•</span>
+                                    <span>·</span>
                                     <span>{s.matches?.length || s.total_matches || 1} Match</span>
                                   </div>
                                 </div>
                               </div>
 
                               <span
-                                className={`text-[10px] font-mono font-black px-2.5 py-1 rounded-full shrink-0 ${
-                                  s.is_finished
-                                    ? 'bg-emerald-500/15 text-emerald-300'
-                                    : 'bg-amber-500/15 text-amber-300'
+                                className={`inline-flex items-center gap-1.5 text-[11px] font-mono font-medium shrink-0 ${
+                                  s.is_finished ? 'text-emerald-400' : 'text-amber-300'
                                 }`}
                               >
-                                {s.is_finished ? 'Selesai' : 'Live'}
+                                <span className={`w-1.5 h-1.5 rounded-full ${s.is_finished ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                <span>{s.is_finished ? 'Selesai' : 'Live'}</span>
                               </span>
                             </button>
                           ))}
                         </div>
                       ) : (
-                        <div className="py-10 text-center text-xs text-zinc-400 rounded-2xl glass-tile">
+                        <div className="py-12 text-center text-xs text-zinc-500">
                           Belum ada rekod sesi terkini.
                         </div>
                       )}
                     </div>
 
-                    {/* Quick Desktop Shortcut Footer */}
-                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    {/* Flush Vercel Split Footer Shortcuts */}
+                    <div className="grid grid-cols-2 divide-x divide-white/[0.08] border-t border-white/[0.08] bg-white/[0.015]">
                       <button
                         type="button"
                         onClick={() => navigateToTab('scrim-data')}
-                        className="py-2.5 px-3.5 rounded-2xl bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                        className="py-3 px-4 hover:bg-white/[0.04] text-pink-300 hover:text-pink-200 text-xs font-medium flex items-center justify-center gap-2 transition cursor-pointer"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                        {ocrJob.isProcessing ? (
+                          <progress
+                            aria-hidden="true"
+                            className="loading-spinner"
+                            style={{ '--size': '11px', '--thickness': '1.5px' }}
+                          />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                        )}
                         <span>Scan Poster AI</span>
+                        {ocrJob.isProcessing && (
+                          <span className="font-mono tabular-nums text-[11px] text-white">{ocrJob.progress}%</span>
+                        )}
                       </button>
                       <button
                         type="button"
                         onClick={() => navigateToTab('admin')}
-                        className="py-2.5 px-3.5 rounded-2xl bg-[#D7FF00]/15 hover:bg-[#D7FF00]/25 text-[#D7FF00] text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                        className="py-3 px-4 hover:bg-white/[0.04] text-[#D7FF00] text-xs font-medium flex items-center justify-center gap-2 transition cursor-pointer"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>Portal Host</span>
@@ -8994,133 +8996,155 @@ export default function App() {
               )}
             </div>
 
-            {/* 3. SESSION CARDS LIST */}
-            {isDataLoading && filteredScrims.length === 0 ? (
-              <div className="space-y-4 px-1" aria-busy="true" aria-label="Memuatkan rekod sesi">
-                <div className="flex items-center gap-2 text-xs font-mono text-zinc-300">
-                  <progress aria-label="Memuatkan arkib sesi" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
-                  <span>Loading rekod...</span>
+            {/* 3. SESSION LIST PANEL (Vercel Deployment-Style Rows — Zero Card-in-Card) */}
+            <div
+              data-aurora-target="history"
+              className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden"
+            >
+              <div className="px-4 sm:px-6 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-white">Senarai Sesi</span>
+                  <span className="text-[11px] font-mono tabular-nums text-zinc-500">
+                    {filteredScrims.length} rekod
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+                <span className="hidden sm:inline text-[11px] font-mono text-zinc-500">
+                  Status · Tarikh
+                </span>
+              </div>
+
+              {isDataLoading && filteredScrims.length === 0 ? (
+                <div className="divide-y divide-white/[0.06]" aria-busy="true" aria-label="Memuatkan rekod sesi">
+                  <div className="flex items-center justify-center gap-2 py-4 text-xs font-mono text-zinc-300">
+                    <progress aria-label="Memuatkan arkib sesi" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
+                    <span>Loading rekod...</span>
+                  </div>
                   {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="glass-panel rounded-3xl p-4 flex items-center gap-3 animate-pulse">
-                      <div className="w-12 h-12 rounded-2xl bg-white/[0.08] shrink-0" />
+                    <div key={i} className="px-4 sm:px-6 py-3.5 flex items-center gap-3 animate-pulse">
+                      <div className="w-9 h-9 rounded-md bg-white/[0.08] shrink-0" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 w-36 rounded-full bg-white/[0.08]" />
-                        <div className="h-3 w-24 rounded-full bg-white/[0.05]" />
+                        <div className="h-3.5 w-40 rounded bg-white/[0.08]" />
+                        <div className="h-2.5 w-24 rounded bg-white/[0.05]" />
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : filteredScrims.length === 0 ? (
-              <div
-                key={`rekod_empty_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
-                data-aurora-target="history"
-                className="min-h-[340px] flex flex-col items-center justify-center my-4 py-14 px-6 text-center bg-[#111114] rounded-3xl space-y-3.5 mx-1 animate-filter-reveal"
-              >
-                <Clock className="w-10 h-10 mx-auto opacity-30 text-zinc-500" />
-                <h3 className="font-black text-white text-base">Tiada Rekod Lagi</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
-                  {currentUser
-                    ? 'Tak ada rekod untuk filter ni. Boleh buat sesi baru kat Portal Host.'
-                    : 'Tak ada rekod untuk filter ni buat masa ni.'}
-                </p>
-                {currentUser && (
-                  <button
-                    type="button"
-                    onClick={() => navigateToTab('admin')}
-                    className="px-4 py-2 bg-[#D7FF00] hover:bg-[#c2e600] text-zinc-950 font-black rounded-full text-xs transition shadow-[0_0_15px_rgba(215,255,0,0.18)] cursor-pointer"
-                  >
-                    Buka Portal Host →
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div
-                key={`rekod_list_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
-                className="min-h-[340px] content-start grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 px-1 animate-filter-reveal"
-              >
-                {filteredScrims.map((s, idx) => {
-                  const isFinished = Boolean(s.is_finished);
-
-                  return (
-                    <div
-                      key={s.id}
-                      data-aurora-target={idx === 0 ? 'history' : undefined}
-                      onClick={() => setInspectedScrim(s)}
-                      style={{ animationDelay: `${80 + Math.min(idx, 8) * 60}ms` }}
-                      className="glass-panel glass-panel-hover rounded-3xl p-3.5 sm:p-4 lg:p-5 transition-all cursor-pointer group active:scale-[0.99] flex items-center justify-between gap-3 animate-stagger-card"
+              ) : filteredScrims.length === 0 ? (
+                <div
+                  key={`rekod_empty_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
+                  className="min-h-[280px] flex flex-col items-center justify-center py-12 px-6 text-center space-y-3 animate-filter-reveal"
+                >
+                  <Clock className="w-8 h-8 mx-auto opacity-30 text-zinc-500" />
+                  <h3 className="font-semibold text-white text-sm">Tiada Rekod Lagi</h3>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                    {currentUser
+                      ? 'Tak ada rekod untuk filter ni. Boleh buat sesi baru kat Portal Host.'
+                      : 'Tak ada rekod untuk filter ni buat masa ni.'}
+                  </p>
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('admin')}
+                      className="px-3.5 py-1.5 rounded-lg border border-[#D7FF00]/40 bg-[#D7FF00]/[0.08] hover:bg-[#D7FF00]/[0.15] text-[#D7FF00] font-medium text-xs transition cursor-pointer"
                     >
-                      {/* Left: Scrim Logo / Badge + Info (Nama Scrim, Status, Date) */}
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {s.logo_url ? (
-                          <img
-                            src={s.logo_url}
-                            alt=""
-                            className="w-12 h-12 rounded-2xl object-cover bg-zinc-900 shrink-0 shadow-md"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-[#19191E] text-[#D7FF00] font-mono font-black text-xs flex items-center justify-center shrink-0">
-                            {s.event_type === 'Tour' ? 'TR' : 'SC'}
-                          </div>
-                        )}
+                      Buka Portal Host →
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div
+                  key={`rekod_list_${historyStatusFilter}_${leaderboardEventTypeFilter}_${tierFilter}`}
+                  className="divide-y divide-white/[0.06] animate-filter-reveal"
+                >
+                  {filteredScrims.map((s, idx) => {
+                    const isFinished = Boolean(s.is_finished);
 
-                        <div className="min-w-0 flex-1">
-                          {/* 1. Nama Scrim (Full title, clear and unobstructed) */}
-                          <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-[#D7FF00] transition leading-snug line-clamp-2">
-                            {s.title}
-                          </h3>
-
-                          {/* 2 & 3. Status & Date */}
-                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            {/* Status */}
-                            {isFinished ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#D7FF00]/15 text-[#D7FF00] shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
-                                <span>Completed</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 shrink-0">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                <span>Pending</span>
-                              </span>
-                            )}
-
-                            {/* Date */}
-                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-zinc-400 font-mono shrink-0">
-                              <Clock className="w-3 h-3 text-zinc-500" />
-                              <span>{s.date || 'Tiada Tarikh'}</span>
+                    return (
+                      <div
+                        key={s.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setInspectedScrim(s)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setInspectedScrim(s);
+                          }
+                        }}
+                        style={{ animationDelay: `${40 + Math.min(idx, 8) * 35}ms` }}
+                        className="px-4 sm:px-6 py-3.5 hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors cursor-pointer group flex items-center justify-between gap-3 animate-stagger-card"
+                      >
+                        {/* Left: Scrim Logo / Code + Title & Meta */}
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          {s.logo_url ? (
+                            <img
+                              src={s.logo_url}
+                              alt=""
+                              className="w-9 h-9 rounded-md object-cover shrink-0"
+                            />
+                          ) : (
+                            <span className="w-9 h-9 rounded-md border border-white/[0.08] text-[#D7FF00] font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                              {s.event_type === 'Tour' ? 'TR' : 'SC'}
                             </span>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-sm text-white group-hover:text-[#D7FF00] transition-colors leading-snug truncate">
+                              {s.title}
+                            </h3>
+
+                            <div className="flex items-center gap-2 mt-1 flex-wrap text-[11px] font-mono">
+                              <span
+                                className={`inline-flex items-center gap-1.5 font-medium ${
+                                  isFinished ? 'text-[#D7FF00]' : 'text-amber-300'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${isFinished ? 'bg-[#D7FF00]' : 'bg-amber-400'}`} />
+                                <span>{isFinished ? 'Completed' : 'Pending'}</span>
+                              </span>
+
+                              <span className="text-zinc-700">·</span>
+
+                              <span className="text-zinc-400">
+                                {s.date || 'Tiada Tarikh'}
+                              </span>
+
+                              {s.host_name && (
+                                <>
+                                  <span className="hidden sm:inline text-zinc-700">·</span>
+                                  <span className="hidden sm:inline text-zinc-500 truncate max-w-[160px]">
+                                    {s.host_name}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right: Quick Edit (for Hosts) & Enter Indicator */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {isAuthorizedAdmin(s) && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditScrimModal(s);
-                            }}
-                            aria-label={`Ubah tarikh dan info ${s.title}`}
-                            title="Ubah tarikh & maklumat sesi"
-                            className="w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-[#D7FF00] text-zinc-400 hover:text-black flex items-center justify-center transition cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <div className="w-8 h-8 rounded-full bg-zinc-900/80 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] group-hover:bg-zinc-800 transition shrink-0">
-                          <ChevronRight className="w-4 h-4" />
+                        {/* Right: Quick Edit (for Hosts) & Chevron */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isAuthorizedAdmin(s) && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditScrimModal(s);
+                              }}
+                              aria-label={`Ubah tarikh dan info ${s.title}`}
+                              title="Ubah tarikh & maklumat sesi"
+                              className="w-7 h-7 rounded-md border border-white/[0.08] hover:border-[#D7FF00]/40 hover:bg-[#D7FF00]/[0.08] text-zinc-400 hover:text-[#D7FF00] flex items-center justify-center transition cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-[#D7FF00] group-hover:translate-x-0.5 transition shrink-0" />
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
           </div>
         )}
@@ -11869,261 +11893,268 @@ export default function App() {
               </div>
             </div>
 
-            {/* INLINE EDIT MODE FORM (SEGERA DI ATAS SELEPAS AVATAR & BADGES) */}
+            {/* INLINE EDIT MODE FORM (Vercel Hairline Panel — Zero Nested Icon Cards) */}
             {isEditProfileMode && (
-              <div className="px-5 mb-6 origin-top animate-dropdown-reveal">
-                <div className="flex items-center justify-between mb-3 pb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-[#D7FF00] text-black flex items-center justify-center font-black">
-                      <Edit3 className="w-4 h-4 stroke-[2.5]" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-white tracking-tight">Edit Profile</h4>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditProfileMode(false)}
-                    className="text-xs font-bold text-zinc-400 hover:text-white transition px-2.5 py-1 rounded-lg bg-zinc-900"
-                  >
-                    Tutup
-                  </button>
-                </div>
-
-                <form onSubmit={handleSaveProfile} className="space-y-4 p-4 sm:p-6 rounded-3xl glass-panel">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
-                    <div className="md:col-span-1">
-                      <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                        Nama Paparan (Display Name)
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        autoComplete="name"
-                        placeholder="cth: RYKHOR Esports Organizer"
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-zinc-950 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none font-semibold"
-                      />
-                    </div>
-
-                    <div className="md:col-span-1">
-                      <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                        Contact
-                      </label>
-                      <input
-                        type="text"
-                        autoComplete="tel"
-                        placeholder="+60123456789 atau @username"
-                        value={profileContact}
-                        onChange={(e) => setProfileContact(e.target.value)}
-                        className="w-full bg-zinc-950 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-zinc-300 uppercase font-bold mb-1 text-[10px] tracking-wider">
-                        Bio
-                      </label>
-                      <textarea
-                        rows="3"
-                        placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
-                        value={profileBio}
-                        onChange={(e) => setProfileBio(e.target.value)}
-                        className="w-full bg-zinc-950 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="px-5 md:px-6 lg:px-8 mb-6 origin-top animate-dropdown-reveal">
+                <form
+                  onSubmit={handleSaveProfile}
+                  className="rounded-3xl border border-white/[0.08] bg-[#09090B]/90 overflow-hidden"
+                >
+                  <div className="px-4 sm:px-6 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-semibold text-white tracking-tight">Edit Profile</h4>
                     <button
                       type="button"
                       onClick={() => setIsEditProfileMode(false)}
-                      className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer transition active:scale-95"
+                      className="text-xs font-medium text-zinc-400 hover:text-white transition px-2.5 py-1 rounded-lg border border-white/[0.08] hover:border-white/[0.2] cursor-pointer"
                     >
-                      Batal
+                      Tutup
                     </button>
-                    <button
-                      type="submit"
-                      disabled={isSavingProfile}
-                      className="px-4 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black text-xs shadow-md cursor-pointer transition flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
-                    >
-                      {isSavingProfile ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Menyimpan...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Simpan Profil</span>
-                        </>
-                      )}
-                    </button>
+                  </div>
+
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+                      <div className="md:col-span-1">
+                        <label className="block text-zinc-400 uppercase font-mono font-medium mb-1.5 text-[10px] tracking-wider">
+                          Nama Paparan (Display Name)
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          autoComplete="name"
+                          placeholder="cth: RYKHOR Esports Organizer"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          className="w-full bg-black/60 border border-white/[0.1] focus:border-white/[0.3] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none font-semibold transition"
+                        />
+                      </div>
+
+                      <div className="md:col-span-1">
+                        <label className="block text-zinc-400 uppercase font-mono font-medium mb-1.5 text-[10px] tracking-wider">
+                          Contact
+                        </label>
+                        <input
+                          type="text"
+                          autoComplete="tel"
+                          placeholder="+60123456789 atau @username"
+                          value={profileContact}
+                          onChange={(e) => setProfileContact(e.target.value)}
+                          className="w-full bg-black/60 border border-white/[0.1] focus:border-white/[0.3] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-zinc-400 uppercase font-mono font-medium mb-1.5 text-[10px] tracking-wider">
+                          Bio
+                        </label>
+                        <textarea
+                          rows="3"
+                          placeholder="Peraturan kejohanan, jadual mingguan, slot pendaftaran..."
+                          value={profileBio}
+                          onChange={(e) => setProfileBio(e.target.value)}
+                          className="w-full bg-black/60 border border-white/[0.1] focus:border-white/[0.3] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.06]">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditProfileMode(false)}
+                        className="px-3.5 py-2 rounded-lg border border-white/[0.1] hover:border-white/[0.2] text-zinc-300 font-medium text-xs cursor-pointer transition"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingProfile}
+                        className="px-4 py-2 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black font-semibold text-xs cursor-pointer transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                      >
+                        {isSavingProfile ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Menyimpan...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Simpan Profil</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
             )}
 
-            {/* SECTION 1: SESI DIANJURKAN (MY PRACTICES) */}
+            {/* SECTION 1: SESI DIANJURKAN (Vercel Hairline List Panel — Zero Card-in-Card) */}
             <div className="px-5 md:px-6 lg:px-8 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-black text-white tracking-tight">Sesi Dianjurkan</h4>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileModalOpen(false);
-                    navigateToTab('history');
-                  }}
-                  className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
-                >
-                  <span>Lihat semua</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h4 className="text-sm font-semibold text-white tracking-tight">Sesi Dianjurkan</h4>
+                    <span className="text-[11px] font-mono tabular-nums text-zinc-500">
+                      {adminHostedScrims.length}
+                    </span>
+                  </div>
 
-              {/* Horizontal Scroll Carousel on Mobile, Expansive Grid on Desktop */}
-              <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-center md:items-stretch gap-3 md:gap-4 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
-                {adminHostedScrims.length > 0 ? (
-                  adminHostedScrims.map((s) => (
-                    <div
-                      key={s.id}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
                       onClick={() => {
-                        setAdminSelectedScrimId(s.id);
                         setIsProfileModalOpen(false);
-                        navigateToTab('admin');
+                        navigateToTab('history');
                       }}
-                      className="snap-start shrink-0 w-64 md:w-auto p-3.5 sm:p-4 rounded-2xl glass-tile glass-tile-hover flex items-center gap-3.5 transition cursor-pointer group active:scale-[0.98]"
+                      className="h-8 px-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] hover:bg-white/[0.04] text-[11px] font-medium text-zinc-300 hover:text-white inline-flex items-center gap-1 transition cursor-pointer"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-zinc-950 overflow-hidden flex items-center justify-center shrink-0">
-                        {s.poster_url ? (
-                          <img src={s.poster_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="font-mono font-black text-xs text-[#D7FF00]">
-                            {s.event_type === 'Tour' ? 'TR' : 'SC'}
+                      <span>Semua</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileModalOpen(false);
+                        handleQuickNewSession();
+                      }}
+                      className="h-8 px-2.5 rounded-lg border border-[#D7FF00]/30 hover:border-[#D7FF00]/60 bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.12] text-[11px] font-medium text-[#D7FF00] inline-flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Sesi Baru</span>
+                    </button>
+                  </div>
+                </div>
+
+                {adminHostedScrims.length > 0 ? (
+                  <div className="divide-y divide-white/[0.06]">
+                    {adminHostedScrims.map((s) => (
+                      <div
+                        key={s.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          setAdminSelectedScrimId(s.id);
+                          setIsProfileModalOpen(false);
+                          navigateToTab('admin');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setAdminSelectedScrimId(s.id);
+                            setIsProfileModalOpen(false);
+                            navigateToTab('admin');
+                          }
+                        }}
+                        className="px-4 sm:px-5 py-3 hover:bg-white/[0.03] active:bg-white/[0.05] flex items-center justify-between gap-3 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {s.poster_url ? (
+                            <img src={s.poster_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                          ) : (
+                            <span className="w-8 h-8 rounded-md border border-white/[0.08] font-mono font-bold text-[10px] text-[#D7FF00] flex items-center justify-center shrink-0">
+                              {s.event_type === 'Tour' ? 'TR' : 'SC'}
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <h5 className="text-[13px] font-semibold text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                              {s.title || 'Official Scrim'}
+                            </h5>
+                            <span className="text-[11px] text-zinc-500 font-mono block">
+                              {s.matches_count || 4} Match · Skuad
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <span className={`inline-flex items-center gap-1.5 text-[11px] font-mono font-medium ${
+                            s.is_finished ? 'text-emerald-400' : 'text-amber-300'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${s.is_finished ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                            <span>{s.is_finished ? 'Selesai' : 'Live'}</span>
                           </span>
-                        )}
+                          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition" />
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-xs font-black text-white truncate group-hover:text-[#D7FF00] transition">
-                          {s.title || 'Official Scrim'}
-                        </h5>
-                        <span className="text-[10px] text-zinc-400 font-mono block">
-                          {s.matches_count || 4} Perlawanan • Skuad
-                        </span>
-                        <span className={`inline-flex items-center gap-1 text-[9px] font-bold mt-1 px-2 py-0.5 rounded-full ${
-                          s.is_finished
-                            ? 'bg-emerald-500/15 text-emerald-400'
-                            : 'bg-amber-500/15 text-amber-300'
-                        }`}>
-                          <Clock className="w-2.5 h-2.5" />
-                          <span>{s.is_finished ? 'Selesai' : 'Sedang Berlangsung'}</span>
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <div className="shrink-0 w-60 md:w-auto p-3.5 sm:p-4 rounded-2xl glass-tile flex items-center gap-3 text-zinc-400 text-xs">
-                    <span>Belum ada sesi dianjurkan</span>
+                  <div className="py-10 px-4 text-center text-xs text-zinc-500">
+                    Belum ada sesi dianjurkan lagi.
                   </div>
                 )}
-
-                {/* + Sesi Baru Button Card */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileModalOpen(false);
-                    handleQuickNewSession();
-                  }}
-                  className="snap-start shrink-0 w-36 md:w-auto h-[76px] md:h-auto md:min-h-[76px] p-2.5 rounded-2xl glass-tile glass-tile-hover border-dashed flex flex-col md:flex-row items-center justify-center gap-2 text-center transition cursor-pointer text-zinc-400 hover:text-[#D7FF00] group active:scale-95"
-                >
-                  <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-[#D7FF00]/20 flex items-center justify-center text-white group-hover:text-[#D7FF00] transition">
-                    <Plus className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-bold">+ Sesi Baru</span>
-                </button>
               </div>
             </div>
 
-            {/* SECTION 3: PROFIL & MAKLUMAT (NOTES) */}
+            {/* SECTION 2: PROFIL & MAKLUMAT (Vercel 3-Column Divider Panel — Zero Nested Cards or Icon Boxes) */}
             <div className="px-5 md:px-6 lg:px-8 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-black text-white tracking-tight">Profil &amp; Maklumat</h4>
-                <button
-                  type="button"
-                  onClick={toggleEditProfileMode}
-                  className="text-[11px] font-bold text-zinc-400 hover:text-[#D7FF00] flex items-center gap-0.5 transition cursor-pointer"
-                >
-                  <span>{isEditProfileMode ? 'Tutup Edit' : 'Edit'}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* CARDS VIEW MODE (Reference "Notes" Style) */}
-              <div className="flex md:grid md:grid-cols-3 items-center md:items-stretch gap-3 md:gap-4 lg:gap-6 overflow-x-auto md:overflow-visible pb-1.5 no-scrollbar snap-x overscroll-x-contain">
-                {/* Card 1: Official Contact */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl glass-tile flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">CONTACT</span>
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                      <Phone className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                  <p className="text-xs sm:text-sm font-bold text-white line-clamp-2">
-                    {profileContact || 'Belum ditetapkan'}
-                  </p>
-                  {profileContact ? (
-                    <a
-                      href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] sm:text-xs font-black text-emerald-400 hover:underline flex items-center gap-1"
-                    >
-                      <span>Buka Chat</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ) : (
-                    <span className="text-[9px] font-mono text-zinc-500">Tekan edit</span>
-                  )}
+              <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-semibold text-white tracking-tight">Profil &amp; Maklumat</h4>
+                  <button
+                    type="button"
+                    onClick={toggleEditProfileMode}
+                    className="h-8 px-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] hover:bg-white/[0.04] text-[11px] font-medium text-zinc-300 hover:text-white inline-flex items-center gap-1 transition cursor-pointer"
+                  >
+                    <span>{isEditProfileMode ? 'Tutup Edit' : 'Edit'}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                {/* Card 2: Bio & Rules */}
-                <div className="snap-start shrink-0 w-52 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl glass-tile flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">BIO</span>
-                    <div className="w-7 h-7 rounded-lg bg-[#D7FF00]/20 text-[#D7FF00] flex items-center justify-center">
-                      <BookOpen className="w-3.5 h-3.5" />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.08]">
+                  {/* Cell 1: Official Contact */}
+                  <div className="p-4 sm:p-5 flex flex-col justify-between gap-2.5">
+                    <span className="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
+                      Contact
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold text-white line-clamp-2">
+                      {profileContact || 'Belum ditetapkan'}
+                    </p>
+                    {profileContact ? (
+                      <a
+                        href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-medium text-emerald-400 hover:underline inline-flex items-center gap-1 w-fit"
+                      >
+                        <span>Buka Chat</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="text-[10px] font-mono text-zinc-500">Tekan edit untuk isi</span>
+                    )}
                   </div>
-                  <p className="text-xs sm:text-sm font-medium text-zinc-300 line-clamp-3">
-                    {profileBio || 'Host PUBG Mobile Scrims.'}
-                  </p>
-                  <span className="text-[9px] font-mono text-zinc-500 font-semibold">Terkini</span>
-                </div>
 
-                {/* Card 3: Clan / Organization */}
-                <div className="snap-start shrink-0 w-48 md:w-auto p-4 sm:p-5 lg:p-6 rounded-2xl glass-tile flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] sm:text-xs font-mono font-bold text-zinc-400">ORGANISASI</span>
-                    <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                    </div>
+                  {/* Cell 2: Bio & Rules */}
+                  <div className="p-4 sm:p-5 flex flex-col justify-between gap-2.5">
+                    <span className="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
+                      Bio
+                    </span>
+                    <p className="text-xs sm:text-sm text-zinc-300 line-clamp-3 leading-relaxed">
+                      {profileBio || 'Host PUBG Mobile Scrims.'}
+                    </p>
+                    <span className="text-[10px] font-mono text-zinc-500">Terkini</span>
                   </div>
-                  <p className="text-xs sm:text-sm font-bold text-white truncate">
-                    {activeOrganizationName || 'Clan Utama'}
-                  </p>
-                  <span className="text-[9px] font-mono text-sky-400 font-semibold">Akaun Aktif</span>
+
+                  {/* Cell 3: Clan / Organization */}
+                  <div className="p-4 sm:p-5 flex flex-col justify-between gap-2.5">
+                    <span className="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
+                      Organisasi
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold text-white truncate">
+                      {activeOrganizationName || 'Clan Utama'}
+                    </p>
+                    <span className="text-[10px] font-mono text-sky-400">Akaun Aktif</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* BOTTOM ACTIONS: LOGOUT */}
-            <div className="mt-auto px-5 md:px-6 lg:px-8 pt-4 pb-6 flex justify-center">
+            <div className="mt-auto px-5 md:px-6 lg:px-8 pt-2 pb-6 flex justify-center">
               {currentUser && (
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full md:max-w-md py-3.5 px-6 rounded-2xl bg-rose-500/12 hover:bg-rose-500/22 text-rose-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer shadow-md"
+                  className="w-full md:max-w-md py-3 px-5 rounded-lg border border-rose-500/25 hover:border-rose-500/45 bg-rose-500/[0.06] hover:bg-rose-500/[0.12] text-rose-400 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Keluar Akaun</span>
