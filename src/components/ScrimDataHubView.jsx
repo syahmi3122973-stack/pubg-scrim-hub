@@ -171,10 +171,11 @@ function readPosterFileAsBase64(selectedFile) {
   });
 }
 
-// Downscale & normalize uploaded posters client-side so Gemini vision extraction stays fast (2-5s) and MIME matches bytes
+// Downscale & normalize uploaded posters client-side so Gemini vision extraction stays fast while keeping tall/small text legible
 function optimizePosterForOcr(selectedFile) {
   return new Promise((resolve) => {
-    const MAX_DIM = 1440;
+    const MAX_DIM = 1800;
+    const PASSTHROUGH_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const inferMimeFromDataUrl = (dataUrl) => {
       const m = String(dataUrl || '').match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/i);
       return m ? m[1].toLowerCase() : (selectedFile.type && selectedFile.type.startsWith('image/') ? selectedFile.type : 'image/jpeg');
@@ -188,8 +189,8 @@ function optimizePosterForOcr(selectedFile) {
         const maxSide = Math.max(w, h);
         const needsCanvas =
           maxSide > MAX_DIM ||
-          selectedFile.size > 650 * 1024 ||
-          selectedFile.type !== 'image/jpeg';
+          selectedFile.size > 1200 * 1024 ||
+          !PASSTHROUGH_MIMES.has(selectedFile.type);
 
         if (!needsCanvas) {
           URL.revokeObjectURL(tempUrl);
@@ -209,7 +210,7 @@ function optimizePosterForOcr(selectedFile) {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('2D context unavailable');
         ctx.drawImage(img, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
         URL.revokeObjectURL(tempUrl);
         resolve({ dataUrl, mimeType: 'image/jpeg' });
       } catch {
@@ -258,28 +259,61 @@ export async function executePosterOcrExtraction({
     let extractionResult = null;
     let edgeFunctionErrorMsg = null;
 
-    try {
-      const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
-        body: {
-          imageBase64: optimized.dataUrl,
-          mimeType: optimized.mimeType
-        }
-      });
+    const invokeOnce = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
+          body: {
+            imageBase64: optimized.dataUrl,
+            mimeType: optimized.mimeType
+          }
+        });
 
-      if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
-        extractionResult = data;
-      } else if (data && data.error) {
-        edgeFunctionErrorMsg = data.details || data.error;
-      } else if (error) {
-        let parsedErrBody = null;
-        if (error.context && typeof error.context.json === 'function') {
-          parsedErrBody = await error.context.json().catch(() => null);
+        if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
+          return { data, errMsg: null, status: 200 };
         }
-        edgeFunctionErrorMsg = parsedErrBody?.details || parsedErrBody?.error || error.message;
+        if (data && data.error) {
+          return { data: null, errMsg: data.details || data.error, status: 500 };
+        }
+        if (error) {
+          let parsedErrBody = null;
+          const httpStatus = error.context?.status || 0;
+          if (error.context && typeof error.context.json === 'function') {
+            parsedErrBody = await error.context.json().catch(() => null);
+          }
+          return {
+            data: null,
+            errMsg: parsedErrBody?.details || parsedErrBody?.message || parsedErrBody?.error || error.message,
+            status: httpStatus
+          };
+        }
+        return { data: null, errMsg: null, status: 200 };
+      } catch (sbErr) {
+        console.warn('Supabase edge function invoke status:', sbErr);
+        return { data: null, errMsg: sbErr?.message || String(sbErr), status: 0 };
       }
-    } catch (sbErr) {
-      console.warn('Supabase edge function invoke status:', sbErr);
-      edgeFunctionErrorMsg = sbErr?.message || String(sbErr);
+    };
+
+    const firstAttempt = await invokeOnce();
+    if (firstAttempt.data) {
+      extractionResult = firstAttempt.data;
+    } else {
+      edgeFunctionErrorMsg = firstAttempt.errMsg;
+      const shouldRetryTransient =
+        firstAttempt.status === 503 ||
+        firstAttempt.status === 546 ||
+        /503|high demand|timed out|WORKER_RESOURCE_LIMIT|Failed to send a request/i.test(String(edgeFunctionErrorMsg || ''));
+
+      if (shouldRetryTransient) {
+        onStageProgress?.(45);
+        await new Promise((r) => setTimeout(r, 1400));
+        const retryAttempt = await invokeOnce();
+        if (retryAttempt.data) {
+          extractionResult = retryAttempt.data;
+          edgeFunctionErrorMsg = null;
+        } else if (retryAttempt.errMsg) {
+          edgeFunctionErrorMsg = retryAttempt.errMsg;
+        }
+      }
     }
 
     if (extractionResult && Array.isArray(extractionResult.standings) && extractionResult.standings.length > 0) {
@@ -346,7 +380,20 @@ export async function executePosterOcrExtraction({
     ) {
       return { ok: false, toastMessage: 'AI limit penuh kejap (429). Tunggu 5-10 saat & upload balik.' };
     }
-    return { ok: false, toastMessage: 'Tak dapat auto-extract poster. Cuba upload semula atau isi manual.' };
+    if (
+      edgeFunctionErrorMsg &&
+      (edgeFunctionErrorMsg.includes('503') ||
+        edgeFunctionErrorMsg.toLowerCase().includes('high demand') ||
+        edgeFunctionErrorMsg.toLowerCase().includes('timed out'))
+    ) {
+      return { ok: false, toastMessage: 'Pelayan AI tengah sibuk / lambat (503/Timeout). Cuba tekan upload balik kejap lagi.' };
+    }
+    return {
+      ok: false,
+      toastMessage: edgeFunctionErrorMsg
+        ? `Tak dapat extract poster (${String(edgeFunctionErrorMsg).slice(0, 110)})`
+        : 'Tiada jadual markah dikesan pada poster. Cuba upload semula atau isi manual.'
+    };
   } catch {
     if (isMecMatch) {
       return {

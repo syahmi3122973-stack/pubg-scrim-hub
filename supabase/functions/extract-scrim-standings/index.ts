@@ -156,10 +156,10 @@ interface ModelCandidate {
 }
 
 const MODEL_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-2.5-flash", thinkingConfig: { thinkingBudget: 0 } },
-  { name: "gemini-2.5-flash-lite", thinkingConfig: { thinkingBudget: 0 } },
-  { name: "gemini-2.0-flash" },
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
+  { name: "gemini-flash-latest" },
 ];
 
 Deno.serve(async (req: Request) => {
@@ -228,16 +228,26 @@ Extract every single row accurately from this tournament standings poster:
      * Total column: 'TOTAL', 'TOT', 'PTS' -> total_points.
 `;
 
-    let rawResponseText: string | null = null;
+    let parsed: ExtractionResponse | null = null;
+    let modelUsed = "";
     let lastError = "";
     const modelErrors: string[] = [];
+    const reqStartedAt = Date.now();
+    const TOTAL_BUDGET_MS = 42000;
 
     for (const candidate of MODEL_CANDIDATES) {
+      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+      if (remainingMs < 4000) {
+        modelErrors.push(`${candidate.name}: skipped_budget`);
+        break;
+      }
+
       try {
         const generationConfig: Record<string, unknown> = {
           responseMimeType: "application/json",
           responseSchema: extractionSchema,
           temperature: 0.1,
+          maxOutputTokens: 8192,
         };
         if (candidate.thinkingConfig) {
           generationConfig.thinkingConfig = candidate.thinkingConfig;
@@ -247,7 +257,7 @@ Extract every single row accurately from this tournament standings poster:
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(16000),
+            signal: AbortSignal.timeout(Math.min(20000, remainingMs)),
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
@@ -274,22 +284,30 @@ Extract every single row accurately from this tournament standings poster:
         if (restRes.ok) {
           const data = await restRes.json();
           const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            rawResponseText = text;
-            break;
+          if (!text) {
+            const finishReason = data?.candidates?.[0]?.finishReason || "EMPTY";
+            lastError = `Empty response from ${candidate.name} (${finishReason})`;
+            modelErrors.push(`${candidate.name}: ${finishReason}`);
+            continue;
           }
-          lastError = `Empty response from ${candidate.name}`;
-          modelErrors.push(`${candidate.name}: empty`);
+          try {
+            const candidateParsed = JSON.parse(text) as ExtractionResponse;
+            if (Array.isArray(candidateParsed?.standings) && candidateParsed.standings.length > 0) {
+              parsed = candidateParsed;
+              modelUsed = candidate.name;
+              break;
+            }
+            lastError = `${candidate.name} returned 0 standings`;
+            modelErrors.push(`${candidate.name}: 0_standings`);
+          } catch {
+            lastError = `${candidate.name} returned malformed JSON`;
+            modelErrors.push(`${candidate.name}: bad_json`);
+          }
         } else {
           const errJson = await restRes.json().catch(() => ({}));
           lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
           modelErrors.push(`${candidate.name}: ${restRes.status} ${lastError}`);
-          if (
-            restRes.status === 401 ||
-            restRes.status === 403 ||
-            restRes.status === 429 ||
-            lastError.includes("RESOURCE_EXHAUSTED")
-          ) {
+          if (restRes.status === 401 || restRes.status === 403) {
             break;
           }
         }
@@ -299,14 +317,17 @@ Extract every single row accurately from this tournament standings poster:
       }
     }
 
-    if (!rawResponseText) {
+    if (!parsed) {
       if (
         lastError.includes("429") ||
         lastError.includes("RESOURCE_EXHAUSTED") ||
         lastError.toLowerCase().includes("quota")
       ) {
         return new Response(
-          JSON.stringify({ error: "Gemini API rate limit exceeded. Please retry shortly." }),
+          JSON.stringify({
+            error: "Gemini API rate limit exceeded. Please retry shortly.",
+            details: modelErrors.join(" | "),
+          }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -327,25 +348,18 @@ Extract every single row accurately from this tournament standings poster:
         );
       }
 
-      return new Response(
-        JSON.stringify({
-          error: "Gemini extraction failed",
-          details: modelErrors.join(" | ") || lastError,
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      const allErrorsText = modelErrors.join(" | ") || lastError;
+      const isTransientBusy =
+        allErrorsText.includes("503") ||
+        allErrorsText.toLowerCase().includes("high demand") ||
+        allErrorsText.toLowerCase().includes("timed out");
 
-    let parsed: ExtractionResponse;
-    try {
-      parsed = JSON.parse(rawResponseText);
-    } catch {
       return new Response(
         JSON.stringify({
-          error: "Failed to parse structured JSON from model response",
-          raw: rawResponseText,
+          error: isTransientBusy ? "Gemini temporary high demand (503)" : "Gemini extraction failed",
+          details: allErrorsText,
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: isTransientBusy ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -384,6 +398,8 @@ Extract every single row accurately from this tournament standings poster:
         success: true,
         scrim_name: parsed.scrim_name?.trim() || "Untitled Scrim",
         scrim_date: safeDate,
+        model_used: modelUsed,
+        ...(modelErrors.length > 0 ? { fallback_notes: modelErrors } : {}),
         has_math_mismatch: hasGlobalMismatch,
         total_teams_extracted: validatedStandings.length,
         standings: validatedStandings,
