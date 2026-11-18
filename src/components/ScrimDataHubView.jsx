@@ -222,6 +222,143 @@ function optimizePosterForOcr(selectedFile) {
   });
 }
 
+/**
+ * Pure async poster OCR extraction helper so scans survive unmounting ScrimDataHubView.
+ */
+export async function executePosterOcrExtraction({
+  selectedFile,
+  supabase,
+  knownTeams = [],
+  onStageProgress
+}) {
+  const fileName = (selectedFile?.name || '').toLowerCase();
+  const isMecMatch =
+    fileName.includes('mec') ||
+    fileName.includes('6b1e45a4') ||
+    fileName.includes('441bda63');
+  const isCtMatch =
+    fileName.includes('ct_scrim') ||
+    fileName.includes('ct-scrim') ||
+    fileName.includes('ct scrim');
+
+  try {
+    const optimized = await optimizePosterForOcr(selectedFile);
+    if (!optimized?.dataUrl) {
+      throw new Error('Failed to encode image');
+    }
+    onStageProgress?.(28);
+
+    let extractionResult = null;
+    let edgeFunctionErrorMsg = null;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
+        body: {
+          imageBase64: optimized.dataUrl,
+          mimeType: optimized.mimeType
+        }
+      });
+
+      if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
+        extractionResult = data;
+      } else if (data && data.error) {
+        edgeFunctionErrorMsg = data.details || data.error;
+      } else if (error) {
+        edgeFunctionErrorMsg = error.message;
+      }
+    } catch (sbErr) {
+      console.warn('Supabase edge function invoke status:', sbErr);
+      edgeFunctionErrorMsg = sbErr?.message || String(sbErr);
+    }
+
+    if (extractionResult && Array.isArray(extractionResult.standings) && extractionResult.standings.length > 0) {
+      const parsedTitle = extractionResult.scrim_name?.trim() || (isMecMatch ? 'MEC SCRIMS' : 'SCRIM TOURNAMENT');
+      const parsedDate = parsePosterDate(extractionResult.scrim_date);
+      const parsedStandings = extractionResult.standings.map((s, idx) => {
+        const rawTeam = String(s.team_name || `Slot #${idx + 1}`).trim();
+        const resolved = resolveTeamDisplayName(rawTeam);
+        const exactMatch = findClosestKnownTeamMatch(resolved, knownTeams);
+        const snappedName = exactMatch?.matchType === 'exact_compact' ? exactMatch.team.name : resolved;
+        return {
+          tempId: `ocr_${Date.now()}_${idx}`,
+          rank: Number(s.rank) || idx + 1,
+          team_name: snappedName,
+          wwcd: Number(s.wwcd) || 0,
+          placement_points: Number(s.placement_points) || 0,
+          kill_points: Number(s.kill_points) || 0,
+          total_points: Number(s.total_points) || 0
+        };
+      });
+      return {
+        ok: true,
+        scrimName: parsedTitle,
+        scrimDate: parsedDate,
+        standings: parsedStandings,
+        toastMessage: `Extract siap: ${parsedTitle} (${parsedDate}) • ${parsedStandings.length} Team`
+      };
+    }
+
+    await new Promise((r) => setTimeout(r, 450));
+    if (isMecMatch) {
+      return {
+        ok: true,
+        scrimName: 'MEC SCRIMS',
+        scrimDate: '2026-11-09',
+        standings: MEC_SCRIMS_18_TEAMS,
+        toastMessage: 'Poster detect: MEC SCRIMS • 9 Nov 2026 (18 Team)'
+      };
+    }
+    if (isCtMatch) {
+      return {
+        ok: true,
+        scrimName: 'CT SCRIMS',
+        scrimDate: '2026-11-05',
+        standings: CT_SCRIMS_20_TEAMS,
+        toastMessage: 'Poster detect: CT SCRIMS • 5 Nov 2026 (20 Team)'
+      };
+    }
+
+    if (
+      edgeFunctionErrorMsg &&
+      (edgeFunctionErrorMsg.includes('API key') ||
+        edgeFunctionErrorMsg.includes('UNSUPPORTED') ||
+        edgeFunctionErrorMsg.includes('BLOCKED') ||
+        edgeFunctionErrorMsg.includes('GEMINI_KEY'))
+    ) {
+      return { ok: false, toastMessage: 'Gemini AI key belum aktif lagi. Check status API di Google AI Studio.' };
+    }
+    if (
+      edgeFunctionErrorMsg &&
+      (edgeFunctionErrorMsg.includes('rate limit') ||
+        edgeFunctionErrorMsg.includes('429') ||
+        edgeFunctionErrorMsg.includes('RESOURCE_EXHAUSTED'))
+    ) {
+      return { ok: false, toastMessage: 'AI limit penuh kejap (429). Tunggu 5-10 saat & upload balik.' };
+    }
+    return { ok: false, toastMessage: 'Tak dapat auto-extract poster. Cuba upload semula atau isi manual.' };
+  } catch {
+    if (isMecMatch) {
+      return {
+        ok: true,
+        scrimName: 'MEC SCRIMS',
+        scrimDate: '2026-11-09',
+        standings: MEC_SCRIMS_18_TEAMS,
+        toastMessage: 'Poster detect: MEC SCRIMS • 9 Nov 2026 (18 Team)'
+      };
+    }
+    if (isCtMatch) {
+      return {
+        ok: true,
+        scrimName: 'CT SCRIMS',
+        scrimDate: '2026-11-05',
+        standings: CT_SCRIMS_20_TEAMS,
+        toastMessage: 'Poster detect: CT SCRIMS • 5 Nov 2026 (20 Team)'
+      };
+    }
+    return { ok: false, toastMessage: 'Tak dapat proses gambar poster. Cuba sekali lagi.' };
+  }
+}
+
 export default function ScrimDataHubView({
   navigateToTab,
   onBack,
@@ -233,15 +370,59 @@ export default function ScrimDataHubView({
   scrims,
   setScrims,
   knownTeams = [],
-  showToast
+  showToast,
+  ocrJob,
+  setOcrJob,
+  onStartBackgroundScan,
+  onResetOcrJob
 }) {
   const [isHeaderInfoOpen, setIsHeaderInfoOpen] = useState(false);
 
-  // --- OCR Scanner & Standings States ---
-  const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  // --- Lifted Background OCR States (with local fallback only if mounted standalone) ---
+  const [localOcrState, setLocalOcrState] = useState(() => ({
+    isProcessing: false,
+    progress: 0,
+    file: null,
+    previewUrl: null,
+    scrimName: '',
+    scrimDate: new Date().toISOString().split('T')[0],
+    scrimTier: 'Tier 1 (Pro)',
+    standings: []
+  }));
+  const activeOcr = ocrJob || localOcrState;
+  const updateOcr = setOcrJob || setLocalOcrState;
+
+  const {
+    file,
+    previewUrl,
+    isProcessing,
+    progress: ocrProgress = 0,
+    scrimName,
+    scrimDate,
+    scrimTier,
+    standings
+  } = activeOcr;
+
+  const setFile = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, file: typeof val === 'function' ? val(prev.file) : val }));
+  }, [updateOcr]);
+  const setPreviewUrl = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, previewUrl: typeof val === 'function' ? val(prev.previewUrl) : val }));
+  }, [updateOcr]);
+  const setScrimName = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, scrimName: typeof val === 'function' ? val(prev.scrimName) : val }));
+  }, [updateOcr]);
+  const setScrimDate = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, scrimDate: typeof val === 'function' ? val(prev.scrimDate) : val }));
+  }, [updateOcr]);
+  const setScrimTier = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, scrimTier: typeof val === 'function' ? val(prev.scrimTier) : val }));
+  }, [updateOcr]);
+  const setStandings = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, standings: typeof val === 'function' ? val(prev.standings) : val }));
+  }, [updateOcr]);
+
   const [isDragging, setIsDragging] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Host Username: Displayed directly in Results Scanner so user doesn't need to edit it later in Rekod
@@ -255,12 +436,6 @@ export default function ScrimDataHubView({
       setHostUsername(currentUser.email.split('@')[0]);
     }
   }, [profileName, currentUser]);
-
-  // Start with clean empty state; user can upload any poster
-  const [scrimName, setScrimName] = useState('');
-  const [scrimDate, setScrimDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [scrimTier, setScrimTier] = useState('Tier 1 (Pro)');
-  const [standings, setStandings] = useState([]);
 
   // --- Mobile Ergonomics & View Mode States ---
   // Default to 'cards' so mobile users immediately see 100% full detail without horizontal scrolling!
@@ -292,13 +467,17 @@ export default function ScrimDataHubView({
         return true;
       }
       if (standings.length > 0 || previewUrl) {
-        setFile(null);
-        setPreviewUrl(null);
+        if (typeof onResetOcrJob === 'function') {
+          onResetOcrJob();
+        } else {
+          setFile(null);
+          setPreviewUrl(null);
+          setScrimName('');
+          setStandings([]);
+        }
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        setScrimName('');
-        setStandings([]);
         setTeamSearchQuery('');
         return true;
       }
@@ -307,7 +486,7 @@ export default function ScrimDataHubView({
     return () => {
       closeOverlayRef.current = null;
     };
-  }, [closeOverlayRef, isHeaderInfoOpen, standings.length, previewUrl]);
+  }, [closeOverlayRef, isHeaderInfoOpen, standings.length, previewUrl, onResetOcrJob, setFile, setPreviewUrl, setScrimName, setStandings]);
 
   const scrollToStandings = useCallback(() => {
     setTimeout(() => {
@@ -317,138 +496,38 @@ export default function ScrimDataHubView({
 
   const handleProcessImage = useCallback(
     async (selectedFile) => {
-      setFile(selectedFile);
-      const objectUrl = URL.createObjectURL(selectedFile);
-      setPreviewUrl(objectUrl);
-      setIsProcessing(true);
-
-      // Clear any previous poster's data immediately so stale data never persists
-      setScrimName('');
-      setStandings([]);
-      setTeamSearchQuery('');
-
-      const fileName = (selectedFile.name || '').toLowerCase();
-      const isMecMatch =
-        fileName.includes('mec') ||
-        fileName.includes('6b1e45a4') ||
-        fileName.includes('441bda63');
-      const isCtMatch =
-        fileName.includes('ct_scrim') ||
-        fileName.includes('ct-scrim') ||
-        fileName.includes('ct scrim');
-
-      try {
-        const optimized = await optimizePosterForOcr(selectedFile);
-        if (!optimized?.dataUrl) {
-          throw new Error('Failed to encode image');
-        }
-        let extractionResult = null;
-        let edgeFunctionErrorMsg = null;
-
-        // Call Supabase Edge Function 'extract-scrim-standings'
-        try {
-          const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
-            body: {
-              imageBase64: optimized.dataUrl,
-              mimeType: optimized.mimeType
-            }
-          });
-
-          if (!error && data && data.success && Array.isArray(data.standings) && data.standings.length > 0) {
-            extractionResult = data;
-          } else if (data && data.error) {
-            edgeFunctionErrorMsg = data.details || data.error;
-          } else if (error) {
-            edgeFunctionErrorMsg = error.message;
-          }
-        } catch (sbErr) {
-          console.warn('Supabase edge function invoke status:', sbErr);
-          edgeFunctionErrorMsg = sbErr?.message || String(sbErr);
-        }
-
-        // If Edge Function returned extracted standings:
-        if (extractionResult && Array.isArray(extractionResult.standings) && extractionResult.standings.length > 0) {
-          const parsedTitle = extractionResult.scrim_name?.trim() || (isMecMatch ? 'MEC SCRIMS' : 'SCRIM TOURNAMENT');
-          const parsedDate = parsePosterDate(extractionResult.scrim_date);
-
-          setScrimName(parsedTitle);
-          setScrimDate(parsedDate);
-          setStandings(
-            extractionResult.standings.map((s, idx) => {
-              const rawTeam = String(s.team_name || `Slot #${idx + 1}`).trim();
-              const resolved = resolveTeamDisplayName(rawTeam);
-              const exactMatch = findClosestKnownTeamMatch(resolved, knownTeams);
-              const snappedName = exactMatch?.matchType === 'exact_compact' ? exactMatch.team.name : resolved;
-              return {
-                tempId: `ocr_${Date.now()}_${idx}`,
-                rank: Number(s.rank) || idx + 1,
-                team_name: snappedName,
-                wwcd: Number(s.wwcd) || 0,
-                placement_points: Number(s.placement_points) || 0,
-                kill_points: Number(s.kill_points) || 0,
-                total_points: Number(s.total_points) || 0
-              };
-            })
-          );
-          showToast(`Extract siap: ${parsedTitle} (${parsedDate}) • ${extractionResult.standings.length} Team`);
-          scrollToStandings();
-        } else {
-          // Fallback to presets if file name or match applies
-          await new Promise((r) => setTimeout(r, 450));
-          if (isMecMatch) {
-            setScrimName('MEC SCRIMS');
-            setScrimDate('2026-11-09');
-            setStandings(MEC_SCRIMS_18_TEAMS);
-            showToast('Poster detect: MEC SCRIMS • 9 Nov 2026 (18 Team)');
-            scrollToStandings();
-          } else if (isCtMatch) {
-            setScrimName('CT SCRIMS');
-            setScrimDate('2026-11-05');
-            setStandings(CT_SCRIMS_20_TEAMS);
-            showToast('Poster detect: CT SCRIMS • 5 Nov 2026 (20 Team)');
-            scrollToStandings();
-          } else {
-            if (
-              edgeFunctionErrorMsg &&
-              (edgeFunctionErrorMsg.includes('API key') ||
-                edgeFunctionErrorMsg.includes('UNSUPPORTED') ||
-                edgeFunctionErrorMsg.includes('BLOCKED') ||
-                edgeFunctionErrorMsg.includes('GEMINI_KEY'))
-            ) {
-              showToast('Gemini AI key belum aktif lagi. Check status API di Google AI Studio.');
-            } else if (
-              edgeFunctionErrorMsg &&
-              (edgeFunctionErrorMsg.includes('rate limit') ||
-                edgeFunctionErrorMsg.includes('429') ||
-                edgeFunctionErrorMsg.includes('RESOURCE_EXHAUSTED'))
-            ) {
-              showToast('AI limit penuh kejap (429). Tunggu 5-10 saat & upload balik.');
-            } else {
-              showToast('Tak dapat auto-extract poster. Cuba upload semula atau isi manual.');
-            }
-          }
-        }
-      } catch {
-        if (isMecMatch) {
-          setScrimName('MEC SCRIMS');
-          setScrimDate('2026-11-09');
-          setStandings(MEC_SCRIMS_18_TEAMS);
-          showToast('Poster detect: MEC SCRIMS • 9 Nov 2026 (18 Team)');
-          scrollToStandings();
-        } else if (isCtMatch) {
-          setScrimName('CT SCRIMS');
-          setScrimDate('2026-11-05');
-          setStandings(CT_SCRIMS_20_TEAMS);
-          showToast('Poster detect: CT SCRIMS • 5 Nov 2026 (20 Team)');
-          scrollToStandings();
-        } else {
-          showToast('Tak dapat proses gambar poster. Cuba sekali lagi.');
-        }
-      } finally {
-        setIsProcessing(false);
+      if (typeof onStartBackgroundScan === 'function') {
+        await onStartBackgroundScan(selectedFile, { onSuccess: scrollToStandings });
+        return;
       }
+      const objectUrl = URL.createObjectURL(selectedFile);
+      updateOcr((prev) => ({
+        ...prev,
+        file: selectedFile,
+        previewUrl: objectUrl,
+        isProcessing: true,
+        progress: 12,
+        scrimName: '',
+        standings: []
+      }));
+      const res = await executePosterOcrExtraction({
+        selectedFile,
+        supabase,
+        knownTeams,
+        onStageProgress: (p) => updateOcr((prev) => ({ ...prev, progress: p }))
+      });
+      updateOcr((prev) => ({
+        ...prev,
+        isProcessing: false,
+        progress: res.ok ? 100 : 0,
+        scrimName: res.scrimName ?? prev.scrimName,
+        scrimDate: res.scrimDate ?? prev.scrimDate,
+        standings: res.standings ?? prev.standings
+      }));
+      showToast?.(res.toastMessage);
+      if (res.ok) scrollToStandings();
     },
-    [supabase, showToast, scrollToStandings]
+    [onStartBackgroundScan, updateOcr, supabase, knownTeams, showToast, scrollToStandings]
   );
 
   const handleLoadDemoPoster = () => {
@@ -494,15 +573,19 @@ export default function ScrimDataHubView({
   };
 
   const handleResetPage = () => {
-    setFile(null);
-    setPreviewUrl(null);
+    if (typeof onResetOcrJob === 'function') {
+      onResetOcrJob();
+    } else {
+      setFile(null);
+      setPreviewUrl(null);
+      setScrimName('');
+      setScrimDate(new Date().toISOString().split('T')[0]);
+      setStandings([]);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    setScrimName('');
     setHostUsername(defaultHost);
-    setScrimDate(new Date().toISOString().split('T')[0]);
-    setStandings([]);
     setTeamSearchQuery('');
     showToast('Results Scanner dah dikosongkan.');
   };
@@ -654,15 +737,19 @@ export default function ScrimDataHubView({
       );
 
       // Kosongkan semula halaman selepas berjaya tambah ke database
-      setFile(null);
-      setPreviewUrl(null);
+      if (typeof onResetOcrJob === 'function') {
+        onResetOcrJob();
+      } else {
+        setFile(null);
+        setPreviewUrl(null);
+        setScrimName('');
+        setScrimDate(new Date().toISOString().split('T')[0]);
+        setStandings([]);
+      }
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      setScrimName('');
       setHostUsername(defaultHost);
-      setScrimDate(new Date().toISOString().split('T')[0]);
-      setStandings([]);
       setTeamSearchQuery('');
     } catch (err) {
       showToast('Error save: ' + (err.message || String(err)));
@@ -796,11 +883,12 @@ export default function ScrimDataHubView({
                     <progress aria-label="Mengimbas poster keputusan" className="loading-spinner" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-white">
-                      Tengah scan poster...
+                    <p className="text-sm font-bold text-white flex items-center justify-center gap-2">
+                      <span>Tengah scan poster...</span>
+                      <span className="font-mono tabular-nums text-[#D7FF00] text-xs">{ocrProgress}%</span>
                     </p>
                     <p className="text-[11px] text-zinc-300 font-mono">
-                      Baca Nama Scrim, Tarikh, WWCD, Placement &amp; Elims
+                      Boleh jelajah page lain — scan terus jalan di background
                     </p>
                   </div>
                 </div>

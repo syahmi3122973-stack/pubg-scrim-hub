@@ -64,7 +64,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
-import ScrimDataHubView from './components/ScrimDataHubView';
+import ScrimDataHubView, { executePosterOcrExtraction } from './components/ScrimDataHubView';
 import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
 import TeamLogoCropper from './components/TeamLogoCropper';
@@ -508,6 +508,24 @@ export default function App() {
   const activeTabRef = useRef(activeTab);
   const [ocrOverlayCount, setOcrOverlayCount] = useState(0);
   const closeOcrOverlayRef = useRef(null);
+  const [ocrJob, setOcrJob] = useState(() => ({
+    isProcessing: false,
+    progress: 0,
+    file: null,
+    previewUrl: null,
+    scrimName: '',
+    scrimDate: new Date().toISOString().split('T')[0],
+    scrimTier: 'Tier 1 (Pro)',
+    standings: []
+  }));
+  const ocrRunIdRef = useRef(0);
+  const ocrProgressTimerRef = useRef(null);
+  const ocrSettleTimerRef = useRef(null);
+  const ocrPreviewUrlRef = useRef(null);
+
+  useEffect(() => {
+    ocrPreviewUrlRef.current = ocrJob.previewUrl;
+  }, [ocrJob.previewUrl]);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -517,6 +535,12 @@ export default function App() {
     return () => {
       if (tabTransitionTimerRef.current) {
         window.clearTimeout(tabTransitionTimerRef.current);
+      }
+      if (ocrProgressTimerRef.current) {
+        window.clearInterval(ocrProgressTimerRef.current);
+      }
+      if (ocrSettleTimerRef.current) {
+        window.clearTimeout(ocrSettleTimerRef.current);
       }
     };
   }, []);
@@ -4301,6 +4325,107 @@ export default function App() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [teams, teamsStats]);
 
+  const resetOcrJob = useCallback(() => {
+    ocrRunIdRef.current += 1;
+    if (ocrProgressTimerRef.current) {
+      window.clearInterval(ocrProgressTimerRef.current);
+      ocrProgressTimerRef.current = null;
+    }
+    if (ocrSettleTimerRef.current) {
+      window.clearTimeout(ocrSettleTimerRef.current);
+      ocrSettleTimerRef.current = null;
+    }
+    if (ocrPreviewUrlRef.current && String(ocrPreviewUrlRef.current).startsWith('blob:')) {
+      URL.revokeObjectURL(ocrPreviewUrlRef.current);
+    }
+    setOcrJob((prev) => ({
+      ...prev,
+      isProcessing: false,
+      progress: 0,
+      file: null,
+      previewUrl: null,
+      scrimName: '',
+      scrimDate: new Date().toISOString().split('T')[0],
+      standings: []
+    }));
+  }, []);
+
+  const startBackgroundOcrScan = useCallback(async (selectedFile, { onSuccess } = {}) => {
+    if (!selectedFile) return;
+    const runId = ocrRunIdRef.current + 1;
+    ocrRunIdRef.current = runId;
+
+    if (ocrProgressTimerRef.current) {
+      window.clearInterval(ocrProgressTimerRef.current);
+      ocrProgressTimerRef.current = null;
+    }
+    if (ocrSettleTimerRef.current) {
+      window.clearTimeout(ocrSettleTimerRef.current);
+      ocrSettleTimerRef.current = null;
+    }
+    if (ocrPreviewUrlRef.current && String(ocrPreviewUrlRef.current).startsWith('blob:')) {
+      URL.revokeObjectURL(ocrPreviewUrlRef.current);
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setOcrJob((prev) => ({
+      ...prev,
+      isProcessing: true,
+      progress: 6,
+      file: selectedFile,
+      previewUrl: objectUrl,
+      scrimName: '',
+      standings: []
+    }));
+
+    ocrProgressTimerRef.current = window.setInterval(() => {
+      if (ocrRunIdRef.current !== runId) return;
+      setOcrJob((prev) => {
+        if (!prev.isProcessing || prev.progress >= 92) return prev;
+        const step = Math.max(1, Math.round((93 - prev.progress) * 0.12));
+        return { ...prev, progress: Math.min(92, prev.progress + step) };
+      });
+    }, 150);
+
+    const res = await executePosterOcrExtraction({
+      selectedFile,
+      supabase,
+      knownTeams: allManageableTeams,
+      onStageProgress: (pct) => {
+        if (ocrRunIdRef.current !== runId) return;
+        setOcrJob((prev) => ({ ...prev, progress: Math.max(prev.progress, pct) }));
+      }
+    });
+
+    if (ocrRunIdRef.current !== runId) return;
+
+    if (ocrProgressTimerRef.current) {
+      window.clearInterval(ocrProgressTimerRef.current);
+      ocrProgressTimerRef.current = null;
+    }
+
+    setOcrJob((prev) => ({
+      ...prev,
+      progress: res.ok ? 100 : 0,
+      isProcessing: Boolean(res.ok),
+      scrimName: res.scrimName ?? prev.scrimName,
+      scrimDate: res.scrimDate ?? prev.scrimDate,
+      standings: res.standings ?? prev.standings
+    }));
+
+    showToast(res.toastMessage);
+    if (res.ok && activeTabRef.current === 'scrim-data') {
+      onSuccess?.();
+    }
+
+    if (res.ok) {
+      ocrSettleTimerRef.current = window.setTimeout(() => {
+        if (ocrRunIdRef.current !== runId) return;
+        setOcrJob((prev) => ({ ...prev, isProcessing: false, progress: 0 }));
+      }, 650);
+    }
+  }, [allManageableTeams]);
+
   const potentialDuplicatePairs = useMemo(
     () => findPotentialDuplicatePairs(allManageableTeams),
     [allManageableTeams]
@@ -5965,6 +6090,20 @@ export default function App() {
                       {renderActiveRail(active)}
                       <Icon className={'w-4 h-4 shrink-0 ' + (active ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
                       <span className="truncate">{label}</span>
+                      {id === 'scrim-data' && ocrJob.isProcessing && (
+                        <span
+                          aria-live="polite"
+                          aria-label={`Mengimbas ${ocrJob.progress}%`}
+                          className="ml-auto inline-flex items-center gap-1.5 font-mono tabular-nums text-[11px] font-medium text-zinc-300 shrink-0"
+                        >
+                          <progress
+                            aria-hidden="true"
+                            className="loading-spinner"
+                            style={{ '--size': '11px', '--thickness': '1.5px' }}
+                          />
+                          <span>{ocrJob.progress}%</span>
+                        </span>
+                      )}
                     </button>
                   ))}
 
@@ -6892,7 +7031,22 @@ export default function App() {
                       <div className="w-11 h-11 rounded-2xl bg-[#EE7EB1] text-zinc-950 flex items-center justify-center group-hover:scale-105 transition-transform">
                         <Upload className="w-5 h-5 stroke-[2]" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
+                      {ocrJob.isProcessing ? (
+                        <span
+                          aria-live="polite"
+                          aria-label={`Mengimbas ${ocrJob.progress}%`}
+                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-950 text-white font-mono tabular-nums text-[11px] font-semibold"
+                        >
+                          <progress
+                            aria-hidden="true"
+                            className="loading-spinner"
+                            style={{ '--size': '10px', '--thickness': '1.5px' }}
+                          />
+                          <span>{ocrJob.progress}%</span>
+                        </span>
+                      ) : (
+                        <ArrowRight className="w-4 h-4 text-zinc-950 group-hover:translate-x-0.5 transition-transform" />
+                      )}
                     </div>
 
                     {/* Specific Capability Summary */}
@@ -9684,6 +9838,10 @@ export default function App() {
             setScrims={setScrims}
             knownTeams={allManageableTeams}
             showToast={showToast}
+            ocrJob={ocrJob}
+            setOcrJob={setOcrJob}
+            onStartBackgroundScan={startBackgroundOcrScan}
+            onResetOcrJob={resetOcrJob}
           />
         )}
 
@@ -13354,6 +13512,20 @@ export default function App() {
                     Upload poster untuk extract &amp; check markah.
                   </p>
                 </div>
+                {ocrJob.isProcessing && (
+                  <span
+                    aria-live="polite"
+                    aria-label={`Mengimbas ${ocrJob.progress}%`}
+                    className="inline-flex items-center gap-1.5 font-mono tabular-nums text-[11px] font-semibold text-zinc-200 shrink-0"
+                  >
+                    <progress
+                      aria-hidden="true"
+                      className="loading-spinner"
+                      style={{ '--size': '11px', '--thickness': '1.5px' }}
+                    />
+                    <span>{ocrJob.progress}%</span>
+                  </span>
+                )}
               </button>
             </div>
           </div>
