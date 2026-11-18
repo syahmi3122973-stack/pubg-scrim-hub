@@ -4859,7 +4859,7 @@ export default function App() {
     const vpW = Math.max(clientW - vpLeft, 240);
     const vpH = window.innerHeight || 844;
     const cs = window.getComputedStyle(el);
-    const borderRadius = parseFloat(cs.borderTopLeftRadius) || 28;
+    const borderRadius = parseFloat(cs.borderTopLeftRadius) || 12;
     const bg =
       cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent'
         ? cs.backgroundColor
@@ -4886,13 +4886,13 @@ export default function App() {
       top: vpH * 0.2,
       width: vpW * 0.8,
       height: 180,
-      borderRadius: 28
+      borderRadius: 12
     };
     const x0 = safeRect.left - vpLeft;
     const y0 = safeRect.top;
     const w0 = Math.max(safeRect.width, 44);
     const h0 = Math.max(safeRect.height, 44);
-    const r0 = safeRect.borderRadius || 28;
+    const r0 = safeRect.borderRadius || 12;
 
     const easeSpring = (u) => {
       if (u <= 0) return 0;
@@ -5547,7 +5547,7 @@ export default function App() {
         <div
           role="dialog"
           aria-label="Active User Account"
-          className="w-full bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-[1.5rem] p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
+          className="w-full bg-[#141418] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-2xl p-3 space-y-2.5 origin-top animate-dropdown-reveal overscroll-contain"
         >
           <div className="flex items-center justify-between px-1.5 pt-0.5">
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
@@ -6444,17 +6444,17 @@ export default function App() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-5">
-                  <div className="col-span-2 lg:col-span-6 h-44 lg:h-96 rounded-[2rem] glass-panel animate-pulse p-6 flex flex-col justify-between">
+                  <div className="col-span-2 lg:col-span-6 h-44 lg:h-96 rounded-3xl glass-panel animate-pulse p-6 flex flex-col justify-between">
                     <div className="h-6 w-40 rounded-full bg-white/[0.08]" />
                     <div className="space-y-2">
                       <div className="h-4 w-56 rounded-full bg-white/[0.06]" />
                       <div className="h-3 w-36 rounded-full bg-white/[0.04]" />
                     </div>
                   </div>
-                  <div className="col-span-1 lg:col-span-3 h-72 lg:h-96 rounded-[2rem] glass-panel animate-pulse" />
+                  <div className="col-span-1 lg:col-span-3 h-72 lg:h-96 rounded-3xl glass-panel animate-pulse" />
                   <div className="col-span-1 lg:col-span-3 space-y-3.5 lg:space-y-5">
-                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] glass-panel animate-pulse" />
-                    <div className="h-[137px] lg:h-[182px] rounded-[2rem] glass-panel animate-pulse" />
+                    <div className="h-[137px] lg:h-[182px] rounded-3xl glass-panel animate-pulse" />
+                    <div className="h-[137px] lg:h-[182px] rounded-3xl glass-panel animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -6596,7 +6596,7 @@ export default function App() {
                     onFocus={() => setIsHomeHofInteracting(true)}
                     onBlur={() => setIsHomeHofInteracting(false)}
                     style={{ '--home-delay': '80ms' }}
-                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-[2rem] p-5 sm:p-6 lg:p-7 home-card-lime hof-hero-card text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.985] [&:has([data-hof-controls]:active)]:scale-100 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
+                    className="col-span-2 lg:col-span-6 lg:row-span-2 rounded-3xl p-5 sm:p-6 lg:p-7 home-card-lime hof-hero-card text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.985] [&:has([data-hof-controls]:active)]:scale-100 cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between animate-home-tier"
                   >
                     <div className="relative z-10 flex flex-col justify-between gap-3.5 lg:h-full">
                       {/* Top Row: Smooth Crossfading Section Label, Title & Reactive Trophy Icon */}
@@ -6894,7 +6894,7 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '160ms' }}
-                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-[2rem] p-5 lg:p-6 home-card-pink text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
+                    className="col-span-1 row-span-2 lg:col-span-3 lg:row-span-2 rounded-3xl p-5 lg:p-6 home-card-pink text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[290px] sm:min-h-[320px] lg:min-h-[380px] animate-home-tier"
                   >
                     {/* Top Icon */}
                     <div className="flex items-center justify-between gap-2 relative z-10">
@@ -6935,7 +6935,7 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '230ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 home-card-blue text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-3xl p-4 sm:p-5 lg:p-6 home-card-blue text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="flex items-center justify-between gap-2 relative z-10">
                       <div className="w-10 h-10 rounded-2xl bg-[#6EAEF2] text-zinc-950 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -6967,7 +6967,7 @@ export default function App() {
                       }
                     }}
                     style={{ '--home-delay': '300ms' }}
-                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-[2rem] p-4 sm:p-5 lg:p-6 home-card-emerald text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
+                    className="col-span-1 lg:col-span-3 lg:row-span-1 rounded-3xl p-4 sm:p-5 lg:p-6 home-card-emerald text-zinc-950 lg:hover:-translate-y-1 active:scale-[0.98] transition-[transform,background-color] duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden group select-none min-h-[140px] sm:min-h-[152px] lg:min-h-[180px] animate-home-tier"
                   >
                     <div className="flex items-center justify-between gap-2 relative z-10">
                       <div className="w-10 h-10 rounded-2xl bg-[#61CF8B] text-zinc-950 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -7007,7 +7007,7 @@ export default function App() {
                   style={{ '--home-delay': '370ms' }}
                 >
                   {/* Left: Top Contenders Live Standings */}
-                  <div className="lg:col-span-7 glass-panel rounded-[2rem] p-6 space-y-4">
+                  <div className="lg:col-span-7 glass-panel rounded-3xl p-6 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
                         <div>
@@ -7170,7 +7170,7 @@ export default function App() {
                   </div>
 
                   {/* Right: Recent Sessions & Quick Portal Actions */}
-                  <div className="lg:col-span-5 glass-panel rounded-[2rem] p-6 flex flex-col justify-between gap-4">
+                  <div className="lg:col-span-5 glass-panel rounded-3xl p-6 flex flex-col justify-between gap-4">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2.5">
@@ -7409,7 +7409,7 @@ export default function App() {
                 </div>
 
                 {/* 2. TEAM IDENTITY HERO BANNER */}
-                <div className="relative overflow-hidden glass-panel rounded-[2rem] p-5 sm:p-6">
+                <div className="relative overflow-hidden glass-panel rounded-3xl p-5 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-4 min-w-0">
                       {activeTeamData.logo_url ? (
@@ -12146,7 +12146,7 @@ export default function App() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg glass-modal rounded-[2rem] p-5 sm:p-6 space-y-4 h-[82dvh] sm:h-[78vh] flex flex-col relative animate-card-entrance overflow-hidden"
+            className="w-full max-w-lg glass-modal rounded-3xl p-5 sm:p-6 space-y-4 h-[82dvh] sm:h-[78vh] flex flex-col relative animate-card-entrance overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
