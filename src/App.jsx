@@ -8104,43 +8104,38 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Sleek Dark Obsidian Surface, Amber Reserved for #1 & CTA) */}
+              {/* 3B. TIER 3 SPOTLIGHT HIERARCHY (Vercel Hairline Panel — Zero Card-in-Card, No Icon) */}
               {teamStatsCategory === 'ALL' && !teamSearchQuery.trim() && tier3RankedTeams.length > 0 && (
                 <div
-                  className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-3.5 animate-teams-blur relative overflow-hidden"
+                  className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden animate-teams-blur relative"
                   style={{ '--blur-delay': '260ms' }}
                 >
-                  <div className="flex items-center justify-between gap-2 relative z-10">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-2xl bg-[#19191E] text-zinc-200 flex items-center justify-center shrink-0">
-                        <Award className="w-4 h-4" />
+                  <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-sm font-semibold text-white tracking-tight">
+                          Division Amateur
+                        </h2>
+                        <span className="text-[11px] font-mono tabular-nums text-zinc-500">
+                          {tier3RankedTeams.length} Team · Tier 3
+                        </span>
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-sm sm:text-base font-black text-white tracking-tight">
-                            Division Amateur
-                          </h2>
-                          <span className="px-2 py-0.5 rounded-full bg-[#19191E] text-zinc-300 font-mono tabular-nums font-bold text-[9px] uppercase tracking-wider">
-                            {tier3RankedTeams.length} Team
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-zinc-400 truncate">
-                          Top team kategori Tier 3
-                        </p>
-                      </div>
+                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                        Top team kategori Tier 3
+                      </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleSelectTeamStatsCategory('TIER_3')}
-                      className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
+                      className="px-3 py-1.5 rounded-lg border border-amber-400/25 hover:border-amber-400/50 bg-transparent hover:bg-amber-400/[0.06] text-amber-300 hover:text-amber-200 font-medium text-xs inline-flex items-center gap-1.5 transition cursor-pointer shrink-0 active:scale-[0.98]"
                     >
                       <span>Rank Tier 3</span>
-                      <ArrowRight className="w-3 h-3" />
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08]">
                     {tier3RankedTeams.slice(0, 3).map((t3Team, idx) => (
                       <button
                         key={`hof_t3_${t3Team.name}`}
@@ -8148,15 +8143,15 @@ export default function App() {
                         data-vt-team={t3Team.name}
                         data-vt-team-slot={`t3_${t3Team.name}`}
                         onClick={(e) => openTeamProfile(t3Team.name, e.currentTarget, `t3_${t3Team.name}`)}
-                        className="w-full text-left rounded-2xl bg-[#19191E] hover:bg-[#222229] px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition cursor-pointer group active:scale-[0.99]"
+                        className="w-full text-left px-4 py-3 hover:bg-white/[0.03] flex items-center justify-between gap-3 transition-colors cursor-pointer group active:bg-white/[0.05]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className={`w-7 h-7 rounded-xl font-mono tabular-nums font-black text-xs flex items-center justify-center shrink-0 ${
+                          <span className={`font-mono tabular-nums font-bold text-xs w-5 shrink-0 ${
                             idx === 0
-                              ? 'bg-amber-400 text-zinc-950'
+                              ? 'text-amber-300'
                               : idx === 1
-                              ? 'bg-zinc-200 text-zinc-950'
-                              : 'bg-[#26262F] text-zinc-200'
+                              ? 'text-zinc-200'
+                              : 'text-zinc-500'
                           }`}>
                             #{idx + 1}
                           </span>
@@ -8165,29 +8160,29 @@ export default function App() {
                             <img
                               src={t3Team.logo_url}
                               alt=""
-                              className="w-8 h-8 rounded-xl object-cover bg-[#111114] shrink-0"
+                              className="w-7 h-7 rounded-md object-contain shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-xl bg-[#111114] text-zinc-200 font-black text-[11px] flex items-center justify-center shrink-0">
+                            <span className="w-7 h-7 rounded-md border border-white/[0.08] text-zinc-300 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
                               {(t3Team.tag || t3Team.name.slice(0, 3)).toUpperCase()}
-                            </div>
+                            </span>
                           )}
 
                           <div className="min-w-0">
-                            <div className="text-xs sm:text-sm font-black text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                            <div className="text-xs sm:text-[13px] font-semibold text-white truncate group-hover:text-[#D7FF00] transition-colors">
                               {t3Team.name}
                             </div>
-                            <div className="text-[10px] font-mono tabular-nums text-zinc-400">
-                              {t3Team.tier3Kills} Elims • {t3Team.tier3WWCD} WWCD
+                            <div className="text-[10px] font-mono tabular-nums text-zinc-500">
+                              {t3Team.tier3Kills} Elims · {t3Team.tier3WWCD} WWCD
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right font-mono tabular-nums shrink-0">
-                          <div className="text-sm font-black text-white leading-none">
+                          <div className="text-sm font-bold text-white leading-none">
                             {t3Team.tier3Points}
                           </div>
-                          <div className="text-[9px] text-zinc-500 font-bold">
+                          <div className="text-[9px] text-zinc-500 font-medium mt-0.5">
                             T3 PTS
                           </div>
                         </div>
@@ -8197,26 +8192,26 @@ export default function App() {
                 </div>
               )}
 
-              {/* 4. TOP PERFORM TEAM CARD (Podium Top 3 + Broadcast List #4–#10 & Beyond) */}
+              {/* 4. TOP PERFORM TEAM PANEL (Vercel Dashboard Table & Split Spotlight — Zero Card-in-Card) */}
               <div
                 data-aurora-target="teams"
-                className="glass-panel rounded-3xl p-4 sm:p-6 space-y-4 min-h-[420px] animate-teams-blur"
+                className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden animate-teams-blur"
                 style={{ '--blur-delay': '360ms' }}
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="px-4 sm:px-6 py-4 border-b border-white/[0.08] flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    <h2 className="text-sm sm:text-base font-semibold text-white tracking-tight">
                       {teamStatsCategory === 'SSS'
-                        ? `Top Perform Team • ${activeSssSummaryLabel}${teamStatsEventType !== 'ALL' ? ` (${HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType})` : ''}`
+                        ? `Top Perform Team · ${activeSssSummaryLabel}${teamStatsEventType !== 'ALL' ? ` (${HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType})` : ''}`
                         : teamStatsEventType === 'Tour'
-                        ? `Top Perform Team • Tournament${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
+                        ? `Top Perform Team · Tournament${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
                         : teamStatsEventType === 'Scrim'
-                        ? `Top Perform Team • Scrim${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
+                        ? `Top Perform Team · Scrim${teamStatsCategory !== 'ALL' ? ` (${HALL_OF_FAME_FILTERS.find(f => f.key === teamStatsCategory)?.label || teamStatsCategory})` : ''}`
                         : 'Top Perform Team'}
                     </h2>
-                    <span className="text-[11px] text-zinc-400">
+                    <span className="text-[11px] font-mono text-zinc-400">
                       {teamStatsCategory === 'SSS'
-                        ? `${activeSssSummaryLabel} • `
+                        ? `${activeSssSummaryLabel} · `
                         : ''}
                       {teamSearchQuery.trim()
                         ? `Jumpa ${displayedRankedTeams.length} team`
@@ -8226,16 +8221,16 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* Top-Right View Full Button */}
+                  {/* Top-Right View Full Action (Vercel flat bordered control) */}
                   {!teamSearchQuery.trim() && rankedTeamsWithStats.length > 10 && (
                     <button
                       type="button"
                       onClick={() => setIsHallOfFameFullView(prev => !prev)}
                       className={
-                        'h-9 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition cursor-pointer shrink-0 ' +
+                        'h-8 px-3 rounded-lg border flex items-center gap-1.5 text-xs font-medium transition cursor-pointer shrink-0 active:scale-[0.98] ' +
                         (isHallOfFameFullView
-                          ? 'bg-[#D7FF00] text-black shadow-sm'
-                          : 'glass-pill glass-tile-hover text-zinc-200')
+                          ? 'border-[#D7FF00]/45 bg-[#D7FF00]/[0.08] text-[#D7FF00]'
+                          : 'border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.04] text-zinc-300 hover:text-white')
                       }
                       title={isHallOfFameFullView ? 'Tutup senarai penuh' : 'Lihat senarai penuh semua pasukan'}
                     >
@@ -8246,13 +8241,13 @@ export default function App() {
                 </div>
 
                 {isDataLoading && validTeamList.length === 0 ? (
-                  <div className="space-y-2.5 py-2" aria-busy="true" aria-label="Memuatkan ranking pasukan">
-                    <div className="flex items-center justify-center gap-2 pb-2">
+                  <div className="divide-y divide-white/[0.06]" aria-busy="true" aria-label="Memuatkan ranking pasukan">
+                    <div className="flex items-center justify-center gap-2 py-4">
                       <progress aria-label="Memuatkan Team Matrix" className="loading-spinner" style={{ '--size': '16px', '--thickness': '2px' }} />
                       <span className="text-xs font-mono text-zinc-300">Loading ranking team...</span>
                     </div>
                     {[0, 1, 2, 3].map((i) => (
-                      <div key={i} className="glass-tile rounded-xl px-4 py-3 flex items-center justify-between gap-3 animate-pulse">
+                      <div key={i} className="px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3 animate-pulse">
                         <div className="flex items-center gap-3">
                           <div className="w-6 h-4 rounded bg-white/[0.08]" />
                           <div className="w-12 h-5 rounded bg-white/[0.07]" />
@@ -8263,8 +8258,8 @@ export default function App() {
                     ))}
                   </div>
                 ) : validTeamList.length === 0 ? (
-                  <div className="py-8 text-center space-y-2">
-                    <Users className="w-7 h-7 text-zinc-500 mx-auto" />
+                  <div className="py-12 text-center space-y-2">
+                    <Users className="w-6 h-6 text-zinc-500 mx-auto" />
                     <p className="text-xs text-zinc-400 max-w-xs mx-auto">
                       Belum ada rekod match. Markah yang dah save akan masuk sini.
                     </p>
@@ -8278,17 +8273,17 @@ export default function App() {
                   const eventLabel = teamStatsEventType === 'ALL'
                     ? ''
                     : (HALL_OF_FAME_EVENT_TOGGLES.find(f => f.key === teamStatsEventType)?.label || teamStatsEventType);
-                  const activeFilterLabel = [eventLabel, tierLabel].filter(Boolean).join(' • ') || 'Semua';
+                  const activeFilterLabel = [eventLabel, tierLabel].filter(Boolean).join(' · ') || 'Semua';
                   return (
                     <div
                       key={`teams_empty_${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`}
-                      className="min-h-[320px] flex flex-col items-center justify-center py-10 px-4 text-center space-y-3 glass-tile rounded-2xl animate-teams-scope"
+                      className="min-h-[280px] flex flex-col items-center justify-center py-12 px-4 text-center space-y-3 animate-teams-scope"
                     >
-                      <div className="w-11 h-11 rounded-2xl glass-pill text-zinc-400 flex items-center justify-center mx-auto">
+                      <div className="text-zinc-400 mx-auto">
                         {teamSearchQuery.trim() ? <Search className="w-5 h-5" /> : <Users className="w-5 h-5 text-[#D7FF00]/80" />}
                       </div>
                       <div className="space-y-1 max-w-xs mx-auto">
-                        <p className="text-xs sm:text-sm font-bold text-white">
+                        <p className="text-xs sm:text-sm font-semibold text-white">
                           {teamSearchQuery.trim()
                             ? `Tak jumpa team "${teamSearchQuery.trim()}"`
                             : `Belum ada rekod ${activeFilterLabel}`}
@@ -8309,7 +8304,7 @@ export default function App() {
                             setTeamStatsEventType('ALL');
                           }
                         }}
-                        className="px-4 py-1.5 rounded-full glass-pill glass-tile-hover text-xs font-bold text-[#D7FF00] transition cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-lg border border-white/[0.12] hover:border-[#D7FF00]/50 hover:bg-[#D7FF00]/[0.06] text-xs font-medium text-[#D7FF00] transition cursor-pointer"
                       >
                         {teamSearchQuery.trim() ? 'Reset Carian' : 'Lihat Semua Data'}
                       </button>
@@ -8320,7 +8315,7 @@ export default function App() {
                   const top3Teams = isSearchingTeams ? [] : displayedRankedTeams.slice(0, 3);
                   const listTeams = isSearchingTeams ? displayedRankedTeams : displayedRankedTeams.slice(3);
 
-                  // Arrange podium slots visually: [#2 Left, #1 Center Elevated, #3 Right]
+                  // Arrange podium slots visually: [#2 Left, #1 Center, #3 Right]
                   const podiumSlots =
                     top3Teams.length === 3
                       ? [
@@ -8338,16 +8333,16 @@ export default function App() {
                   return (
                     <div
                       key={`teams_scope_${teamStatsCategory}_${teamStatsEventType}_${activeSssOptionId}`}
-                      className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto min-h-[320px] space-y-2.5 sm:space-y-3 animate-teams-scope"
+                      className="animate-teams-scope"
                     >
-                      {/* TOP 3 PODIUM SHOWCASE */}
+                      {/* TOP 3 PODIUM SHOWCASE (Hairline Partitioned Cells — No Nested Cards) */}
                       {podiumSlots.length > 0 && (
                         <div
-                          className={`grid items-end gap-2 sm:gap-3.5 ${
+                          className={`grid divide-x divide-white/[0.08] border-b border-white/[0.08] ${
                             podiumSlots.length === 1
-                              ? 'grid-cols-1 max-w-xs mx-auto'
+                              ? 'grid-cols-1'
                               : podiumSlots.length === 2
-                              ? 'grid-cols-2 max-w-lg mx-auto'
+                              ? 'grid-cols-2'
                               : 'grid-cols-3'
                           }`}
                         >
@@ -8358,29 +8353,23 @@ export default function App() {
                             const isSecond = slotRank === 2;
                             const podiumDelay = isFirst ? '160ms' : isSecond ? '260ms' : '350ms';
 
-                            const podiumSurfaceClass = isFirst
-                              ? 'glass-lime'
+                            const slotToneClass = isFirst
+                              ? 'bg-gradient-to-b from-[#D7FF00]/[0.07] via-transparent to-transparent hover:from-[#D7FF00]/[0.11]'
                               : isSecond
-                              ? 'glass-silver'
-                              : 'glass-amber';
+                              ? 'bg-gradient-to-b from-white/[0.03] via-transparent to-transparent hover:from-white/[0.05]'
+                              : 'bg-gradient-to-b from-amber-400/[0.035] via-transparent to-transparent hover:from-amber-400/[0.06]';
 
-                            const rankPillClass = isFirst
-                              ? 'bg-[#D7FF00] text-black'
-                              : isSecond
-                              ? 'bg-zinc-200 text-black'
-                              : 'bg-amber-400 text-black';
-
-                            const ptsColorClass = isFirst
+                            const rankTextClass = isFirst
                               ? 'text-[#D7FF00]'
                               : isSecond
                               ? 'text-zinc-200'
                               : 'text-amber-300';
 
-                            const fallbackPedestalBg = isFirst
-                              ? 'bg-[#D7FF00] text-black'
+                            const ptsColorClass = isFirst
+                              ? 'text-[#D7FF00]'
                               : isSecond
-                              ? 'bg-zinc-200 text-black'
-                              : 'bg-amber-400 text-black';
+                              ? 'text-zinc-300'
+                              : 'text-amber-300';
 
                             return (
                               <div
@@ -8397,78 +8386,70 @@ export default function App() {
                                   }
                                 }}
                                 style={{ '--blur-delay': podiumDelay }}
-                                className={`rounded-2xl sm:rounded-3xl overflow-hidden transition-[transform,filter,background-color] duration-200 hover:-translate-y-0.5 active:scale-[0.97] cursor-pointer group flex flex-col justify-between select-none px-2 sm:px-3.5 animate-teams-blur ${
-                                  isFirst
-                                    ? 'pt-2.5 pb-3 sm:pt-4 sm:pb-4 min-h-[186px] sm:min-h-[252px]'
-                                    : 'pt-2 pb-2.5 sm:pt-3.5 sm:pb-3.5 min-h-[168px] sm:min-h-[228px]'
-                                } ${podiumSurfaceClass} ${
-                                  isSelected ? 'brightness-110' : ''
-                                }`}
+                                className={`transition-colors duration-200 cursor-pointer group flex flex-col justify-between select-none px-2.5 sm:px-5 py-3.5 sm:py-5 animate-teams-blur ${
+                                  isFirst ? 'min-h-[176px] sm:min-h-[228px]' : 'min-h-[164px] sm:min-h-[214px]'
+                                } ${slotToneClass} ${isSelected ? 'bg-[#D7FF00]/[0.1]' : ''}`}
                               >
-                                {/* Top Row: Rank Badge + Optional T3 Rank */}
+                                {/* Top Row: Rank Index + Optional T3 Rank */}
                                 <div className="flex items-center justify-between gap-1 w-full">
                                   <span
-                                    className={`inline-flex items-center justify-center px-1.5 sm:px-2 py-0.5 rounded-full font-mono font-black text-[10px] sm:text-xs leading-none ${rankPillClass}`}
+                                    className={`font-mono font-bold text-xs sm:text-sm leading-none ${rankTextClass}`}
                                   >
                                     #{rankNum}
                                   </span>
                                   {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200 font-mono font-bold text-[9px] sm:text-[10px] leading-none shrink-0">
+                                    <span className="font-mono font-semibold text-[9px] sm:text-[10px] text-amber-300/90 leading-none shrink-0">
                                       T3 #{tier3RankByTeam.get(team.name).tier3Rank}
                                     </span>
                                   ) : (
-                                    <Eye className="hidden sm:block w-3.5 h-3.5 text-white/35 group-hover:text-white/80 transition-colors" />
+                                    <Eye className="hidden sm:block w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-300 transition-colors" />
                                   )}
                                 </div>
 
-                                {/* Centered Logo */}
-                                <div className="flex items-center justify-center my-2 sm:my-3">
+                                {/* Centered Logo (No boxed wrapper around real logos) */}
+                                <div className="flex items-center justify-center my-2.5 sm:my-3.5">
                                   {team.logo_url ? (
-                                    <div
-                                      className={`rounded-xl sm:rounded-2xl bg-[#111114] p-1.5 sm:p-2 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center ${
-                                        isFirst ? 'w-14 h-14 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-16 sm:h-16'
+                                    <img
+                                      src={team.logo_url}
+                                      alt={team.name}
+                                      className={`object-contain rounded-lg group-hover:scale-105 transition-transform duration-300 ${
+                                        isFirst ? 'w-12 h-12 sm:w-18 sm:h-18' : 'w-11 h-11 sm:w-14 sm:h-14'
                                       }`}
-                                    >
-                                      <img
-                                        src={team.logo_url}
-                                        alt={team.name}
-                                        className="w-full h-full object-contain rounded-lg sm:rounded-xl"
-                                      />
-                                    </div>
+                                    />
                                   ) : (
                                     <div
-                                      className={`rounded-xl sm:rounded-2xl flex items-center justify-center font-black group-hover:scale-105 transition-transform duration-300 ${
-                                        isFirst ? 'w-14 h-14 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-16 sm:h-16'
-                                      } ${fallbackPedestalBg}`}
+                                      className={`rounded-lg border border-white/[0.1] flex items-center justify-center font-mono font-bold group-hover:scale-105 transition-transform duration-300 ${
+                                        isFirst
+                                          ? 'w-12 h-12 sm:w-18 sm:h-18 text-xs sm:text-base text-[#D7FF00]'
+                                          : 'w-11 h-11 sm:w-14 sm:h-14 text-xs sm:text-sm text-zinc-200'
+                                      }`}
                                     >
-                                      <span className="text-xs sm:text-lg tracking-tight">
-                                        {team.tag || team.name.slice(0, 3).toUpperCase()}
-                                      </span>
+                                      {team.tag || team.name.slice(0, 3).toUpperCase()}
                                     </div>
                                   )}
                                 </div>
 
                                 {/* Bottom Identity & Points Summary */}
                                 <div className="text-center space-y-1 w-full">
-                                  <div className="text-[11px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight line-clamp-2 min-h-[2.2em] flex items-center justify-center">
+                                  <div className="text-[11px] sm:text-sm font-semibold uppercase tracking-tight text-white leading-tight line-clamp-2 min-h-[2.2em] flex items-center justify-center group-hover:text-[#D7FF00] transition-colors">
                                     {team.name}
                                   </div>
 
-                                  <div className="flex items-baseline justify-center gap-1 font-mono font-black tabular-nums">
+                                  <div className="flex items-baseline justify-center gap-1 font-mono font-bold tabular-nums">
                                     <span className={`leading-none text-white ${isFirst ? 'text-base sm:text-2xl' : 'text-sm sm:text-xl'}`}>
                                       {team.scopedPoints}
                                     </span>
-                                    <span className={`text-[9px] sm:text-[11px] font-bold ${ptsColorClass}`}>
+                                    <span className={`text-[9px] sm:text-[11px] font-semibold ${ptsColorClass}`}>
                                       PTS
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[9px] sm:text-[11px] font-mono text-zinc-300/90 tabular-nums tracking-tight whitespace-nowrap pt-0.5">
+                                  <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[9px] sm:text-[11px] font-mono text-zinc-400 tabular-nums tracking-tight whitespace-nowrap pt-0.5">
                                     <span className="sm:hidden">{team.scopedKills}E</span>
                                     <span className="hidden sm:inline">{team.scopedKills} Elims</span>
-                                    <span className="text-white/25">·</span>
+                                    <span className="text-zinc-700">·</span>
                                     <span>{team.scopedWWCD}W</span>
-                                    <span className="text-white/25">·</span>
+                                    <span className="text-zinc-700">·</span>
                                     <span>{team.scopedMatches}M</span>
                                   </div>
                                 </div>
@@ -8478,9 +8459,9 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* RANK #4 TO #10+ BROADCAST STACKED DARK LIST */}
+                      {/* RANK #4 TO #10+ VERCEL FLAT TABLE ROWS */}
                       {listTeams.length > 0 && (
-                        <div className="space-y-1.5 pt-0.5">
+                        <div className="divide-y divide-white/[0.06]">
                           {listTeams.map((team, idx) => {
                             const rankNum = team.globalRank || (isSearchingTeams ? idx + 1 : idx + 4);
                             const isSelected = currentSelectedTeam === team.name;
@@ -8500,55 +8481,53 @@ export default function App() {
                                     openTeamProfile(team.name, e.currentTarget, `main_${team.name}`);
                                   }
                                 }}
-                                style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 60}ms` }}
-                                className={`team-list-row px-3 sm:px-4 py-2.5 rounded-xl transition-[transform,background-color] duration-200 active:scale-[0.985] flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
+                                style={{ '--blur-delay': `${380 + Math.min(idx, 6) * 45}ms` }}
+                                className={`team-list-row px-4 sm:px-6 py-3 transition-colors duration-150 flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer group animate-teams-blur select-none ${
                                   isSelected
-                                    ? 'bg-[#22280F]'
-                                    : 'glass-tile glass-tile-hover'
+                                    ? 'bg-[#D7FF00]/[0.07]'
+                                    : 'hover:bg-white/[0.03] active:bg-white/[0.05]'
                                 }`}
                               >
                                 {/* Left: Rank # + Avatar/Tag + Full Readable Team Identity */}
                                 <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
                                   <span
-                                    className={`w-6 sm:w-7 text-center font-mono tabular-nums font-black text-xs sm:text-sm shrink-0 ${
+                                    className={`w-6 sm:w-7 text-center font-mono tabular-nums font-bold text-xs sm:text-sm shrink-0 ${
                                       rankNum === 1
                                         ? 'text-[#D7FF00]'
                                         : rankNum === 2
                                         ? 'text-zinc-200'
                                         : rankNum === 3
                                         ? 'text-amber-400'
-                                        : 'text-zinc-400'
+                                        : 'text-zinc-500'
                                     }`}
                                   >
                                     {rankNum}
                                   </span>
 
-                                  {/* Mobile: Show Logo (if available) or Tag badge in left slot so team name gets full width */}
                                   {team.logo_url ? (
                                     <img
                                       src={team.logo_url}
                                       alt=""
-                                      className="sm:hidden w-8 h-8 rounded-lg object-contain bg-[#111114] p-0.5 shrink-0"
+                                      className="sm:hidden w-7 h-7 rounded-md object-contain shrink-0"
                                     />
                                   ) : (
-                                    <span className="sm:hidden px-1.5 py-1 min-w-[38px] text-center rounded-lg font-mono font-black text-[10px] uppercase shrink-0 bg-[#111114] text-zinc-200">
+                                    <span className="sm:hidden w-9 text-center font-mono font-semibold text-[10px] uppercase shrink-0 text-zinc-400">
                                       {tagText}
                                     </span>
                                   )}
 
-                                  {/* Desktop Tag Pill */}
-                                  <span className="hidden sm:inline-block px-2 py-0.5 min-w-[54px] text-center rounded-md font-mono font-black text-xs uppercase shrink-0 bg-[#111114] text-zinc-200">
+                                  <span className="hidden sm:inline-block min-w-[52px] font-mono font-semibold text-xs uppercase shrink-0 text-zinc-400">
                                     {tagText}
                                   </span>
 
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <span className="text-[13px] sm:text-sm font-black uppercase tracking-tight text-white leading-tight break-words sm:truncate">
+                                      <span className="text-[13px] sm:text-sm font-semibold uppercase tracking-tight text-white group-hover:text-[#D7FF00] transition-colors leading-tight break-words sm:truncate">
                                         {team.name}
                                       </span>
 
                                       {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
-                                        <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-md font-mono tabular-nums font-black text-[10px] bg-amber-400/15 text-amber-300 shrink-0">
+                                        <span className="hidden sm:inline-flex font-mono tabular-nums font-semibold text-[10px] text-amber-300/90 shrink-0">
                                           T3 #{tier3RankByTeam.get(team.name).tier3Rank}
                                         </span>
                                       )}
@@ -8557,41 +8536,41 @@ export default function App() {
                                     {/* Mobile sub-row: Tag + Tier 3 badge + Stats without cramping team name */}
                                     <div className="flex sm:hidden flex-wrap items-center gap-1.5 mt-1">
                                       {team.logo_url && (
-                                        <span className="px-1.5 py-0.5 rounded bg-[#111114] font-mono font-black text-[9px] uppercase text-zinc-300 leading-none">
+                                        <span className="font-mono font-semibold text-[10px] uppercase text-zinc-400 leading-none">
                                           {tagText}
                                         </span>
                                       )}
                                       {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
-                                        <span className="px-1.5 py-0.5 rounded font-mono tabular-nums font-black text-[9px] bg-amber-400/15 text-amber-300 leading-none">
-                                          T3 #{tier3RankByTeam.get(team.name).tier3Rank}
+                                        <span className="font-mono tabular-nums font-semibold text-[10px] text-amber-300/90 leading-none">
+                                          · T3 #{tier3RankByTeam.get(team.name).tier3Rank}
                                         </span>
                                       )}
                                       <span className="font-mono tabular-nums text-[10px] text-zinc-500 leading-none">
-                                        {team.scopedKills} Elims · {team.scopedWWCD}W · {team.scopedMatches}M
+                                        · {team.scopedKills} Elims · {team.scopedWWCD}W · {team.scopedMatches}M
                                       </span>
                                     </div>
                                   </div>
                                 </div>
 
-                                {/* Right: Desktop Mini Logo + Stats + Points + Eye View Button */}
-                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                {/* Right: Desktop Mini Logo + Stats + Points + Subtle Eye Affordance */}
+                                <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
                                   <span className="hidden sm:inline font-mono tabular-nums text-[11px] text-zinc-500">
-                                    {team.scopedKills} Elims • {team.scopedWWCD}W • {team.scopedMatches}M
+                                    {team.scopedKills} Elims · {team.scopedWWCD}W · {team.scopedMatches}M
                                   </span>
 
                                   {team.logo_url && (
                                     <img
                                       src={team.logo_url}
                                       alt=""
-                                      className="hidden sm:block w-7 h-7 rounded-lg object-contain bg-zinc-950 p-0.5 shrink-0"
+                                      className="hidden sm:block w-6 h-6 rounded-md object-contain shrink-0"
                                     />
                                   )}
 
-                                  <div className="flex items-baseline gap-0.5 font-mono tabular-nums font-black min-w-[48px] sm:min-w-[62px] justify-end">
+                                  <div className="flex items-baseline gap-1 font-mono tabular-nums font-bold min-w-[48px] sm:min-w-[62px] justify-end">
                                     <span className="text-sm sm:text-base text-white">
                                       {team.scopedPoints}
                                     </span>
-                                    <span className="text-[9px] text-zinc-400 font-bold">
+                                    <span className="text-[9px] text-zinc-500 font-semibold">
                                       PTS
                                     </span>
                                   </div>
@@ -8606,7 +8585,7 @@ export default function App() {
                                         `main_${team.name}`
                                       );
                                     }}
-                                    className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-[#D7FF00] transition shrink-0 cursor-pointer"
+                                    className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-[#D7FF00] group-hover:text-zinc-300 transition shrink-0 cursor-pointer"
                                     title={`Lihat maklumat ${team.name}`}
                                     aria-label={`Lihat maklumat ${team.name}`}
                                   >
@@ -8622,12 +8601,12 @@ export default function App() {
                   );
                 })()}
 
-                {/* Bottom Toggle if there are more than 10 teams */}
+                {/* Flush Vercel Table Footer Toggle */}
                 {!teamSearchQuery.trim() && rankedTeamsWithStats.length > 10 && (
                   <button
                     type="button"
                     onClick={() => setIsHallOfFameFullView(prev => !prev)}
-                    className="w-full py-2.5 rounded-2xl glass-tile glass-tile-hover text-xs font-bold text-zinc-200 hover:text-[#D7FF00] transition cursor-pointer"
+                    className="w-full py-3 border-t border-white/[0.08] bg-white/[0.015] hover:bg-white/[0.04] text-xs font-medium text-zinc-300 hover:text-white transition cursor-pointer"
                   >
                     {isHallOfFameFullView
                       ? 'Tunjuk Top 10 Sahaja ↑'
