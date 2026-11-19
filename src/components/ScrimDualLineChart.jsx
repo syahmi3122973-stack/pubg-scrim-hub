@@ -212,71 +212,71 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
 
   if (items.length === 0) {
     return (
-      <div className="glass-panel rounded-2xl p-5 text-center text-xs text-zinc-400">
+      <div className="rounded-xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm p-5 text-center text-xs text-zinc-400">
         Belum ada rekod scrim untuk tunjuk graf Elims &amp; PP.
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden glass-panel rounded-2xl p-4 sm:p-5 space-y-3.5">
-      {/* LEVEL 1: Header & Unified Legend */}
-      <div className="flex flex-wrap items-start justify-between gap-2 relative z-10">
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm">
+      {/* LEVEL 1: Header & Inline Legend */}
+      <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 relative z-10">
         <div>
-          <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-[#D7FF00]" />
+          <span className="text-[10px] font-mono uppercase font-semibold text-zinc-500 tracking-wider flex items-center gap-1.5">
+            <TrendingUp className="w-3 h-3 text-[#D7FF00]" />
             <span>Prestasi Per Scrim</span>
           </span>
-          <h3 className="text-sm sm:text-base font-black text-white tracking-tight mt-0.5">
+          <h3 className="text-sm sm:text-base font-semibold text-white tracking-tight mt-0.5">
             Elims vs Placement Points
           </h3>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1E220D] text-[#D7FF00]">
+        <div className="flex items-center gap-3 text-[11px] font-mono font-semibold">
+          <span className="inline-flex items-center gap-1.5 text-[#D7FF00]">
             <span className="w-2 h-2 rounded-full bg-[#D7FF00]" />
             <span>Elims</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0E2421] text-teal-300">
+          <span className="inline-flex items-center gap-1.5 text-teal-300">
             <span className="w-2 h-2 rounded-full bg-teal-400" />
             <span>PP</span>
           </span>
         </div>
       </div>
 
-      {/* LEVEL 2: Hierarchy Insight Strip (Averages & Peak Callout) */}
-      <div className="grid grid-cols-3 gap-2 relative z-10">
-        <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Avg Elims</span>
-          <span className="text-xs sm:text-sm font-black font-mono text-[#D7FF00]">
-            {avgKills} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
+      {/* LEVEL 2: Hairline Partitioned Summary Metrics (Zero Card-in-Card) */}
+      <div className="grid grid-cols-3 divide-x divide-white/[0.08] border-b border-white/[0.08] relative z-10">
+        <div className="px-3 sm:px-4 py-2.5">
+          <span className="text-[10px] font-mono uppercase text-zinc-500 block truncate">Avg Elims</span>
+          <span className="text-xs sm:text-sm font-bold font-mono tabular-nums text-[#D7FF00]">
+            {avgKills} <span className="text-[10px] text-zinc-400 font-normal">/ scrim</span>
           </span>
         </div>
 
-        <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Avg PP</span>
-          <span className="text-xs sm:text-sm font-black font-mono text-teal-300">
-            {avgPp} <span className="text-[10px] text-zinc-300 font-semibold">/ scrim</span>
+        <div className="px-3 sm:px-4 py-2.5">
+          <span className="text-[10px] font-mono uppercase text-zinc-500 block truncate">Avg PP</span>
+          <span className="text-xs sm:text-sm font-bold font-mono tabular-nums text-teal-300">
+            {avgPp} <span className="text-[10px] text-zinc-400 font-normal">/ scrim</span>
           </span>
         </div>
 
-        <div className="glass-tile rounded-xl px-2.5 py-2">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block truncate">Best Score</span>
-          <span className="text-xs sm:text-sm font-black font-mono text-white truncate block">
+        <div className="px-3 sm:px-4 py-2.5">
+          <span className="text-[10px] font-mono uppercase text-zinc-500 block truncate">Best Score</span>
+          <span className="text-xs sm:text-sm font-bold font-mono tabular-nums text-white truncate block">
             {bestScrim ? `${bestScrim.points} PTS` : '-'}
           </span>
         </div>
       </div>
 
-      {/* Interactive Inspector Strip on Hover / Tap */}
-      <div className="min-h-[28px] flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[#19191E] text-[11px] relative z-10">
+      {/* Interactive Inspector Strip */}
+      <div className="min-h-[30px] flex items-center justify-between gap-2 px-4 sm:px-5 py-1.5 border-b border-white/[0.08] bg-white/[0.02] text-[11px] relative z-10">
         {activePoint ? (
           <>
-            <span className="font-bold text-white truncate">
+            <span className="font-semibold text-white truncate">
               {activePoint.scrimName}{' '}
               <span className="text-zinc-400 font-mono text-[10px]">(#{activePoint.ranking})</span>
             </span>
-            <div className="flex items-center gap-2.5 font-mono font-bold shrink-0">
+            <div className="flex items-center gap-2.5 font-mono tabular-nums font-bold shrink-0">
               <span className="text-[#D7FF00]">{activePoint.kills} Elims</span>
               <span className="text-teal-300">{activePoint.pp} PP</span>
               <span className="text-white">{activePoint.points} PTS</span>
@@ -286,12 +286,12 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
           <>
             <span className="text-zinc-400 truncate">
               {items.length === 1
-                ? `${items[0].scrimName}: ${items[0].kills} Elims • ${items[0].pp} PP`
+                ? `${items[0].scrimName}: ${items[0].kills} Elims · ${items[0].pp} PP`
                 : 'Tap mana-mana titik untuk check detail'}
             </span>
             {bestScrim && (
-              <span className="font-mono text-[10px] text-zinc-400 shrink-0">
-                Max: <strong className="text-[#D7FF00]">{peakKills} Elims</strong> •{' '}
+              <span className="font-mono tabular-nums text-[10px] text-zinc-400 shrink-0">
+                Max: <strong className="text-[#D7FF00]">{peakKills} Elims</strong> ·{' '}
                 <strong className="text-teal-300">{peakPp} PP</strong>
               </span>
             )}
@@ -300,7 +300,7 @@ export default function ScrimDualLineChart({ results = [], compact = false }) {
       </div>
 
       {/* LEVEL 3: Smooth Merged 2-Line Area Chart */}
-      <div className="relative z-10 select-none">
+      <div className="p-3 sm:p-4 relative z-10 select-none">
         <svg
           viewBox={`0 0 ${svgW} ${svgH}`}
           className="w-full h-auto overflow-visible"

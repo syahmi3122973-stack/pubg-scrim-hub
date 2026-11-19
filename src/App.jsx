@@ -7526,18 +7526,18 @@ export default function App() {
 
             teamProfileNode = (
               <div className="max-w-xl lg:max-w-full mx-auto space-y-4 lg:space-y-5 pt-1 pb-28 md:pb-10 animate-teams-enter relative">
-                {/* 1. TOP NAVIGATION BAR */}
-                <div className="flex items-center justify-between px-1">
+                {/* 1. TOP NAVIGATION BAR (Vercel Hairline Style) */}
+                <div className="flex items-center justify-between">
                   <button
                     type="button"
                     onClick={closeTeamProfile}
-                    className="inline-flex items-center gap-2 text-white hover:text-[#D7FF00] transition cursor-pointer group py-1 active:scale-95"
+                    className="inline-flex items-center gap-2 text-zinc-300 hover:text-white transition cursor-pointer group py-1 active:scale-[0.98]"
                     title="Kembali ke Team Matrix"
                   >
-                    <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition">
-                      <ChevronLeft className="w-5 h-5 text-zinc-400 group-hover:text-[#D7FF00] transition" />
-                    </div>
-                    <span className="text-sm sm:text-base font-bold tracking-tight text-zinc-300 group-hover:text-white transition">
+                    <span className="w-8 h-8 rounded-lg border border-white/[0.08] bg-[#09090B]/85 group-hover:border-white/[0.22] group-hover:bg-white/[0.04] flex items-center justify-center transition">
+                      <ChevronLeft className="w-4 h-4 text-zinc-400 group-hover:text-[#D7FF00] transition" />
+                    </span>
+                    <span className="text-sm font-medium tracking-tight">
                       Kembali ke Team Matrix
                     </span>
                   </button>
@@ -7552,7 +7552,7 @@ export default function App() {
                       );
                       setIsPerformanceModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-pill glass-tile-hover text-xs font-bold text-zinc-200 hover:text-[#D7FF00] transition cursor-pointer"
+                    className="h-8 px-3 rounded-lg border border-white/[0.1] hover:border-[#D7FF00]/50 bg-[#09090B]/85 hover:bg-[#D7FF00]/[0.06] text-xs font-medium text-zinc-200 hover:text-[#D7FF00] inline-flex items-center gap-1.5 transition cursor-pointer active:scale-[0.98]"
                     title="Jana IG Story 9:16"
                   >
                     <Share2 className="w-3.5 h-3.5 text-[#D7FF00]" />
@@ -7560,42 +7560,42 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* 2. TEAM IDENTITY HERO BANNER */}
-                <div className="relative overflow-hidden glass-panel rounded-3xl p-5 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                    <div className="flex items-center gap-4 min-w-0">
+                {/* 2. TEAM IDENTITY HERO + SCOPE PANEL (Vercel Hairline Container) */}
+                <div className="rounded-xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                  <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.08] flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
                       {activeTeamData.logo_url ? (
                         <img
                           src={activeTeamData.logo_url}
                           alt={activeTeamData.name}
-                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl object-cover bg-[#19191E] shrink-0"
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-contain shrink-0"
                         />
                       ) : (
-                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-[#D7FF00] flex items-center justify-center text-black font-black text-2xl shrink-0">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-center text-[#D7FF00] font-mono font-bold text-lg shrink-0">
                           {activeTeamData.tag || activeTeamData.name.slice(0, 3).toUpperCase()}
                         </div>
                       )}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
+                          <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">
                             {activeTeamData.name}
                           </h1>
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#1F240D] text-[#D7FF00] font-mono text-xs font-black">
+                          <span className="px-2 py-0.5 rounded-md border border-[#D7FF00]/25 bg-[#D7FF00]/[0.06] text-[#D7FF00] font-mono tabular-nums text-xs font-bold">
                             #{overallRank}
                           </span>
                         </div>
-                        <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
+                        <p className="text-xs font-mono tabular-nums text-zinc-400 mt-1 flex items-center gap-2">
                           <span>Tag: <strong className="text-zinc-200">[{activeTeamData.tag}]</strong></span>
-                          <span>•</span>
+                          <span className="text-zinc-600">·</span>
                           <span>{activeTeamScopedStats.eventsCount} Sesi</span>
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Interactive Category Filter Scope Tabs */}
-                  <div className="mt-4 pt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-6">
-                    <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
+                  {/* Interactive Category Filter Scope Strip */}
+                  <div className="px-4 sm:px-6 py-2.5 bg-white/[0.015] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    <span className="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
                       Skop:
                     </span>
                     {HALL_OF_FAME_EVENT_TOGGLES.map((ev) => {
@@ -7609,14 +7609,14 @@ export default function App() {
                           className={`px-3 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                             isEvActive
                               ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-[#19191E] text-zinc-300 hover:bg-[#222229] hover:text-white'
+                              : 'bg-[#18181D] text-zinc-400 hover:bg-[#222229] hover:text-zinc-200'
                           }`}
                         >
                           <span>{ev.label}</span>
                         </button>
                       );
                     })}
-                    <span className="w-px h-4 bg-zinc-800 shrink-0 mx-0.5" aria-hidden="true" />
+                    <span className="w-px h-4 bg-white/[0.08] shrink-0 mx-0.5" aria-hidden="true" />
                     {HALL_OF_FAME_FILTERS.map(cat => {
                       const isActive = teamStatsCategory === cat.key;
                       return (
@@ -7624,10 +7624,10 @@ export default function App() {
                           key={cat.key}
                           type="button"
                           onClick={() => handleSelectTeamStatsCategory(cat.key)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-full text-xs transition-all shrink-0 cursor-pointer ${
                             isActive
                               ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                              : 'bg-[#19191E] text-zinc-300 hover:bg-[#222229] hover:text-white'
+                              : 'bg-[#18181D] text-zinc-400 hover:bg-[#222229] hover:text-zinc-200'
                           }`}
                         >
                           {cat.label}
@@ -7675,259 +7675,261 @@ export default function App() {
                 </div>
 
                 {/* DESKTOP 2-COLUMN ANALYTICS & MATCH LOGS SPLIT (Mobile stays vertical) */}
-                <div className="space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0 lg:items-start">
+                <div className="space-y-4 lg:grid lg:grid-cols-12 lg:gap-5 lg:space-y-0 lg:items-start">
                   <div className="space-y-4 lg:col-span-7">
-                    {/* 3. INTERACTIVE STATS BENTO GRID (4 CARDS) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                  {/* Points */}
-                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Total Points</span>
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1">
-                      {activeTeamScopedStats.totalPoints}
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
-                      ~{avgPtsPerEvent} pts / sesi
-                    </span>
-                  </div>
+                    {/* 3. UNIFIED TELEMETRY PANEL (4 KPI CELLS + GAYA MAIN — ZERO CARD-IN-CARD) */}
+                    <div className="rounded-xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 border-b border-white/[0.08]">
+                        {/* Points */}
+                        <div className="p-3.5 sm:p-4 flex flex-col justify-between border-r border-b sm:border-b-0 border-white/[0.08]">
+                          <span className="text-[10px] font-mono uppercase font-semibold text-zinc-500 tracking-wider">Total Points</span>
+                          <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-[#D7FF00] my-1">
+                            {activeTeamScopedStats.totalPoints}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                            ~{avgPtsPerEvent} pts / sesi
+                          </span>
+                        </div>
 
-                  {/* Elims */}
-                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Eliminations</span>
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-white my-1">
-                      {activeTeamScopedStats.totalKills}
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
-                      ~{avgKillsPerMatch} Elims / match
-                    </span>
-                  </div>
+                        {/* Elims */}
+                        <div className="p-3.5 sm:p-4 flex flex-col justify-between border-b sm:border-b-0 sm:border-r border-white/[0.08]">
+                          <span className="text-[10px] font-mono uppercase font-semibold text-zinc-500 tracking-wider">Eliminations</span>
+                          <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-white my-1">
+                            {activeTeamScopedStats.totalKills}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                            ~{avgKillsPerMatch} Elims / match
+                          </span>
+                        </div>
 
-                  {/* WWCD */}
-                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">WWCD Dinners</span>
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-[#D7FF00] my-1">
-                      {activeTeamScopedStats.totalWWCD}
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
-                      {winRatePercent}% Win Rate
-                    </span>
-                  </div>
+                        {/* WWCD */}
+                        <div className="p-3.5 sm:p-4 flex flex-col justify-between border-r border-white/[0.08]">
+                          <span className="text-[10px] font-mono uppercase font-semibold text-zinc-500 tracking-wider">WWCD Dinners</span>
+                          <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-[#D7FF00] my-1">
+                            {activeTeamScopedStats.totalWWCD}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                            {winRatePercent}% Win Rate
+                          </span>
+                        </div>
 
-                  {/* Matches / Sesi */}
-                  <div className="glass-tile glass-tile-hover rounded-2xl p-3.5 text-center flex flex-col justify-between transition group">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Sesi / Match</span>
-                    <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-200 my-1">
-                      {activeTeamScopedStats.eventsCount}
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-mono font-medium">
-                      {activeTeamScopedStats.matchesCount} match
-                    </span>
-                  </div>
-                </div>
+                        {/* Matches / Sesi */}
+                        <div className="p-3.5 sm:p-4 flex flex-col justify-between">
+                          <span className="text-[10px] font-mono uppercase font-semibold text-zinc-500 tracking-wider">Sesi / Match</span>
+                          <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-zinc-100 my-1">
+                            {activeTeamScopedStats.eventsCount}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 font-mono tabular-nums">
+                            {activeTeamScopedStats.matchesCount} match
+                          </span>
+                        </div>
+                      </div>
 
-                {/* 4. TACTICAL PLAYSTYLE COMBAT RATIO */}
-                <div className="glass-panel rounded-2xl p-4 sm:p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
-                      Gaya Main (Elims vs PP)
-                    </span>
-                    <div className="flex items-center gap-3 text-xs font-mono">
-                      <span className="text-[#D7FF00] font-bold">Elims: {kpPercent}%</span>
-                      <span className="text-zinc-600">•</span>
-                      <span className="text-emerald-400 font-bold">PP: {ppPercent}%</span>
-                    </div>
-                  </div>
+                      {/* 4. TACTICAL PLAYSTYLE COMBAT RATIO (Integrated Row) */}
+                      <div className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono uppercase font-semibold text-zinc-400 tracking-wider">
+                            Gaya Main (Elims vs PP)
+                          </span>
+                          <div className="flex items-center gap-2.5 text-xs font-mono tabular-nums">
+                            <span className="text-[#D7FF00] font-semibold">Elims: {kpPercent}%</span>
+                            <span className="text-zinc-600">·</span>
+                            <span className="text-emerald-400 font-semibold">PP: {ppPercent}%</span>
+                          </div>
+                        </div>
 
-                  {/* Dual-color Segmented Bar */}
-                  <div className="w-full h-3 bg-zinc-900 rounded-full overflow-hidden flex p-0.5">
-                    <div
-                      style={{ width: `${Math.max(kpPercent, 4)}%` }}
-                      className="h-full bg-[#D7FF00] rounded-l-full transition-all duration-500"
-                      title={`Elimination Points: ${activeTeamScopedStats.totalKills} PTS (${kpPercent}%)`}
-                    />
-                    <div
-                      style={{ width: `${Math.max(ppPercent, 4)}%` }}
-                      className="h-full bg-emerald-500 rounded-r-full transition-all duration-500"
-                      title={`Placement Points: ${placementPoints} PTS (${ppPercent}%)`}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-0.5">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#D7FF00]" />
-                      <span>Elimination Points ({activeTeamScopedStats.totalKills} pts)</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span>Placement Points ({placementPoints} pts)</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* 4B. MERGED SMOOTH DUAL-LINE PERFORMANCE CHART (ELIMS VS PP PER SCRIM) */}
-                <ScrimDualLineChart results={activeTeamScopedStats.filteredResults} />
-
-                {/* 5. SHARE / STORY GENERATOR CTA BUTTON */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPerformanceTeam(activeTeamData);
-                    setSelectedPerformanceHost('ALL');
-                    setPerformanceModalCategory(
-                      teamStatsCategory !== 'ALL' ? teamStatsCategory : (teamStatsEventType !== 'ALL' ? teamStatsEventType : 'ALL')
-                    );
-                    setIsPerformanceModalOpen(true);
-                  }}
-                  className="w-full py-3.5 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md active:scale-[0.98] cursor-pointer"
-                >
-                  <Share2 className="w-4 h-4 text-black" />
-                  <span>Buat Kad Story 9:16</span>
-                </button>
-                  </div>
-
-                {/* 6. SEJARAH PERLAWANAN */}
-                <div className="space-y-3 pt-2 lg:pt-0 lg:col-span-5">
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-white uppercase tracking-wider">
-                        Rekod Match
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full glass-pill text-zinc-200 font-mono font-bold">
-                        {activeTeamScopedStats.filteredResults.length} Rekod
-                      </span>
-                    </div>
-                  </div>
-
-                  {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
-                    <div className="space-y-2">
-                      {activeTeamScopedStats.filteredResults.map((item, idx) => {
-                        const isFirst = item.ranking === 1;
-                        const itemKey = item.scrimData?.id || `${item.scrimName}_${idx}`;
-                        const isExpanded = Boolean(expandedTeamScrimIdxs[itemKey]);
-                        const itemPP = Math.max(0, item.points - item.kills);
-
-                        return (
+                        {/* Dual-color Segmented Bar */}
+                        <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden flex">
                           <div
-                            key={itemKey}
-                            className={`rounded-2xl transition-all overflow-hidden ${
-                              isFirst
-                                ? 'glass-tile border-[#D7FF00]/30 shadow-[0_0_20px_rgba(215,255,0,0.1)]'
-                                : 'glass-tile glass-tile-hover'
-                            }`}
-                          >
-                            {/* Summary Row */}
-                            <div
-                              onClick={() => toggleTeamScrimExpand(itemKey)}
-                              className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                {item.scrimData?.logo_url ? (
-                                  <img
-                                    src={item.scrimData.logo_url}
-                                    alt=""
-                                    className="w-10 h-10 rounded-xl object-cover shrink-0"
-                                  />
-                                ) : (
-                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                                    isFirst ? 'bg-[#D7FF00] text-black font-black' : 'bg-zinc-800 text-zinc-300'
-                                  }`}>
-                                    #{item.ranking}
-                                  </div>
-                                )}
+                            style={{ width: `${Math.max(kpPercent, 4)}%` }}
+                            className="h-full bg-[#D7FF00] transition-all duration-500"
+                            title={`Elimination Points: ${activeTeamScopedStats.totalKills} PTS (${kpPercent}%)`}
+                          />
+                          <div
+                            style={{ width: `${Math.max(ppPercent, 4)}%` }}
+                            className="h-full bg-emerald-500 transition-all duration-500"
+                            title={`Placement Points: ${placementPoints} PTS (${ppPercent}%)`}
+                          />
+                        </div>
 
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 flex-wrap">
-                                    <span className="truncate max-w-[150px] sm:max-w-none">{item.scrimName}</span>
+                        <div className="flex items-center justify-between text-[11px] font-mono tabular-nums text-zinc-400">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#D7FF00]" />
+                            <span>Elims ({activeTeamScopedStats.totalKills} pts)</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            <span>Placement ({placementPoints} pts)</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4B. MERGED SMOOTH DUAL-LINE PERFORMANCE CHART (ELIMS VS PP PER SCRIM) */}
+                    <ScrimDualLineChart results={activeTeamScopedStats.filteredResults} />
+
+                    {/* 5. SHARE / STORY GENERATOR CTA BUTTON */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPerformanceTeam(activeTeamData);
+                        setSelectedPerformanceHost('ALL');
+                        setPerformanceModalCategory(
+                          teamStatsCategory !== 'ALL' ? teamStatsCategory : (teamStatsEventType !== 'ALL' ? teamStatsEventType : 'ALL')
+                        );
+                        setIsPerformanceModalOpen(true);
+                      }}
+                      className="w-full py-3 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer"
+                    >
+                      <Share2 className="w-4 h-4 text-black" />
+                      <span>Buat Kad Story 9:16</span>
+                    </button>
+                  </div>
+
+                  {/* 6. SEJARAH PERLAWANAN (Vercel Hairline Ledger Panel — Zero Card-in-Card) */}
+                  <div className="lg:col-span-5">
+                    <div className="rounded-xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                      <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-white tracking-tight">
+                          Rekod Match
+                        </span>
+                        <span className="text-[11px] font-mono tabular-nums text-zinc-400">
+                          {activeTeamScopedStats.filteredResults.length} Rekod
+                        </span>
+                      </div>
+
+                      {activeTeamScopedStats.filteredResults && activeTeamScopedStats.filteredResults.length > 0 ? (
+                        <div className="divide-y divide-white/[0.08]">
+                          {activeTeamScopedStats.filteredResults.map((item, idx) => {
+                            const isFirst = item.ranking === 1;
+                            const itemKey = item.scrimData?.id || `${item.scrimName}_${idx}`;
+                            const isExpanded = Boolean(expandedTeamScrimIdxs[itemKey]);
+                            const itemPP = Math.max(0, item.points - item.kills);
+
+                            return (
+                              <div
+                                key={itemKey}
+                                className={`transition-colors ${
+                                  isFirst ? 'bg-[#D7FF00]/[0.03]' : ''
+                                }`}
+                              >
+                                {/* Summary Row */}
+                                <div
+                                  onClick={() => toggleTeamScrimExpand(itemKey)}
+                                  className="px-4 py-3 hover:bg-white/[0.03] flex items-center justify-between gap-3 cursor-pointer select-none transition-colors"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    {item.scrimData?.logo_url ? (
+                                      <img
+                                        src={item.scrimData.logo_url}
+                                        alt=""
+                                        className="w-8 h-8 rounded-lg object-cover shrink-0"
+                                      />
+                                    ) : (
+                                      <span className={`w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center font-mono font-bold text-xs shrink-0 ${
+                                        isFirst ? 'text-[#D7FF00] border-[#D7FF00]/30 bg-[#D7FF00]/[0.06]' : 'text-zinc-300'
+                                      }`}>
+                                        #{item.ranking}
+                                      </span>
+                                    )}
+
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-semibold text-xs sm:text-[13px] text-white flex items-center gap-1.5 flex-wrap">
+                                        <span className="truncate max-w-[160px] sm:max-w-none">{item.scrimName}</span>
+                                        <span
+                                          className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ${
+                                            (item.eventType || 'Scrim') === 'Tour'
+                                              ? 'bg-amber-500/15 text-amber-300'
+                                              : 'bg-[#D7FF00]/10 text-[#D7FF00]'
+                                          }`}
+                                        >
+                                          {(item.eventType || 'Scrim').toUpperCase()}
+                                        </span>
+                                        <span className="text-[10px] font-mono text-zinc-500 shrink-0">
+                                          {item.scrimTier || item.scrimData?.tier || 'Tier 1 (Pro)'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[11px] font-mono tabular-nums text-zinc-400 mt-0.5">
+                                        <span>{item.date || 'Tarikh -'}</span>
+                                        <span className="text-zinc-600">·</span>
+                                        <span className="text-[#D7FF00] font-semibold">{item.points} PTS</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Rank Index + Flat Chevron */}
+                                  <div className="flex items-center gap-2 shrink-0">
                                     <span
-                                      className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ${
-                                        (item.eventType || 'Scrim') === 'Tour'
-                                          ? 'bg-amber-500/20 text-amber-300'
-                                          : 'bg-[#D7FF00]/15 text-[#D7FF00]'
+                                      className={`text-xs font-bold font-mono tabular-nums ${
+                                        isFirst ? 'text-[#D7FF00]' : 'text-zinc-300'
                                       }`}
                                     >
-                                      {(item.eventType || 'Scrim').toUpperCase()}
+                                      #{item.ranking}
                                     </span>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 bg-zinc-800/90 text-zinc-300">
-                                      {item.scrimTier || item.scrimData?.tier || 'Tier 1 (Pro)'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-1">
-                                    <span className="font-mono text-zinc-400">{item.date || 'Tarikh -'}</span>
-                                    <span>•</span>
-                                    <span className="text-[#D7FF00] font-bold">{item.points} PTS</span>
-                                  </div>
-                                </div>
-                              </div>
 
-                              {/* Right: Quick Rank Pill + Dropdown Icon Button */}
-                              <div className="flex items-center gap-2.5 shrink-0">
-                                <span
-                                  className={`text-xs font-black font-mono px-2.5 py-1 rounded-xl inline-block ${
-                                    isFirst ? 'bg-[#D7FF00] text-black shadow-xs' : 'bg-zinc-800/80 text-zinc-300'
-                                  }`}
-                                >
-                                  #{item.ranking}
-                                </span>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleTeamScrimExpand(itemKey);
-                                  }}
-                                  aria-label={isExpanded ? "Tutup maklumat scrim" : "Buka maklumat scrim"}
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                                    isExpanded
-                                      ? 'bg-[#D7FF00] text-black'
-                                      : 'bg-zinc-900 text-zinc-400 hover:text-white'
-                                  }`}
-                                >
-                                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Dropdown Content - Expanded only on click */}
-                            {isExpanded && (
-                              <div className="px-3.5 pb-3.5 pt-2 space-y-3 bg-zinc-950/50 origin-top animate-dropdown-reveal">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                                  <div className="glass-tile p-2 rounded-xl">
-                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Eliminations</span>
-                                    <span className="font-mono font-bold text-white">{item.kills} Elims</span>
-                                  </div>
-                                  <div className="glass-tile p-2 rounded-xl">
-                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Placement</span>
-                                    <span className="font-mono font-bold text-emerald-400">{itemPP} PP</span>
-                                  </div>
-                                  <div className="glass-tile p-2 rounded-xl">
-                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Tier</span>
-                                    <span className="font-mono font-bold text-[#D7FF00] truncate block">{item.scrimTier || 'Umum'}</span>
-                                  </div>
-                                  <div className="glass-tile p-2 rounded-xl">
-                                    <span className="text-[10px] uppercase font-bold text-zinc-400 block">Host</span>
-                                    <span className="font-mono font-bold text-zinc-200 truncate block">{item.hostName || 'Admin'}</span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleTeamScrimExpand(itemKey);
+                                      }}
+                                      aria-label={isExpanded ? "Tutup maklumat scrim" : "Buka maklumat scrim"}
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+                                        isExpanded
+                                          ? 'text-[#D7FF00] bg-white/[0.06]'
+                                          : 'text-zinc-500 hover:text-white hover:bg-white/[0.04]'
+                                      }`}
+                                    >
+                                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
                                   </div>
                                 </div>
 
-                                <button
-                                  type="button"
-                                  onClick={() => setInspectedScrim(item.scrimData)}
-                                  className="w-full py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[#D7FF00] hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>Tengok Scoreboard Penuh</span>
-                                </button>
+                                {/* Dropdown Content - Hairline Grid, Zero Nested Cards */}
+                                {isExpanded && (
+                                  <div className="border-t border-white/[0.06] bg-white/[0.015] origin-top animate-dropdown-reveal">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 border-b border-white/[0.06] text-center text-xs">
+                                      <div className="p-2.5 border-r border-b sm:border-b-0 border-white/[0.06]">
+                                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Elims</span>
+                                        <span className="font-mono tabular-nums font-bold text-white">{item.kills}</span>
+                                      </div>
+                                      <div className="p-2.5 border-b sm:border-b-0 sm:border-r border-white/[0.06]">
+                                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">PP</span>
+                                        <span className="font-mono tabular-nums font-bold text-emerald-400">{itemPP}</span>
+                                      </div>
+                                      <div className="p-2.5 border-r border-white/[0.06]">
+                                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Tier</span>
+                                        <span className="font-mono font-bold text-[#D7FF00] truncate block">{item.scrimTier || 'Umum'}</span>
+                                      </div>
+                                      <div className="p-2.5">
+                                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Host</span>
+                                        <span className="font-mono font-bold text-zinc-200 truncate block">{item.hostName || 'Admin'}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="p-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => setInspectedScrim(item.scrimData)}
+                                        className="w-full py-2 px-3 rounded-lg border border-white/[0.1] hover:border-[#D7FF00]/50 hover:bg-[#D7FF00]/[0.06] text-[#D7FF00] hover:text-white text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        <span>Tengok Scoreboard Penuh</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center text-zinc-500 text-xs">
+                          Belum ada rekod untuk kategori ni.
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="p-8 text-center text-zinc-500 text-xs bg-zinc-950/40 rounded-2xl">
-                      Belum ada rekod untuk kategori ni.
-                    </div>
-                  )}
-                </div>
+                  </div>
                 </div>
               </div>
             );
