@@ -445,6 +445,7 @@ export default function ScrimDataHubView({
     scrimName: '',
     scrimDate: new Date().toISOString().split('T')[0],
     scrimTier: 'Tier 1 (Pro)',
+    eventType: 'Scrim',
     standings: []
   }));
   const activeOcr = ocrJob || localOcrState;
@@ -459,6 +460,7 @@ export default function ScrimDataHubView({
     scrimName,
     scrimDate,
     scrimTier,
+    eventType = 'Scrim',
     standings
   } = activeOcr;
 
@@ -476,6 +478,9 @@ export default function ScrimDataHubView({
   }, [updateOcr]);
   const setScrimTier = useCallback((val) => {
     updateOcr((prev) => ({ ...prev, scrimTier: typeof val === 'function' ? val(prev.scrimTier) : val }));
+  }, [updateOcr]);
+  const setEventType = useCallback((val) => {
+    updateOcr((prev) => ({ ...prev, eventType: typeof val === 'function' ? val(prev.eventType) : val }));
   }, [updateOcr]);
   const setStandings = useCallback((val) => {
     updateOcr((prev) => ({ ...prev, standings: typeof val === 'function' ? val(prev.standings) : val }));
@@ -725,11 +730,13 @@ export default function ScrimDataHubView({
         // Fallback to main scrims state below
       }
 
+      const normalizedEventType = eventType === 'Tour' ? 'Tour' : 'Scrim';
+
       // 2. Build record matching the primary `public.scrims` table schema used by Rekod & Hall of Fame
       const newScrimRecord = {
         id: 'scrim_' + Date.now(),
         title: scrimName.trim(),
-        event_type: 'Scrim',
+        event_type: normalizedEventType,
         tier: scrimTier,
         description: `Diextract dari Results Scanner AI Poster OCR (${scrimName.trim()}).`,
         date: scrimDate || new Date().toISOString().split('T')[0],
@@ -1000,9 +1007,41 @@ export default function ScrimDataHubView({
             style={{ animationDelay: '150ms' }}
             className="glass-panel rounded-3xl p-4 sm:p-5 space-y-3.5 animate-stagger-card"
           >
-            <div className="flex items-center justify-between pb-2">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-sm font-bold text-white">Info Sesi (OCR)</span>
+                <div
+                  role="group"
+                  aria-label="Jenis Sesi"
+                  className="inline-flex items-center rounded-lg border border-white/[0.08] bg-[#111114] p-0.5 text-[11px]"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={eventType !== 'Tour'}
+                    onClick={() => setEventType('Scrim')}
+                    className={
+                      'px-3 py-1.5 rounded-md font-bold transition cursor-pointer min-h-[36px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#D7FF00] ' +
+                      (eventType !== 'Tour'
+                        ? 'bg-[#D7FF00] text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white')
+                    }
+                  >
+                    Scrim
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={eventType === 'Tour'}
+                    onClick={() => setEventType('Tour')}
+                    className={
+                      'px-3 py-1.5 rounded-md font-bold transition cursor-pointer min-h-[36px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 ' +
+                      (eventType === 'Tour'
+                        ? 'bg-amber-500 text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white')
+                    }
+                  >
+                    Tournament
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-2 text-xs font-mono">
                 <span className="px-2.5 py-0.5 rounded-full glass-tile text-zinc-200">
@@ -1019,14 +1058,14 @@ export default function ScrimDataHubView({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
               <div>
                 <label className="text-zinc-400 font-semibold mb-1 block">
-                  Nama Scrim / Kejohanan
+                  {eventType === 'Tour' ? 'Nama Tournament / Kejohanan' : 'Nama Scrim / Sesi'}
                 </label>
                 <input
                   type="text"
                   value={scrimName}
                   onChange={(e) => setScrimName(e.target.value)}
                   className="w-full glass-tile rounded-xl px-3.5 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#D7FF00]"
-                  placeholder="cth: MEC SCRIMS atau CT SCRIMS"
+                  placeholder={eventType === 'Tour' ? 'cth: PMNC MY FINALS' : 'cth: MEC SCRIMS atau CT SCRIMS'}
                 />
               </div>
 

@@ -516,6 +516,7 @@ export default function App() {
     scrimName: '',
     scrimDate: new Date().toISOString().split('T')[0],
     scrimTier: 'Tier 1 (Pro)',
+    eventType: 'Scrim',
     standings: []
   }));
   const ocrRunIdRef = useRef(0);
