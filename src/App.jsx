@@ -218,31 +218,49 @@ const HALL_OF_FAME_EVENT_TOGGLES = [
 // Separated SSS Tier-2 Season & Stage architecture (scalable for Grand Final + Semi Group A/B):
 const SSS_DEFAULT_SELECTION = { season: 'ALL', stage: 'GRAND_FINAL' };
 
-const SSS_SEASONS_DESC = [12, 11, 10, 9, 8, 7, 6, 5, 4];
+const SSS_BASE_SEASONS_DESC = [13, 12, 11, 10, 9, 8, 7, 6, 5, 4];
 
-const SSS_SEASON_OPTIONS = [
-  { value: 'ALL', label: 'All Seasons (S4-S12)', shortLabel: 'S4 - S12' },
-  ...SSS_SEASONS_DESC.map((seasonNum) => ({
-    value: String(seasonNum),
-    season: seasonNum,
-    label: `Season ${seasonNum}`,
-    shortLabel: `S${seasonNum}`
-  }))
-];
+const buildSssSeasonOptions = (scrimList = []) => {
+  const seasonSet = new Set(SSS_BASE_SEASONS_DESC);
+  (scrimList || []).forEach((s) => {
+    const txt = [s?.title, s?.description].filter(Boolean).join(' ');
+    if (!/(?:^|[^a-z0-9])sss(?=[0-9]|[^a-z0-9]|$)/i.test(txt)) return;
+    const match = txt.match(/(?:sss\s*[-_#]?\s*s?0?(\d+)|\bseason\s*0?(\d+)|\bs0?(\d+))/i);
+    const num = Number(match?.[1] || match?.[2] || match?.[3]);
+    if (Number.isInteger(num) && num >= 1 && num <= 99) {
+      seasonSet.add(num);
+    }
+  });
+  const sortedDesc = Array.from(seasonSet).sort((a, b) => b - a);
+  const minS = sortedDesc[sortedDesc.length - 1];
+  const maxS = sortedDesc[0];
+  return [
+    { value: 'ALL', label: `All Seasons (S${minS}-S${maxS})`, shortLabel: `S${minS} - S${maxS}` },
+    ...sortedDesc.map((seasonNum) => ({
+      value: String(seasonNum),
+      season: seasonNum,
+      label: `Season ${seasonNum}`,
+      shortLabel: `S${seasonNum}`
+    }))
+  ];
+};
+
+const SSS_SEASON_OPTIONS = buildSssSeasonOptions();
 
 const SSS_STAGE_OPTIONS = [
   { key: 'GRAND_FINAL', label: 'Grand Final' },
   { key: 'SEMI_FINAL_A', label: 'Semi Group A' },
-  { key: 'SEMI_FINAL_B', label: 'Semi Group B' }
+  { key: 'SEMI_FINAL_B', label: 'Semi Group B' },
+  { key: 'ALL', label: 'Semua Stage' }
 ];
 
-const formatSssSelectionLabel = (selection = SSS_DEFAULT_SELECTION) => {
+const formatSssSelectionLabel = (selection = SSS_DEFAULT_SELECTION, seasonOptions = SSS_SEASON_OPTIONS) => {
   const season = selection?.season ?? 'ALL';
-  const stage = selection?.stage && selection.stage !== 'ALL' ? selection.stage : 'GRAND_FINAL';
-  const seasonObj = SSS_SEASON_OPTIONS.find((opt) => opt.value === String(season)) || SSS_SEASON_OPTIONS[0];
+  const stage = selection?.stage || 'GRAND_FINAL';
+  const seasonObj = seasonOptions.find((opt) => opt.value === String(season)) || seasonOptions[0];
   const stageObj = SSS_STAGE_OPTIONS.find((opt) => opt.key === stage) || SSS_STAGE_OPTIONS[0];
 
-  if (season === 'ALL') return `All Seasons (S4 - S12) • ${stageObj.label}`;
+  if (season === 'ALL') return `${seasonObj.label.replace('All Seasons', 'All Seasons')} • ${stageObj.label}`;
   return `SSS ${seasonObj.label} — ${stageObj.label}`;
 };
 
@@ -260,7 +278,7 @@ const matchesStatsFilter = (result, filterKey, eventTypeFilter = 'ALL', sssSelec
     }
 
     const activeSeason = sssSelection?.season ?? 'ALL';
-    const activeStage = sssSelection?.stage && sssSelection.stage !== 'ALL' ? sssSelection.stage : 'GRAND_FINAL';
+    const activeStage = sssSelection?.stage || 'GRAND_FINAL';
 
     const fullSssText = [
       result?.scrimName,
@@ -1405,9 +1423,14 @@ export default function App() {
 
   const activeSssOptionId = `${sssFilterSelection.season}_${sssFilterSelection.stage}`;
 
+  const sssSeasonOptions = useMemo(
+    () => buildSssSeasonOptions(scrims),
+    [scrims]
+  );
+
   const activeSssSummaryLabel = useMemo(
-    () => formatSssSelectionLabel(sssFilterSelection),
-    [sssFilterSelection]
+    () => formatSssSelectionLabel(sssFilterSelection, sssSeasonOptions),
+    [sssFilterSelection, sssSeasonOptions]
   );
 
   // Combined filter state object connected to Team Matrix Supabase aggregation
@@ -7660,7 +7683,7 @@ export default function App() {
                           onChange={(e) => handleSelectSssSeason(e.target.value)}
                           className="sss-brand-select"
                         >
-                          {SSS_SEASON_OPTIONS.map((opt) => (
+                          {sssSeasonOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                               {opt.label}
                             </option>
@@ -8132,7 +8155,7 @@ export default function App() {
                           onChange={(e) => handleSelectSssSeason(e.target.value)}
                           className="sss-brand-select w-auto max-w-full"
                         >
-                          {SSS_SEASON_OPTIONS.map((opt) => (
+                          {sssSeasonOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                               {opt.label}
                             </option>
