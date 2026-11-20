@@ -1617,7 +1617,7 @@ export default function App() {
           .order('name', { ascending: true });
 
         if (teamsData && teamsData.length > 0) {
-          setTeams(prevTeams => {
+          setTeams(() => {
             const map = new Map(teamsData.map(t => [(t.name || '').trim().toLowerCase(), t]));
             try {
               const raw = localStorage.getItem('pubg_hub_custom_teams');
@@ -1628,13 +1628,27 @@ export default function App() {
                     if (pt && pt.name) {
                       const key = pt.name.trim().toLowerCase();
                       const existing = map.get(key);
-                      map.set(key, { ...existing, ...pt });
+                      // Cloud (existing) must win; only keep local entry if missing in Cloud or Cloud lacks a logo
+                      if (!existing) {
+                        map.set(key, pt);
+                      } else {
+                        map.set(key, {
+                          ...pt,
+                          ...existing,
+                          logo_url: existing.logo_url || pt.logo_url || null,
+                          tag: existing.tag || pt.tag
+                        });
+                      }
                     }
                   });
                 }
               }
             } catch {}
-            return Array.from(map.values());
+            const mergedTeams = Array.from(map.values());
+            try {
+              localStorage.setItem('pubg_hub_custom_teams', JSON.stringify(mergedTeams));
+            } catch {}
+            return mergedTeams;
           });
         }
 
