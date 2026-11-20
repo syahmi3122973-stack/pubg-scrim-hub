@@ -156,8 +156,12 @@ interface ModelCandidate {
 }
 
 const MODEL_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.1-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-flash-lite-latest" },
   { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.7-flash", thinkingConfig: { thinkingLevel: "LOW" } },
   { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
   { name: "gemini-flash-latest" },
 ];
@@ -257,7 +261,7 @@ Extract every single row accurately from this tournament standings poster:
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(Math.min(26000, remainingMs)),
+            signal: AbortSignal.timeout(Math.min(24000, remainingMs)),
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
