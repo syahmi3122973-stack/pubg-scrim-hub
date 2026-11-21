@@ -5556,6 +5556,36 @@ export default function App() {
     navigateToTab('scorer');
   };
 
+  const renderSignUpLegalNotice = () => {
+    if (!isRegisterMode) return null;
+    const openLegalTab = (e, tab) => {
+      e.preventDefault();
+      setIsAuthModalOpen(false);
+      setPendingCloudSync(false);
+      navigateToTab(tab);
+    };
+    return (
+      <p className="text-[11px] text-zinc-400 text-center leading-relaxed px-2">
+        By joining, you agree to our{' '}
+        <a
+          href="#terms"
+          onClick={(e) => openLegalTab(e, 'terms')}
+          className="text-zinc-200 hover:text-[#D7FF00] underline underline-offset-2 font-medium transition-colors"
+        >
+          Terms of Service
+        </a>{' '}
+        and{' '}
+        <a
+          href="#privacy"
+          onClick={(e) => openLegalTab(e, 'privacy')}
+          className="text-zinc-200 hover:text-[#D7FF00] underline underline-offset-2 font-medium transition-colors"
+        >
+          Privacy Policy
+        </a>
+      </p>
+    );
+  };
+
   const handleOpenGuide = (slideIdx = 0) => {
     setCurrentGuideSlide(slideIdx);
     setIsGuideModalOpen(true);
@@ -10243,6 +10273,8 @@ export default function App() {
                     )}
                   </button>
 
+                  {renderSignUpLegalNotice()}
+
                   <div className="text-center pt-0.5">
                     <button
                       type="button"
@@ -11941,6 +11973,8 @@ export default function App() {
                   <span>{isRegisterMode ? 'Create Account' : 'Sign In'}</span>
                 )}
               </button>
+
+              {renderSignUpLegalNotice()}
 
               <div className="text-center pt-1">
                 <button
