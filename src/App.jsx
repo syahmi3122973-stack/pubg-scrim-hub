@@ -60,6 +60,7 @@ import {
   Crop,
   MoreVertical,
   GitMerge,
+  Zap,
   Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -6685,59 +6686,275 @@ export default function App() {
             homeMorphState,
             <div className="max-w-xl md:max-w-full mx-auto space-y-4 sm:space-y-6 lg:space-y-7 pt-2 sm:pt-3 pb-6 md:pb-12 relative">
               
-              {/* TIER 1: Specific Centered Headline + Live Counters */}
-              <div
-                className={`relative z-10 flex gap-3 px-1.5 md:px-1 py-2.5 sm:py-4 animate-home-tier ${
-                  currentUser
-                    ? 'items-center justify-between'
-                    : 'flex-col items-center text-center'
-                }`}
-                style={{ '--home-delay': '0ms' }}
-              >
-                  <div className={currentUser ? 'min-w-0' : 'max-w-xl mx-auto text-center'}>
-                    {currentUser ? (
-                      <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
-                        Selamat kembali, {activeOrganizationName}
-                      </h1>
-                    ) : (
-                      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
-                        Kedudukan Scrim &amp; Kejohanan PUBG Mobile
-                      </h1>
-                    )}
+              {/* TIER 1: Authenticated Header OR Vercel-Inspired Guest Intro Showcase (!currentUser) */}
+              {currentUser ? (
+                <div
+                  className="relative z-10 flex gap-3 px-1.5 md:px-1 py-2.5 sm:py-4 animate-home-tier items-center justify-between"
+                  style={{ '--home-delay': '0ms' }}
+                >
+                  <div className="min-w-0">
+                    <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight text-balance">
+                      Selamat kembali, {activeOrganizationName}
+                    </h1>
                     <p className="hidden md:block text-xs md:text-sm text-zinc-300 mt-1 text-pretty">
-                      {currentUser
-                        ? 'Urus rekod scrim, check prestasi team & scan poster keputusan.'
-                        : 'Check ranking team, kira markah PMGC & scan poster keputusan.'}
+                      Urus rekod scrim, check prestasi team &amp; scan poster keputusan.
                     </p>
                   </div>
 
-                  {(currentUser || scrims.length > 0 || validTeamList.length > 0) && (
-                    <div className={`items-center gap-2.5 shrink-0 ${currentUser ? 'flex' : 'hidden lg:flex'}`}>
-                      {/* Data Counters (Desktop only) */}
-                      <div className="hidden lg:flex items-center gap-2">
-                        <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
-                          <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
+                  <div className="items-center gap-2.5 shrink-0 flex">
+                    <div className="hidden lg:flex items-center gap-2">
+                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
+                        <span><strong className="text-white">{validTeamList.length}</strong> Pasukan</span>
+                      </div>
+                      <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
+                        <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileModalOpen(true)}
+                      className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
+                      <span>{adminHostedScrims.length} Hosted</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (() => {
+                const snippetTeams = topThreePreview.length > 0
+                  ? topThreePreview
+                  : [
+                      { name: '52', tag: '52', totalPoints: 1585, totalKills: 1141, totalWWCD: 18 },
+                      { name: 'VAMOS', tag: 'VMS', totalPoints: 1183, totalKills: 828, totalWWCD: 15 },
+                      { name: 'MEC', tag: 'MEC', totalPoints: 1119, totalKills: 772, totalWWCD: 20 }
+                    ];
+                return (
+                  <section
+                    aria-label="Pengenalan ScrimHub"
+                    className="relative z-10 px-1 pt-2 sm:pt-4 pb-2 sm:pb-4 space-y-6 sm:space-y-8 animate-home-tier"
+                    style={{ '--home-delay': '0ms' }}
+                  >
+                    {/* Subtle atmospheric radial glow behind hero */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -top-10 left-1/4 w-72 sm:w-[460px] h-64 sm:h-80 rounded-full bg-white/[0.04] blur-3xl"
+                    />
+
+                    {/* Concise Vercel-Style Hero Intro */}
+                    <div className="max-w-xl space-y-2 relative">
+                      <h1 className="text-[27px] sm:text-4xl lg:text-[42px] font-semibold text-white tracking-[-0.03em] leading-[1.08] text-balance">
+                        Urus markah scrim &amp; ranking pasukan dalam satu sistem
+                      </h1>
+                    </div>
+
+                    {/* Reference Layout: Overlapping App Snippets (Left) + Bold/Muted Copy & Features (Right) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 lg:gap-10 items-center relative">
+                      {/* LEFT: Layered Quick Scorer (Back) + Team Matrix (Front) Snippets */}
+                      <div className="lg:col-span-7 relative">
+                        {/* Back Window: Quick Scorer Snippet */}
+                        <div className="w-[82%] sm:w-[74%] rounded-xl border border-white/[0.08] bg-[#0B0B0D]/90 p-3.5 sm:p-4 select-none opacity-80">
+                          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.06]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-5 h-5 rounded-md bg-[#D7FF00] text-black flex items-center justify-center shrink-0">
+                                <Zap className="w-3 h-3" />
+                              </span>
+                              <span className="text-xs font-semibold text-zinc-200 truncate">
+                                Quick Scorer
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 font-mono text-[9px] text-zinc-400">
+                              <span className="px-1.5 py-0.5 rounded bg-white/[0.08] text-white">M1</span>
+                              <span className="px-1.5 py-0.5 rounded">M2</span>
+                              <span className="px-1.5 py-0.5 rounded">M3</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-2.5 space-y-1.5 font-mono tabular-nums text-[10px]">
+                            <div className="grid grid-cols-12 text-zinc-500 px-1">
+                              <span className="col-span-6">SQUAD</span>
+                              <span className="col-span-2 text-right">PP</span>
+                              <span className="col-span-2 text-right">KILL</span>
+                              <span className="col-span-2 text-right">PTS</span>
+                            </div>
+                            {snippetTeams.slice(0, 3).map((t, i) => {
+                              const pts = t.totalPoints || 0;
+                              const kills = t.totalKills || 0;
+                              const pp = Math.max(0, pts - kills);
+                              return (
+                                <div
+                                  key={`qs_prev_${t.name}_${i}`}
+                                  className="grid grid-cols-12 items-center px-1.5 py-1 rounded bg-white/[0.02] text-zinc-300"
+                                >
+                                  <span className="col-span-6 truncate font-sans font-medium">
+                                    #{i + 1} {t.name}
+                                  </span>
+                                  <span className="col-span-2 text-right text-zinc-400">{pp}</span>
+                                  <span className="col-span-2 text-right text-zinc-300">{kills}</span>
+                                  <span className="col-span-2 text-right text-[#D7FF00] font-bold">{pts}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5">
-                          <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
+
+                        {/* Front Overlapping Window: Team Matrix Snippet */}
+                        <div className="relative -mt-14 sm:-mt-20 ml-auto w-[90%] sm:w-[82%] rounded-xl border border-white/[0.14] bg-[#0A0A0C]/95 backdrop-blur-md shadow-[0_24px_70px_rgba(0,0,0,0.92)] overflow-hidden">
+                          {/* Window Top Chrome */}
+                          <div className="px-3.5 py-2.5 border-b border-white/[0.08] flex items-center justify-between gap-2 bg-white/[0.015]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-2 h-2 rounded-full bg-[#D7FF00] shrink-0" />
+                              <span className="text-xs font-medium text-zinc-200 truncate">
+                                Team Matrix
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => navigateToTab('teams')}
+                              className="text-[11px] font-mono text-zinc-400 hover:text-white inline-flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <span>Buka penuh</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Matrix Header + Live Counters */}
+                          <div className="p-3.5 sm:p-4 space-y-3">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <div className="text-sm sm:text-base font-extrabold uppercase tracking-tight leading-none flex items-baseline gap-1.5">
+                                <span className="font-team-matrix text-white">TEAM</span>
+                                <span className="font-jetbrains text-[#D7FF00]">MATRIX</span>
+                              </div>
+                              <span className="text-[10px] font-mono tabular-nums text-zinc-400">
+                                {validTeamList.length} Team · {scrims.length} Sesi
+                              </span>
+                            </div>
+
+                            {/* Live Top 3 Rows */}
+                            <div className="rounded-lg border border-white/[0.08] bg-[#070709] divide-y divide-white/[0.08]">
+                              {snippetTeams.map((team, idx) => (
+                                <button
+                                  key={`tm_prev_${team.name}_${idx}`}
+                                  type="button"
+                                  onClick={() => navigateToTab('teams')}
+                                  className="w-full px-3 py-2 flex items-center justify-between gap-2.5 hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className={`font-mono tabular-nums text-[11px] font-bold w-4 shrink-0 ${
+                                      idx === 0 ? 'text-[#D7FF00]' : idx === 1 ? 'text-zinc-200' : 'text-amber-300'
+                                    }`}>
+                                      #{idx + 1}
+                                    </span>
+                                    {team.logo_url ? (
+                                      <img
+                                        src={team.logo_url}
+                                        alt=""
+                                        className="w-5 h-5 rounded object-contain shrink-0"
+                                      />
+                                    ) : (
+                                      <span className="w-5 h-5 rounded border border-white/[0.08] text-[9px] font-mono font-bold text-zinc-300 flex items-center justify-center shrink-0">
+                                        {(team.tag || team.name.slice(0, 2)).toUpperCase()}
+                                      </span>
+                                    )}
+                                    <span className="text-xs font-semibold text-white truncate">
+                                      {team.name}
+                                    </span>
+                                  </div>
+                                  <div className="font-mono tabular-nums text-[11px] shrink-0 flex items-center gap-2">
+                                    <span className="text-zinc-500 hidden sm:inline">{team.totalWWCD || 0}W</span>
+                                    <span className={idx === 0 ? 'text-[#D7FF00] font-bold' : 'text-zinc-200 font-semibold'}>
+                                      {team.totalPoints || 0} PTS
+                                    </span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Bottom Quick Launch Strip (Vercel Prompt Box Inspired) */}
+                            <div className="rounded-lg border border-white/[0.08] bg-[#0D0D10] p-1.5 flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() => navigateToTab('teams')}
+                                className="flex-1 min-h-[36px] px-2.5 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-medium text-white inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
+                              >
+                                <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
+                                <span>Team Matrix</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => navigateToTab('scorer')}
+                                className="flex-1 min-h-[36px] px-2.5 py-1.5 rounded-md bg-[#D7FF00] hover:bg-[#c2e600] text-[11px] font-bold text-black inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
+                              >
+                                <Zap className="w-3.5 h-3.5 text-black" />
+                                <span>Quick Scorer</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {currentUser && (
-                        <button
-                          type="button"
-                          onClick={() => setIsProfileModalOpen(true)}
-                          className="px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-pill glass-tile-hover text-[11px] md:text-xs font-mono font-bold text-zinc-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#D7FF00]" />
-                          <span>{adminHostedScrims.length} Hosted</span>
-                        </button>
-                      )}
+                      {/* RIGHT: Editorial Intro Statement + Features List + Auth CTA */}
+                      <div className="lg:col-span-5 space-y-5 px-0.5">
+                        <p className="text-lg sm:text-xl font-medium tracking-tight leading-snug text-pretty">
+                          <span className="text-white font-semibold">ScrimHub menyatukan penganjur</span>{' '}
+                          <span className="text-zinc-400">
+                            untuk kira markah PMGC, imbas poster AI dan rekod ranking pasukan PUBG Mobile.
+                          </span>
+                        </p>
+
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-medium text-zinc-500 block">
+                            Features
+                          </span>
+                          <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
+                            {[
+                              { label: 'Team Matrix Leaderboard', tab: 'teams' },
+                              { label: 'Quick Scorer 5-Match', tab: 'scorer' },
+                              { label: 'AI Poster OCR Scanner', tab: 'scrim-data' },
+                              { label: 'Kad Story 9:16 & Analitik', tab: 'teams' }
+                            ].map((feat) => (
+                              <button
+                                key={feat.label}
+                                type="button"
+                                onClick={() => navigateToTab(feat.tab)}
+                                className="w-full py-2 flex items-center justify-between text-left text-xs sm:text-sm font-semibold text-white hover:text-[#D7FF00] transition-colors cursor-pointer group"
+                              >
+                                <span>{feat.label}</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-[#D7FF00] group-hover:translate-x-0.5 transition-all" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsRegisterMode(true);
+                              setIsAuthModalOpen(true);
+                            }}
+                            className="min-h-[40px] px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs sm:text-sm font-semibold transition cursor-pointer active:scale-[0.98]"
+                          >
+                            Daftar Percuma
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsRegisterMode(false);
+                              setIsAuthModalOpen(true);
+                            }}
+                            className="min-h-[40px] px-4 py-2 rounded-lg border border-white/[0.14] hover:border-white/[0.3] hover:bg-white/[0.04] text-white text-xs sm:text-sm font-medium transition cursor-pointer active:scale-[0.98]"
+                          >
+                            Log Masuk
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-              </div>
+                  </section>
+                );
+              })()}
 
                 {/* TIER 2: BENTO GRID LAYOUT (Mobile: 2-col intact | Desktop lg+: Wide 12-col Arena) */}
                 <div className="grid grid-cols-2 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5">
