@@ -10361,7 +10361,7 @@ export default function App() {
                   </h2>
                   <p className="text-xs text-zinc-400 text-pretty">
                     {isRegisterMode
-                      ? 'Daftar akaun host untuk save & urus rekod scrim.'
+                      ? 'Perlawanan pertama anda cuma selangkah selepas mendaftar.'
                       : 'Log masuk untuk urus sesi & save rekod ke Cloud.'}
                   </p>
                 </div>
@@ -12055,7 +12055,7 @@ export default function App() {
               </h2>
               <p className="text-xs text-zinc-400 text-pretty">
                 {isRegisterMode
-                  ? 'Daftar akaun host untuk save & urus rekod scrim.'
+                  ? 'Perlawanan pertama anda cuma selangkah selepas mendaftar.'
                   : 'Log masuk untuk buka dashboard host.'}
               </p>
             </div>
