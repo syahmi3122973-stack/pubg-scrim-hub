@@ -60,7 +60,6 @@ import {
   Crop,
   MoreVertical,
   GitMerge,
-  Zap,
   Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -6731,6 +6730,40 @@ export default function App() {
                       { name: 'VAMOS', tag: 'VMS', totalPoints: 1183, totalKills: 828, totalWWCD: 15 },
                       { name: 'MEC', tag: 'MEC', totalPoints: 1119, totalKills: 772, totalWWCD: 20 }
                     ];
+                const singleScrimForSnippet = scrims.find(
+                  (s) => Array.isArray(s?.matches) && s.matches.some((m) => Array.isArray(m?.results) && m.results.length > 0)
+                ) || null;
+                const quickScorerSnippetTitle = singleScrimForSnippet?.title || 'BEN Esports Scrim';
+                const singleScrimRows = (() => {
+                  if (!singleScrimForSnippet) {
+                    return [
+                      { name: 'BEN ESPORT', pp: 26, kills: 58, pts: 84 },
+                      { name: '52', pp: 18, kills: 49, pts: 67 },
+                      { name: 'MEC', pp: 22, kills: 44, pts: 66 }
+                    ];
+                  }
+                  const map = new Map();
+                  (singleScrimForSnippet.matches || []).forEach((m) => {
+                    (m?.results || []).forEach((r) => {
+                      const rawName = (r?.teamName || '').trim();
+                      if (!rawName) return;
+                      const key = rawName.toLowerCase();
+                      const kills = Number(r.kills) || 0;
+                      const pts = Number(r.totalPts) || 0;
+                      const pp = r.placePts !== undefined && r.placePts !== null
+                        ? (Number(r.placePts) || 0)
+                        : Math.max(0, pts - kills);
+                      const cur = map.get(key) || { name: rawName, pp: 0, kills: 0, pts: 0 };
+                      cur.pp += pp;
+                      cur.kills += kills;
+                      cur.pts += pts;
+                      map.set(key, cur);
+                    });
+                  });
+                  return Array.from(map.values())
+                    .sort((a, b) => b.pts - a.pts || b.kills - a.kills)
+                    .slice(0, 3);
+                })();
                 return (
                   <section
                     aria-label="Pengenalan ScrimHub"
@@ -6754,21 +6787,18 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 lg:gap-10 items-center relative">
                       {/* LEFT: Layered Quick Scorer (Back) + Team Matrix (Front) Snippets */}
                       <div className="lg:col-span-7 relative">
-                        {/* Back Window: Quick Scorer Snippet */}
-                        <div className="w-[82%] sm:w-[74%] rounded-xl border border-white/[0.08] bg-[#0B0B0D]/90 p-3.5 sm:p-4 select-none opacity-80">
+                        {/* Back Window: Quick Scorer Single-Scrim Snippet */}
+                        <div className="w-[84%] sm:w-[76%] rounded-xl border border-white/[0.08] bg-[#0B0B0D]/90 p-3.5 sm:p-4 select-none opacity-80">
                           <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.06]">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="w-5 h-5 rounded-md bg-[#D7FF00] text-black flex items-center justify-center shrink-0">
-                                <Zap className="w-3 h-3" />
-                              </span>
-                              <span className="text-xs font-semibold text-zinc-200 truncate">
-                                Quick Scorer
+                            <div className="flex items-center gap-1.5 min-w-0 text-xs truncate">
+                              <span className="font-semibold text-white shrink-0">Quick Scorer</span>
+                              <span className="text-zinc-600 shrink-0">|</span>
+                              <span className="font-mono text-[11px] text-zinc-400 truncate">
+                                {quickScorerSnippetTitle}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1 font-mono text-[9px] text-zinc-400">
-                              <span className="px-1.5 py-0.5 rounded bg-white/[0.08] text-white">M1</span>
-                              <span className="px-1.5 py-0.5 rounded">M2</span>
-                              <span className="px-1.5 py-0.5 rounded">M3</span>
+                            <div className="flex items-center gap-1 font-mono text-[9px] text-zinc-400 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded bg-white/[0.08] text-white">Overall</span>
                             </div>
                           </div>
 
@@ -6779,24 +6809,19 @@ export default function App() {
                               <span className="col-span-2 text-right">KILL</span>
                               <span className="col-span-2 text-right">PTS</span>
                             </div>
-                            {snippetTeams.slice(0, 3).map((t, i) => {
-                              const pts = t.totalPoints || 0;
-                              const kills = t.totalKills || 0;
-                              const pp = Math.max(0, pts - kills);
-                              return (
-                                <div
-                                  key={`qs_prev_${t.name}_${i}`}
-                                  className="grid grid-cols-12 items-center px-1.5 py-1 rounded bg-white/[0.02] text-zinc-300"
-                                >
-                                  <span className="col-span-6 truncate font-sans font-medium">
-                                    #{i + 1} {t.name}
-                                  </span>
-                                  <span className="col-span-2 text-right text-zinc-400">{pp}</span>
-                                  <span className="col-span-2 text-right text-zinc-300">{kills}</span>
-                                  <span className="col-span-2 text-right text-[#D7FF00] font-bold">{pts}</span>
-                                </div>
-                              );
-                            })}
+                            {singleScrimRows.map((t, i) => (
+                              <div
+                                key={`qs_prev_${t.name}_${i}`}
+                                className="grid grid-cols-12 items-center px-1.5 py-1 rounded bg-white/[0.02] text-zinc-300"
+                              >
+                                <span className="col-span-6 truncate font-sans font-medium">
+                                  #{i + 1} {t.name}
+                                </span>
+                                <span className="col-span-2 text-right text-zinc-400">{t.pp}</span>
+                                <span className="col-span-2 text-right text-zinc-300">{t.kills}</span>
+                                <span className="col-span-2 text-right text-[#D7FF00] font-bold">{t.pts}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
 
@@ -6887,8 +6912,8 @@ export default function App() {
                                 onClick={() => navigateToTab('scorer')}
                                 className="flex-1 min-h-[36px] px-2.5 py-1.5 rounded-md bg-[#D7FF00] hover:bg-[#c2e600] text-[11px] font-bold text-black inline-flex items-center justify-center gap-1.5 transition cursor-pointer"
                               >
-                                <Zap className="w-3.5 h-3.5 text-black" />
                                 <span>Quick Scorer</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-black" />
                               </button>
                             </div>
                           </div>
