@@ -6925,7 +6925,7 @@ export default function App() {
                         <p className="text-lg sm:text-xl font-medium tracking-tight leading-snug text-pretty">
                           <span className="text-white font-semibold">ScrimHub menyatukan penganjur</span>{' '}
                           <span className="text-zinc-400">
-                            untuk kira markah PMGC, imbas poster AI dan rekod ranking pasukan PUBG Mobile.
+                            untuk kira markah Match, imbas poster AI dan rekod ranking pasukan PUBG Mobile.
                           </span>
                         </p>
 
