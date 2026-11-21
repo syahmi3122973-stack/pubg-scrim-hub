@@ -7882,14 +7882,12 @@ export default function App() {
                         onClick={() => navigateToTab('scrim-data')}
                         className="py-3 px-4 hover:bg-white/[0.04] text-pink-300 hover:text-pink-200 text-xs font-medium flex items-center justify-center gap-2 transition cursor-pointer"
                       >
-                        {ocrJob.isProcessing ? (
+                        {ocrJob.isProcessing && (
                           <progress
                             aria-hidden="true"
                             className="loading-spinner"
                             style={{ '--size': '11px', '--thickness': '1.5px' }}
                           />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5 text-pink-400" />
                         )}
                         <span>Scan Poster AI</span>
                         {ocrJob.isProcessing && (
