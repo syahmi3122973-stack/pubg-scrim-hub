@@ -145,7 +145,7 @@ export const computeSmoothBezierSegments = (points, minY, maxY, tension = 0.2) =
   return segments;
 };
 
-const buildSvgLinePath = (points, segments) => {
+export const buildSvgLinePath = (points, segments) => {
   if (!points || points.length === 0) return '';
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
   const parts = [`M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`];

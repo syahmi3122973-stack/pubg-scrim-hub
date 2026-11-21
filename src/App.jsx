@@ -65,7 +65,7 @@ import {
 import { supabase } from './supabaseClient';
 import ScrimDataHubView, { executePosterOcrExtraction } from './components/ScrimDataHubView';
 import LegacyGuestLandingView from './components/LegacyGuestLandingView';
-import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments } from './components/ScrimDualLineChart';
+import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments, buildSvgLinePath } from './components/ScrimDualLineChart';
 import TeamLogoCropper from './components/TeamLogoCropper';
 import AuroraPetalCanvas from './components/AuroraPetalCanvas';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
@@ -6794,6 +6794,60 @@ export default function App() {
                     .sort((a, b) => b.pts - a.pts || b.kills - a.kills)
                     .slice(0, 3);
                 })();
+                const analyticsLeader = leadingTeam || {
+                  name: '52',
+                  tag: '52',
+                  totalPoints: 1585,
+                  totalKills: 1141,
+                  totalWWCD: 18,
+                  scrimResults: [
+                    { scrimName: 'S9 F', date: '2026-07-16', kills: 78, points: 108 },
+                    { scrimName: 'S10 A', date: '2026-08-19', kills: 99, points: 142 },
+                    { scrimName: 'S10 F', date: '2026-08-21', kills: 84, points: 117 },
+                    { scrimName: 'S12 F', date: '2026-10-28', kills: 95, points: 135 },
+                    { scrimName: 'S13 A', date: '2026-11-20', kills: 102, points: 144 }
+                  ]
+                };
+                const analyticsPts = Math.max(0, Number(analyticsLeader.totalPoints) || 0);
+                const analyticsKills = Math.max(0, Number(analyticsLeader.totalKills) || 0);
+                const analyticsPlace = Math.max(0, analyticsPts - analyticsKills);
+                const analyticsKpPct = analyticsPts > 0 ? Math.round((analyticsKills / analyticsPts) * 100) : 70;
+                const analyticsPpPct = Math.max(0, 100 - analyticsKpPct);
+                const analyticsSeries = buildScrimTrendSeries(analyticsLeader.scrimResults || [], 8);
+                const analyticsSpark = (() => {
+                  const W = 230;
+                  const H = 64;
+                  const padX = 6;
+                  const padY = 8;
+                  const innerW = W - padX * 2;
+                  const innerH = H - padY * 2;
+                  const bottom = padY + innerH;
+                  const list = analyticsSeries.items.length >= 2
+                    ? analyticsSeries.items
+                    : [
+                        { kills: 60, pp: 24 },
+                        { kills: 88, pp: 34 },
+                        { kills: 74, pp: 30 },
+                        { kills: 102, pp: 42 }
+                      ];
+                  const yMaxVal = Math.max(analyticsSeries.yMax || 10, ...list.map((d) => Math.max(d.kills, d.pp)), 10);
+                  const getX = (i) => padX + (i / (list.length - 1)) * innerW;
+                  const getY = (v) => bottom - (Math.max(0, v) / yMaxVal) * innerH;
+                  const kPts = list.map((d, i) => ({ x: getX(i), y: getY(d.kills) }));
+                  const pPts = list.map((d, i) => ({ x: getX(i), y: getY(d.pp) }));
+                  const kSeg = computeSmoothBezierSegments(kPts, padY, bottom, 0.2);
+                  const pSeg = computeSmoothBezierSegments(pPts, padY, bottom, 0.2);
+                  return {
+                    W,
+                    H,
+                    padY,
+                    bottom,
+                    kPath: buildSvgLinePath(kPts, kSeg),
+                    pPath: buildSvgLinePath(pPts, pSeg),
+                    kLast: kPts[kPts.length - 1],
+                    pLast: pPts[pPts.length - 1]
+                  };
+                })();
                 return (
                   <section
                     aria-label="Pengenalan ScrimHub"
@@ -6945,6 +6999,117 @@ export default function App() {
                                 <span>Quick Scorer</span>
                                 <ArrowRight className="w-3.5 h-3.5 text-black" />
                               </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Lower Docked Card: Team Analytics Snippet */}
+                        <div className="mt-3 rounded-xl border border-white/[0.1] bg-[#0A0A0C]/95 backdrop-blur-md overflow-hidden">
+                          <div className="px-3.5 py-2 border-b border-white/[0.08] flex items-center justify-between gap-2 bg-white/[0.015]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs font-medium text-zinc-200 shrink-0">Team Analytics</span>
+                              <span className="text-zinc-600 shrink-0">·</span>
+                              <span className="text-xs font-semibold text-white truncate">{analyticsLeader.name}</span>
+                              <span className="px-1.5 py-0.5 rounded border border-[#D7FF00]/25 bg-[#D7FF00]/[0.06] text-[#D7FF00] font-mono tabular-nums text-[10px] font-bold shrink-0">
+                                #1
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTeamStatsEventType('ALL');
+                                handleSelectTeamStatsCategory('ALL');
+                                navigateToTab('teams');
+                                if (leadingTeam) {
+                                  setSelectedTeamProfile(leadingTeam.name);
+                                }
+                              }}
+                              className="text-[11px] font-mono text-zinc-400 hover:text-white inline-flex items-center gap-1 transition cursor-pointer shrink-0"
+                            >
+                              <span>Analitik penuh</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08]">
+                            {/* Left: 3 KPIs + Elims vs PP Ratio */}
+                            <div className="sm:col-span-6 p-3.5 flex flex-col justify-between gap-3">
+                              <div className="grid grid-cols-3 divide-x divide-white/[0.08] pb-2.5 border-b border-white/[0.08] font-mono tabular-nums">
+                                <div className="pr-2.5">
+                                  <span className="text-[9px] uppercase text-zinc-500 block">PTS</span>
+                                  <span className="text-sm font-bold text-[#D7FF00]">{analyticsPts}</span>
+                                </div>
+                                <div className="px-2.5">
+                                  <span className="text-[9px] uppercase text-zinc-500 block">Elims</span>
+                                  <span className="text-sm font-bold text-white">{analyticsKills}</span>
+                                </div>
+                                <div className="pl-2.5">
+                                  <span className="text-[9px] uppercase text-zinc-500 block">WWCD</span>
+                                  <span className="text-sm font-bold text-emerald-400">{analyticsLeader.totalWWCD || 0}</span>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
+                                  <span className="text-zinc-500 uppercase">Gaya Main</span>
+                                  <span>
+                                    <span className="text-[#D7FF00]">Elims {analyticsKpPct}%</span>
+                                    <span className="text-zinc-600"> · </span>
+                                    <span className="text-emerald-400">PP {analyticsPpPct}%</span>
+                                  </span>
+                                </div>
+                                <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden flex">
+                                  <div
+                                    style={{ width: `${Math.max(analyticsKpPct, 4)}%` }}
+                                    className="h-full bg-[#D7FF00]"
+                                    title={`Elims: ${analyticsKills} PTS`}
+                                  />
+                                  <div
+                                    style={{ width: `${Math.max(analyticsPpPct, 4)}%` }}
+                                    className="h-full bg-emerald-500"
+                                    title={`Placement: ${analyticsPlace} PTS`}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Smooth Dual-Line Elims vs PP Sparkline */}
+                            <div className="sm:col-span-6 p-3.5 flex flex-col justify-between gap-1.5">
+                              <div className="flex items-center justify-between text-[10px] font-mono">
+                                <span className="text-zinc-400">Elims vs PP</span>
+                                <div className="flex items-center gap-2.5">
+                                  <span className="inline-flex items-center gap-1 text-[#D7FF00]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" />
+                                    Elims
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 text-teal-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                    PP
+                                  </span>
+                                </div>
+                              </div>
+
+                              <svg
+                                viewBox={`0 0 ${analyticsSpark.W} ${analyticsSpark.H}`}
+                                className="w-full h-14 overflow-visible"
+                                aria-hidden="true"
+                              >
+                                <line x1="0" y1={analyticsSpark.padY} x2={analyticsSpark.W} y2={analyticsSpark.padY} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                                <line x1="0" y1={analyticsSpark.bottom} x2={analyticsSpark.W} y2={analyticsSpark.bottom} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                                <path d={analyticsSpark.pPath} fill="none" stroke="#2DD4BF" strokeWidth="1.75" strokeLinecap="round" />
+                                <path d={analyticsSpark.kPath} fill="none" stroke="#D7FF00" strokeWidth="2" strokeLinecap="round" />
+                                {analyticsSpark.pLast && (
+                                  <circle cx={analyticsSpark.pLast.x} cy={analyticsSpark.pLast.y} r="2.5" fill="#2DD4BF" />
+                                )}
+                                {analyticsSpark.kLast && (
+                                  <circle cx={analyticsSpark.kLast.x} cy={analyticsSpark.kLast.y} r="3" fill="#D7FF00" />
+                                )}
+                              </svg>
+
+                              <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-zinc-500">
+                                <span>Purata {analyticsSeries.avgKills} Elims · {analyticsSeries.avgPp} PP</span>
+                                <span>{analyticsLeader.scrimResults?.length || 0} sesi</span>
+                              </div>
                             </div>
                           </div>
                         </div>
