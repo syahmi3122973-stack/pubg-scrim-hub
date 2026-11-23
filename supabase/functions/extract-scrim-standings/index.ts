@@ -263,54 +263,19 @@ interface ModelCandidate {
   thinkingConfig?: { thinkingLevel?: "MINIMAL" | "LOW"; thinkingBudget?: number };
 }
 
-const MODEL_CANDIDATES: ModelCandidate[] = [
+const WAVE_1_CANDIDATES: ModelCandidate[] = [
   { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-3.1-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-flash-lite-latest" },
-  { name: "gemini-flash-latest" },
-  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-3.7-flash", thinkingConfig: { thinkingLevel: "LOW" } },
-  { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
+  { name: "gemini-3.5-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-omni-flash-preview" },
 ];
 
-let cachedDiscoveredModels: { expiresAt: number; models: string[] } | null = null;
-
-async function discoverFlashModels(apiKey: string): Promise<string[]> {
-  const now = Date.now();
-  if (cachedDiscoveredModels && cachedDiscoveredModels.expiresAt > now) {
-    return cachedDiscoveredModels.models;
-  }
-  try {
-    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
-      method: "GET",
-      signal: AbortSignal.timeout(4000),
-      headers: { "x-goog-api-key": apiKey.trim() },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const list = Array.isArray(data?.models) ? data.models : [];
-    const names = list
-      .filter((m: any) => {
-        const name = String(m?.name || "").toLowerCase();
-        const methods = Array.isArray(m?.supportedGenerationMethods) ? m.supportedGenerationMethods : [];
-        return (
-          methods.includes("generateContent") &&
-          name.includes("flash") &&
-          !name.includes("audio") &&
-          !name.includes("tts") &&
-          !name.includes("image") &&
-          !name.includes("live") &&
-          !name.includes("robotics")
-        );
-      })
-      .map((m: any) => String(m.name).replace(/^models\//, ""));
-    cachedDiscoveredModels = { expiresAt: now + 600_000, models: names };
-    return names;
-  } catch {
-    return [];
-  }
-}
+const WAVE_2_CANDIDATES: ModelCandidate[] = [
+  { name: "gemini-omni-1.2-flash" },
+  { name: "gemini-omni-1.1-flash" },
+  { name: "gemini-flash-latest" },
+  { name: "gemini-flash-lite-latest" },
+];
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -431,57 +396,48 @@ Extract every single row accurately from this tournament standings poster:
 `;
 
     let parsed: ExtractionResponse | null = null;
-    let modelUsed = "";
     let lastError = "";
     const modelErrors: string[] = [];
     const attemptCodes: string[] = [];
     const reqStartedAt = Date.now();
-    const TOTAL_BUDGET_MS = 25000;
+    const TOTAL_BUDGET_MS = 38000;
 
-    // Discover active flash models so deprecated/congested hardcoded names can fall back dynamically
-    const discovered = await discoverFlashModels(apiKey);
-    const candidateQueue: ModelCandidate[] = [];
-    const seenModels = new Set<string>();
-    for (const c of MODEL_CANDIDATES) {
-      // If discovery succeeded, skip hardcoded models that aren't in the account's live catalog (except *-latest aliases)
-      if (discovered.length > 0 && !discovered.includes(c.name) && !c.name.endsWith("-latest")) {
-        continue;
-      }
-      seenModels.add(c.name);
-      candidateQueue.push(c);
-    }
-    for (const dName of discovered) {
-      if (!seenModels.has(dName)) {
-        seenModels.add(dName);
-        candidateQueue.push({ name: dName });
-      }
-    }
-
-    for (let idx = 0; idx < candidateQueue.length; idx += 1) {
-      const candidate = candidateQueue[idx];
-      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-      if (remainingMs < 3500) {
-        modelErrors.push(`${candidate.name}: skipped_budget`);
-        break;
-      }
+    const tryCandidate = async (
+      candidate: ModelCandidate,
+      timeoutMs: number,
+      waveController: AbortController
+    ): Promise<ExtractionResponse> => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const onWaveAbort = () => controller.abort();
+      waveController.signal.addEventListener("abort", onWaveAbort, { once: true });
 
       try {
-        const generationConfig: Record<string, unknown> = {
-          responseMimeType: "application/json",
-          responseSchema: extractionSchema,
-          temperature: 0.1,
-          maxOutputTokens: 8192,
-        };
-        if (candidate.thinkingConfig) {
+        const isGemma = candidate.name.toLowerCase().startsWith("gemma");
+        const generationConfig: Record<string, unknown> = isGemma
+          ? {
+              temperature: 0.1,
+              maxOutputTokens: 8192,
+            }
+          : {
+              responseMimeType: "application/json",
+              responseSchema: extractionSchema,
+              temperature: 0.1,
+              maxOutputTokens: 8192,
+            };
+        if (!isGemma && candidate.thinkingConfig) {
           generationConfig.thinkingConfig = candidate.thinkingConfig;
         }
 
-        const perModelTimeoutMs = idx === 0 ? Math.min(13000, remainingMs) : Math.min(8000, remainingMs);
+        const promptForModel = isGemma
+          ? `${prompt}\n\nReturn ONLY raw valid JSON matching {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. No markdown fences.`
+          : prompt;
+
         const restRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(perModelTimeoutMs),
+            signal: controller.signal,
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
@@ -490,7 +446,7 @@ Extract every single row accurately from this tournament standings poster:
               contents: [
                 {
                   parts: [
-                    { text: prompt },
+                    { text: promptForModel },
                     {
                       inlineData: {
                         mimeType: normalizedMime,
@@ -507,42 +463,65 @@ Extract every single row accurately from this tournament standings poster:
 
         if (restRes.ok) {
           const data = await restRes.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          const text = rawText
+            ? String(rawText).replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
+            : "";
           if (!text) {
             const finishReason = data?.candidates?.[0]?.finishReason || "EMPTY";
             lastError = `Empty response from ${candidate.name} (${finishReason})`;
             modelErrors.push(`${candidate.name}: ${finishReason}`);
             attemptCodes.push(`${candidate.name}:${finishReason}`);
-            continue;
+            throw new Error(lastError);
           }
-          try {
-            const candidateParsed = JSON.parse(text) as ExtractionResponse;
-            if (Array.isArray(candidateParsed?.standings) && candidateParsed.standings.length > 0) {
-              parsed = candidateParsed;
-              modelUsed = candidate.name;
-              break;
-            }
-            lastError = `${candidate.name} returned 0 standings`;
-            modelErrors.push(`${candidate.name}: 0_standings`);
-            attemptCodes.push(`${candidate.name}:0_rows`);
-          } catch {
-            lastError = `${candidate.name} returned malformed JSON`;
-            modelErrors.push(`${candidate.name}: bad_json`);
-            attemptCodes.push(`${candidate.name}:bad_json`);
+          const candidateParsed = JSON.parse(text) as ExtractionResponse;
+          if (Array.isArray(candidateParsed?.standings) && candidateParsed.standings.length > 0) {
+            waveController.abort();
+            return candidateParsed;
           }
+          lastError = `${candidate.name} returned 0 standings`;
+          modelErrors.push(`${candidate.name}: 0_standings`);
+          attemptCodes.push(`${candidate.name}:0_rows`);
+          throw new Error(lastError);
         } else {
           const errJson = await restRes.json().catch(() => ({}));
           lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
           modelErrors.push(`${candidate.name}: ${restRes.status} ${lastError}`);
           attemptCodes.push(`${candidate.name}:${restRes.status}`);
-          if (restRes.status === 401 || restRes.status === 403) {
-            break;
-          }
+          throw new Error(lastError);
         }
-      } catch (fetchErr) {
-        lastError = (fetchErr as any)?.message || String(fetchErr);
-        modelErrors.push(`${candidate.name}: ${lastError}`);
-        attemptCodes.push(`${candidate.name}:timeout`);
+      } catch (err) {
+        const msg = (err as any)?.message || String(err);
+        if (!waveController.signal.aborted && !attemptCodes.some((a) => a.startsWith(`${candidate.name}:`))) {
+          lastError = msg;
+          modelErrors.push(`${candidate.name}: ${msg}`);
+          attemptCodes.push(`${candidate.name}:timeout`);
+        }
+        throw err;
+      } finally {
+        clearTimeout(timer);
+        waveController.signal.removeEventListener("abort", onWaveAbort);
+      }
+    };
+
+    const runWave = async (
+      candidates: ModelCandidate[],
+      timeoutMs: number
+    ): Promise<ExtractionResponse | null> => {
+      if (candidates.length === 0) return null;
+      const waveController = new AbortController();
+      try {
+        return await Promise.any(candidates.map((c) => tryCandidate(c, timeoutMs, waveController)));
+      } catch {
+        return null;
+      }
+    };
+
+    parsed = await runWave(WAVE_1_CANDIDATES, 26000);
+    if (!parsed) {
+      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+      if (remainingMs >= 6000) {
+        parsed = await runWave(WAVE_2_CANDIDATES, Math.min(12000, remainingMs));
       }
     }
 
