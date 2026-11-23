@@ -7,4 +7,17 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    sourcemap: false,
+    rolldownOptions: {
+      output: {
+        minify: {
+          compress: {
+            dropConsole: true,
+            dropDebugger: true,
+          },
+        },
+      },
+    },
+  },
 })

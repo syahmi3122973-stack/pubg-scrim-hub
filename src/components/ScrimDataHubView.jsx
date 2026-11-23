@@ -25,6 +25,7 @@ import {
   resolveTeamDisplayName,
   findClosestKnownTeamMatch
 } from '../utils/teamAlias';
+import { sanitizeTextInput, generateSecureToken } from '../utils/security';
 
 // Exact real extracted dataset from the MEC SCRIMS poster (Monday, 9 November 2026 - 18 Teams)
 export const MEC_SCRIMS_18_TEAMS = [
@@ -731,17 +732,19 @@ export default function ScrimDataHubView({
       }
 
       const normalizedEventType = eventType === 'Tour' ? 'Tour' : 'Scrim';
+      const cleanScrimTitle = sanitizeTextInput(scrimName, 120);
+      const cleanHost = sanitizeTextInput(effectiveHost, 80);
 
       // 2. Build record matching the primary `public.scrims` table schema used by Rekod & Hall of Fame
       const newScrimRecord = {
         id: 'scrim_' + Date.now(),
-        title: scrimName.trim(),
+        title: cleanScrimTitle,
         event_type: normalizedEventType,
-        tier: scrimTier,
-        description: `Diextract dari Results Scanner AI Poster OCR (${scrimName.trim()}).`,
+        tier: sanitizeTextInput(scrimTier, 40) || 'Tier 1 (Pro)',
+        description: `Diextract dari Results Scanner AI Poster OCR (${cleanScrimTitle}).`,
         date: scrimDate || new Date().toISOString().split('T')[0],
         logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
-        host_name: effectiveHost,
+        host_name: cleanHost,
         host_contact: '',
         total_matches: 1,
         matches: [
@@ -749,13 +752,14 @@ export default function ScrimDataHubView({
             matchNo: 1,
             map: 'Overall Standings',
             results: standings.map((r, idx) => {
-              const norm = normalizeTeamAlias(r.team_name, knownTeams);
+              const cleanRowName = sanitizeTextInput(r.team_name, 60);
+              const norm = normalizeTeamAlias(cleanRowName, knownTeams);
               const pp = Number(r.placement_points) || 0;
               const kp = Number(r.kill_points) || 0;
               return {
                 slot: idx + 1,
                 teamId: norm.slug,
-                teamName: norm.canonicalName || r.team_name.trim(),
+                teamName: norm.canonicalName || cleanRowName,
                 tag: norm.tag,
                 placement: Number(r.rank) || idx + 1,
                 kills: kp,
@@ -768,7 +772,7 @@ export default function ScrimDataHubView({
         ],
         created_by: currentUser?.id || 'public_ocr',
         co_hosts: [],
-        claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
+        claim_token: generateSecureToken('token_'),
         is_finished: true
       };
 

@@ -70,6 +70,18 @@ import TeamLogoCropper from './components/TeamLogoCropper';
 import AuroraPetalCanvas from './components/AuroraPetalCanvas';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 import {
+  safeExternalUrl,
+  safeMediaUrl,
+  buildSafeContactUrl,
+  sanitizeTextInput,
+  generateSecureToken,
+  validateUploadFile
+} from './utils/security';
+
+const MASTER_ADMIN_EMAIL = (import.meta.env.VITE_MASTER_ADMIN_EMAIL || 'syahmi3122973@gmail.com')
+  .trim()
+  .toLowerCase();
+import {
   cleanTeamDisplayName,
   getCanonicalTeamKey,
   getCompactTeamSignature,
@@ -124,11 +136,13 @@ const TikTokIcon = ({ className = "w-3.5 h-3.5" }) => (
 
 function TikTokPreviewCard({ post }) {
   const fallbackThumbnail = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1200&q=80";
+  const safeMedia = safeMediaUrl(post.media_url) || fallbackThumbnail;
+  const safeExtUrl = safeExternalUrl(post.external_url);
 
   return (
     <div className="relative w-full max-w-[320px] mx-auto aspect-[9/15] rounded-3xl overflow-hidden bg-[#111114] shadow-2xl flex flex-col justify-between p-4 group select-none">
       <img
-        src={post.media_url || fallbackThumbnail}
+        src={safeMedia}
         alt={post.title}
         className="absolute inset-0 w-full h-full object-cover opacity-60 scale-100 group-hover:scale-105 transition-transform duration-500 ease-out"
       />
@@ -145,19 +159,28 @@ function TikTokPreviewCard({ post }) {
         </span>
       </div>
 
-      <a
-        href={post.external_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative z-10 flex flex-col items-center justify-center my-auto group/btn cursor-pointer"
-      >
-        <div className="w-16 h-16 rounded-full bg-[#1C1C22] flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:bg-lime-400 group-hover/btn:text-slate-950">
-          <Play className="w-7 h-7 fill-current translate-x-0.5" />
+      {safeExtUrl ? (
+        <a
+          href={safeExtUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative z-10 flex flex-col items-center justify-center my-auto group/btn cursor-pointer"
+        >
+          <div className="w-16 h-16 rounded-full bg-[#1C1C22] flex items-center justify-center text-white shadow-2xl transition-all duration-300 group-hover/btn:scale-110 group-hover/btn:bg-lime-400 group-hover/btn:text-slate-950">
+            <Play className="w-7 h-7 fill-current translate-x-0.5" />
+          </div>
+          <span className="mt-2.5 text-xs font-mono font-semibold text-slate-300 tracking-wide uppercase group-hover/btn:text-white transition-colors">
+            Tap to Watch Clip
+          </span>
+        </a>
+      ) : (
+        <div className="relative z-10 flex flex-col items-center justify-center my-auto opacity-60">
+          <div className="w-16 h-16 rounded-full bg-[#1C1C22] flex items-center justify-center text-white">
+            <Play className="w-7 h-7 fill-current translate-x-0.5" />
+          </div>
+          <span className="mt-2.5 text-xs font-mono text-slate-400 uppercase">Pautan Tiada</span>
         </div>
-        <span className="mt-2.5 text-xs font-mono font-semibold text-slate-300 tracking-wide uppercase group-hover/btn:text-white transition-colors">
-          Tap to Watch Clip
-        </span>
-      </a>
+      )}
 
       <div className="relative z-10 space-y-3 pt-4">
         <div>
@@ -169,16 +192,18 @@ function TikTokPreviewCard({ post }) {
           </h4>
         </div>
 
-        <a
-          href={post.external_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 text-xs font-black flex items-center justify-center gap-2 shadow-lg transition-all"
-        >
-          <TikTokIcon className="w-4 h-4" />
-          <span>Open in TikTok App</span>
-          <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-        </a>
+        {safeExtUrl && (
+          <a
+            href={safeExtUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-950 text-xs font-black flex items-center justify-center gap-2 shadow-lg transition-all"
+          >
+            <TikTokIcon className="w-4 h-4" />
+            <span>Open in TikTok App</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+          </a>
+        )}
       </div>
     </div>
   );
@@ -447,12 +472,25 @@ const createDemoPlaygroundSession = (teamCount = 16) => {
 
 const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   if (!file) return null;
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-  
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session?.user) {
+    throw new Error('Sila log masuk dulu sebelum muat naik fail.');
+  }
+  const safeFolder = ['avatars', 'logos', 'team-logos', 'showcase', 'uploads'].includes(folder)
+    ? folder
+    : 'uploads';
+  const check = validateUploadFile(file, {
+    allowVideo: safeFolder === 'showcase',
+    maxMb: safeFolder === 'showcase' ? 20 : 5
+  });
+  if (!check.ok) {
+    throw new Error(check.error);
+  }
+  const fileName = `${safeFolder}/${generateSecureToken(`${Date.now()}_`)}.${check.ext}`;
+
   const { error: uploadError } = await supabase.storage
     .from('scrim-assets')
-    .upload(fileName, file);
+    .upload(fileName, file, { contentType: file.type, upsert: false });
 
   if (uploadError) throw uploadError;
 
@@ -1346,7 +1384,7 @@ export default function App() {
         matches: compiledMatches,
         created_by: user.id,
         co_hosts: [],
-        claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
+        claim_token: generateSecureToken('token_'),
         is_finished: true
       };
 
@@ -1476,10 +1514,10 @@ export default function App() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Master Admin (Kuasa Mutlak) State - syahmi3122973@gmail.com
+  // Master Admin Authorization Check
   const isMasterAdmin = useMemo(() => {
     if (!currentUser || !currentUser.email) return false;
-    return currentUser.email.trim().toLowerCase() === 'syahmi3122973@gmail.com';
+    return currentUser.email.trim().toLowerCase() === MASTER_ADMIN_EMAIL;
   }, [currentUser]);
 
   const [isTeamManagerModalOpen, setIsTeamManagerModalOpen] = useState(false);
@@ -1740,11 +1778,20 @@ export default function App() {
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
+    const cleanEmail = authEmail.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      showToast('Masukkan alamat email yang sah.');
+      return;
+    }
+    if (isRegisterMode && authPassword.length < 8) {
+      showToast('Password mestilah sekurang-kurangnya 8 aksara.');
+      return;
+    }
     setAuthLoading(true);
 
     if (isRegisterMode) {
       const { data, error } = await supabase.auth.signUp({
-        email: authEmail,
+        email: cleanEmail,
         password: authPassword
       });
 
@@ -1763,7 +1810,7 @@ export default function App() {
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: authEmail,
+        email: cleanEmail,
         password: authPassword
       });
 
@@ -1851,7 +1898,19 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    const loggedOutEmail = currentUser?.email?.toLowerCase();
     await supabase.auth.signOut();
+    if (loggedOutEmail) {
+      setSavedAccounts(prev => {
+        const sanitized = prev.map(a =>
+          a.email?.toLowerCase() === loggedOutEmail ? { ...a, session: null } : a
+        );
+        try {
+          localStorage.setItem('pubg_saved_accounts', JSON.stringify(sanitized));
+        } catch {}
+        return sanitized;
+      });
+    }
     setCurrentUser(null);
     setProfileName('');
     setProfileContact('');
@@ -1867,7 +1926,7 @@ export default function App() {
 
   const isAuthorizedAdmin = useCallback((scrim) => {
     if (!currentUser || !scrim) return false;
-    if (currentUser.email && currentUser.email.trim().toLowerCase() === 'syahmi3122973@gmail.com') {
+    if (currentUser.email && currentUser.email.trim().toLowerCase() === MASTER_ADMIN_EMAIL) {
       return true;
     }
     const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
@@ -1986,7 +2045,7 @@ export default function App() {
       matches: defaultMatches,
       created_by: currentUser.id,
       co_hosts: [],
-      claim_token: 'token_' + Math.random().toString(36).substring(2, 10),
+      claim_token: generateSecureToken('token_'),
       is_finished: false,
       is_draft: true
     };
@@ -2096,10 +2155,10 @@ export default function App() {
 
       const payload = {
         id: currentUser.id,
-        display_name: profileName.trim() || currentUser.email.split('@')[0],
-        contact: profileContact.trim(),
-        bio: profileBio.trim(),
-        avatar_url: newAvatarUrl,
+        display_name: sanitizeTextInput(profileName, 60) || currentUser.email.split('@')[0],
+        contact: sanitizeTextInput(profileContact, 120),
+        bio: sanitizeTextInput(profileBio, 400),
+        avatar_url: safeMediaUrl(newAvatarUrl),
         updated_at: new Date().toISOString()
       };
 
@@ -2127,15 +2186,16 @@ export default function App() {
 
   const handleSubmitFeedback = async (e) => {
     e.preventDefault();
-    if (!feedbackMessage.trim()) return;
+    const cleanMessage = sanitizeTextInput(feedbackMessage, 1500);
+    if (!cleanMessage) return;
 
     try {
       setIsSendingFeedback(true);
       const payload = {
-        id: 'fb_' + Date.now(),
-        user_email: feedbackEmail.trim() || currentUser?.email || 'Anonymous Public User',
-        category: feedbackCategory,
-        message: feedbackMessage.trim(),
+        id: generateSecureToken('fb_'),
+        user_email: sanitizeTextInput(feedbackEmail, 120) || currentUser?.email || 'Anonymous Public User',
+        category: sanitizeTextInput(feedbackCategory, 40) || 'General',
+        message: cleanMessage,
         created_at: new Date().toISOString()
       };
 
@@ -2324,14 +2384,14 @@ export default function App() {
       }
 
       const updatedData = {
-        title: editTitle.trim(),
-        host_name: editHostName.trim() || editingScrim.host_name || 'Tournament Organizer',
-        event_type: editEventType,
-        tier: editTier,
+        title: sanitizeTextInput(editTitle, 120),
+        host_name: sanitizeTextInput(editHostName, 80) || editingScrim.host_name || 'Tournament Organizer',
+        event_type: editEventType === 'Tour' ? 'Tour' : 'Scrim',
+        tier: sanitizeTextInput(editTier, 40) || 'Tier 1 (Pro)',
         date: editDate || editingScrim.date || new Date().toISOString().split('T')[0],
-        description: editDesc.trim(),
-        host_contact: editContact.trim(),
-        logo_url: updatedLogoUrl
+        description: sanitizeTextInput(editDesc, 400),
+        host_contact: sanitizeTextInput(editContact, 120),
+        logo_url: safeMediaUrl(updatedLogoUrl)
       };
 
       const { error } = await supabase
@@ -2889,8 +2949,8 @@ export default function App() {
         uploadedLogoUrl = await uploadMediaToSupabase(logoFile, 'logos');
       }
 
-      const generatedToken = 'token_' + Math.random().toString(36).substring(2, 10);
-      const hostDisplayName = newHostName.trim() || profileName || currentUser.email.split('@')[0];
+      const generatedToken = generateSecureToken('token_');
+      const hostDisplayName = sanitizeTextInput(newHostName, 80) || profileName || currentUser.email.split('@')[0];
 
       const defaultMatches = PLAYGROUND_DEFAULT_MAPS.map((mapName, mIdx) => ({
         matchNo: mIdx + 1,
@@ -2900,14 +2960,14 @@ export default function App() {
 
       const newSession = {
         id: 'scrim_' + Date.now(),
-        title: newScrimTitle.trim(),
-        event_type: newEventType,
-        tier: newScrimTier,
-        description: newScrimDesc.trim() || `Official PUBG Mobile ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} Session.`,
+        title: sanitizeTextInput(newScrimTitle, 120),
+        event_type: newEventType === 'Tour' ? 'Tour' : 'Scrim',
+        tier: sanitizeTextInput(newScrimTier, 40) || 'Tier 1 (Pro)',
+        description: sanitizeTextInput(newScrimDesc, 400) || `Official PUBG Mobile ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} Session.`,
         date: newScrimDate || new Date().toISOString().split('T')[0],
-        logo_url: uploadedLogoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+        logo_url: safeMediaUrl(uploadedLogoUrl) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
         host_name: hostDisplayName,
-        host_contact: newHostContact.trim() || profileContact || '',
+        host_contact: sanitizeTextInput(newHostContact, 120) || profileContact || '',
         total_matches: defaultMatches.length,
         matches: defaultMatches,
         created_by: currentUser.id,
@@ -4482,7 +4542,12 @@ export default function App() {
   }, [allManageableTeams, teamManagerSearch]);
 
   const handleSaveTeamDetails = async (updatedTeam) => {
-    if (!updatedTeam || !updatedTeam.name.trim()) {
+    if (!currentUser || !isMasterAdmin) {
+      showToast('Akses terhad kepada Master Admin.');
+      return;
+    }
+    const cleanName = sanitizeTextInput(updatedTeam?.name, 60);
+    if (!updatedTeam || !cleanName) {
       showToast('Masukkan nama team yang betul.');
       return;
     }
@@ -4491,9 +4556,9 @@ export default function App() {
     try {
       const cleanTeam = {
         id: updatedTeam.id || ('tm_' + Date.now().toString(36)),
-        name: updatedTeam.name.trim(),
-        tag: (updatedTeam.tag || updatedTeam.name.slice(0, 4)).trim().toUpperCase(),
-        logo_url: updatedTeam.logo_url?.trim() || null
+        name: cleanName,
+        tag: sanitizeTextInput(updatedTeam.tag || cleanName.slice(0, 4), 10).toUpperCase(),
+        logo_url: safeMediaUrl(updatedTeam.logo_url) || null
       };
 
       // 1. Update React state & localStorage
@@ -4565,8 +4630,12 @@ export default function App() {
   };
 
   const handleMergeTeams = async (sourceNameRaw, targetNameRaw) => {
-    const sourceName = cleanTeamDisplayName(sourceNameRaw);
-    const targetName = cleanTeamDisplayName(targetNameRaw);
+    if (!currentUser || !isMasterAdmin) {
+      showToast('Akses terhad kepada Master Admin.');
+      return;
+    }
+    const sourceName = cleanTeamDisplayName(sanitizeTextInput(sourceNameRaw, 60));
+    const targetName = cleanTeamDisplayName(sanitizeTextInput(targetNameRaw, 60));
     if (!sourceName || !targetName) {
       showToast('Pilih team asal dan team sasaran.');
       return;
@@ -4877,7 +4946,16 @@ export default function App() {
       showToast('Log masuk dulu untuk post content.');
       return;
     }
-    if (!postTitle.trim()) return;
+    const cleanTitle = sanitizeTextInput(postTitle, 120);
+    if (!cleanTitle) return;
+    let safeExtLink = null;
+    if (postSourceMode === 'social_link' && externalSocialUrl.trim()) {
+      safeExtLink = safeExternalUrl(externalSocialUrl);
+      if (!safeExtLink) {
+        showToast('URL pautan tidak sah. Mesti bermula dengan http:// atau https://');
+        return;
+      }
+    }
 
     try {
       setIsUploadingShowcase(true);
@@ -4900,19 +4978,19 @@ export default function App() {
       const hostProfile = profiles.find(p => p.id === currentUser.id);
 
       const newPost = {
-        id: 'post_' + Date.now(),
-        author: hostProfile?.display_name || currentUser.email.split('@')[0],
+        id: generateSecureToken('post_'),
+        author: sanitizeTextInput(hostProfile?.display_name || currentUser.email.split('@')[0], 60),
         created_by: currentUser.id,
         player_role: 'Tournament Host',
         team_tag: 'PUBGM',
         type: postType === 'clip' ? 'clip' : 'achievement',
-        title: postTitle.trim(),
-        tournament: postTournament.trim() || activePublicScrim?.title || 'SCRIM HUB',
-        rank: postRankBadge,
-        caption: postCaption.trim() || 'Official competitive content update.',
+        title: cleanTitle,
+        tournament: sanitizeTextInput(postTournament, 100) || activePublicScrim?.title || 'SCRIM HUB',
+        rank: sanitizeTextInput(postRankBadge, 40) || 'Official Tournament',
+        caption: sanitizeTextInput(postCaption, 500) || 'Official competitive content update.',
         media_type: resolvedMediaType,
-        media_url: mediaUrl,
-        external_url: postSourceMode === 'social_link' ? externalSocialUrl.trim() : null,
+        media_url: safeMediaUrl(mediaUrl),
+        external_url: safeExtLink,
         platform: postSourceMode === 'social_link' ? socialPlatform : null,
         likes: 1,
         date: 'Just now',
@@ -9686,22 +9764,20 @@ export default function App() {
                         </div>
                       </div>
 
-                      {host.contact && (
-                        <a
-                          href={host.contact.startsWith('http') 
-                            ? host.contact 
-                            : (host.contact.replace(/[^0-9]/g, '').length >= 9
-                              ? 'https://wa.me/' + host.contact.replace(/[^0-9]/g, '')
-                              : 'https://t.me/' + host.contact.replace('@', ''))
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(215, 255, 0,0.18)] active:scale-95"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5"/>
-                          <span>Mesej</span>
-                        </a>
-                      )}
+                      {(() => {
+                        const safeHostHref = buildSafeContactUrl(host.contact);
+                        return safeHostHref ? (
+                          <a
+                            href={safeHostHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(215, 255, 0,0.18)] active:scale-95"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5"/>
+                            <span>Mesej</span>
+                          </a>
+                        ) : null;
+                      })()}
                     </div>
 
                     <p className="text-xs text-zinc-200 leading-relaxed bg-zinc-950/60 p-2.5 rounded-xl text-pretty">
@@ -9789,9 +9865,9 @@ export default function App() {
                   <div key={post.id} data-aurora-target={postIdx === 0 ? 'showcase' : undefined} className="glass-panel rounded-3xl overflow-hidden flex flex-col justify-between">
                     <div className="relative bg-black aspect-video overflow-hidden flex items-center justify-center">
                       {post.media_type === 'video' ? (
-                        <video src={post.media_url} controls className="w-full h-full object-cover" />
+                        <video src={safeMediaUrl(post.media_url) || undefined} controls className="w-full h-full object-cover" />
                       ) : (
-                        <img src={post.media_url} alt={post.title} className="w-full h-full object-cover" />
+                        <img src={safeMediaUrl(post.media_url) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80'} alt={post.title} className="w-full h-full object-cover" />
                       )}
 
                       <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
@@ -9835,9 +9911,9 @@ export default function App() {
                           <span>Info</span>
                         </button>
 
-                        {post.external_url && (
+                        {safeExternalUrl(post.external_url) && (
                           <a
-                            href={post.external_url}
+                            href={safeExternalUrl(post.external_url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 rounded-xl bg-[#D7FF00] hover:bg-[#c2e600] text-black text-xs font-black transition flex items-center gap-1 shadow-[0_0_15px_rgba(215, 255, 0,0.18)] active:scale-95"
@@ -10402,6 +10478,7 @@ export default function App() {
                         name="password"
                         type={showAuthPassword ? 'text' : 'password'}
                         required
+                        minLength={isRegisterMode ? 8 : undefined}
                         autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                         enterKeyHint="done"
                         placeholder="••••••••"
@@ -12103,6 +12180,7 @@ export default function App() {
                     name="password"
                     type={showAuthPassword ? 'text' : 'password'}
                     required
+                    minLength={isRegisterMode ? 8 : undefined}
                     autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                     enterKeyHint="done"
                     placeholder="••••••••"
@@ -12591,9 +12669,9 @@ export default function App() {
                     <p className="text-xs sm:text-sm font-semibold text-white line-clamp-2">
                       {profileContact || 'Belum ditetapkan'}
                     </p>
-                    {profileContact ? (
+                    {buildSafeContactUrl(profileContact) ? (
                       <a
-                        href={profileContact.startsWith('http') ? profileContact : (profileContact.startsWith('@') ? `https://t.me/${profileContact.slice(1)}` : `https://wa.me/${profileContact.replace(/\D/g, '')}`)}
+                        href={buildSafeContactUrl(profileContact)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[11px] font-medium text-emerald-400 hover:underline inline-flex items-center gap-1 w-fit"
@@ -12602,7 +12680,9 @@ export default function App() {
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     ) : (
-                      <span className="text-[10px] font-mono text-zinc-500">Tekan edit untuk isi</span>
+                      <span className="text-[10px] font-mono text-zinc-500">
+                        {profileContact ? 'Format contact teks' : 'Tekan edit untuk isi'}
+                      </span>
                     )}
                   </div>
 
@@ -12650,7 +12730,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: PENGURUSAN PASUKAN & LOGO (KUASA MUTLAK - syahmi3122973@gmail.com) */}
+      {/* MODAL: PENGURUSAN PASUKAN & LOGO (MASTER ADMIN) */}
       {isTeamManagerModalOpen && isMasterAdmin && (
         <div
           role="dialog"
@@ -13613,14 +13693,9 @@ export default function App() {
                 <p className="text-[11px] text-zinc-400 mt-0.5">{inspectedScrim.description}</p>
               </div>
 
-              {inspectedScrim.host_contact && (
+              {buildSafeContactUrl(inspectedScrim.host_contact) && (
                 <a
-                  href={inspectedScrim.host_contact.startsWith('http') 
-                    ? inspectedScrim.host_contact 
-                    : (inspectedScrim.host_contact.replace(/[^0-9]/g, '').length >= 9
-                      ? 'https://wa.me/' + inspectedScrim.host_contact.replace(/[^0-9]/g, '')
-                      : 'https://t.me/' + inspectedScrim.host_contact.replace('@', ''))
-                  }
+                  href={buildSafeContactUrl(inspectedScrim.host_contact)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs flex items-center gap-1 shadow-sm transition"
@@ -13756,11 +13831,11 @@ export default function App() {
                 <TikTokPreviewCard post={inspectedPost} />
               ) : inspectedPost.media_type === 'video' ? (
                 <div className="w-full aspect-video">
-                  <video src={inspectedPost.media_url} controls className="w-full h-full object-cover rounded-xl" />
+                  <video src={safeMediaUrl(inspectedPost.media_url) || undefined} controls className="w-full h-full object-cover rounded-xl" />
                 </div>
               ) : (
                 <div className="w-full aspect-video">
-                  <img src={inspectedPost.media_url} alt={inspectedPost.title} className="w-full h-full object-cover rounded-xl" />
+                  <img src={safeMediaUrl(inspectedPost.media_url) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80'} alt={inspectedPost.title} className="w-full h-full object-cover rounded-xl" />
                 </div>
               )}
             </div>
@@ -13779,7 +13854,7 @@ export default function App() {
                 <p className="text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed">{inspectedPost.caption}</p>
               </div>
 
-              {inspectedPost.external_url && (
+              {safeExternalUrl(inspectedPost.external_url) && (
                 <div className="p-3 bg-zinc-900/80 border border-[#D7FF00]/20 rounded-2xl flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="p-2 bg-[#D7FF00] text-black rounded-xl">
@@ -13787,12 +13862,12 @@ export default function App() {
                     </span>
                     <div>
                       <span className="text-xs font-bold text-white block">Linked on {inspectedPost.platform ? inspectedPost.platform.toUpperCase() : 'External Platform'}</span>
-                      <span className="text-[10px] text-zinc-400 truncate max-w-xs block">{inspectedPost.external_url}</span>
+                      <span className="text-[10px] text-zinc-400 truncate max-w-xs block">{safeExternalUrl(inspectedPost.external_url)}</span>
                     </div>
                   </div>
 
                   <a
-                    href={inspectedPost.external_url}
+                    href={safeExternalUrl(inspectedPost.external_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-bold text-xs rounded-xl flex items-center gap-1 transition"

@@ -9,11 +9,113 @@ declare const Deno: {
   };
 };
 
-const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_EXACT_ORIGINS = new Set([
+  "https://scrim.rykhor.my",
+  "https://www.scrim.rykhor.my",
+]);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return true; // Non-browser clients without Origin header
+  if (ALLOWED_EXACT_ORIGINS.has(origin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+-syahmi3122973-stack[a-z0-9-]*\.vercel\.app$/i.test(origin)) return true;
+  if (/^https:\/\/pubg-[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
+  return false;
+}
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  const allowOrigin = origin && isAllowedOrigin(origin) ? origin : "https://scrim.rykhor.my";
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+interface RateBucket {
+  minuteStart: number;
+  minuteCount: number;
+  hourStart: number;
+  hourCount: number;
+}
+
+const rateBuckets = new Map<string, RateBucket>();
+const MAX_RATE_BUCKETS = 1000;
+const ALLOWED_IMAGE_MIMES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+const MAX_BASE64_CHARS = 5_000_000; // ~3.7MB image payload ceiling
+
+function hasAuthenticatedBearer(req: Request): boolean {
+  const auth = req.headers.get("authorization") || "";
+  if (!auth.toLowerCase().startsWith("bearer ")) return false;
+  const token = auth.slice(7).trim();
+  // Publishable / anon keys are either sb_publishable_* or JWT with role=anon
+  if (!token || token.startsWith("sb_publishable_")) return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload?.role === "authenticated" && typeof payload?.sub === "string";
+  } catch {
+    return false;
+  }
+}
+
+function checkRateLimit(req: Request): { allowed: boolean; retryAfterSec: number } {
+  const now = Date.now();
+  const isAuthed = hasAuthenticatedBearer(req);
+  const ip =
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    (req.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+  const key = `${isAuthed ? "auth" : "anon"}:${ip}`;
+  const minLimit = isAuthed ? 12 : 5;
+  const hourLimit = isAuthed ? 60 : 20;
+
+  if (rateBuckets.size >= MAX_RATE_BUCKETS) {
+    for (const [k, b] of rateBuckets) {
+      if (now - b.hourStart > 3_600_000) rateBuckets.delete(k);
+    }
+    if (rateBuckets.size >= MAX_RATE_BUCKETS) {
+      rateBuckets.clear();
+    }
+  }
+
+  let bucket = rateBuckets.get(key);
+  if (!bucket) {
+    bucket = { minuteStart: now, minuteCount: 0, hourStart: now, hourCount: 0 };
+    rateBuckets.set(key, bucket);
+  }
+  if (now - bucket.minuteStart >= 60_000) {
+    bucket.minuteStart = now;
+    bucket.minuteCount = 0;
+  }
+  if (now - bucket.hourStart >= 3_600_000) {
+    bucket.hourStart = now;
+    bucket.hourCount = 0;
+  }
+
+  if (bucket.minuteCount >= minLimit) {
+    const retryAfterSec = Math.max(1, Math.ceil((60_000 - (now - bucket.minuteStart)) / 1000));
+    return { allowed: false, retryAfterSec };
+  }
+  if (bucket.hourCount >= hourLimit) {
+    const retryAfterSec = Math.max(5, Math.ceil((3_600_000 - (now - bucket.hourStart)) / 1000));
+    return { allowed: false, retryAfterSec };
+  }
+
+  bucket.minuteCount += 1;
+  bucket.hourCount += 1;
+  return { allowed: true, retryAfterSec: 0 };
+}
 
 interface ExtractionRequest {
   imageBase64: string;
@@ -167,6 +269,16 @@ const MODEL_CANDIDATES: ModelCandidate[] = [
 ];
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+  const origin = req.headers.get("origin");
+
+  if (!isAllowedOrigin(origin)) {
+    return new Response(
+      JSON.stringify({ error: "Origin not allowed." }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -178,12 +290,35 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  const rate = checkRateLimit(req);
+  if (!rate.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Rate limit exceeded (429). Please retry shortly." }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(rate.retryAfterSec),
+        },
+      }
+    );
+  }
+
   try {
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "Missing GEMINI_API_KEY configuration in environment." }),
+        JSON.stringify({ error: "Service configuration unavailable." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const contentLength = Number(req.headers.get("content-length") || 0);
+    if (contentLength > 5_500_000) {
+      return new Response(
+        JSON.stringify({ error: "Payload too large (max ~3.7MB image)." }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -198,16 +333,35 @@ Deno.serve(async (req: Request) => {
     }
 
     const { imageBase64, mimeType } = payload;
-    if (!imageBase64 || !mimeType) {
+    if (!imageBase64 || !mimeType || typeof imageBase64 !== "string" || typeof mimeType !== "string") {
       return new Response(
         JSON.stringify({ error: "Both 'imageBase64' and 'mimeType' are required." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const sanitizedBase64 = imageBase64.includes(",")
-      ? imageBase64.split(",")[1]
-      : imageBase64;
+    const normalizedMime = mimeType.trim().toLowerCase();
+    if (!ALLOWED_IMAGE_MIMES.has(normalizedMime)) {
+      return new Response(
+        JSON.stringify({ error: "Unsupported image format." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const sanitizedBase64 = (
+      imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64
+    ).replace(/\s+/g, "");
+
+    if (
+      sanitizedBase64.length === 0 ||
+      sanitizedBase64.length > MAX_BASE64_CHARS ||
+      !/^[A-Za-z0-9+/=]+$/.test(sanitizedBase64)
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or oversized image data." }),
+        { status: sanitizedBase64.length > MAX_BASE64_CHARS ? 413 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const prompt = `
 You are an expert esports / PUBG Mobile tournament referee and OCR parser.
@@ -273,7 +427,7 @@ Extract every single row accurately from this tournament standings poster:
                     { text: prompt },
                     {
                       inlineData: {
-                        mimeType,
+                        mimeType: normalizedMime,
                         data: sanitizedBase64,
                       },
                     },
@@ -329,8 +483,7 @@ Extract every single row accurately from this tournament standings poster:
       ) {
         return new Response(
           JSON.stringify({
-            error: "Gemini API rate limit exceeded. Please retry shortly.",
-            details: modelErrors.join(" | "),
+            error: "Gemini API rate limit exceeded (429). Please retry shortly.",
           }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -345,8 +498,6 @@ Extract every single row accurately from this tournament standings poster:
         return new Response(
           JSON.stringify({
             error: "GEMINI_KEY_RESTRICTED",
-            details:
-              "Kunci Google AI Studio belum aktifkan servis Generative Language API di Google Cloud.",
           }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -361,16 +512,15 @@ Extract every single row accurately from this tournament standings poster:
       return new Response(
         JSON.stringify({
           error: isTransientBusy ? "Gemini temporary high demand (503)" : "Gemini extraction failed",
-          details: allErrorsText,
         }),
         { status: isTransientBusy ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     let hasGlobalMismatch = false;
-    const validatedStandings: ValidatedStandingItem[] = (parsed.standings || []).map((row) => {
+    const validatedStandings: ValidatedStandingItem[] = (parsed.standings || []).slice(0, 30).map((row) => {
       const rank = Number(row.rank) || 0;
-      const team_name = String(row.team_name || "").trim();
+      const team_name = String(row.team_name || "").trim().slice(0, 80);
       const wwcd = Number(row.wwcd) || 0;
       const placement_points = Number(row.placement_points) || 0;
       const kill_points = Number(row.kill_points) || 0;
@@ -400,10 +550,8 @@ Extract every single row accurately from this tournament standings poster:
     return new Response(
       JSON.stringify({
         success: true,
-        scrim_name: parsed.scrim_name?.trim() || "Untitled Scrim",
+        scrim_name: (parsed.scrim_name?.trim() || "Untitled Scrim").slice(0, 120),
         scrim_date: safeDate,
-        model_used: modelUsed,
-        ...(modelErrors.length > 0 ? { fallback_notes: modelErrors } : {}),
         has_math_mismatch: hasGlobalMismatch,
         total_teams_extracted: validatedStandings.length,
         standings: validatedStandings,
@@ -413,9 +561,9 @@ Extract every single row accurately from this tournament standings poster:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (err) {
+  } catch {
     return new Response(
-      JSON.stringify({ error: "Internal server error", message: (err as any)?.message || String(err) }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

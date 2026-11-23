@@ -150,9 +150,8 @@ AS $$
     SELECT
         auth.role() = 'authenticated'
         AND COALESCE(
-            (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-            OR (auth.jwt() -> 'user_metadata' ->> 'is_admin')::boolean = true,
-            true
+            (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin',
+            false
         );
 $$;
 
