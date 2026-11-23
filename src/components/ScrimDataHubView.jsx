@@ -175,7 +175,7 @@ function readPosterFileAsBase64(selectedFile) {
 // Downscale & normalize uploaded posters client-side so Gemini vision extraction stays fast while keeping tall/small text legible
 function optimizePosterForOcr(selectedFile) {
   return new Promise((resolve) => {
-    const MAX_DIM = 1800;
+    const MAX_DIM = 1500;
     const PASSTHROUGH_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const inferMimeFromDataUrl = (dataUrl) => {
       const m = String(dataUrl || '').match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/i);
@@ -190,7 +190,7 @@ function optimizePosterForOcr(selectedFile) {
         const maxSide = Math.max(w, h);
         const needsCanvas =
           maxSide > MAX_DIM ||
-          selectedFile.size > 1200 * 1024 ||
+          selectedFile.size > 650 * 1024 ||
           !PASSTHROUGH_MIMES.has(selectedFile.type);
 
         if (!needsCanvas) {
@@ -211,7 +211,7 @@ function optimizePosterForOcr(selectedFile) {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('2D context unavailable');
         ctx.drawImage(img, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.83);
         URL.revokeObjectURL(tempUrl);
         resolve({ dataUrl, mimeType: 'image/jpeg' });
       } catch {
@@ -294,19 +294,22 @@ export async function executePosterOcrExtraction({
       }
     };
 
+    const invokeStart = Date.now();
     const firstAttempt = await invokeOnce();
+    const firstElapsedMs = Date.now() - invokeStart;
     if (firstAttempt.data) {
       extractionResult = firstAttempt.data;
     } else {
       edgeFunctionErrorMsg = firstAttempt.errMsg;
       const shouldRetryTransient =
-        firstAttempt.status === 503 ||
-        firstAttempt.status === 546 ||
-        /503|high demand|timed out|WORKER_RESOURCE_LIMIT|Failed to send a request/i.test(String(edgeFunctionErrorMsg || ''));
+        firstElapsedMs < 10000 &&
+        (firstAttempt.status === 503 ||
+          firstAttempt.status === 546 ||
+          /503|high demand|WORKER_RESOURCE_LIMIT|Failed to send a request/i.test(String(edgeFunctionErrorMsg || '')));
 
       if (shouldRetryTransient) {
         onStageProgress?.(45);
-        await new Promise((r) => setTimeout(r, 1400));
+        await new Promise((r) => setTimeout(r, 1200));
         const retryAttempt = await invokeOnce();
         if (retryAttempt.data) {
           extractionResult = retryAttempt.data;
@@ -388,6 +391,12 @@ export async function executePosterOcrExtraction({
         edgeFunctionErrorMsg.toLowerCase().includes('timed out'))
     ) {
       return { ok: false, toastMessage: 'Pelayan AI tengah sibuk / lambat (503/Timeout). Cuba tekan upload balik kejap lagi.' };
+    }
+    if (
+      edgeFunctionErrorMsg &&
+      /Failed to send a request|Failed to fetch|Load failed|NetworkError/i.test(edgeFunctionErrorMsg)
+    ) {
+      return { ok: false, toastMessage: 'Sambungan ke pelayan AI terputus atau timeout. Pastikan internet stabil & cuba upload semula.' };
     }
     return {
       ok: false,

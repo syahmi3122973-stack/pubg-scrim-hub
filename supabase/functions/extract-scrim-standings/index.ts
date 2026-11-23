@@ -26,11 +26,17 @@ function isAllowedOrigin(origin: string | null): boolean {
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin");
   const allowOrigin = origin && isAllowedOrigin(origin) ? origin : "https://scrim.rykhor.my";
+  const reqHeaders = req.headers.get("access-control-request-headers");
+  const allowHeaders =
+    reqHeaders && /^[a-z0-9_,\s-]+$/i.test(reqHeaders)
+      ? reqHeaders
+      : "authorization, x-client-info, apikey, content-type, x-supabase-api-version, x-region";
   return {
     "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": allowHeaders,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin, Access-Control-Request-Headers",
   };
 }
 
@@ -260,13 +266,51 @@ interface ModelCandidate {
 const MODEL_CANDIDATES: ModelCandidate[] = [
   { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3.1-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-flash-lite-latest" },
-  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-flash-lite-latest" },
+  { name: "gemini-flash-latest" },
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3.7-flash", thinkingConfig: { thinkingLevel: "LOW" } },
   { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
-  { name: "gemini-flash-latest" },
 ];
+
+let cachedDiscoveredModels: { expiresAt: number; models: string[] } | null = null;
+
+async function discoverFlashModels(apiKey: string): Promise<string[]> {
+  const now = Date.now();
+  if (cachedDiscoveredModels && cachedDiscoveredModels.expiresAt > now) {
+    return cachedDiscoveredModels.models;
+  }
+  try {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
+      method: "GET",
+      signal: AbortSignal.timeout(4000),
+      headers: { "x-goog-api-key": apiKey.trim() },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data?.models) ? data.models : [];
+    const names = list
+      .filter((m: any) => {
+        const name = String(m?.name || "").toLowerCase();
+        const methods = Array.isArray(m?.supportedGenerationMethods) ? m.supportedGenerationMethods : [];
+        return (
+          methods.includes("generateContent") &&
+          name.includes("flash") &&
+          !name.includes("audio") &&
+          !name.includes("tts") &&
+          !name.includes("image") &&
+          !name.includes("live") &&
+          !name.includes("robotics")
+        );
+      })
+      .map((m: any) => String(m.name).replace(/^models\//, ""));
+    cachedDiscoveredModels = { expiresAt: now + 600_000, models: names };
+    return names;
+  } catch {
+    return [];
+  }
+}
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -390,12 +434,33 @@ Extract every single row accurately from this tournament standings poster:
     let modelUsed = "";
     let lastError = "";
     const modelErrors: string[] = [];
+    const attemptCodes: string[] = [];
     const reqStartedAt = Date.now();
-    const TOTAL_BUDGET_MS = 45000;
+    const TOTAL_BUDGET_MS = 25000;
 
-    for (const candidate of MODEL_CANDIDATES) {
+    // Discover active flash models so deprecated/congested hardcoded names can fall back dynamically
+    const discovered = await discoverFlashModels(apiKey);
+    const candidateQueue: ModelCandidate[] = [];
+    const seenModels = new Set<string>();
+    for (const c of MODEL_CANDIDATES) {
+      // If discovery succeeded, skip hardcoded models that aren't in the account's live catalog (except *-latest aliases)
+      if (discovered.length > 0 && !discovered.includes(c.name) && !c.name.endsWith("-latest")) {
+        continue;
+      }
+      seenModels.add(c.name);
+      candidateQueue.push(c);
+    }
+    for (const dName of discovered) {
+      if (!seenModels.has(dName)) {
+        seenModels.add(dName);
+        candidateQueue.push({ name: dName });
+      }
+    }
+
+    for (let idx = 0; idx < candidateQueue.length; idx += 1) {
+      const candidate = candidateQueue[idx];
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-      if (remainingMs < 4000) {
+      if (remainingMs < 3500) {
         modelErrors.push(`${candidate.name}: skipped_budget`);
         break;
       }
@@ -411,11 +476,12 @@ Extract every single row accurately from this tournament standings poster:
           generationConfig.thinkingConfig = candidate.thinkingConfig;
         }
 
+        const perModelTimeoutMs = idx === 0 ? Math.min(13000, remainingMs) : Math.min(8000, remainingMs);
         const restRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${candidate.name}:generateContent`,
           {
             method: "POST",
-            signal: AbortSignal.timeout(Math.min(24000, remainingMs)),
+            signal: AbortSignal.timeout(perModelTimeoutMs),
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey.trim(),
@@ -446,6 +512,7 @@ Extract every single row accurately from this tournament standings poster:
             const finishReason = data?.candidates?.[0]?.finishReason || "EMPTY";
             lastError = `Empty response from ${candidate.name} (${finishReason})`;
             modelErrors.push(`${candidate.name}: ${finishReason}`);
+            attemptCodes.push(`${candidate.name}:${finishReason}`);
             continue;
           }
           try {
@@ -457,14 +524,17 @@ Extract every single row accurately from this tournament standings poster:
             }
             lastError = `${candidate.name} returned 0 standings`;
             modelErrors.push(`${candidate.name}: 0_standings`);
+            attemptCodes.push(`${candidate.name}:0_rows`);
           } catch {
             lastError = `${candidate.name} returned malformed JSON`;
             modelErrors.push(`${candidate.name}: bad_json`);
+            attemptCodes.push(`${candidate.name}:bad_json`);
           }
         } else {
           const errJson = await restRes.json().catch(() => ({}));
           lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
           modelErrors.push(`${candidate.name}: ${restRes.status} ${lastError}`);
+          attemptCodes.push(`${candidate.name}:${restRes.status}`);
           if (restRes.status === 401 || restRes.status === 403) {
             break;
           }
@@ -472,6 +542,7 @@ Extract every single row accurately from this tournament standings poster:
       } catch (fetchErr) {
         lastError = (fetchErr as any)?.message || String(fetchErr);
         modelErrors.push(`${candidate.name}: ${lastError}`);
+        attemptCodes.push(`${candidate.name}:timeout`);
       }
     }
 
