@@ -302,7 +302,7 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
     });
   }
 
-  // 2. OpenRouter Free Vision (:free live multimodal models)
+  // 2. OpenRouter Free Vision (only non-reasoning / reliable vision models; nemotron reasoning burns 45s)
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY")?.trim();
   if (openRouterKey) {
     providers.push({
@@ -310,11 +310,9 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
       endpoint: "https://openrouter.ai/api/v1/chat/completions",
       apiKey: openRouterKey,
       models: [
-        "nvidia/nemotron-3.5-super-vl:free",
         "google/gemma-4-31b-it:free",
         "google/gemma-4-26b-a4b-it:free",
         "inclusionai/ling-3.2-flash:free",
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       ],
       extraHeaders: {
         "HTTP-Referer": "https://scrim.rykhor.my",
@@ -373,65 +371,94 @@ function extractJsonObject(raw: string): ExtractionResponse | null {
   }
 }
 
+function cleanOcrNum(tok: string): number | null {
+  const s = String(tok || "")
+    .trim()
+    .replace(/[OoQqDd]/g, "0")
+    .replace(/[Il|!]/g, "1")
+    .replace(/[Zz]/g, "2")
+    .replace(/[З]/g, "3")
+    .replace(/[Ss]/g, "5")
+    .replace(/[Gb]/g, "6")
+    .replace(/[B]/g, "8");
+  return /^\d{1,3}$/.test(s) ? Number(s) : null;
+}
+
 function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
-  const lines = String(rawText || "")
+  const rawLines = String(rawText || "")
+    .replace(/#З/g, "#3")
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (lines.length === 0) return null;
+  if (rawLines.length === 0) return null;
 
   let scrimName = "Untitled Scrim";
-  const rows: StandingRow[] = [];
+  const segments: string[] = [];
+  for (const line of rawLines) {
+    // Split dual-column lines where a second rank token (#10..#25) appears after a tab
+    const parts = line.split(/\t+(?=#\d{1,2}\b)/);
+    for (const p of parts) {
+      const t = p.trim();
+      if (t) segments.push(t);
+    }
+  }
 
-  for (const line of lines) {
+  const rows: StandingRow[] = [];
+  for (const seg of segments) {
     if (
       rows.length === 0 &&
       scrimName === "Untitled Scrim" &&
-      !/^(?:#?\d+|rank|team|wwcd|place|elims?|kills?|total|powered\s+by)/i.test(line) &&
-      line.length >= 3 &&
-      line.length <= 80
+      !/^(?:#?\d+|rank|team|wwcd|place|elims?|kills?|total|powered\s+by|since\s+\d|overall)/i.test(seg) &&
+      seg.length >= 3 &&
+      seg.length <= 80
     ) {
-      scrimName = line.replace(/\t+/g, " ").trim();
+      scrimName = seg.replace(/\t+/g, " ").trim();
       continue;
     }
-    if (/^(?:rank|team|wwcd|place|elims?|kills?|total|#\s+team)/i.test(line)) {
+    if (/^(?:rank|team|wwcd|place|elims?|kills?|total|#\s+team|krafton|powered\s+by)/i.test(seg)) {
       continue;
     }
 
-    let rank = rows.length + 1;
+    let rank = 0;
     let teamName = "";
     const nums: number[] = [];
 
-    if (line.includes("\t")) {
-      const cols = line.split(/\t+/).map((c) => c.trim()).filter(Boolean);
-      if (cols.length < 4) continue;
-      const rankMatch = cols[0].match(/^#?(\d{1,2})[.)]?$/);
-      if (!rankMatch) continue;
-      rank = Number(rankMatch[1]) || rank;
+    if (seg.includes("\t")) {
+      const cols = seg.split(/\t+/).map((c) => c.trim()).filter(Boolean);
+      if (cols.length < 3) continue;
+      const parsedRank = cleanOcrNum(cols[0].replace(/^#/, "").replace(/[.)]$/, ""));
+      if (!parsedRank || parsedRank < 1 || parsedRank > 25) continue;
+      rank = parsedRank;
+
       let numStart = cols.length;
-      while (numStart > 2 && /^\d{1,3}$/.test(cols[numStart - 1])) {
+      const trailing: number[] = [];
+      while (numStart > 2 && trailing.length < 4) {
+        const val = cleanOcrNum(cols[numStart - 1]);
+        if (val === null) break;
+        trailing.unshift(val);
         numStart -= 1;
       }
-      const trailing = cols.slice(numStart).map(Number);
-      if (trailing.length < 3 || trailing.length > 4) continue;
+      if (trailing.length < 2 || trailing.length > 4) continue;
       teamName = cols.slice(1, numStart).join(" ").trim();
       nums.push(...trailing);
     } else {
-      const normalizedLine = line.replace(/\s{2,}/g, " ").trim();
-      // Prefer greedy teamName + 3 trailing numbers when place + kills === total
-      const m4 = normalizedLine.match(/^#?(\d{1,2})[.)]?\s+(.+)\s+(\d{1,2})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
-      const m3 = normalizedLine.match(/^#?(\d{1,2})[.)]?\s+(.+)\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
-      if (m4 && Number(m4[3]) <= 9 && Number(m4[4]) + Number(m4[5]) === Number(m4[6])) {
-        rank = Number(m4[1]) || rank;
-        teamName = m4[2].trim();
-        nums.push(Number(m4[3]), Number(m4[4]), Number(m4[5]), Number(m4[6]));
-      } else if (m3) {
-        rank = Number(m3[1]) || rank;
-        teamName = m3[2].trim();
-        nums.push(Number(m3[3]), Number(m3[4]), Number(m3[5]));
-      } else {
-        continue;
+      const toks = seg.split(/\s+/);
+      if (toks.length < 4) continue;
+      const parsedRank = cleanOcrNum(toks[0].replace(/^#/, "").replace(/[.)]$/, ""));
+      if (!parsedRank || parsedRank < 1 || parsedRank > 25) continue;
+      rank = parsedRank;
+
+      let numStart = toks.length;
+      const trailing: number[] = [];
+      while (numStart > 2 && trailing.length < 4) {
+        const val = cleanOcrNum(toks[numStart - 1]);
+        if (val === null) break;
+        trailing.unshift(val);
+        numStart -= 1;
       }
+      if (trailing.length < 2) continue;
+      teamName = toks.slice(1, numStart).join(" ").trim();
+      nums.push(...trailing);
     }
 
     let wwcd = 0;
@@ -441,11 +468,23 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
 
     if (nums.length === 4) {
       [wwcd, place, kills, total] = nums;
-    } else {
+    } else if (nums.length === 3) {
       [place, kills, total] = nums;
+    } else if (nums.length === 2) {
+      // Missing placement cell (e.g. obscured by dark art): infer place = max(0, total - kills)
+      const [a, b] = nums;
+      if (b >= a) {
+        kills = a;
+        total = b;
+        place = Math.max(0, b - a);
+      } else {
+        place = a;
+        kills = b;
+        total = a + b;
+      }
     }
 
-    if (teamName.length >= 1) {
+    if (rank >= 1 && rank <= 25 && teamName.length >= 1) {
       rows.push({
         rank,
         team_name: teamName,
@@ -457,6 +496,7 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
     }
   }
 
+  rows.sort((a, b) => a.rank - b.rank);
   if (rows.length < 3) return null;
   return { scrim_name: scrimName, scrim_date: "", standings: rows };
 }
@@ -853,98 +893,88 @@ Extract every single row accurately from this tournament standings poster:
       return null;
     };
 
-    // Wave 1: 2 primary Gemini models (50% less RPM burn than 4 parallel calls)
+    let providerUsed = "gemini";
+
+    // Phase 1 (0-14s): Primary Gemini Wave 1 (highest accuracy on PUBG posters, ~3-11s when healthy)
     if (apiKey) {
       const hasBackups = backupProviders.length > 0 || Boolean(ocrSpaceKey) || Boolean(apiNinjasKey);
-      const wave1Timeout = hasBackups ? 16000 : 25000;
+      const wave1Timeout = hasBackups ? 14000 : 25000;
       parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout);
+      if (parsed) providerUsed = "gemini";
     }
 
-    // Backup providers (Groq / OpenRouter / Mistral / FreeLLMAPI) kick in immediately if Gemini Wave 1 fails
-    if (!parsed && backupProviders.length > 0) {
-      for (const provider of backupProviders) {
-        const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-        if (remainingMs < 5000) break;
-        parsed = await callOpenAiCompatBackup(provider, Math.min(12000, remainingMs));
-        if (parsed) break;
-      }
-    }
-
-    // Wave 2: Secondary Gemini fallback models if still unresolved and budget remains
-    if (!parsed && apiKey) {
-      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-      if (remainingMs >= 6000) {
-        parsed = await runWave(WAVE_2_CANDIDATES, Math.min(12000, remainingMs));
-      }
-    }
-
-    // Tier 3: Pure OCR engines (OCR.Space -> API Ninjas) + OpenRouter text structuring / deterministic parser
-    if (!parsed && (ocrSpaceKey || apiNinjasKey)) {
+    // Phase 2 (14-24s): Run Gemini Wave 2 + Groq/Mistral (if set) IN PARALLEL with OCR.Space (~3.4s)
+    // Guaranteed OCR.Space never gets starved by slow LLM fallbacks!
+    if (!parsed) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4500) {
-        let ocrText: string | null = null;
-        if (ocrSpaceKey) {
-          ocrText = await extractTextWithOcrSpace(
-            sanitizedBase64,
-            normalizedMime,
-            ocrSpaceKey,
-            Math.min(10000, remainingMs)
-          );
-        }
-        if (!ocrText && apiNinjasKey) {
-          const leftMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-          if (leftMs >= 3500) {
-            ocrText = await extractTextWithApiNinjas(
-              sanitizedBase64,
-              normalizedMime,
-              apiNinjasKey,
-              Math.min(9000, leftMs)
-            );
-          }
-        }
-        if (ocrText) {
-          // Normalize Cyrillic З often read instead of '3' by OCR Engine 2 before parsing
-          const cleanOcrText = ocrText.replace(/#З/g, "#3");
-          parsed = parseStandingsFromOcrText(cleanOcrText);
+        const fastLlmProviders = backupProviders.filter((p) => p.name === "groq" || p.name === "mistral" || p.name === "freellmapi");
 
-          // If layout is dual-column / non-standard and OpenRouter key exists, ask fast text router to structure OCR text
-          const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
-          const leftMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-          if ((!parsed || parsed.standings.length < 4) && openRouterProv && leftMs >= 4000) {
-            try {
-              const textRes = await fetch(openRouterProv.endpoint, {
-                method: "POST",
-                signal: AbortSignal.timeout(Math.min(9000, leftMs)),
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${openRouterProv.apiKey}`,
-                  ...(openRouterProv.extraHeaders || {}),
-                },
-                body: JSON.stringify({
-                  model: "openrouter/free",
-                  temperature: 0.1,
-                  max_tokens: 3000,
-                  messages: [
-                    {
-                      role: "user",
-                      content: `Convert this PUBG Mobile standings OCR text into valid JSON {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. Return ONLY raw JSON.\n\nOCR TEXT:\n${cleanOcrText.slice(0, 6000)}`,
-                    },
-                  ],
-                }),
-              });
-              if (textRes.ok) {
-                const tj = await textRes.json();
-                const tc = tj?.choices?.[0]?.message?.content;
-                const structured = extractJsonObject(String(tc || ""));
-                if (structured && Array.isArray(structured.standings) && structured.standings.length > 0) {
-                  parsed = structured;
-                }
+        const ocrSpacePromise = ocrSpaceKey
+          ? extractTextWithOcrSpace(sanitizedBase64, normalizedMime, ocrSpaceKey, Math.min(8500, remainingMs))
+              .then((txt) => (txt ? parseStandingsFromOcrText(txt) : null))
+              .catch(() => null)
+          : Promise.resolve(null);
+
+        const wave2Promise = apiKey
+          ? runWave(WAVE_2_CANDIDATES, Math.min(9000, remainingMs)).catch(() => null)
+          : Promise.resolve(null);
+
+        const fastBackupPromise = fastLlmProviders.length > 0
+          ? (async () => {
+              for (const prov of fastLlmProviders) {
+                const res = await callOpenAiCompatBackup(prov, Math.min(8500, remainingMs));
+                if (res) return { res, name: prov.name };
               }
-            } catch {
-              // Keep deterministic parsed fallback if available
-            }
+              return null;
+            })()
+          : Promise.resolve(null);
+
+        const [wave2Res, fastBackupRes, ocrSpaceRes] = await Promise.all([
+          wave2Promise,
+          fastBackupPromise,
+          ocrSpacePromise,
+        ]);
+
+        if (wave2Res) {
+          parsed = wave2Res;
+          providerUsed = "gemini_w2";
+        } else if (fastBackupRes?.res) {
+          parsed = fastBackupRes.res;
+          providerUsed = fastBackupRes.name;
+        } else if (ocrSpaceRes) {
+          parsed = ocrSpaceRes;
+          providerUsed = "ocr_space";
+        }
+      }
+    }
+
+    // Phase 3 (24-36s): API Ninjas OCR (~2s) -> OpenRouter Vision (only if Phases 1 & 2 both missed)
+    if (!parsed && apiNinjasKey) {
+      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+      if (remainingMs >= 4000) {
+        const ninjaText = await extractTextWithApiNinjas(
+          sanitizedBase64,
+          normalizedMime,
+          apiNinjasKey,
+          Math.min(8000, remainingMs)
+        );
+        if (ninjaText) {
+          const ninjaParsed = parseStandingsFromOcrText(ninjaText);
+          if (ninjaParsed) {
+            parsed = ninjaParsed;
+            providerUsed = "api_ninjas";
           }
         }
+      }
+    }
+
+    if (!parsed) {
+      const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
+      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+      if (openRouterProv && remainingMs >= 5000) {
+        parsed = await callOpenAiCompatBackup(openRouterProv, Math.min(9000, remainingMs));
+        if (parsed) providerUsed = "openrouter";
       }
     }
 
@@ -980,11 +1010,13 @@ Extract every single row accurately from this tournament standings poster:
       const isTransientBusy =
         allErrorsText.includes("503") ||
         allErrorsText.toLowerCase().includes("high demand") ||
-        allErrorsText.toLowerCase().includes("timed out");
+        allErrorsText.toLowerCase().includes("timed out") ||
+        allErrorsText.toLowerCase().includes("timeout") ||
+        allErrorsText.toLowerCase().includes("aborted");
 
       return new Response(
         JSON.stringify({
-          error: isTransientBusy ? "Gemini temporary high demand (503)" : "Gemini extraction failed",
+          error: isTransientBusy ? "AI OCR temporary high demand (503/Timeout)" : "Poster extraction failed",
         }),
         { status: isTransientBusy ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -1023,6 +1055,7 @@ Extract every single row accurately from this tournament standings poster:
     return new Response(
       JSON.stringify({
         success: true,
+        provider_used: providerUsed,
         scrim_name: (parsed.scrim_name?.trim() || "Untitled Scrim").slice(0, 120),
         scrim_date: safeDate,
         has_math_mismatch: hasGlobalMismatch,
