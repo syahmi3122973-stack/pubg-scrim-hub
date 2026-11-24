@@ -398,45 +398,51 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
       continue;
     }
 
-    // Match either "RANK TEAM [WWCD] PLACE KILL TOTAL" or tab/space-separated row ending in 3-4 numbers
-    const normalizedLine = line.replace(/\t+/g, " ").replace(/\s{2,}/g, " ").trim();
-    const rowMatch = normalizedLine.match(
-      /^#?(\d{1,2})[.)]?\s+(.+?)\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s+(\d{1,3}))?$/
-    );
-    if (!rowMatch) continue;
+    let rank = rows.length + 1;
+    let teamName = "";
+    const nums: number[] = [];
 
-    const rank = Number(rowMatch[1]) || rows.length + 1;
-    // Fix common OCR digit/Cyrillic lookalikes for rank numbers while keeping team name intact
-    const teamName = rowMatch[2].trim();
-    const n1 = Number(rowMatch[3]);
-    const n2 = Number(rowMatch[4]);
-    const n3 = Number(rowMatch[5]);
-    const n4 = rowMatch[6] !== undefined ? Number(rowMatch[6]) : null;
+    if (line.includes("\t")) {
+      const cols = line.split(/\t+/).map((c) => c.trim()).filter(Boolean);
+      if (cols.length < 4) continue;
+      const rankMatch = cols[0].match(/^#?(\d{1,2})[.)]?$/);
+      if (!rankMatch) continue;
+      rank = Number(rankMatch[1]) || rank;
+      let numStart = cols.length;
+      while (numStart > 2 && /^\d{1,3}$/.test(cols[numStart - 1])) {
+        numStart -= 1;
+      }
+      const trailing = cols.slice(numStart).map(Number);
+      if (trailing.length < 3 || trailing.length > 4) continue;
+      teamName = cols.slice(1, numStart).join(" ").trim();
+      nums.push(...trailing);
+    } else {
+      const normalizedLine = line.replace(/\s{2,}/g, " ").trim();
+      // Prefer greedy teamName + 3 trailing numbers when place + kills === total
+      const m4 = normalizedLine.match(/^#?(\d{1,2})[.)]?\s+(.+)\s+(\d{1,2})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
+      const m3 = normalizedLine.match(/^#?(\d{1,2})[.)]?\s+(.+)\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/);
+      if (m4 && Number(m4[3]) <= 9 && Number(m4[4]) + Number(m4[5]) === Number(m4[6])) {
+        rank = Number(m4[1]) || rank;
+        teamName = m4[2].trim();
+        nums.push(Number(m4[3]), Number(m4[4]), Number(m4[5]), Number(m4[6]));
+      } else if (m3) {
+        rank = Number(m3[1]) || rank;
+        teamName = m3[2].trim();
+        nums.push(Number(m3[3]), Number(m3[4]), Number(m3[5]));
+      } else {
+        continue;
+      }
+    }
 
     let wwcd = 0;
     let place = 0;
     let kills = 0;
     let total = 0;
 
-    if (n4 !== null && n2 + n3 === n4) {
-      wwcd = n1;
-      place = n2;
-      kills = n3;
-      total = n4;
-    } else if (n4 === null && n1 + n2 === n3) {
-      wwcd = 0;
-      place = n1;
-      kills = n2;
-      total = n3;
-    } else if (n4 !== null) {
-      wwcd = n1;
-      place = n2;
-      kills = n3;
-      total = n4;
+    if (nums.length === 4) {
+      [wwcd, place, kills, total] = nums;
     } else {
-      place = n1;
-      kills = n2;
-      total = n3;
+      [place, kills, total] = nums;
     }
 
     if (teamName.length >= 1) {
