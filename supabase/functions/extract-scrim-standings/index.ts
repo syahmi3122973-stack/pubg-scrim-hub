@@ -302,7 +302,7 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
     });
   }
 
-  // 2. OpenRouter Free Vision (:free models)
+  // 2. OpenRouter Free Vision (:free live multimodal models)
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY")?.trim();
   if (openRouterKey) {
     providers.push({
@@ -310,9 +310,11 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
       endpoint: "https://openrouter.ai/api/v1/chat/completions",
       apiKey: openRouterKey,
       models: [
-        "qwen/qwen2.5-vl-72b-instruct:free",
-        "meta-llama/llama-4-scout:free",
-        "google/gemma-3-27b-it:free",
+        "nvidia/nemotron-3.5-super-vl:free",
+        "google/gemma-4-31b-it:free",
+        "google/gemma-4-26b-a4b-it:free",
+        "inclusionai/ling-3.2-flash:free",
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       ],
       extraHeaders: {
         "HTTP-Referer": "https://scrim.rykhor.my",
@@ -371,6 +373,171 @@ function extractJsonObject(raw: string): ExtractionResponse | null {
   }
 }
 
+function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
+  const lines = String(rawText || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+
+  let scrimName = "Untitled Scrim";
+  const rows: StandingRow[] = [];
+
+  for (const line of lines) {
+    if (
+      rows.length === 0 &&
+      scrimName === "Untitled Scrim" &&
+      !/^(?:#?\d+|rank|team|wwcd|place|elims?|kills?|total|powered\s+by)/i.test(line) &&
+      line.length >= 3 &&
+      line.length <= 80
+    ) {
+      scrimName = line.replace(/\t+/g, " ").trim();
+      continue;
+    }
+    if (/^(?:rank|team|wwcd|place|elims?|kills?|total|#\s+team)/i.test(line)) {
+      continue;
+    }
+
+    // Match either "RANK TEAM [WWCD] PLACE KILL TOTAL" or tab/space-separated row ending in 3-4 numbers
+    const normalizedLine = line.replace(/\t+/g, " ").replace(/\s{2,}/g, " ").trim();
+    const rowMatch = normalizedLine.match(
+      /^#?(\d{1,2})[.)]?\s+(.+?)\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s+(\d{1,3}))?$/
+    );
+    if (!rowMatch) continue;
+
+    const rank = Number(rowMatch[1]) || rows.length + 1;
+    // Fix common OCR digit/Cyrillic lookalikes for rank numbers while keeping team name intact
+    const teamName = rowMatch[2].trim();
+    const n1 = Number(rowMatch[3]);
+    const n2 = Number(rowMatch[4]);
+    const n3 = Number(rowMatch[5]);
+    const n4 = rowMatch[6] !== undefined ? Number(rowMatch[6]) : null;
+
+    let wwcd = 0;
+    let place = 0;
+    let kills = 0;
+    let total = 0;
+
+    if (n4 !== null && n2 + n3 === n4) {
+      wwcd = n1;
+      place = n2;
+      kills = n3;
+      total = n4;
+    } else if (n4 === null && n1 + n2 === n3) {
+      wwcd = 0;
+      place = n1;
+      kills = n2;
+      total = n3;
+    } else if (n4 !== null) {
+      wwcd = n1;
+      place = n2;
+      kills = n3;
+      total = n4;
+    } else {
+      place = n1;
+      kills = n2;
+      total = n3;
+    }
+
+    if (teamName.length >= 1) {
+      rows.push({
+        rank,
+        team_name: teamName,
+        wwcd,
+        placement_points: place,
+        kill_points: kills,
+        total_points: total,
+      });
+    }
+  }
+
+  if (rows.length < 3) return null;
+  return { scrim_name: scrimName, scrim_date: "", standings: rows };
+}
+
+async function extractTextWithOcrSpace(
+  sanitizedBase64: string,
+  normalizedMime: string,
+  ocrSpaceKey: string,
+  timeoutMs: number
+): Promise<string | null> {
+  // OCR.Space free plan limits uploads to ~1MB binary (~1.33M base64 chars)
+  if (!ocrSpaceKey || sanitizedBase64.length > 1_320_000) return null;
+  try {
+    const fd = new FormData();
+    fd.append("base64Image", `data:${normalizedMime};base64,${sanitizedBase64}`);
+    fd.append("isTable", "true");
+    fd.append("OCREngine", "2");
+    fd.append("scale", "true");
+    fd.append("detectOrientation", "true");
+
+    const res = await fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { apikey: ocrSpaceKey },
+      body: fd,
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const parsedText = json?.ParsedResults?.[0]?.ParsedText;
+    return typeof parsedText === "string" && parsedText.trim().length > 10 ? parsedText : null;
+  } catch {
+    return null;
+  }
+}
+
+async function extractTextWithApiNinjas(
+  sanitizedBase64: string,
+  normalizedMime: string,
+  apiNinjasKey: string,
+  timeoutMs: number
+): Promise<string | null> {
+  if (!apiNinjasKey) return null;
+  try {
+    const binStr = atob(sanitizedBase64);
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i += 1) {
+      bytes[i] = binStr.charCodeAt(i);
+    }
+    const ext = normalizedMime.includes("png") ? "png" : "jpg";
+    const fd = new FormData();
+    fd.append("image", new Blob([bytes], { type: normalizedMime }), `poster.${ext}`);
+
+    const res = await fetch("https://api.api-ninjas.com/v1/imagetotext", {
+      method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { "X-Api-Key": apiNinjasKey },
+      body: fd,
+    });
+    if (!res.ok) return null;
+    const items = await res.json();
+    if (!Array.isArray(items) || items.length === 0) return null;
+
+    // Group words into horizontal rows sorted by y1 then x1
+    const sorted = [...items]
+      .filter((it: any) => it?.text && it?.bounding_box)
+      .sort((a: any, b: any) => (a.bounding_box.y1 - b.bounding_box.y1) || (a.bounding_box.x1 - b.bounding_box.x1));
+
+    const lines: Array<{ y: number; tokens: Array<{ x: number; text: string }> }> = [];
+    for (const item of sorted) {
+      const y = Number(item.bounding_box.y1) || 0;
+      const x = Number(item.bounding_box.x1) || 0;
+      const band = lines.find((ln) => Math.abs(ln.y - y) <= 14);
+      if (band) {
+        band.tokens.push({ x, text: String(item.text) });
+      } else {
+        lines.push({ y, tokens: [{ x, text: String(item.text) }] });
+      }
+    }
+
+    return lines
+      .map((ln) => ln.tokens.sort((a, b) => a.x - b.x).map((t) => t.text).join("\t"))
+      .join("\n");
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
   const origin = req.headers.get("origin");
@@ -410,8 +577,10 @@ Deno.serve(async (req: Request) => {
 
   try {
     const apiKey = Deno.env.get("GEMINI_API_KEY")?.trim() || "";
+    const ocrSpaceKey = Deno.env.get("OCR_SPACE_API_KEY")?.trim() || "";
+    const apiNinjasKey = Deno.env.get("API_NINJAS_KEY")?.trim() || "";
     const backupProviders = getConfiguredBackupProviders();
-    if (!apiKey && backupProviders.length === 0) {
+    if (!apiKey && backupProviders.length === 0 && !ocrSpaceKey && !apiNinjasKey) {
       return new Response(
         JSON.stringify({ error: "Service configuration unavailable." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -642,7 +811,7 @@ Extract every single row accurately from this tournament standings poster:
               model: modelName,
               temperature: 0.1,
               max_tokens: 4096,
-              response_format: { type: "json_object" },
+              ...(provider.name === "groq" ? { response_format: { type: "json_object" } } : {}),
               messages: [
                 {
                   role: "user",
@@ -680,7 +849,8 @@ Extract every single row accurately from this tournament standings poster:
 
     // Wave 1: 2 primary Gemini models (50% less RPM burn than 4 parallel calls)
     if (apiKey) {
-      const wave1Timeout = backupProviders.length > 0 ? 18000 : 25000;
+      const hasBackups = backupProviders.length > 0 || Boolean(ocrSpaceKey) || Boolean(apiNinjasKey);
+      const wave1Timeout = hasBackups ? 16000 : 25000;
       parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout);
     }
 
@@ -699,6 +869,76 @@ Extract every single row accurately from this tournament standings poster:
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 6000) {
         parsed = await runWave(WAVE_2_CANDIDATES, Math.min(12000, remainingMs));
+      }
+    }
+
+    // Tier 3: Pure OCR engines (OCR.Space -> API Ninjas) + OpenRouter text structuring / deterministic parser
+    if (!parsed && (ocrSpaceKey || apiNinjasKey)) {
+      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+      if (remainingMs >= 4500) {
+        let ocrText: string | null = null;
+        if (ocrSpaceKey) {
+          ocrText = await extractTextWithOcrSpace(
+            sanitizedBase64,
+            normalizedMime,
+            ocrSpaceKey,
+            Math.min(10000, remainingMs)
+          );
+        }
+        if (!ocrText && apiNinjasKey) {
+          const leftMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+          if (leftMs >= 3500) {
+            ocrText = await extractTextWithApiNinjas(
+              sanitizedBase64,
+              normalizedMime,
+              apiNinjasKey,
+              Math.min(9000, leftMs)
+            );
+          }
+        }
+        if (ocrText) {
+          // Normalize Cyrillic З often read instead of '3' by OCR Engine 2 before parsing
+          const cleanOcrText = ocrText.replace(/#З/g, "#3");
+          parsed = parseStandingsFromOcrText(cleanOcrText);
+
+          // If layout is dual-column / non-standard and OpenRouter key exists, ask fast text router to structure OCR text
+          const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
+          const leftMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+          if ((!parsed || parsed.standings.length < 4) && openRouterProv && leftMs >= 4000) {
+            try {
+              const textRes = await fetch(openRouterProv.endpoint, {
+                method: "POST",
+                signal: AbortSignal.timeout(Math.min(9000, leftMs)),
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${openRouterProv.apiKey}`,
+                  ...(openRouterProv.extraHeaders || {}),
+                },
+                body: JSON.stringify({
+                  model: "openrouter/free",
+                  temperature: 0.1,
+                  max_tokens: 3000,
+                  messages: [
+                    {
+                      role: "user",
+                      content: `Convert this PUBG Mobile standings OCR text into valid JSON {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. Return ONLY raw JSON.\n\nOCR TEXT:\n${cleanOcrText.slice(0, 6000)}`,
+                    },
+                  ],
+                }),
+              });
+              if (textRes.ok) {
+                const tj = await textRes.json();
+                const tc = tj?.choices?.[0]?.message?.content;
+                const structured = extractJsonObject(String(tc || ""));
+                if (structured && Array.isArray(structured.standings) && structured.standings.length > 0) {
+                  parsed = structured;
+                }
+              }
+            } catch {
+              // Keep deterministic parsed fallback if available
+            }
+          }
+        }
       }
     }
 
@@ -745,8 +985,8 @@ Extract every single row accurately from this tournament standings poster:
     }
 
     let hasGlobalMismatch = false;
-    const validatedStandings: ValidatedStandingItem[] = (parsed.standings || []).slice(0, 30).map((row) => {
-      const rank = Number(row.rank) || 0;
+    const validatedStandings: ValidatedStandingItem[] = (parsed.standings || []).slice(0, 30).map((row, idx) => {
+      const rank = Number(String(row.rank ?? "").replace(/[^\d]/g, "")) || idx + 1;
       const team_name = String(row.team_name || "").trim().slice(0, 80);
       const wwcd = Number(row.wwcd) || 0;
       const placement_points = Number(row.placement_points) || 0;
