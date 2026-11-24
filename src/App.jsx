@@ -1084,22 +1084,50 @@ export default function App() {
     const lines = importRawText.split(/\r?\n/);
     const extracted = [];
 
+    const KEYCAP_MAP = {
+      '0️⃣': '0.', '1️⃣': '1.', '2️⃣': '2.', '3️⃣': '3.', '4️⃣': '4.',
+      '5️⃣': '5.', '6️⃣': '6.', '7️⃣': '7.', '8️⃣': '8.', '9️⃣': '9.', '🔟': '10.'
+    };
+    const PLACEHOLDER_RE = /^(?:open|empty|kosong|available|avail|tba|tbd|free|slot\s*kosong|reserved|booked|none|n\/a|-+|\.+)$/i;
+    const META_HEADER_RE = /^(?:tarikh|date|masa|waktu|time|map|maps|host|organizer|penganjur|room|room\s*id|id|pass|password|pw|link|fee|yuran|prize|hadiah|format|mode|tier|server|lobby|start|pukul|jam|rules|peraturan|group|kumpulan|match|round|day|week)\s*[:=-]/i;
+    const STANDALONE_HEADER_RE = /^(?:slot\s*(?:list|scrim|tour|tournament|open|kosong).*|slot|senarai\s*(?:pasukan|team|slot).*|daftar\s*(?:pasukan|team).*|pubg\s*mobile.*|scrim\s*(?:list|schedule|malam|petang|pagi|hub)?.*|jadual\s*.*|group\s*[a-z0-9]?|match\s*\d*)$/i;
+
     for (const rawLine of lines) {
       let line = rawLine.trim();
       if (!line) continue;
 
-      // Abaikan header umum seperti "SLOT SCRIM", "SENARAI PASUKAN", etc.
-      if (/^(slot|team|squad|scrim|pubg|senarai|daftar|match|jadual|format|waktu|time|date|tarikh|host|group)/i.test(line) && !/^\d+/.test(line)) {
-        continue;
+      // Normalize WhatsApp markdown (*bold*, _italic_, ~strike~, `code`) & keycap emojis
+      line = line.replace(/[*_~`]/g, '').trim();
+      for (const [emoji, num] of Object.entries(KEYCAP_MAP)) {
+        if (line.includes(emoji)) {
+          line = line.split(emoji).join(num);
+        }
+      }
+      // Strip leading decorative bullets/emojis (e.g. "➤ ", "🔥 ", "✅ ", "• ")
+      line = line.replace(/\uFE0F/g, '').replace(/^[\u2022\u2023\u25AA\u25AB\u25B8\u25BA\u27A4\u2705\u2611\p{Extended_Pictographic}\s]+/u, '').trim();
+      if (!line || /^[-=_|+/.\\\s]+$/.test(line) || /^https?:\/\//i.test(line)) continue;
+
+      // 1. Explicit numbered slot pattern: "Slot 4: Vampire", "1. Geek Fam", "01) SEM9", "#2 Yoodo", "S3 - BTR", "Team 1: HAQ"
+      const numberedMatch = line.match(
+        /^(?:(?:slot|sl|s|no|team|squad)\s*#?\d{1,2}|#?\d{1,2})\s*(?:[:.)\-–—|>]|\s+)\s*(.+)$/i
+      );
+
+      if (numberedMatch) {
+        line = numberedMatch[1].trim();
+      } else {
+        // 2. Unnumbered line: skip only genuine WhatsApp metadata/title headers (never skip "Team Secret" or "Squad Alpha")
+        if (META_HEADER_RE.test(line) || STANDALONE_HEADER_RE.test(line)) {
+          continue;
+        }
+        line = line.replace(/^[-*•–—]\s*/, '').trim();
       }
 
-      // Buang prefix seperti "1.", "Slot 1:", "01)", "- ", "#1 "
-      line = line.replace(/^(?:slot\s*\d+[\s:.-]*|#?\d+[\s:.)-]*|[-*•]\s*)/i, '').trim();
+      // Remove trailing WhatsApp phone numbers (e.g. "- 0123456789" or "(+60123456789)")
+      line = line.replace(/\s*[-–—(|]?\s*(?:\+?6?0\d{8,11}|\+\d{9,15})\s*\)?$/, '').trim();
+      line = sanitizeTextInput(line, 60);
 
-      // Buang nombor telefon atau nota tambahan di hujung jika ada
-      line = line.replace(/\s*-\s*\+?\d{8,}.*$/, '').trim();
-
-      if (line.length >= 2) {
+      if (!line || PLACEHOLDER_RE.test(line)) continue;
+      if (line.length >= 2 || /^[A-Za-z0-9]$/.test(line)) {
         extracted.push(line);
       }
     }
@@ -1109,17 +1137,40 @@ export default function App() {
       return;
     }
 
-    if (activeTab === 'admin') {
-      const targetCount = Math.min(24, Math.max(matchSlots.length || 16, extracted.length));
+    const limitedExtracted = extracted.slice(0, 24);
+
+    if (activeTab === 'admin' || activeTab === 'scorer') {
+      if (activeAdminScrim?.is_finished) {
+        showToast('Sesi dah lock. Unlock dulu sebelum Import WA.');
+        return;
+      }
+
+      const targetCount = Math.min(24, Math.max(matchSlots.length || 16, limitedExtracted.length));
+      const resolveSlotMeta = (teamName) => {
+        const cleanVal = teamName.trim();
+        const matched = teams.find(t => t.name.toLowerCase() === cleanVal.toLowerCase());
+        if (matched) {
+          return { teamId: matched.id, tag: matched.tag };
+        }
+        return {
+          teamId: cleanVal ? ('tm_' + cleanVal.replace(/\s+/g, '_').toLowerCase()) : '',
+          tag: cleanVal ? cleanVal.slice(0, 4).toUpperCase() : ''
+        };
+      };
+
       setMatchSlots(prev => {
         return Array.from({ length: targetCount }, (_, idx) => {
           const existingSlot = prev[idx];
-          const newTeamName = extracted[idx] || existingSlot?.teamName || `Slot ${idx + 1}`;
+          const importedName = limitedExtracted[idx];
+          const newTeamName = importedName || existingSlot?.teamName || '';
+          const meta = importedName
+            ? resolveSlotMeta(importedName)
+            : { teamId: existingSlot?.teamId || '', tag: existingSlot?.tag || '' };
           return {
             slot: idx + 1,
-            teamId: existingSlot?.teamId || '',
+            teamId: meta.teamId,
             teamName: newTeamName,
-            tag: existingSlot?.tag || '',
+            tag: meta.tag,
             placement: existingSlot?.placement ?? '',
             kills: existingSlot?.kills ?? 0,
             placePts: existingSlot?.placePts ?? 0,
@@ -1128,20 +1179,54 @@ export default function App() {
           };
         });
       });
-      showToast(`${extracted.length} team dah masuk ke sesi Host.`);
+
+      // Sync imported team names across all matches in active session so Match 1..5 stay aligned
+      if (activeAdminScrim && Array.isArray(activeAdminScrim.matches)) {
+        setScrims(prevScrims => prevScrims.map(scrim => {
+          if (scrim.id !== activeAdminScrim.id) return scrim;
+          const updatedMatches = (scrim.matches || []).map(m => {
+            if (!Array.isArray(m.results) || m.results.length === 0) return m;
+            const updatedResults = Array.from({ length: Math.max(m.results.length, targetCount) }, (_, idx) => {
+              const existingRow = m.results[idx];
+              const importedName = limitedExtracted[idx];
+              if (existingRow) {
+                if (!importedName) return existingRow;
+                const meta = resolveSlotMeta(importedName);
+                return { ...existingRow, teamName: importedName, teamId: meta.teamId, tag: meta.tag };
+              }
+              const meta = importedName ? resolveSlotMeta(importedName) : { teamId: '', tag: '' };
+              return {
+                slot: idx + 1,
+                teamId: meta.teamId,
+                teamName: importedName || '',
+                tag: meta.tag,
+                placement: '',
+                kills: 0,
+                placePts: 0,
+                totalPts: 0,
+                wwcd: false
+              };
+            });
+            return { ...m, results: updatedResults };
+          });
+          return { ...scrim, matches: updatedMatches };
+        }));
+      }
+
+      showToast(`${limitedExtracted.length} pasukan berjaya diimport ke Quick Scorer!`);
       setIsImportModalOpen(false);
       setImportRawText('');
       return;
     }
 
-    // Kemaskini playgroundSession dengan nama-nama yang diimport
+    // Fallback: Kemaskini playgroundSession
     setPlaygroundSession(prev => {
-      const targetCount = Math.min(24, Math.max(prev.matches[0]?.slots?.length || 16, extracted.length));
+      const targetCount = Math.min(24, Math.max(prev.matches[0]?.slots?.length || 16, limitedExtracted.length));
 
       const updatedMatches = prev.matches.map((m) => {
         const slots = Array.from({ length: targetCount }, (_, idx) => {
           const existingSlot = m.slots?.[idx];
-          const newTeamName = extracted[idx] || existingSlot?.teamName || `Slot ${idx + 1}`;
+          const newTeamName = limitedExtracted[idx] || existingSlot?.teamName || `Slot ${idx + 1}`;
           return {
             slot: idx + 1,
             teamName: newTeamName,
@@ -1158,7 +1243,7 @@ export default function App() {
       return { ...prev, matches: updatedMatches, synced: false };
     });
 
-    showToast(`${extracted.length} team dah masuk ke semua 5 match.`);
+    showToast(`${limitedExtracted.length} team dah masuk ke semua 5 match.`);
     setIsImportModalOpen(false);
     setImportRawText('');
   };

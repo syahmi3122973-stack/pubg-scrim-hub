@@ -266,16 +266,110 @@ interface ModelCandidate {
 const WAVE_1_CANDIDATES: ModelCandidate[] = [
   { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-3.5-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-omni-flash-preview" },
 ];
 
 const WAVE_2_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-omni-1.2-flash" },
-  { name: "gemini-omni-1.1-flash" },
+  { name: "gemini-3.5-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-omni-flash-preview" },
   { name: "gemini-flash-latest" },
-  { name: "gemini-flash-lite-latest" },
 ];
+
+// In-memory 45s cooldown per congested/throttled model so back-to-back scans avoid dead models
+const modelCooldownUntil = new Map<string, number>();
+
+interface OpenAiCompatProvider {
+  name: string;
+  endpoint: string;
+  apiKey: string;
+  models: string[];
+  extraHeaders?: Record<string, string>;
+}
+
+function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
+  const providers: OpenAiCompatProvider[] = [];
+
+  // 1. Groq Vision (Free tier, ~1-3s inference)
+  const groqKey = Deno.env.get("GROQ_API_KEY")?.trim();
+  if (groqKey) {
+    providers.push({
+      name: "groq",
+      endpoint: "https://api.groq.com/openai/v1/chat/completions",
+      apiKey: groqKey,
+      models: [
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "meta-llama/llama-4-maverick-17b-128e-instruct",
+      ],
+    });
+  }
+
+  // 2. OpenRouter Free Vision (:free models)
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY")?.trim();
+  if (openRouterKey) {
+    providers.push({
+      name: "openrouter",
+      endpoint: "https://openrouter.ai/api/v1/chat/completions",
+      apiKey: openRouterKey,
+      models: [
+        "qwen/qwen2.5-vl-72b-instruct:free",
+        "meta-llama/llama-4-scout:free",
+        "google/gemma-3-27b-it:free",
+      ],
+      extraHeaders: {
+        "HTTP-Referer": "https://scrim.rykhor.my",
+        "X-Title": "ScrimHub OCR",
+      },
+    });
+  }
+
+  // 3. Mistral Pixtral (Free experiment tier)
+  const mistralKey = Deno.env.get("MISTRAL_API_KEY")?.trim();
+  if (mistralKey) {
+    providers.push({
+      name: "mistral",
+      endpoint: "https://api.mistral.ai/v1/chat/completions",
+      apiKey: mistralKey,
+      models: ["pixtral-12b-2409", "mistral-small-latest"],
+    });
+  }
+
+  // 4. Optional Self-Hosted FreeLLMAPI / OpenAI-Compatible Gateway
+  const customUrl = Deno.env.get("FREELLM_API_URL")?.trim();
+  const customKey = Deno.env.get("FREELLM_API_KEY")?.trim();
+  if (customUrl && /^https:\/\//i.test(customUrl)) {
+    const normalizedEndpoint = customUrl.endsWith("/chat/completions")
+      ? customUrl
+      : `${customUrl.replace(/\/+$/, "")}/chat/completions`;
+    providers.push({
+      name: "freellmapi",
+      endpoint: normalizedEndpoint,
+      apiKey: customKey || "freellmapi",
+      models: [Deno.env.get("FREELLM_MODEL")?.trim() || "auto"],
+    });
+  }
+
+  return providers;
+}
+
+function extractJsonObject(raw: string): ExtractionResponse | null {
+  const cleaned = String(raw || "")
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned) as ExtractionResponse;
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      try {
+        return JSON.parse(cleaned.slice(start, end + 1)) as ExtractionResponse;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -315,8 +409,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) {
+    const apiKey = Deno.env.get("GEMINI_API_KEY")?.trim() || "";
+    const backupProviders = getConfiguredBackupProviders();
+    if (!apiKey && backupProviders.length === 0) {
       return new Response(
         JSON.stringify({ error: "Service configuration unavailable." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -488,6 +583,9 @@ Extract every single row accurately from this tournament standings poster:
           lastError = errJson?.error?.message || `HTTP ${restRes.status}`;
           modelErrors.push(`${candidate.name}: ${restRes.status} ${lastError}`);
           attemptCodes.push(`${candidate.name}:${restRes.status}`);
+          if (restRes.status === 429 || restRes.status === 503) {
+            modelCooldownUntil.set(candidate.name, Date.now() + 45_000);
+          }
           throw new Error(lastError);
         }
       } catch (err) {
@@ -508,17 +606,96 @@ Extract every single row accurately from this tournament standings poster:
       candidates: ModelCandidate[],
       timeoutMs: number
     ): Promise<ExtractionResponse | null> => {
-      if (candidates.length === 0) return null;
+      if (!apiKey || candidates.length === 0) return null;
+      const now = Date.now();
+      const healthy = candidates.filter((c) => (modelCooldownUntil.get(c.name) || 0) <= now);
+      const activeList = healthy.length > 0 ? healthy : candidates;
       const waveController = new AbortController();
       try {
-        return await Promise.any(candidates.map((c) => tryCandidate(c, timeoutMs, waveController)));
+        return await Promise.any(activeList.map((c) => tryCandidate(c, timeoutMs, waveController)));
       } catch {
         return null;
       }
     };
 
-    parsed = await runWave(WAVE_1_CANDIDATES, 26000);
-    if (!parsed) {
+    const callOpenAiCompatBackup = async (
+      provider: OpenAiCompatProvider,
+      timeoutMs: number
+    ): Promise<ExtractionResponse | null> => {
+      const jsonInstruction = `${prompt}\n\nReturn ONLY raw valid JSON matching {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. No markdown fences or extra commentary.`;
+      const dataUri = `data:${normalizedMime};base64,${sanitizedBase64}`;
+
+      for (const modelName of provider.models) {
+        const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+        if (remainingMs < 4000) break;
+        const perTryTimeout = Math.min(timeoutMs, remainingMs);
+        try {
+          const res = await fetch(provider.endpoint, {
+            method: "POST",
+            signal: AbortSignal.timeout(perTryTimeout),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${provider.apiKey}`,
+              ...(provider.extraHeaders || {}),
+            },
+            body: JSON.stringify({
+              model: modelName,
+              temperature: 0.1,
+              max_tokens: 4096,
+              response_format: { type: "json_object" },
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: jsonInstruction },
+                    { type: "image_url", image_url: { url: dataUri } },
+                  ],
+                },
+              ],
+            }),
+          });
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            lastError = errBody?.error?.message || `${provider.name} HTTP ${res.status}`;
+            modelErrors.push(`${provider.name}/${modelName}: ${res.status}`);
+            continue;
+          }
+          const data = await res.json();
+          const content = data?.choices?.[0]?.message?.content;
+          const textContent = Array.isArray(content)
+            ? content.map((c: any) => c?.text || "").join("")
+            : String(content || "");
+          const candidateParsed = extractJsonObject(textContent);
+          if (candidateParsed && Array.isArray(candidateParsed.standings) && candidateParsed.standings.length > 0) {
+            return candidateParsed;
+          }
+          modelErrors.push(`${provider.name}/${modelName}: 0_standings`);
+        } catch (err) {
+          lastError = (err as any)?.message || String(err);
+          modelErrors.push(`${provider.name}/${modelName}: timeout`);
+        }
+      }
+      return null;
+    };
+
+    // Wave 1: 2 primary Gemini models (50% less RPM burn than 4 parallel calls)
+    if (apiKey) {
+      const wave1Timeout = backupProviders.length > 0 ? 18000 : 25000;
+      parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout);
+    }
+
+    // Backup providers (Groq / OpenRouter / Mistral / FreeLLMAPI) kick in immediately if Gemini Wave 1 fails
+    if (!parsed && backupProviders.length > 0) {
+      for (const provider of backupProviders) {
+        const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
+        if (remainingMs < 5000) break;
+        parsed = await callOpenAiCompatBackup(provider, Math.min(12000, remainingMs));
+        if (parsed) break;
+      }
+    }
+
+    // Wave 2: Secondary Gemini fallback models if still unresolved and budget remains
+    if (!parsed && apiKey) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 6000) {
         parsed = await runWave(WAVE_2_CANDIDATES, Math.min(12000, remainingMs));
