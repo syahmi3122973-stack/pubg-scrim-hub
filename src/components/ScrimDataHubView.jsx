@@ -238,9 +238,12 @@ export async function executePosterOcrExtraction({
   selectedFile,
   supabase,
   knownTeams = [],
+  uploaderName = '',
   onStageProgress
 }) {
   const fileName = (selectedFile?.name || '').toLowerCase();
+  const safeOriginalFileName = sanitizeTextInput(selectedFile?.name || 'poster.jpg', 90) || 'poster.jpg';
+  const safeUploaderName = sanitizeTextInput(uploaderName || 'Guest', 60) || 'Guest';
   const isMecMatch =
     fileName.includes('mec') ||
     fileName.includes('6b1e45a4') ||
@@ -265,7 +268,9 @@ export async function executePosterOcrExtraction({
         const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
           body: {
             imageBase64: optimized.dataUrl,
-            mimeType: optimized.mimeType
+            mimeType: optimized.mimeType,
+            uploaderName: safeUploaderName,
+            fileName: safeOriginalFileName
           }
         });
 
@@ -588,6 +593,7 @@ export default function ScrimDataHubView({
         selectedFile,
         supabase,
         knownTeams,
+        uploaderName: profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Guest'),
         onStageProgress: (p) => updateOcr((prev) => ({ ...prev, progress: p }))
       });
       updateOcr((prev) => ({
@@ -601,7 +607,7 @@ export default function ScrimDataHubView({
       showToast?.(res.toastMessage);
       if (res.ok) scrollToStandings();
     },
-    [onStartBackgroundScan, updateOcr, supabase, knownTeams, showToast, scrollToStandings]
+    [onStartBackgroundScan, updateOcr, supabase, knownTeams, profileName, currentUser, showToast, scrollToStandings]
   );
 
   const handleLoadDemoPoster = () => {

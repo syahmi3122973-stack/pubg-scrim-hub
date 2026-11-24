@@ -8,6 +8,9 @@ declare const Deno: {
     get: (key: string) => string | undefined;
   };
 };
+declare const EdgeRuntime: {
+  waitUntil?: (promise: Promise<unknown>) => void;
+} | undefined;
 
 const ALLOWED_EXACT_ORIGINS = new Set([
   "https://scrim.rykhor.my",
@@ -126,6 +129,69 @@ function checkRateLimit(req: Request): { allowed: boolean; retryAfterSec: number
 interface ExtractionRequest {
   imageBase64: string;
   mimeType: string;
+  uploaderName?: string;
+  fileName?: string;
+}
+
+function formatMytFolderTimestamp(date = new Date()): string {
+  // Malaysia Time is fixed UTC+8 with no DST
+  const myt = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${myt.getUTCFullYear()}-${pad(myt.getUTCMonth() + 1)}-${pad(myt.getUTCDate())} ${pad(myt.getUTCHours())}-${pad(myt.getUTCMinutes())}-${pad(myt.getUTCSeconds())} MYT`;
+}
+
+function sanitizeDriveLabel(raw: unknown, fallback: string): string {
+  const cleaned = String(raw || "")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  return cleaned || fallback;
+}
+
+function extractJwtEmail(req: Request): string {
+  const auth = req.headers.get("authorization") || "";
+  if (!auth.toLowerCase().startsWith("bearer ")) return "";
+  const token = auth.slice(7).trim();
+  const parts = token.split(".");
+  if (parts.length !== 3) return "";
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload?.email === "string" ? payload.email : "";
+  } catch {
+    return "";
+  }
+}
+
+async function archivePosterToGoogleDrive(params: {
+  imageBase64: string;
+  mimeType: string;
+  uploaderName: string;
+  fileName: string;
+}): Promise<void> {
+  const webhookUrl = Deno.env.get("GDRIVE_WEBHOOK_URL")?.trim();
+  const webhookSecret = Deno.env.get("GDRIVE_WEBHOOK_SECRET")?.trim();
+  if (!webhookUrl || !webhookSecret || !/^https:\/\//i.test(webhookUrl)) {
+    return;
+  }
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      redirect: "follow",
+      signal: AbortSignal.timeout(15000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: webhookSecret,
+        imageBase64: params.imageBase64,
+        mimeType: params.mimeType,
+        uploaderName: params.uploaderName,
+        uploadedAtMyt: formatMytFolderTimestamp(),
+        fileName: params.fileName,
+      }),
+    });
+  } catch {
+    // Archiving must never block or break OCR extraction
+  }
 }
 
 interface RawStandingItem {
@@ -651,7 +717,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { imageBase64, mimeType } = payload;
+    const { imageBase64, mimeType, uploaderName, fileName } = payload;
     if (!imageBase64 || !mimeType || typeof imageBase64 !== "string" || typeof mimeType !== "string") {
       return new Response(
         JSON.stringify({ error: "Both 'imageBase64' and 'mimeType' are required." }),
@@ -680,6 +746,26 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: "Invalid or oversized image data." }),
         { status: sanitizedBase64.length > MAX_BASE64_CHARS ? 413 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Archive original uploaded poster to Google Drive in the background (non-blocking)
+    const jwtEmail = extractJwtEmail(req);
+    const resolvedUploader = sanitizeDriveLabel(
+      uploaderName || (jwtEmail ? jwtEmail.split("@")[0] : ""),
+      "Guest"
+    );
+    const ext = normalizedMime.includes("png") ? "png" : normalizedMime.includes("webp") ? "webp" : "jpg";
+    const resolvedFileName = sanitizeDriveLabel(fileName, `poster_${Date.now()}.${ext}`);
+    const archiveTask = archivePosterToGoogleDrive({
+      imageBase64: sanitizedBase64,
+      mimeType: normalizedMime,
+      uploaderName: resolvedUploader,
+      fileName: resolvedFileName,
+    });
+    if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime?.waitUntil === "function") {
+      EdgeRuntime.waitUntil(archiveTask);
+    } else {
+      archiveTask.catch(() => {});
     }
 
     const prompt = `

@@ -4576,6 +4576,7 @@ export default function App() {
       selectedFile,
       supabase,
       knownTeams: allManageableTeams,
+      uploaderName: profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Guest'),
       onStageProgress: (pct) => {
         if (ocrRunIdRef.current !== runId) return;
         setOcrJob((prev) => ({ ...prev, progress: Math.max(prev.progress, pct) }));
@@ -4610,7 +4611,7 @@ export default function App() {
         setOcrJob((prev) => ({ ...prev, isProcessing: false, progress: 0 }));
       }, 650);
     }
-  }, [allManageableTeams]);
+  }, [allManageableTeams, profileName, currentUser]);
 
   const potentialDuplicatePairs = useMemo(
     () => findPotentialDuplicatePairs(allManageableTeams),
