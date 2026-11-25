@@ -510,6 +510,17 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   return data.publicUrl;
 };
 
+const getScrimOcrPosterUrl = (scrim) => {
+  const raw = scrim?.matches?.[0]?.ocrPosterUrl;
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? raw : null;
+  } catch {
+    return null;
+  }
+};
+
 const WHY_SWITCH_FAQS = [
   {
     id: 'sheet-vs-scrimhub',
@@ -3347,6 +3358,38 @@ export default function App() {
     }).catch(() => {
       showToast('Tak dapat copy teks standings.');
     });
+  };
+
+  const handleDownloadOcrPoster = async (scrim, explicitUrl) => {
+    const posterUrl = explicitUrl || getScrimOcrPosterUrl(scrim);
+    if (!posterUrl) {
+      showToast('Tiada poster asal OCR untuk rekod ini.');
+      return;
+    }
+    const baseName = sanitizeTextInput(scrim?.title || 'scrim-poster', 60)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'scrim-poster';
+    const extMatch = posterUrl.match(/\.([a-z0-9]{3,4})(?:[?#]|$)/i);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'jpg';
+    const fileName = scrim?.matches?.[0]?.ocrPosterFileName || `${baseName}-poster.${ext}`;
+
+    try {
+      const res = await fetch(posterUrl);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      showToast('Poster asal OCR berjaya dimuat turun.');
+    } catch {
+      window.open(posterUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // INSTAGRAM STORY INFOGRAPHIC ENGINE
@@ -9990,6 +10033,7 @@ export default function App() {
                 >
                   {filteredScrims.map((s, idx) => {
                     const isFinished = Boolean(s.is_finished);
+                    const ocrPosterUrl = getScrimOcrPosterUrl(s);
 
                     return (
                       <div
@@ -10053,8 +10097,23 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Right: Quick Edit (for Hosts) & Chevron */}
+                        {/* Right: OCR Poster Download, Quick Edit (for Hosts) & Chevron */}
                         <div className="flex items-center gap-2 shrink-0">
+                          {ocrPosterUrl && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadOcrPoster(s, ocrPosterUrl);
+                              }}
+                              aria-label={`Muat turun poster asal OCR ${s.title}`}
+                              title="Muat turun poster asal (OCR)"
+                              className="h-7 px-2 rounded-md border border-white/[0.08] hover:border-[#D7FF00]/40 hover:bg-[#D7FF00]/[0.08] text-zinc-300 hover:text-[#D7FF00] inline-flex items-center gap-1 text-[11px] font-medium transition cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Poster</span>
+                            </button>
+                          )}
                           {isAuthorizedAdmin(s) && (
                             <button
                               type="button"
@@ -10796,6 +10855,7 @@ export default function App() {
             setOcrJob={setOcrJob}
             onStartBackgroundScan={startBackgroundOcrScan}
             onResetOcrJob={resetOcrJob}
+            uploadMedia={uploadMediaToSupabase}
           />
         )}
 
@@ -14160,6 +14220,17 @@ export default function App() {
                   <Copy className="w-3.5 h-3.5 text-zinc-400"/>
                   <span>Salin Teks</span>
                 </button>
+
+                {getScrimOcrPosterUrl(inspectedScrim) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadOcrPoster(inspectedScrim)}
+                    className="px-3 py-2 bg-[#19191E] hover:bg-[#23232A] text-zinc-200 hover:text-[#D7FF00] font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <span>Download Poster Asal</span>
+                  </button>
+                )}
               </div>
 
               <button

@@ -447,7 +447,8 @@ export default function ScrimDataHubView({
   ocrJob,
   setOcrJob,
   onStartBackgroundScan,
-  onResetOcrJob
+  onResetOcrJob,
+  uploadMedia = null
 }) {
   const [isHeaderInfoOpen, setIsHeaderInfoOpen] = useState(false);
 
@@ -709,6 +710,26 @@ export default function ScrimDataHubView({
       setIsSaving(true);
       const effectiveHost = hostUsername.trim() || profileName || (currentUser?.email ? currentUser.email.split('@')[0] : `${scrimName.trim()} Organizer`);
 
+      let ocrPosterUrl = null;
+      const ocrPosterFileName = file?.name ? sanitizeTextInput(file.name, 80) : '';
+      if (file && typeof uploadMedia === 'function') {
+        try {
+          let fileToUpload = file;
+          if (file.size > 5 * 1024 * 1024) {
+            const compressed = await optimizePosterForOcr(file);
+            if (compressed?.dataUrl) {
+              const blob = await fetch(compressed.dataUrl).then((r) => r.blob());
+              fileToUpload = new File([blob], `${(ocrPosterFileName || 'poster').replace(/\.[^.]+$/, '')}.jpg`, {
+                type: 'image/jpeg'
+              });
+            }
+          }
+          ocrPosterUrl = await uploadMedia(fileToUpload, 'uploads');
+        } catch (uploadErr) {
+          console.warn('OCR poster archive upload skipped:', uploadErr);
+        }
+      }
+
       // 1. Try inserting into normalized tables (`scrim_sessions` & `scrim_standings`)
       let committedToNewSchema = false;
       try {
@@ -717,7 +738,7 @@ export default function ScrimDataHubView({
           .insert({
             scrim_name: scrimName.trim(),
             scrim_date: scrimDate || new Date().toISOString().split('T')[0],
-            image_url: null,
+            image_url: ocrPosterUrl || null,
             host_name: effectiveHost
           })
           .select('id')
@@ -766,6 +787,7 @@ export default function ScrimDataHubView({
           {
             matchNo: 1,
             map: 'Overall Standings',
+            ...(ocrPosterUrl ? { ocrPosterUrl, ...(ocrPosterFileName ? { ocrPosterFileName } : {}) } : {}),
             results: standings.map((r, idx) => {
               const cleanRowName = sanitizeTextInput(r.team_name, 60);
               const norm = normalizeTeamAlias(cleanRowName, knownTeams);
