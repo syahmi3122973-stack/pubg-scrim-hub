@@ -290,12 +290,12 @@ const extractionSchema = {
           team_name: {
             type: "STRING",
             description:
-              "Full team name from TEAMS / TEAM / TEAM NAME column (ignore circular/square team logo next to it; keep exact spelling and spacing).",
+              "Full team name from TEAMS / TEAM / TEAM NAME column (ignore circular/square team logo next to it; keep exact spelling and spacing; do not include WWCD star/bunny icons from the adjacent column).",
           },
           wwcd: {
             type: "INTEGER",
             description:
-              "Win/WWCD column (labeled 'WWCD', 'WIN', or shown only as an icon like chicken/pan/helmet/spider). Output 0 if the cell is blank, empty, or covered only by background art.",
+              "Win/WWCD count (column labeled 'WWCD', 'WIN', 'CHICKEN', or shown ONLY as an icon header like rabbit/bunny face 🐰/🐇, star ⭐, frying pan, chicken 🍗, helmet, spider, crown 👑, or trophy 🏆). Cells may contain digits (0, 1, 2) OR repeated visual icons/emojis (e.g. ⭐ = 1, ⭐⭐ = 2, ★ = 1, ★★ = 2, 🐰 = 1, 🐰🐰 = 2, 🏆🏆 = 2). COUNT every win icon in that row's WWCD cell. Do NOT count country flags inside team_name (🇲🇲, 🇹🇼) as WWCD. Output 0 if the WWCD cell is blank/empty.",
           },
           placement_points: {
             type: "INTEGER",
@@ -437,6 +437,18 @@ function extractJsonObject(raw: string): ExtractionResponse | null {
   }
 }
 
+function countWwcdIcons(tok: string, allowAsterisk = false): number {
+  const cleaned = String(tok || "")
+    .replace(/[\uFE0E\uFE0F\s]/g, "")
+    .trim();
+  if (!cleaned) return 0;
+  const iconPattern = allowAsterisk
+    ? /^[⭐🌟★☆✦✧✪✫✬✭✮✯🐰🐇🏆👑🍗🔥✓✔*]+$/u
+    : /^[⭐🌟★☆✦✧✪✫✬✭✮✯🐰🐇🏆👑🍗🔥✓✔]+$/u;
+  if (!iconPattern.test(cleaned)) return 0;
+  return Array.from(cleaned).length;
+}
+
 function cleanOcrNum(tok: string): number | null {
   const s = String(tok || "")
     .trim()
@@ -487,6 +499,7 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
 
     let rank = 0;
     let teamName = "";
+    let iconWwcd = 0;
     const nums: number[] = [];
 
     if (seg.includes("\t")) {
@@ -505,6 +518,13 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
         numStart -= 1;
       }
       if (trailing.length < 2 || trailing.length > 4) continue;
+      if (trailing.length === 3 && numStart > 2) {
+        const wwcdFromIcons = countWwcdIcons(cols[numStart - 1], true);
+        if (wwcdFromIcons > 0) {
+          iconWwcd = wwcdFromIcons;
+          numStart -= 1;
+        }
+      }
       teamName = cols.slice(1, numStart).join(" ").trim();
       nums.push(...trailing);
     } else {
@@ -523,11 +543,20 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
         numStart -= 1;
       }
       if (trailing.length < 2) continue;
+      if (trailing.length === 3) {
+        // Consume consecutive win-icon tokens right before [place, kills, total] (e.g. "⭐ ⭐")
+        while (numStart > 2) {
+          const wwcdFromIcons = countWwcdIcons(toks[numStart - 1], false);
+          if (wwcdFromIcons === 0) break;
+          iconWwcd += wwcdFromIcons;
+          numStart -= 1;
+        }
+      }
       teamName = toks.slice(1, numStart).join(" ").trim();
       nums.push(...trailing);
     }
 
-    let wwcd = 0;
+    let wwcd = iconWwcd;
     let place = 0;
     let kills = 0;
     let total = 0;
@@ -784,8 +813,12 @@ Extract every single row accurately from this tournament standings poster:
    - Many posters split standings into two side-by-side tables (e.g. Left: #1 to #9, Right: #10 to #18). Extract ALL rows in exact rank order (#1..#18 or #1..#20).
    - Map columns strictly by column header alignment:
      * Rank column: '#', '#1', 'RANK', 'NO' -> rank (integer).
-     * Team column: 'TEAMS', 'TEAM', 'TEAM NAME' -> exact team_name string (ignore small logo icon left of the name).
-     * WWCD column: 'WWCD', 'WIN', or icon header (frying pan, chicken, helmet, spider icon). VERY IMPORTANT: Blank/empty cells (or if no WWCD column exists) mean 0. Do NOT shift PLACE into WWCD when WWCD is blank!
+     * Team column: 'TEAMS', 'TEAM', 'TEAM NAME' -> exact team_name string (ignore small logo icon left of the name; keep exact text, and do not swallow win icons from the adjacent WWCD column).
+     * WWCD column: 'WWCD', 'WIN', 'CHICKEN', or ANY icon/mascot header (bunny/rabbit face 🐰/🐇 e.g. in BunnyKun Scrims, star ⭐, frying pan, chicken 🍗, helmet, spider, crown 👑, trophy 🏆). VERY IMPORTANT:
+       - Custom organizer posters often use a mascot icon (e.g. a rabbit/bunny head 🐰) as the WWCD column header and place repeated emojis/icons inside each winning team's cell instead of a number!
+       - COUNT the win icons in that row's WWCD cell to get the wwcd integer: e.g. ⭐ (or 🐰/🏆/👑/★) = 1, ⭐⭐ (or 🐰🐰) = 2, ⭐⭐⭐ = 3.
+       - Do NOT confuse country flags attached to a team name (e.g. 🇲🇲, 🇹🇼) with WWCD icons.
+       - Blank/empty cells (or if no WWCD column exists) mean 0. Do NOT shift PLACE into WWCD when WWCD is blank!
      * Placement column: 'PLACE.', 'PLACE', 'PP', 'PLACEMENT' -> placement_points.
      * Elims/Kills column: 'ELIMS.', 'ELIMS', 'KP', 'KILLS' -> kill_points.
      * Total column: 'TOTAL', 'TOT', 'PTS' -> total_points.
