@@ -873,10 +873,22 @@ Extract every single row accurately from this tournament standings poster:
     const reqStartedAt = Date.now();
     const TOTAL_BUDGET_MS = 38000;
 
+    let bestPartialParsed: ExtractionResponse | null = null;
+    let bestPartialProvider = "";
+
+    const rememberCandidate = (data: ExtractionResponse | null, provider: string) => {
+      if (!data || !Array.isArray(data.standings) || data.standings.length === 0) return;
+      if (!bestPartialParsed || data.standings.length > bestPartialParsed.standings.length) {
+        bestPartialParsed = data;
+        bestPartialProvider = provider;
+      }
+    };
+
     const tryCandidate = async (
       candidate: ModelCandidate,
       timeoutMs: number,
-      waveController: AbortController
+      waveController: AbortController,
+      providerTag: string
     ): Promise<ExtractionResponse> => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -947,8 +959,15 @@ Extract every single row accurately from this tournament standings poster:
           }
           const candidateParsed = JSON.parse(text) as ExtractionResponse;
           if (Array.isArray(candidateParsed?.standings) && candidateParsed.standings.length > 0) {
-            waveController.abort();
-            return candidateParsed;
+            rememberCandidate(candidateParsed, providerTag);
+            if (candidateParsed.standings.length >= 12) {
+              waveController.abort();
+              return candidateParsed;
+            }
+            lastError = `${candidate.name} returned partial rows (${candidateParsed.standings.length})`;
+            modelErrors.push(`${candidate.name}: partial_${candidateParsed.standings.length}`);
+            attemptCodes.push(`${candidate.name}:partial_${candidateParsed.standings.length}`);
+            throw new Error(lastError);
           }
           lastError = `${candidate.name} returned 0 standings`;
           modelErrors.push(`${candidate.name}: 0_standings`);
@@ -980,7 +999,8 @@ Extract every single row accurately from this tournament standings poster:
 
     const runWave = async (
       candidates: ModelCandidate[],
-      timeoutMs: number
+      timeoutMs: number,
+      providerTag = "gemini"
     ): Promise<ExtractionResponse | null> => {
       if (!apiKey || candidates.length === 0) return null;
       const now = Date.now();
@@ -988,7 +1008,7 @@ Extract every single row accurately from this tournament standings poster:
       const activeList = healthy.length > 0 ? healthy : candidates;
       const waveController = new AbortController();
       try {
-        return await Promise.any(activeList.map((c) => tryCandidate(c, timeoutMs, waveController)));
+        return await Promise.any(activeList.map((c) => tryCandidate(c, timeoutMs, waveController, providerTag)));
       } catch {
         return null;
       }
@@ -1056,16 +1076,16 @@ Extract every single row accurately from this tournament standings poster:
 
     let providerUsed = "gemini";
 
-    // Phase 1 (0-14s): Primary Gemini Wave 1 (highest accuracy on PUBG posters, ~3-11s when healthy)
+    // Phase 1 (0-9s): Primary Gemini Wave 1 (require >=12 rows before aborting fast backups like Groq)
     if (apiKey) {
       const hasBackups = backupProviders.length > 0 || Boolean(ocrSpaceKey) || Boolean(apiNinjasKey);
-      const wave1Timeout = hasBackups ? 14000 : 25000;
-      parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout);
+      const wave1Timeout = hasBackups ? 9000 : 25000;
+      parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout, "gemini");
       if (parsed) providerUsed = "gemini";
     }
 
-    // Phase 2 (14-24s): Run Gemini Wave 2 + Backup Vision LLMs (Groq/Mistral/OpenRouter) IN PARALLEL with OCR.Space.
-    // Vision LLMs always take priority over text-only OCR.Space so visual WWCD stickers (ribbons/stars/bunnies) are preserved!
+    // Phase 2: Run Gemini Wave 2 + Backup Vision LLMs (Groq/Mistral/OpenRouter) IN PARALLEL with OCR.Space.
+    // Pick the extraction with the most rows (preferring Vision LLMs over text-only OCR.Space!).
     if (!parsed) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4500) {
@@ -1079,7 +1099,7 @@ Extract every single row accurately from this tournament standings poster:
           : Promise.resolve(null);
 
         const wave2Promise = apiKey
-          ? runWave(WAVE_2_CANDIDATES, Math.min(9500, remainingMs)).catch(() => null)
+          ? runWave(WAVE_2_CANDIDATES, Math.min(9500, remainingMs), "gemini_w2").catch(() => null)
           : Promise.resolve(null);
 
         const fastBackupPromise = fastLlmProviders.length > 0
@@ -1103,15 +1123,18 @@ Extract every single row accurately from this tournament standings poster:
           ocrSpacePromise,
         ]);
 
-        if (wave2Res) {
-          parsed = wave2Res;
-          providerUsed = "gemini_w2";
-        } else if (fastBackupRes?.res) {
-          parsed = fastBackupRes.res;
-          providerUsed = fastBackupRes.name;
-        } else if (openRouterRes) {
-          parsed = openRouterRes;
-          providerUsed = "openrouter";
+        const visionCandidates: Array<{ data: ExtractionResponse; name: string }> = [];
+        if (wave2Res) visionCandidates.push({ data: wave2Res, name: "gemini_w2" });
+        if (fastBackupRes?.res) visionCandidates.push({ data: fastBackupRes.res, name: fastBackupRes.name });
+        if (openRouterRes) visionCandidates.push({ data: openRouterRes, name: "openrouter" });
+        if (bestPartialParsed) visionCandidates.push({ data: bestPartialParsed, name: bestPartialProvider || "gemini" });
+
+        visionCandidates.sort((a, b) => b.data.standings.length - a.data.standings.length);
+        const bestVision = visionCandidates[0] || null;
+
+        if (bestVision && (bestVision.data.standings.length >= 12 || !ocrSpaceRes || ocrSpaceRes.standings.length <= bestVision.data.standings.length)) {
+          parsed = bestVision.data;
+          providerUsed = bestVision.name;
         } else if (ocrSpaceRes) {
           parsed = ocrSpaceRes;
           providerUsed = "ocr_space";
@@ -1119,7 +1142,7 @@ Extract every single row accurately from this tournament standings poster:
       }
     }
 
-    // Phase 3 (fallback): API Ninjas OCR if Phases 1 & 2 all missed
+    // Phase 3 (fallback): API Ninjas OCR if Phases 1 & 2 missed (and restore best partial if API Ninjas also missed)
     if (!parsed && apiNinjasKey) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4000) {
@@ -1137,6 +1160,11 @@ Extract every single row accurately from this tournament standings poster:
           }
         }
       }
+    }
+
+    if (!parsed && bestPartialParsed) {
+      parsed = bestPartialParsed;
+      providerUsed = bestPartialProvider || "gemini";
     }
 
     if (!parsed) {
