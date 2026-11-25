@@ -95,6 +95,7 @@ import {
   matchesPeriodFilter,
   scoreAndRankTeams
 } from './utils/teamRanking';
+import { parseWhatsAppTeamImport } from './utils/waImport';
 
 const TAB_AURORA_THEMES = {
   home: { key: 'home', anchorX: 0.46, anchorY: 0.56, radius: 0.64, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.4 },
@@ -1019,8 +1020,8 @@ export default function App() {
   const handleAddPlaygroundTeam = () => {
     setPlaygroundSession(prev => {
       const currentCount = prev.matches[0]?.slots?.length || 16;
-      if (currentCount >= 24) {
-        showToast('Limit 24 team dah penuh.');
+      if (currentCount >= 25) {
+        showToast('Limit 25 slot dah penuh.');
         return prev;
       }
       const newSlotNo = currentCount + 1;
@@ -1089,63 +1090,14 @@ export default function App() {
   const handleParseAndImportTeams = () => {
     if (!importRawText.trim()) return;
 
-    const lines = importRawText.split(/\r?\n/);
-    const extracted = [];
-
-    const KEYCAP_MAP = {
-      '0️⃣': '0.', '1️⃣': '1.', '2️⃣': '2.', '3️⃣': '3.', '4️⃣': '4.',
-      '5️⃣': '5.', '6️⃣': '6.', '7️⃣': '7.', '8️⃣': '8.', '9️⃣': '9.', '🔟': '10.'
-    };
-    const PLACEHOLDER_RE = /^(?:open|empty|kosong|available|avail|tba|tbd|free|slot\s*kosong|reserved|booked|none|n\/a|-+|\.+)$/i;
-    const META_HEADER_RE = /^(?:tarikh|date|masa|waktu|time|map|maps|host|organizer|penganjur|room|room\s*id|id|pass|password|pw|link|fee|yuran|prize|hadiah|format|mode|tier|server|lobby|start|pukul|jam|rules|peraturan|group|kumpulan|match|round|day|week)\s*[:=-]/i;
-    const STANDALONE_HEADER_RE = /^(?:slot\s*(?:list|scrim|tour|tournament|open|kosong).*|slot|senarai\s*(?:pasukan|team|slot).*|daftar\s*(?:pasukan|team).*|pubg\s*mobile.*|scrim\s*(?:list|schedule|malam|petang|pagi|hub)?.*|jadual\s*.*|group\s*[a-z0-9]?|match\s*\d*)$/i;
-
-    for (const rawLine of lines) {
-      let line = rawLine.trim();
-      if (!line) continue;
-
-      // Normalize WhatsApp markdown (*bold*, _italic_, ~strike~, `code`) & keycap emojis
-      line = line.replace(/[*_~`]/g, '').trim();
-      for (const [emoji, num] of Object.entries(KEYCAP_MAP)) {
-        if (line.includes(emoji)) {
-          line = line.split(emoji).join(num);
-        }
-      }
-      // Strip leading decorative bullets/emojis (e.g. "➤ ", "🔥 ", "✅ ", "• ")
-      line = line.replace(/\uFE0F/g, '').replace(/^[\u2022\u2023\u25AA\u25AB\u25B8\u25BA\u27A4\u2705\u2611\p{Extended_Pictographic}\s]+/u, '').trim();
-      if (!line || /^[-=_|+/.\\\s]+$/.test(line) || /^https?:\/\//i.test(line)) continue;
-
-      // 1. Explicit numbered slot pattern: "Slot 4: Vampire", "1. Geek Fam", "01) SEM9", "#2 Yoodo", "S3 - BTR", "Team 1: HAQ"
-      const numberedMatch = line.match(
-        /^(?:(?:slot|sl|s|no|team|squad)\s*#?\d{1,2}|#?\d{1,2})\s*(?:[:.)\-–—|>]|\s+)\s*(.+)$/i
-      );
-
-      if (numberedMatch) {
-        line = numberedMatch[1].trim();
-      } else {
-        // 2. Unnumbered line: skip only genuine WhatsApp metadata/title headers (never skip "Team Secret" or "Squad Alpha")
-        if (META_HEADER_RE.test(line) || STANDALONE_HEADER_RE.test(line)) {
-          continue;
-        }
-        line = line.replace(/^[-*•–—]\s*/, '').trim();
-      }
-
-      // Remove trailing WhatsApp phone numbers (e.g. "- 0123456789" or "(+60123456789)")
-      line = line.replace(/\s*[-–—(|]?\s*(?:\+?6?0\d{8,11}|\+\d{9,15})\s*\)?$/, '').trim();
-      line = sanitizeTextInput(line, 60);
-
-      if (!line || PLACEHOLDER_RE.test(line)) continue;
-      if (line.length >= 2 || /^[A-Za-z0-9]$/.test(line)) {
-        extracted.push(line);
-      }
-    }
-
-    if (extracted.length === 0) {
+    const parsed = parseWhatsAppTeamImport(importRawText);
+    if (!parsed.teamCount) {
       showToast('Tak jumpa nama team dalam teks ni.');
       return;
     }
 
-    const limitedExtracted = extracted.slice(0, 24);
+    const { mode, slotMap, teamCount, minSlot, maxSlot } = parsed;
+    const isExplicitRooms = mode === 'EXPLICIT_SLOTS';
 
     if (activeTab === 'admin' || activeTab === 'scorer') {
       if (activeAdminScrim?.is_finished) {
@@ -1153,7 +1105,7 @@ export default function App() {
         return;
       }
 
-      const targetCount = Math.min(24, Math.max(matchSlots.length || 16, limitedExtracted.length));
+      const targetCount = Math.min(25, Math.max(matchSlots.length || 16, maxSlot || 16));
       const resolveSlotMeta = (teamName) => {
         const cleanVal = teamName.trim();
         const matched = teams.find(t => t.name.toLowerCase() === cleanVal.toLowerCase());
@@ -1168,60 +1120,67 @@ export default function App() {
 
       setMatchSlots(prev => {
         return Array.from({ length: targetCount }, (_, idx) => {
+          const slotNo = idx + 1;
           const existingSlot = prev[idx];
-          const importedName = limitedExtracted[idx];
-          const newTeamName = importedName || existingSlot?.teamName || '';
+          const importedName = slotMap.get(slotNo);
+          const newTeamName = isExplicitRooms
+            ? (importedName || '')
+            : (importedName || existingSlot?.teamName || '');
           const meta = importedName
             ? resolveSlotMeta(importedName)
+            : isExplicitRooms
+            ? { teamId: '', tag: '' }
             : { teamId: existingSlot?.teamId || '', tag: existingSlot?.tag || '' };
           return {
-            slot: idx + 1,
+            slot: slotNo,
             teamId: meta.teamId,
             teamName: newTeamName,
             tag: meta.tag,
-            placement: existingSlot?.placement ?? '',
-            kills: existingSlot?.kills ?? 0,
-            placePts: existingSlot?.placePts ?? 0,
-            totalPts: existingSlot?.totalPts ?? 0,
-            wwcd: existingSlot?.wwcd ?? false
+            placement: (!newTeamName && isExplicitRooms) ? '' : (existingSlot?.placement ?? ''),
+            kills: (!newTeamName && isExplicitRooms) ? 0 : (existingSlot?.kills ?? 0),
+            placePts: (!newTeamName && isExplicitRooms) ? 0 : (existingSlot?.placePts ?? 0),
+            totalPts: (!newTeamName && isExplicitRooms) ? 0 : (existingSlot?.totalPts ?? 0),
+            wwcd: (!newTeamName && isExplicitRooms) ? false : (existingSlot?.wwcd ?? false)
           };
         });
       });
 
-      // Sync imported team names across all matches in active session so Match 1..5 stay aligned
+      // Sync imported team names across all matches in active session by exact room slot number
       if (activeAdminScrim && Array.isArray(activeAdminScrim.matches)) {
         setScrims(prevScrims => prevScrims.map(scrim => {
           if (scrim.id !== activeAdminScrim.id) return scrim;
           const updatedMatches = (scrim.matches || []).map(m => {
             if (!Array.isArray(m.results) || m.results.length === 0) return m;
-            const updatedResults = Array.from({ length: Math.max(m.results.length, targetCount) }, (_, idx) => {
-              const existingRow = m.results[idx];
-              const importedName = limitedExtracted[idx];
-              if (existingRow) {
-                if (!importedName) return existingRow;
-                const meta = resolveSlotMeta(importedName);
-                return { ...existingRow, teamName: importedName, teamId: meta.teamId, tag: meta.tag };
-              }
-              const meta = importedName ? resolveSlotMeta(importedName) : { teamId: '', tag: '' };
-              return {
-                slot: idx + 1,
-                teamId: meta.teamId,
-                teamName: importedName || '',
-                tag: meta.tag,
-                placement: '',
-                kills: 0,
-                placePts: 0,
-                totalPts: 0,
-                wwcd: false
-              };
+            const bySlot = new Map();
+            m.results.forEach((r, idx) => {
+              const sNum = Number(r?.slot) || (idx + 1);
+              bySlot.set(sNum, r);
             });
+            const updatedResults = [];
+            for (let sNum = 1; sNum <= Math.max(targetCount, ...bySlot.keys()); sNum += 1) {
+              const existingRow = bySlot.get(sNum);
+              const importedName = slotMap.get(sNum);
+              if (importedName) {
+                const meta = resolveSlotMeta(importedName);
+                updatedResults.push({
+                  ...(existingRow || { placement: '', kills: 0, placePts: 0, totalPts: 0, wwcd: false }),
+                  slot: sNum,
+                  teamId: meta.teamId,
+                  teamName: importedName,
+                  tag: meta.tag
+                });
+              } else if (!isExplicitRooms && existingRow) {
+                updatedResults.push(existingRow);
+              }
+            }
             return { ...m, results: updatedResults };
           });
           return { ...scrim, matches: updatedMatches };
         }));
       }
 
-      showToast(`${limitedExtracted.length} pasukan berjaya diimport ke Quick Scorer!`);
+      const emptyPrefixNote = minSlot > 1 ? ` (Slot #${minSlot}–#${maxSlot}, Slot #1–#${minSlot - 1} kosong)` : '';
+      showToast(`${teamCount} pasukan diimport ke Quick Scorer!${emptyPrefixNote}`);
       setIsImportModalOpen(false);
       setImportRawText('');
       return;
@@ -1229,14 +1188,18 @@ export default function App() {
 
     // Fallback: Kemaskini playgroundSession
     setPlaygroundSession(prev => {
-      const targetCount = Math.min(24, Math.max(prev.matches[0]?.slots?.length || 16, limitedExtracted.length));
+      const targetCount = Math.min(25, Math.max(prev.matches[0]?.slots?.length || 16, maxSlot || 16));
 
       const updatedMatches = prev.matches.map((m) => {
         const slots = Array.from({ length: targetCount }, (_, idx) => {
+          const slotNo = idx + 1;
           const existingSlot = m.slots?.[idx];
-          const newTeamName = limitedExtracted[idx] || existingSlot?.teamName || `Slot ${idx + 1}`;
+          const importedName = slotMap.get(slotNo);
+          const newTeamName = isExplicitRooms
+            ? (importedName || '')
+            : (importedName || existingSlot?.teamName || `Slot ${slotNo}`);
           return {
-            slot: idx + 1,
+            slot: slotNo,
             teamName: newTeamName,
             placement: existingSlot?.placement ?? '',
             elims: existingSlot?.elims ?? 0,
@@ -1251,7 +1214,7 @@ export default function App() {
       return { ...prev, matches: updatedMatches, synced: false };
     });
 
-    showToast(`${limitedExtracted.length} team dah masuk ke semua 5 match.`);
+    showToast(`${teamCount} team dah masuk ke semua 5 match.`);
     setIsImportModalOpen(false);
     setImportRawText('');
   };
@@ -2357,17 +2320,29 @@ export default function App() {
       const saved = activeAdminScrim.matches[selectedMatchIdx];
       setInputMap(saved.map || PLAYGROUND_DEFAULT_MAPS[selectedMatchIdx % 5] || 'Erangel');
       if (saved.results && saved.results.length > 0) {
-        setMatchSlots(saved.results.map((r, i) => ({
-          slot: i + 1,
-          teamId: r.teamId || '',
-          teamName: r.teamName || '',
-          tag: r.tag || '',
-          placement: r.placement !== undefined && r.placement !== null && r.placement !== '' ? r.placement : '',
-          kills: Number(r.kills) || 0,
-          placePts: Number(r.placePts) || 0,
-          totalPts: Number(r.totalPts) || 0,
-          wwcd: Boolean(r.wwcd || Number(r.placement) === 1)
-        })));
+        const bySlot = new Map();
+        saved.results.forEach((r, i) => {
+          const sNum = Number(r?.slot) || (i + 1);
+          bySlot.set(sNum, r);
+        });
+        const slotCeiling = Math.min(25, Math.max(16, saved.results.length, ...bySlot.keys()));
+        setMatchSlots(
+          Array.from({ length: slotCeiling }, (_, i) => {
+            const slotNo = i + 1;
+            const r = bySlot.get(slotNo);
+            return {
+              slot: slotNo,
+              teamId: r?.teamId || '',
+              teamName: r?.teamName || '',
+              tag: r?.tag || '',
+              placement: r && r.placement !== undefined && r.placement !== null && r.placement !== '' ? r.placement : '',
+              kills: Number(r?.kills) || 0,
+              placePts: Number(r?.placePts) || 0,
+              totalPts: Number(r?.totalPts) || 0,
+              wwcd: Boolean(r?.wwcd || Number(r?.placement) === 1)
+            };
+          })
+        );
         return;
       }
     } else {
@@ -2599,12 +2574,12 @@ export default function App() {
     const nextMatchNo = currentMatches.length + 1;
     const defaultMap = PLAYGROUND_DEFAULT_MAPS[(nextMatchNo - 1) % 5] || 'Erangel';
 
-    // Roster carry-over: pre-populate team names and tags from existing matches or slots
+    // Roster carry-over: preserve exact room slot numbers (leaving empty observer slots empty)
     const carrySlots = (currentMatches[0]?.results?.length > 0)
       ? currentMatches[0].results.map((r, i) => ({
-          slot: i + 1,
-          teamId: r.teamId || `tm_${i + 1}`,
-          teamName: r.teamName || `Slot ${i + 1}`,
+          slot: Number(r.slot) || (i + 1),
+          teamId: r.teamId || '',
+          teamName: r.teamName || '',
           tag: r.tag || '',
           placement: '',
           kills: 0,
@@ -2612,17 +2587,19 @@ export default function App() {
           totalPts: 0,
           wwcd: 0
         }))
-      : matchSlots.map((s, i) => ({
-          slot: i + 1,
-          teamId: s.teamId || `tm_${i + 1}`,
-          teamName: s.teamName || `Slot ${i + 1}`,
-          tag: s.tag || '',
-          placement: '',
-          kills: 0,
-          placePts: 0,
-          totalPts: 0,
-          wwcd: 0
-        }));
+      : matchSlots
+          .filter(s => s.teamName && s.teamName.trim())
+          .map((s) => ({
+            slot: s.slot,
+            teamId: s.teamId || '',
+            teamName: s.teamName.trim(),
+            tag: s.tag || '',
+            placement: '',
+            kills: 0,
+            placePts: 0,
+            totalPts: 0,
+            wwcd: 0
+          }));
 
     const newMatch = {
       matchNo: nextMatchNo,
@@ -2717,8 +2694,8 @@ export default function App() {
       showToast('Sesi dah lock, markah tak boleh ubah.');
       return;
     }
-    if (matchSlots.length >= 24) {
-      showToast('Limit 24 team dah penuh.');
+    if (matchSlots.length >= 25) {
+      showToast('Limit 25 slot dah penuh.');
       return;
     }
 
@@ -2901,16 +2878,17 @@ export default function App() {
       return updated;
     });
 
-    // When teamName is changed, propagate teamName across other matches in activeAdminScrim so admin only enters once!
+    // When teamName is changed, propagate teamName across other matches in activeAdminScrim matching room slot
     if (field === 'teamName' && activeAdminScrim && activeAdminScrim.matches) {
+      const targetSlot = Number(matchSlots[index]?.slot) || (index + 1);
       setScrims(prevScrims => prevScrims.map(scrim => {
         if (scrim.id !== activeAdminScrim.id) return scrim;
         const updatedMatches = (scrim.matches || []).map(m => {
           if (!m.results) return m;
+          const matchIdx = m.results.findIndex((r, idx) => (r.slot != null ? Number(r.slot) === targetSlot : idx === index));
+          if (matchIdx === -1) return m;
           const updatedResults = [...m.results];
-          if (updatedResults[index]) {
-            updatedResults[index] = { ...updatedResults[index], teamName: value };
-          }
+          updatedResults[matchIdx] = { ...updatedResults[matchIdx], teamName: value };
           return { ...m, results: updatedResults };
         });
         return { ...scrim, matches: updatedMatches };
@@ -2966,26 +2944,33 @@ export default function App() {
       return;
     }
 
-    const compiledResults = matchSlots.map((s, idx) => {
-      const p = parseInt(s.placement, 10);
-      const validPlacement = !isNaN(p) && p > 0 ? p : idx + 1;
-      const placePoints = getPlacementPoints(validPlacement);
-      const kills = Number(s.kills) || 0;
-      const cleanName = s.teamName && s.teamName.trim() ? s.teamName.trim() : `Team ${s.slot}`;
-      const tag = s.tag || cleanName.slice(0, 4).toUpperCase();
-      const teamId = s.teamId || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase());
+    const compiledResults = matchSlots
+      .filter((s) => {
+        const hasName = Boolean(s.teamName && s.teamName.trim());
+        const hasScore = (s.placement !== '' && s.placement !== null && s.placement !== undefined) || Number(s.kills) > 0 || Boolean(s.wwcd);
+        return hasName || hasScore;
+      })
+      .map((s, idx) => {
+        const p = parseInt(s.placement, 10);
+        const validPlacement = !isNaN(p) && p > 0 ? p : idx + 1;
+        const placePoints = getPlacementPoints(validPlacement);
+        const kills = Number(s.kills) || 0;
+        const cleanName = s.teamName && s.teamName.trim() ? s.teamName.trim() : `Team ${s.slot}`;
+        const tag = s.tag || cleanName.slice(0, 4).toUpperCase();
+        const teamId = s.teamId || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase());
 
-      return {
-        teamId,
-        teamName: cleanName,
-        tag,
-        placement: validPlacement,
-        kills,
-        placePts: placePoints,
-        totalPts: placePoints + kills,
-        wwcd: validPlacement === 1 || Boolean(s.wwcd) ? 1 : 0
-      };
-    });
+        return {
+          slot: Number(s.slot) || (idx + 1),
+          teamId,
+          teamName: cleanName,
+          tag,
+          placement: validPlacement,
+          kills,
+          placePts: placePoints,
+          totalPts: placePoints + kills,
+          wwcd: validPlacement === 1 || Boolean(s.wwcd) ? 1 : 0
+        };
+      });
 
     // Register any new teams into teams directory & database so they feed into Team Performance Info
     const sessionTeamNames = [...new Set(compiledResults.map(r => r.teamName))];
@@ -3223,8 +3208,11 @@ export default function App() {
   // Admin Live Standings (Overall or Live Match Slots)
   const adminLiveStandings = useMemo(() => {
     if (!activeAdminScrim) return [];
+    const activeRows = matchSlots.filter(
+      (row) => (row.teamName && row.teamName.trim()) || row.placement || Number(row.kills) > 0
+    );
     if (adminPosterViewMode === 'match') {
-      return [...matchSlots].sort((a, b) => {
+      return [...activeRows].sort((a, b) => {
         if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
         if (b.placePts !== a.placePts) return b.placePts - a.placePts;
         if (b.kills !== a.kills) return b.kills - a.kills;
@@ -3244,7 +3232,7 @@ export default function App() {
     } else {
       const calculated = calculateLeaderboard(activeAdminScrim, 'overall');
       if (calculated.length > 0) return calculated;
-      return [...matchSlots].sort((a, b) => {
+      return [...activeRows].sort((a, b) => {
         if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
         if (b.placePts !== a.placePts) return b.placePts - a.placePts;
         if (b.kills !== a.kills) return b.kills - a.kills;
@@ -11250,14 +11238,14 @@ export default function App() {
                               <Minus className="w-3 h-3" />
                             </button>
                             <span className="font-mono font-black text-xs text-white px-1">
-                              {matchSlots.length} Teams
+                              {matchSlots.length} Slot
                             </span>
                             <button
                               type="button"
                               onClick={handleAddTeamSlot}
-                              disabled={activeAdminScrim?.is_finished || matchSlots.length >= 24}
+                              disabled={activeAdminScrim?.is_finished || matchSlots.length >= 25}
                               className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
-                              title="Tambah slot team"
+                              title="Tambah slot (maks 25)"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -14431,12 +14419,12 @@ export default function App() {
                   <span>Format Yang Boleh Masuk:</span>
                 </div>
                 <p className="text-zinc-300 leading-relaxed font-mono text-[10px]">
-                  1. Geek Fam<br/>
-                  2. SEM9 Esports<br/>
-                  3. Yoodo Alliance<br/>
-                  Slot 4: Vampire Esports...
+                  6. YANGON GALACTICOS<br/>
+                  7. DACS ROOKIE<br/>
+                  ...<br/>
+                  25. AUTOTOOSOON
                 </p>
-                <p className="text-[10px] text-zinc-400">Nombor, bullet &amp; &quot;Slot&quot; akan auto-clean untuk semua 5 match.</p>
+                <p className="text-[10px] text-zinc-400">Nombor slot (#1–#25) dikekalkan — slot observer #1–#5 yang tiada dalam senarai automatik dibiarkan kosong.</p>
               </div>
 
               <div>
