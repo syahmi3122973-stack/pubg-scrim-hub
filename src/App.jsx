@@ -8742,9 +8742,9 @@ export default function App() {
               {activeHeaderInfo === 'teams' && (
                 <div className="p-3.5 bg-[#141418] border border-white/[0.08] rounded-2xl text-xs text-zinc-300 flex items-start gap-2.5 origin-top animate-dropdown-reveal mx-1">
                   <div className="leading-relaxed flex-1 space-y-1">
-                    <p className="text-white font-semibold">Cara Pengiraan Ranking Adil (Team Matrix):</p>
+                    <p className="text-white font-semibold">Macam Mana Ranking Team Matrix Dikira?</p>
                     <p className="text-zinc-400">
-                      <strong className="text-[#D7FF00]">Power (Default)</strong> guna formula <em>Bayesian Rating</em> — menggabungkan purata mata/sesi dan tahap konsistensi supaya team yang spam banyak scrim lemah tidak automatik duduk atas, manakala nasib 1 match tidak terus rampas #1. Anda juga boleh tukar ke mod <strong>Purata</strong>, <strong>Total</strong>, atau tapis ikut <strong>Bulan</strong>.
+                      <strong className="text-[#D7FF00]">Power (Default)</strong> menilai <strong>purata mata + konsisten</strong>. Team yang spam banyak scrim mata rendah tak automatik duduk atas, dan team yang lucky 1 scrim pun tak terus rampas #1. Boleh juga tukar ke <strong>Purata</strong>, <strong>Total</strong>, atau tapis ikut <strong>Bulan</strong>.
                     </p>
                   </div>
                   <button
@@ -9139,9 +9139,9 @@ export default function App() {
                         : `Top ${Math.min(10, rankedTeamsWithStats.length)} team`}
                       {' · '}
                       {teamStatsRankMode === 'POWER'
-                        ? (activeConfidenceWeight > 0 ? 'Power Rating (Bayesian Adil)' : 'Keputusan Sesi')
+                        ? (activeConfidenceWeight > 0 ? 'Skor Konsisten · Purata + Prestasi' : 'Keputusan Rasmi Sesi')
                         : teamStatsRankMode === 'AVG'
-                        ? 'Purata Mata / Sesi'
+                        ? 'Purata Mata / Scrim'
                         : 'Jumlah Mata Terkumpul'}
                     </span>
                   </div>
@@ -9173,10 +9173,10 @@ export default function App() {
                             }
                             title={
                               m.key === 'POWER'
-                                ? 'Power Rating (Purata dilaras ikut jumlah sesi - anti spam scrim)'
+                                ? 'Skor Konsisten — purata mata + jumlah scrim (tak boleh spam scrim & bukan nasib 1 game)'
                                 : m.key === 'AVG'
-                                ? 'Purata Mata per Sesi'
-                                : 'Jumlah Mata Terkumpul Keseluruhan'
+                                ? 'Purata Mata setiap Scrim'
+                                : 'Jumlah Semua Mata Terkumpul'
                             }
                           >
                             {m.label}
