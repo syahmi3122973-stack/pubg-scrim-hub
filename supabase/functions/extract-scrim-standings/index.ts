@@ -163,22 +163,29 @@ function extractJwtEmail(req: Request): string {
   }
 }
 
+interface DriveArchiveResult {
+  ok: boolean;
+  fileId?: string;
+  downloadUrl?: string;
+  status: string;
+}
+
 async function archivePosterToGoogleDrive(params: {
   imageBase64: string;
   mimeType: string;
   uploaderName: string;
   fileName: string;
-}): Promise<{ fileId?: string; downloadUrl?: string } | null> {
+}): Promise<DriveArchiveResult> {
   const webhookUrl = Deno.env.get("GDRIVE_WEBHOOK_URL")?.trim();
   const webhookSecret = Deno.env.get("GDRIVE_WEBHOOK_SECRET")?.trim();
   if (!webhookUrl || !webhookSecret || !/^https:\/\//i.test(webhookUrl)) {
-    return null;
+    return { ok: false, status: "unconfigured" };
   }
   try {
     const res = await fetch(webhookUrl, {
       method: "POST",
       redirect: "follow",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(20000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         secret: webhookSecret,
@@ -189,9 +196,10 @@ async function archivePosterToGoogleDrive(params: {
         fileName: params.fileName,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, status: `http_${res.status}` };
     const json = await res.json().catch(() => null);
-    if (!json?.ok) return null;
+    if (!json) return { ok: false, status: "invalid_json" };
+    if (!json.ok) return { ok: false, status: `webhook_err_${String(json.error || "failed").slice(0, 40)}` };
     const fileId = typeof json.fileId === "string" ? json.fileId.trim() : "";
     const downloadUrl =
       typeof json.downloadUrl === "string" && /^https:\/\//i.test(json.downloadUrl)
@@ -199,10 +207,12 @@ async function archivePosterToGoogleDrive(params: {
         : fileId
           ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
           : "";
-    return downloadUrl ? { fileId, downloadUrl } : null;
-  } catch {
+    return downloadUrl
+      ? { ok: true, fileId, downloadUrl, status: "ok" }
+      : { ok: false, status: "missing_file_id" };
+  } catch (err) {
     // Archiving must never block or break OCR extraction
-    return null;
+    return { ok: false, status: `exception_${String((err as Error)?.name || "err")}` };
   }
 }
 
@@ -758,7 +768,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { imageBase64, mimeType, uploaderName, fileName } = payload;
+    const { imageBase64, mimeType, uploaderName, fileName, archiveOnly } = payload as ExtractionRequest & { archiveOnly?: boolean };
     if (!imageBase64 || !mimeType || typeof imageBase64 !== "string" || typeof mimeType !== "string") {
       return new Response(
         JSON.stringify({ error: "Both 'imageBase64' and 'mimeType' are required." }),
@@ -807,6 +817,24 @@ Deno.serve(async (req: Request) => {
       EdgeRuntime.waitUntil(archiveTask);
     } else {
       archiveTask.catch(() => {});
+    }
+
+    if (archiveOnly) {
+      const archiveOnlyRes = await Promise.race([
+        archiveTask,
+        new Promise<DriveArchiveResult>((resolve) =>
+          setTimeout(() => resolve({ ok: false, status: "timeout_12s" }), 12000)
+        ),
+      ]);
+      return new Response(
+        JSON.stringify({
+          success: archiveOnlyRes.ok,
+          poster_url: archiveOnlyRes.downloadUrl || null,
+          poster_file_name: archiveOnlyRes.downloadUrl ? resolvedFileName : null,
+          poster_status: archiveOnlyRes.status,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const prompt = `
@@ -1182,9 +1210,12 @@ Extract every single row accurately from this tournament standings poster:
     });
 
     const safeDate = parseFlexibleDate(parsed.scrim_date);
+    const remainingForArchive = Math.max(2500, Math.min(8000, TOTAL_BUDGET_MS - (Date.now() - reqStartedAt) - 1000));
     const archiveResult = await Promise.race([
       archiveTask,
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+      new Promise<DriveArchiveResult>((resolve) =>
+        setTimeout(() => resolve({ ok: false, status: "timeout_wait" }), remainingForArchive)
+      ),
     ]);
 
     return new Response(
@@ -1195,6 +1226,7 @@ Extract every single row accurately from this tournament standings poster:
         scrim_date: safeDate,
         poster_url: archiveResult?.downloadUrl || null,
         poster_file_name: archiveResult?.downloadUrl ? resolvedFileName : null,
+        poster_status: archiveResult?.status || "unknown",
         has_math_mismatch: hasGlobalMismatch,
         total_teams_extracted: validatedStandings.length,
         standings: validatedStandings,

@@ -718,9 +718,33 @@ export default function ScrimDataHubView({
       const effectiveHost = hostUsername.trim() || profileName || (currentUser?.email ? currentUser.email.split('@')[0] : `${scrimName.trim()} Organizer`);
 
       // Store Google Drive link returned by OCR archive (0 bytes used on Supabase Storage)
-      const ocrPosterUrl =
+      let ocrPosterUrl =
         typeof posterUrl === 'string' && /^https?:\/\//i.test(posterUrl) ? posterUrl : null;
-      const ocrPosterFileName = sanitizeTextInput(posterFileName || file?.name || '', 80);
+      let ocrPosterFileName = sanitizeTextInput(posterFileName || file?.name || '', 80);
+
+      // Fallback: if Drive archive lagged during initial scan, run quick archiveOnly retry right on Save
+      if (!ocrPosterUrl && file) {
+        try {
+          const optimizedForDrive = await optimizePosterForOcr(file);
+          if (optimizedForDrive?.dataUrl) {
+            const { data: arcData } = await supabase.functions.invoke('extract-scrim-standings', {
+              body: {
+                archiveOnly: true,
+                imageBase64: optimizedForDrive.dataUrl,
+                mimeType: optimizedForDrive.mimeType,
+                uploaderName: effectiveHost,
+                fileName: ocrPosterFileName || `poster_${Date.now()}.jpg`
+              }
+            });
+            if (arcData?.poster_url && /^https?:\/\//i.test(arcData.poster_url)) {
+              ocrPosterUrl = arcData.poster_url;
+              ocrPosterFileName = sanitizeTextInput(arcData.poster_file_name || ocrPosterFileName, 80);
+            }
+          }
+        } catch {
+          // Non-blocking: saving standings still proceeds
+        }
+      }
 
       // 1. Try inserting into normalized tables (`scrim_sessions` & `scrim_standings`)
       let committedToNewSchema = false;
