@@ -9599,19 +9599,26 @@ export default function App() {
 
               {/* 5. DATA SOURCE DISCLAIMER FOOTNOTE */}
               <div className="pt-1 pb-2 px-3 text-center space-y-1">
-                {teamStatsCategory === 'SSS' ? (
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {sssFilterSelection.season === 'ALL' && sssFilterSelection.stage === 'GRAND_FINAL' ? (
-                      <>
-                        Nota: Rekod <strong className="text-[#D7FF00] font-semibold">SSS</strong> dikumpul dari <strong className="text-zinc-200 font-semibold">Season 4 (S4-S12)</strong>.
-                      </>
-                    ) : (
-                      <>
-                        Nota: Statistik untuk <strong className="text-[#D7FF00] font-semibold">{activeSssSummaryLabel}</strong>.
-                      </>
-                    )}
-                  </p>
-                ) : (
+                {teamStatsCategory === 'SSS' ? (() => {
+                  const sssNums = sssSeasonOptions
+                    .map((opt) => Number(opt.value))
+                    .filter((n) => Number.isFinite(n) && n > 0);
+                  const minSss = sssNums.length > 0 ? Math.min(...sssNums) : 4;
+                  const maxSss = sssNums.length > 0 ? Math.max(...sssNums) : 13;
+                  return (
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      {sssFilterSelection.season === 'ALL' && sssFilterSelection.stage === 'GRAND_FINAL' ? (
+                        <>
+                          Nota: Rekod <strong className="text-[#D7FF00] font-semibold">SSS</strong> dikumpul dari <strong className="text-zinc-200 font-semibold">Season {minSss} hingga Season {maxSss} (S{minSss}-S{maxSss})</strong>.
+                        </>
+                      ) : (
+                        <>
+                          Nota: Statistik untuk <strong className="text-[#D7FF00] font-semibold">{activeSssSummaryLabel}</strong> · Rekod SSS S{minSss}-S{maxSss}.
+                        </>
+                      )}
+                    </p>
+                  );
+                })() : (
                   <>
                     <p className="text-[11px] text-zinc-400 leading-relaxed">
                       Nota: Data scrim mula dikumpul sejak <strong className="text-zinc-300 font-semibold">November 2026</strong>.
