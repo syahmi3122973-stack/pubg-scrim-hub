@@ -423,7 +423,22 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
     });
   }
 
-  // 4. Optional Self-Hosted FreeLLMAPI / OpenAI-Compatible Gateway
+  // 4. Cloudflare Workers AI (10,000 free Neurons/day, resets 00:00 UTC / 8:00 AM MYT)
+  const cfAccountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID")?.trim();
+  const cfApiToken = Deno.env.get("CLOUDFLARE_API_TOKEN")?.trim();
+  if (cfAccountId && cfApiToken && /^[a-f0-9]{20,64}$/i.test(cfAccountId)) {
+    providers.push({
+      name: "cloudflare",
+      endpoint: `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/v1/chat/completions`,
+      apiKey: cfApiToken,
+      models: [
+        "@cf/qwen/qwen3.8-27b",
+        "@cf/meta/llama-3.2-11b-vision-instruct",
+      ],
+    });
+  }
+
+  // 5. Optional Self-Hosted FreeLLMAPI / OpenAI-Compatible Gateway
   const customUrl = Deno.env.get("FREELLM_API_URL")?.trim();
   const customKey = Deno.env.get("FREELLM_API_KEY")?.trim();
   if (customUrl && /^https:\/\//i.test(customUrl)) {
@@ -1250,7 +1265,9 @@ Extract every single row accurately from this tournament standings poster:
     if (!parsed) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4500) {
-        const fastLlmProviders = backupProviders.filter((p) => p.name === "groq" || p.name === "mistral" || p.name === "freellmapi");
+        const fastLlmProviders = backupProviders.filter(
+          (p) => p.name === "groq" || p.name === "cloudflare" || p.name === "mistral" || p.name === "freellmapi"
+        );
         const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
 
         const ocrSpacePromise = ocrSpaceKey
