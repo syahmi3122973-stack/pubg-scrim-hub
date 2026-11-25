@@ -1551,7 +1551,7 @@ export default function App() {
   const [teamStatsCategory, setTeamStatsCategory] = useState('ALL');
   const [teamStatsEventType, setTeamStatsEventType] = useState('ALL');
   const [teamStatsPeriod, setTeamStatsPeriod] = useState('ALL');
-  const [teamStatsRankMode, setTeamStatsRankMode] = useState('POWER'); // 'POWER' | 'AVG' | 'TOTAL'
+  const [teamStatsRankMode, setTeamStatsRankMode] = useState('AVG'); // 'AVG' | 'TOTAL'
   const [sssFilterSelection, setSssFilterSelection] = useState(() => ({ ...SSS_DEFAULT_SELECTION }));
 
   const activeSssOptionId = `${sssFilterSelection.season}_${sssFilterSelection.stage}`;
@@ -4413,7 +4413,7 @@ export default function App() {
         scopedMatches: t.matchesCount,
         scopedEvents: t.scrimResults.length
       })),
-      'POWER'
+      'AVG'
     ).ranked;
   }, [teamsStats]);
 
@@ -4470,8 +4470,9 @@ export default function App() {
       .filter(Boolean);
     return scoreAndRankTeams(t3Rows, teamStatsRankMode).ranked.map((t, idx) => ({
       ...t,
-      tier3Power: t.powerRating,
       tier3Avg: t.avgPts,
+      tier3Events: t.scopedEvents,
+      tier3Qualified: t.isQualified,
       tier3Rank: idx + 1
     }));
   }, [validTeamList, teamStatsEventType, teamStatsPeriod, teamStatsRankMode]);
@@ -6919,8 +6920,8 @@ export default function App() {
           const desktopContenders = desktopContendersSource.slice(0, 4);
           const desktopTopPoints = Math.max(
             homeContendersCategory === 'TIER_3'
-              ? (desktopContenders[0]?.tier3Power ?? desktopContenders[0]?.tier3Points ?? 1)
-              : (desktopContenders[0]?.powerRating ?? desktopContenders[0]?.totalPoints ?? 1),
+              ? (desktopContenders[0]?.tier3Avg ?? desktopContenders[0]?.tier3Points ?? 1)
+              : (desktopContenders[0]?.avgPts ?? desktopContenders[0]?.totalPoints ?? 1),
             1
           );
           const recentSessionsDock = scrims.slice(0, 3);
@@ -7221,10 +7222,10 @@ export default function App() {
                                   </div>
                                   <div className="font-mono tabular-nums text-[11px] shrink-0 flex items-center gap-2">
                                     <span className="text-zinc-500 hidden sm:inline">
-                                      {team.avgPts ? `${team.avgPts.toFixed(1)}/S` : `${team.totalWWCD || 0}W`}
+                                      {team.totalPoints || 0}P · {team.scopedEvents || team.scrimResults?.length || 1}S
                                     </span>
                                     <span className={idx === 0 ? 'text-[#D7FF00] font-bold' : 'text-zinc-200 font-semibold'}>
-                                      {team.powerRating !== undefined ? `${team.powerRating.toFixed(1)} PWR` : `${team.totalPoints || 0} PTS`}
+                                      {team.avgPts !== undefined ? `${team.avgPts.toFixed(1)} AVG` : `${team.totalPoints || 0} PTS`}
                                     </span>
                                   </div>
                                 </button>
@@ -7950,13 +7951,13 @@ export default function App() {
                       <div className="divide-y divide-white/[0.06] flex-1">
                         {desktopContenders.map((team, idx) => {
                           const pts = homeContendersCategory === 'TIER_3' ? team.tier3Points : team.totalPoints;
-                          const pwr = homeContendersCategory === 'TIER_3'
-                            ? (team.tier3Power ?? team.tier3Points)
-                            : (team.powerRating ?? team.totalPoints);
+                          const avgScore = homeContendersCategory === 'TIER_3'
+                            ? (team.tier3Avg ?? team.tier3Points)
+                            : (team.avgPts ?? team.totalPoints);
                           const kills = homeContendersCategory === 'TIER_3' ? team.tier3Kills : team.totalKills;
                           const wwcd = homeContendersCategory === 'TIER_3' ? team.tier3WWCD : team.totalWWCD;
                           const tier3Info = homeContendersCategory === 'ALL' ? tier3RankByTeam.get(team.name) : null;
-                          const pct = Math.max(12, Math.round((pwr / desktopTopPoints) * 100));
+                          const pct = Math.max(12, Math.round((avgScore / desktopTopPoints) * 100));
                           return (
                             <button
                               key={`${homeContendersCategory}_${team.name}`}
@@ -8016,7 +8017,7 @@ export default function App() {
                                     <span className="text-zinc-500 hidden sm:inline">{kills}E · {wwcd}W</span>
                                     <span className="text-zinc-400">{pts}P</span>
                                     <span className={`${homeContendersCategory === 'TIER_3' ? 'text-amber-300' : 'text-[#D7FF00]'} font-bold`}>
-                                      {Number(pwr).toFixed(1)} PWR
+                                      {Number(avgScore).toFixed(1)} AVG
                                     </span>
                                   </div>
                                 </div>
@@ -8190,7 +8191,7 @@ export default function App() {
 
           const {
             ranked: rankedUnindexed,
-            confidenceWeight: activeConfidenceWeight
+            minQualifyingEvents: activeMinScrims
           } = scoreAndRankTeams(scopedRowsRaw, teamStatsRankMode);
 
           const allRankedTeamsWithStats = rankedUnindexed.map((t, idx) => ({
@@ -8742,9 +8743,9 @@ export default function App() {
               {activeHeaderInfo === 'teams' && (
                 <div className="p-3.5 bg-[#141418] border border-white/[0.08] rounded-2xl text-xs text-zinc-300 flex items-start gap-2.5 origin-top animate-dropdown-reveal mx-1">
                   <div className="leading-relaxed flex-1 space-y-1">
-                    <p className="text-white font-semibold">Macam Mana Ranking Team Matrix Dikira?</p>
+                    <p className="text-white font-semibold">Cara Ranking Team Matrix Dikira</p>
                     <p className="text-zinc-400">
-                      <strong className="text-[#D7FF00]">Power (Default)</strong> menilai <strong>purata mata + konsisten</strong>. Team yang spam banyak scrim mata rendah tak automatik duduk atas, dan team yang lucky 1 scrim pun tak terus rampas #1. Boleh juga tukar ke <strong>Purata</strong>, <strong>Total</strong>, atau tapis ikut <strong>Bulan</strong>.
+                      <strong className="text-[#D7FF00]">Purata (Default)</strong> kira <strong>Total Mata ÷ Bilangan Scrim</strong>. Team perlu main <strong>minimum 3 scrim</strong> untuk layak masuk Top Ranking — jadi team yang spam 20 scrim lemah takkan potong team power, dan team yang baru menang 1 scrim pun belum boleh rampas #1. Anda boleh tukar ke mod <strong>Total</strong> atau tapis ikut <strong>Bulan</strong>.
                     </p>
                   </div>
                   <button
@@ -9098,12 +9099,10 @@ export default function App() {
                           <div className="text-sm font-bold text-white leading-none">
                             {teamStatsRankMode === 'TOTAL'
                               ? t3Team.tier3Points
-                              : teamStatsRankMode === 'AVG'
-                              ? (t3Team.tier3Avg || 0).toFixed(1)
-                              : (t3Team.tier3Power || 0).toFixed(1)}
+                              : (t3Team.tier3Avg || 0).toFixed(1)}
                           </div>
                           <div className="text-[9px] text-zinc-500 font-medium mt-0.5">
-                            {teamStatsRankMode === 'TOTAL' ? 'T3 PTS' : teamStatsRankMode === 'AVG' ? 'T3 AVG' : 'T3 PWR'}
+                            {teamStatsRankMode === 'TOTAL' ? 'T3 PTS' : 'T3 AVG'}
                           </div>
                         </div>
                       </button>
@@ -9138,11 +9137,11 @@ export default function App() {
                         ? `Semua ${rankedTeamsWithStats.length} team`
                         : `Top ${Math.min(10, rankedTeamsWithStats.length)} team`}
                       {' · '}
-                      {teamStatsRankMode === 'POWER'
-                        ? (activeConfidenceWeight > 0 ? 'Skor Konsisten · Purata + Prestasi' : 'Keputusan Rasmi Sesi')
-                        : teamStatsRankMode === 'AVG'
-                        ? 'Purata Mata / Scrim'
-                        : 'Jumlah Mata Terkumpul'}
+                      {teamStatsRankMode === 'TOTAL'
+                        ? 'Jumlah Mata Terkumpul'
+                        : activeMinScrims >= 3
+                        ? 'Purata / Scrim (Min. 3 Scrim)'
+                        : 'Purata Mata / Scrim'}
                     </span>
                   </div>
 
@@ -9154,7 +9153,6 @@ export default function App() {
                       className="inline-flex items-center p-0.5 rounded-lg border border-white/[0.08] bg-[#141418] text-[11px] font-medium"
                     >
                       {[
-                        { key: 'POWER', label: 'Power' },
                         { key: 'AVG', label: 'Purata' },
                         { key: 'TOTAL', label: 'Total' }
                       ].map((m) => {
@@ -9172,10 +9170,8 @@ export default function App() {
                                 : 'text-zinc-400 hover:text-white')
                             }
                             title={
-                              m.key === 'POWER'
-                                ? 'Skor Konsisten — purata mata + jumlah scrim (tak boleh spam scrim & bukan nasib 1 game)'
-                                : m.key === 'AVG'
-                                ? 'Purata Mata setiap Scrim'
+                              m.key === 'AVG'
+                                ? 'Purata Mata setiap Scrim (Syarat layak Top Ranking: Min. 3 Scrim)'
                                 : 'Jumlah Semua Mata Terkumpul'
                             }
                           >
@@ -9404,12 +9400,10 @@ export default function App() {
                                     <span className={`leading-none text-white ${isFirst ? 'text-base sm:text-2xl' : 'text-sm sm:text-xl'}`}>
                                       {teamStatsRankMode === 'TOTAL'
                                         ? team.scopedPoints
-                                        : teamStatsRankMode === 'AVG'
-                                        ? (team.avgPts || 0).toFixed(1)
-                                        : (team.powerRating || 0).toFixed(1)}
+                                        : (team.avgPts || 0).toFixed(1)}
                                     </span>
                                     <span className={`text-[9px] sm:text-[11px] font-semibold ${ptsColorClass}`}>
-                                      {teamStatsRankMode === 'TOTAL' ? 'PTS' : teamStatsRankMode === 'AVG' ? 'AVG' : 'PWR'}
+                                      {teamStatsRankMode === 'TOTAL' ? 'PTS' : 'AVG'}
                                     </span>
                                   </div>
 
@@ -9506,6 +9500,12 @@ export default function App() {
                                         {team.name}
                                       </span>
 
+                                      {teamStatsRankMode === 'AVG' && activeMinScrims >= 3 && !team.isQualified && (
+                                        <span className="inline-flex px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] font-mono tabular-nums text-[9px] text-zinc-400 shrink-0">
+                                          {team.scopedEvents}/3 Scrim
+                                        </span>
+                                      )}
+
                                       {teamStatsCategory === 'ALL' && tier3RankByTeam.has(team.name) && (
                                         <span className="hidden sm:inline-flex font-mono tabular-nums font-semibold text-[10px] text-amber-300/90 shrink-0">
                                           T3 #{tier3RankByTeam.get(team.name).tier3Rank}
@@ -9526,7 +9526,7 @@ export default function App() {
                                         </span>
                                       )}
                                       <span className="font-mono tabular-nums text-[10px] text-zinc-500 leading-none">
-                                        · {(team.avgPts || 0).toFixed(1)}/S · {team.scopedPoints}P · {team.scopedWWCD}W · {team.scopedEvents}S
+                                        · {team.scopedPoints}P ÷ {team.scopedEvents}S · {team.scopedWWCD}W
                                       </span>
                                     </div>
                                   </div>
@@ -9535,7 +9535,7 @@ export default function App() {
                                 {/* Right: Desktop Mini Logo + Stats + Points + Subtle Eye Affordance */}
                                 <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
                                   <span className="hidden sm:inline font-mono tabular-nums text-[11px] text-zinc-500">
-                                    {(team.avgPts || 0).toFixed(1)}/S · {team.scopedPoints} PTS · {team.scopedWWCD}W · {team.scopedEvents} Sesi
+                                    {team.scopedPoints} PTS ÷ {team.scopedEvents} Scrim · {team.scopedWWCD}W
                                   </span>
 
                                   {team.logo_url && (
@@ -9550,12 +9550,10 @@ export default function App() {
                                     <span className="text-sm sm:text-base text-white">
                                       {teamStatsRankMode === 'TOTAL'
                                         ? team.scopedPoints
-                                        : teamStatsRankMode === 'AVG'
-                                        ? (team.avgPts || 0).toFixed(1)
-                                        : (team.powerRating || 0).toFixed(1)}
+                                        : (team.avgPts || 0).toFixed(1)}
                                     </span>
                                     <span className="text-[9px] text-zinc-500 font-semibold">
-                                      {teamStatsRankMode === 'TOTAL' ? 'PTS' : teamStatsRankMode === 'AVG' ? 'AVG' : 'PWR'}
+                                      {teamStatsRankMode === 'TOTAL' ? 'PTS' : 'AVG'}
                                     </span>
                                   </div>
 

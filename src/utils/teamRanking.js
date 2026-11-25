@@ -1,7 +1,8 @@
 /**
- * Fair esports ranking & time-window filtering helpers for Team Matrix.
- * Uses Bayesian confidence shrinkage (Power Rating) so teams cannot exploit
- * cumulative points by spamming low-tier scrims, nor steal #1 off 1 lucky match.
+ * Fair, transparent esports ranking & time-window filtering for Team Matrix.
+ * Default ranking uses Average Points per Scrim (Total / Scrims) with a
+ * minimum 3-scrim qualification rule when the pool has >= 3 active teams
+ * holding 3+ sessions (prevents scrim-spamming AND 1-match luck exploits).
  */
 
 const MONTH_SHORT_MY = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
@@ -66,13 +67,12 @@ export function matchesPeriodFilter(dateStr, periodKey = 'ALL', nowMs = Date.now
 }
 
 /**
- * Computes Bayesian Power Rating + Avg/Session + Cumulative Total and returns sorted rows.
- * Formula: Power = (v * R + m * C) / (v + m)
- *   R = avgPts/session, v = events played, C = cohort mean avgPts, m = confidence prior.
+ * Ranks teams either by Average Points/Scrim (default 'AVG', requiring Min 3 Scrims
+ * when at least 3 teams qualify) or by Cumulative Total Points ('TOTAL').
  */
-export function scoreAndRankTeams(teamRows = [], rankMode = 'POWER') {
+export function scoreAndRankTeams(teamRows = [], rankMode = 'AVG') {
   if (!Array.isArray(teamRows) || teamRows.length === 0) {
-    return { ranked: [], baselineAvg: 0, confidenceWeight: 0, maxEvents: 0 };
+    return { ranked: [], minQualifyingEvents: 1 };
   }
 
   const enriched = teamRows.map((row) => {
@@ -95,31 +95,16 @@ export function scoreAndRankTeams(teamRows = [], rankMode = 'POWER') {
     };
   });
 
-  const eventCounts = enriched.map((r) => r.scopedEvents).sort((a, b) => a - b);
-  const sortedAvgs = enriched.map((r) => r.avgPts).sort((a, b) => a - b);
-  const maxEvents = eventCounts[eventCounts.length - 1] || 1;
-  const medianEvents = eventCounts[Math.floor(eventCounts.length / 2)] || 1;
-  const p35Avg = sortedAvgs[Math.floor(sortedAvgs.length * 0.35)] ?? sortedAvgs[0];
-  const meanAvg = enriched.reduce((sum, r) => sum + r.avgPts, 0) / enriched.length;
-  // Conservative baseline prior prevents small high-scoring subsets from letting 1-match flukes beat proven squads
-  const baselineAvg = Math.min(meanAvg, p35Avg > 0 ? p35Avg : meanAvg) * 0.9;
+  const qualifiedCount = enriched.filter((r) => r.scopedEvents >= 3).length;
+  // Require minimum 3 scrims for Top Ranking when >= 3 teams meet the threshold; otherwise keep 1 (e.g. single Final).
+  const minQualifyingEvents = rankMode === 'AVG' && qualifiedCount >= 3 ? 3 : 1;
 
-  // Single-event finals/stages keep exact placement order (m = 0); multi-scrim pools apply m up to 5.
-  const confidenceWeight = maxEvents <= 2 ? 0 : Math.min(5, Math.max(3, Math.round(medianEvents)));
+  const withQualification = enriched.map((r) => ({
+    ...r,
+    isQualified: r.scopedEvents >= minQualifyingEvents
+  }));
 
-  const withPower = enriched.map((r) => {
-    const powerRating =
-      confidenceWeight === 0
-        ? r.avgPts
-        : (r.scopedEvents * r.avgPts + confidenceWeight * baselineAvg) /
-          (r.scopedEvents + confidenceWeight);
-    return {
-      ...r,
-      powerRating
-    };
-  });
-
-  const ranked = [...withPower].sort((a, b) => {
+  const ranked = [...withQualification].sort((a, b) => {
     if (rankMode === 'TOTAL') {
       return (
         b.scopedPoints - a.scopedPoints ||
@@ -127,16 +112,11 @@ export function scoreAndRankTeams(teamRows = [], rankMode = 'POWER') {
         b.scopedKills - a.scopedKills
       );
     }
-    if (rankMode === 'AVG') {
-      return (
-        b.avgPts - a.avgPts ||
-        b.scopedEvents - a.scopedEvents ||
-        b.scopedWWCD - a.scopedWWCD ||
-        b.scopedKills - a.scopedKills
-      );
+    if (a.isQualified !== b.isQualified) {
+      return a.isQualified ? -1 : 1;
     }
     return (
-      b.powerRating - a.powerRating ||
+      b.avgPts - a.avgPts ||
       b.scopedWWCD - a.scopedWWCD ||
       b.scopedKills - a.scopedKills ||
       b.scopedPoints - a.scopedPoints
@@ -145,8 +125,6 @@ export function scoreAndRankTeams(teamRows = [], rankMode = 'POWER') {
 
   return {
     ranked,
-    baselineAvg,
-    confidenceWeight,
-    maxEvents
+    minQualifyingEvents
   };
 }
