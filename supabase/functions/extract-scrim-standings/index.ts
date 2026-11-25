@@ -378,7 +378,7 @@ interface OpenAiCompatProvider {
 function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
   const providers: OpenAiCompatProvider[] = [];
 
-  // 1. Groq Vision (Free tier, ~1-3s inference)
+  // 1. Groq Vision (Free tier, ~2.8s inference via Qwen 3.8 Vision)
   const groqKey = Deno.env.get("GROQ_API_KEY")?.trim();
   if (groqKey) {
     providers.push({
@@ -386,8 +386,7 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
       endpoint: "https://api.groq.com/openai/v1/chat/completions",
       apiKey: groqKey,
       models: [
-        "meta-llama/llama-4-scout-17b-16e-instruct",
-        "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "qwen/qwen3.8-27b",
       ],
     });
   }
