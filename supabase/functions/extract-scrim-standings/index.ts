@@ -432,8 +432,7 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
       endpoint: `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/v1/chat/completions`,
       apiKey: cfApiToken,
       models: [
-        "@cf/qwen/qwen3.8-27b",
-        "@cf/meta/llama-3.2-11b-vision-instruct",
+        "@cf/meta/llama-4-scout-17b-16e-instruct",
       ],
     });
   }
@@ -461,15 +460,27 @@ function normalizeCompactExtraction(obj: any): ExtractionResponse | null {
   if (Array.isArray(obj.standings)) return obj as ExtractionResponse;
   if (Array.isArray(obj.r)) {
     const standings: RawStandingItem[] = obj.r
-      .filter((row: unknown) => Array.isArray(row) && row.length >= 6)
-      .map((row: unknown[], idx: number) => ({
-        rank: Number(row[0]) || idx + 1,
-        team_name: String(row[1] ?? "").trim(),
-        wwcd: Number(row[2]) || 0,
-        placement_points: Number(row[3]) || 0,
-        kill_points: Number(row[4]) || 0,
-        total_points: Number(row[5]) || 0,
-      }));
+      .filter((row: unknown) => Array.isArray(row) && row.length >= 5)
+      .map((row: unknown[], idx: number) => {
+        if (row.length === 5) {
+          return {
+            rank: Number(row[0]) || idx + 1,
+            team_name: String(row[1] ?? "").trim(),
+            wwcd: 0,
+            placement_points: Number(row[2]) || 0,
+            kill_points: Number(row[3]) || 0,
+            total_points: Number(row[4]) || 0,
+          };
+        }
+        return {
+          rank: Number(row[0]) || idx + 1,
+          team_name: String(row[1] ?? "").trim(),
+          wwcd: Number(row[2]) || 0,
+          placement_points: Number(row[3]) || 0,
+          kill_points: Number(row[4]) || 0,
+          total_points: Number(row[5]) || 0,
+        };
+      });
     return {
       scrim_name: String(obj.n || obj.scrim_name || "").trim(),
       scrim_date: String(obj.d || obj.scrim_date || "").trim(),
@@ -1174,9 +1185,10 @@ Extract every single row accurately from this tournament standings poster:
       externalSignal?: AbortSignal
     ): Promise<ExtractionResponse | null> => {
       const isGroq = provider.name === "groq";
-      // Groq free tier enforces 1000 OTPM on qwen3.8; single-line compact JSON with 550 max_tokens allows back-to-back scans per minute
-      const jsonInstruction = isGroq
-        ? `${prompt}\n\nReturn SINGLE-LINE minified JSON with NO newlines or extra spaces: {"n":scrim_name,"d":"YYYY-MM-DD","r":[[rank,team_name,wwcd,placement_points,kill_points,total_points],...]}`
+      const useCompactJson = isGroq || provider.name === "cloudflare";
+      // Single-line compact JSON fits Groq 1000 OTPM (550 max) AND keeps Cloudflare llama-4-scout under ~10-13s
+      const jsonInstruction = useCompactJson
+        ? `${prompt}\n\nReturn SINGLE-LINE minified JSON matching {"n":scrim_name,"d":"YYYY-MM-DD","r":[[rank,team_name,wwcd,placement_points,kill_points,total_points],...]}. STRICT: Always output 6 values per row (use 0 if wwcd cell is blank).`
         : `${prompt}\n\nReturn ONLY raw valid JSON matching {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. No markdown fences or extra commentary.`;
       const dataUri = `data:${normalizedMime};base64,${sanitizedBase64}`;
 
@@ -1201,8 +1213,8 @@ Extract every single row accurately from this tournament standings poster:
             body: JSON.stringify({
               model: modelName,
               temperature: 0.1,
-              max_tokens: isGroq ? 550 : 4096,
-              ...(isGroq ? { response_format: { type: "json_object" } } : {}),
+              max_tokens: isGroq ? 550 : useCompactJson ? 900 : 4096,
+              ...(useCompactJson ? { response_format: { type: "json_object" } } : {}),
               messages: [
                 {
                   role: "user",
@@ -1286,30 +1298,30 @@ Extract every single row accurately from this tournament standings poster:
           ? runWave(WAVE_2_CANDIDATES, Math.min(9500, remainingMs), "gemini_w2").catch(() => null)
           : Promise.resolve(null);
 
-        const fastBackupPromise = fastLlmProviders.length > 0
-          ? (async () => {
-              for (const prov of fastLlmProviders) {
-                const res = await callOpenAiCompatBackup(prov, Math.min(9000, remainingMs));
-                if (res) return { res, name: prov.name };
-              }
-              return null;
-            })()
-          : Promise.resolve(null);
+        const fastBackupResultsPromise = Promise.all(
+          fastLlmProviders.map(async (prov) => {
+            const perProvTimeout = prov.name === "cloudflare" ? Math.min(16000, remainingMs) : Math.min(10000, remainingMs);
+            const res = await callOpenAiCompatBackup(prov, perProvTimeout).catch(() => null);
+            return res ? { res, name: prov.name } : null;
+          })
+        );
 
         const openRouterPromise = openRouterProv
-          ? callOpenAiCompatBackup(openRouterProv, Math.min(9500, remainingMs)).catch(() => null)
+          ? callOpenAiCompatBackup(openRouterProv, Math.min(10000, remainingMs)).catch(() => null)
           : Promise.resolve(null);
 
-        const [wave2Res, fastBackupRes, openRouterRes, ocrSpaceRes, apiNinjasRes] = await Promise.all([
+        const [wave2Res, fastBackupResults, openRouterRes, ocrSpaceRes, apiNinjasRes] = await Promise.all([
           wave2Promise,
-          fastBackupPromise,
+          fastBackupResultsPromise,
           openRouterPromise,
           ocrSpacePromise,
           apiNinjasPromise,
         ]);
 
         if (wave2Res) rememberCandidate(wave2Res, "gemini_w2");
-        if (fastBackupRes?.res) rememberCandidate(fastBackupRes.res, fastBackupRes.name);
+        for (const fb of fastBackupResults) {
+          if (fb?.res) rememberCandidate(fb.res, fb.name);
+        }
         if (openRouterRes) rememberCandidate(openRouterRes, "openrouter");
 
         const mergedTextRes = mergeOcrStandings(ocrSpaceRes, apiNinjasRes);
