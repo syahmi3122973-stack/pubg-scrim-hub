@@ -172,10 +172,10 @@ function readPosterFileAsBase64(selectedFile) {
   });
 }
 
-// Downscale & normalize uploaded posters client-side so Gemini vision extraction stays fast while keeping tall/small text legible
+// Downscale only oversized posters while preserving crisp text, digits, and tiny WWCD icons on first scan
 function optimizePosterForOcr(selectedFile) {
   return new Promise((resolve) => {
-    const MAX_DIM = 1500;
+    const MAX_DIM = 2048;
     const PASSTHROUGH_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const inferMimeFromDataUrl = (dataUrl) => {
       const m = String(dataUrl || '').match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/i);
@@ -190,7 +190,7 @@ function optimizePosterForOcr(selectedFile) {
         const maxSide = Math.max(w, h);
         const needsCanvas =
           maxSide > MAX_DIM ||
-          selectedFile.size > 650 * 1024 ||
+          selectedFile.size > 1600 * 1024 ||
           !PASSTHROUGH_MIMES.has(selectedFile.type);
 
         if (!needsCanvas) {
@@ -211,7 +211,7 @@ function optimizePosterForOcr(selectedFile) {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('2D context unavailable');
         ctx.drawImage(img, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.83);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         URL.revokeObjectURL(tempUrl);
         resolve({ dataUrl, mimeType: 'image/jpeg' });
       } catch {

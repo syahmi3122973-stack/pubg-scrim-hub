@@ -354,10 +354,11 @@ interface ModelCandidate {
 const WAVE_1_CANDIDATES: ModelCandidate[] = [
   { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3.8-flash" },
-  { name: "gemma-4-31b-it" },
 ];
 
 const WAVE_2_CANDIDATES: ModelCandidate[] = [
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "LOW" } },
+  { name: "gemma-4-31b-it" },
   { name: "gemma-3-27b-it" },
   { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
@@ -400,6 +401,7 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
       apiKey: openRouterKey,
       models: [
         "google/gemma-4-31b-it:free",
+        "particle-ai/particle-1:free",
         "google/gemma-4-26b-a4b-it:free",
         "inclusionai/ling-3.2-flash:free",
       ],
@@ -439,19 +441,42 @@ function getConfiguredBackupProviders(): OpenAiCompatProvider[] {
   return providers;
 }
 
+function normalizeCompactExtraction(obj: any): ExtractionResponse | null {
+  if (!obj || typeof obj !== "object") return null;
+  if (Array.isArray(obj.standings)) return obj as ExtractionResponse;
+  if (Array.isArray(obj.r)) {
+    const standings: RawStandingItem[] = obj.r
+      .filter((row: unknown) => Array.isArray(row) && row.length >= 6)
+      .map((row: unknown[], idx: number) => ({
+        rank: Number(row[0]) || idx + 1,
+        team_name: String(row[1] ?? "").trim(),
+        wwcd: Number(row[2]) || 0,
+        placement_points: Number(row[3]) || 0,
+        kill_points: Number(row[4]) || 0,
+        total_points: Number(row[5]) || 0,
+      }));
+    return {
+      scrim_name: String(obj.n || obj.scrim_name || "").trim(),
+      scrim_date: String(obj.d || obj.scrim_date || "").trim(),
+      standings,
+    };
+  }
+  return null;
+}
+
 function extractJsonObject(raw: string): ExtractionResponse | null {
   const cleaned = String(raw || "")
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
   try {
-    return JSON.parse(cleaned) as ExtractionResponse;
+    return normalizeCompactExtraction(JSON.parse(cleaned));
   } catch {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start !== -1 && end > start) {
       try {
-        return JSON.parse(cleaned.slice(start, end + 1)) as ExtractionResponse;
+        return normalizeCompactExtraction(JSON.parse(cleaned.slice(start, end + 1)));
       } catch {
         return null;
       }
@@ -858,7 +883,7 @@ Extract every single row accurately from this tournament standings poster:
      * WWCD column: 'WWCD', 'WIN', 'CHICKEN', or ANY icon/mascot header (bunny 🐰/🐇, ribbon/bow 🎀, star ⭐, pan, chicken 🍗, helmet, spider, crown 👑, trophy 🏆). VERY IMPORTANT:
        - Organizers use ANY small decorative sticker, graphic, badge, or emoji inside a team's WWCD cell to mark wins — e.g. pink ribbons/bows 🎀 (Stella Scrims), stars ⭐, bunnies 🐰, hearts 💖, flowers 🌸, crowns 👑, trophies 🏆, chickens 🍗, bullets/icons, or digits.
        - Scan EVERY row's WWCD cell carefully (including dark red/maroon or shaded top-3 rows where small pink/pastel stickers like ribbons 🎀 can blend in).
-       - If ANY sticker/icon/badge is inside that cell, COUNT how many icons appear (1 icon => wwcd = 1, 2 icons => wwcd = 2, etc.).
+       - If ANY sticker/icon/badge is inside that cell, COUNT how many distinct icons appear (1 icon => wwcd = 1, 2 icons => wwcd = 2, etc.). Note: ONE ribbon bow 🎀, ONE flower 🌸, or ONE star ⭐ counts as 1 icon (never count two loops of a single ribbon bow as 2).
        - Do NOT confuse country flags inside TEAM NAME (e.g. 🇲🇲, 🇹🇼) with WWCD icons.
        - Output 0 ONLY when the WWCD cell is completely blank/empty (or no WWCD column exists). Do NOT shift PLACE into WWCD when WWCD is blank!
      * Placement column: 'PLACE.', 'PLACE', 'PP', 'PLACEMENT' -> placement_points.
@@ -873,15 +898,75 @@ Extract every single row accurately from this tournament standings poster:
     const reqStartedAt = Date.now();
     const TOTAL_BUDGET_MS = 38000;
 
+    interface ExtractionQuality {
+      rowCount: number;
+      mathMismatchCount: number;
+      missingRanks: number;
+      maxPlace: number;
+      totalWwcd: number;
+      isVerifiedClean: boolean;
+      qualityScore: number;
+    }
+
+    const scoreExtractionQuality = (data: ExtractionResponse | null): ExtractionQuality => {
+      const rows = Array.isArray(data?.standings) ? data.standings : [];
+      const rowCount = rows.length;
+      if (rowCount === 0) {
+        return { rowCount: 0, mathMismatchCount: 0, missingRanks: 0, maxPlace: 0, totalWwcd: 0, isVerifiedClean: false, qualityScore: -9999 };
+      }
+      let mathMismatchCount = 0;
+      let wwcdPlaceConflictCount = 0;
+      let maxPlace = 0;
+      let totalWwcd = 0;
+      let maxRank = 0;
+      const rankSet = new Set<number>();
+
+      for (const r of rows) {
+        const pp = Number(r.placement_points) || 0;
+        const kp = Number(r.kill_points) || 0;
+        const tot = Number(r.total_points) || 0;
+        const w = Number(r.wwcd) || 0;
+        const rk = Number(String(r.rank ?? "").replace(/[^\d]/g, "")) || 0;
+        if (pp + kp !== tot) mathMismatchCount += 1;
+        if (w > 0 && pp > 0 && w * 10 > pp) wwcdPlaceConflictCount += 1;
+        if (pp > maxPlace) maxPlace = pp;
+        totalWwcd += w;
+        if (rk >= 1 && rk <= 30) {
+          rankSet.add(rk);
+          if (rk > maxRank) maxRank = rk;
+        }
+      }
+
+      const missingRanks = Math.max(0, maxRank - rankSet.size);
+      const isVerifiedClean =
+        rowCount >= 14 &&
+        mathMismatchCount === 0 &&
+        missingRanks === 0 &&
+        wwcdPlaceConflictCount === 0 &&
+        (maxPlace < 10 || totalWwcd > 0);
+      const qualityScore =
+        rowCount * 100 -
+        mathMismatchCount * 250 -
+        missingRanks * 150 -
+        wwcdPlaceConflictCount * 60 +
+        (maxPlace >= 10 && totalWwcd === 0 ? -120 : 120);
+
+      return { rowCount, mathMismatchCount, missingRanks, maxPlace, totalWwcd, isVerifiedClean, qualityScore };
+    };
+
     let bestPartialParsed: ExtractionResponse | null = null;
     let bestPartialProvider = "";
+    let bestQualityScore = -99999;
 
-    const rememberCandidate = (data: ExtractionResponse | null, provider: string) => {
-      if (!data || !Array.isArray(data.standings) || data.standings.length === 0) return;
-      if (!bestPartialParsed || data.standings.length > bestPartialParsed.standings.length) {
+    const rememberCandidate = (data: ExtractionResponse | null, provider: string): ExtractionQuality => {
+      const q = scoreExtractionQuality(data);
+      if (!data || q.rowCount === 0) return q;
+      if (!bestPartialParsed || q.qualityScore > bestQualityScore) {
         bestPartialParsed = data;
         bestPartialProvider = provider;
+        bestQualityScore = q.qualityScore;
       }
+      return q;
     };
 
     const tryCandidate = async (
@@ -959,14 +1044,14 @@ Extract every single row accurately from this tournament standings poster:
           }
           const candidateParsed = JSON.parse(text) as ExtractionResponse;
           if (Array.isArray(candidateParsed?.standings) && candidateParsed.standings.length > 0) {
-            rememberCandidate(candidateParsed, providerTag);
-            if (candidateParsed.standings.length >= 12) {
+            const q = rememberCandidate(candidateParsed, providerTag);
+            if (q.isVerifiedClean) {
               waveController.abort();
               return candidateParsed;
             }
-            lastError = `${candidate.name} returned partial rows (${candidateParsed.standings.length})`;
-            modelErrors.push(`${candidate.name}: partial_${candidateParsed.standings.length}`);
-            attemptCodes.push(`${candidate.name}:partial_${candidateParsed.standings.length}`);
+            lastError = `${candidate.name} quality check held (${q.rowCount}r, ${q.mathMismatchCount}err, ${q.missingRanks}gap, w=${q.totalWwcd})`;
+            modelErrors.push(`${candidate.name}: unverified_${q.rowCount}r_${q.mathMismatchCount}err`);
+            attemptCodes.push(`${candidate.name}:held`);
             throw new Error(lastError);
           }
           lastError = `${candidate.name} returned 0 standings`;
@@ -1000,35 +1085,53 @@ Extract every single row accurately from this tournament standings poster:
     const runWave = async (
       candidates: ModelCandidate[],
       timeoutMs: number,
-      providerTag = "gemini"
+      providerTag = "gemini",
+      externalSignal?: AbortSignal
     ): Promise<ExtractionResponse | null> => {
       if (!apiKey || candidates.length === 0) return null;
       const now = Date.now();
       const healthy = candidates.filter((c) => (modelCooldownUntil.get(c.name) || 0) <= now);
       const activeList = healthy.length > 0 ? healthy : candidates;
       const waveController = new AbortController();
+      const onExtAbort = () => waveController.abort();
+      if (externalSignal) {
+        if (externalSignal.aborted) return null;
+        externalSignal.addEventListener("abort", onExtAbort, { once: true });
+      }
       try {
         return await Promise.any(activeList.map((c) => tryCandidate(c, timeoutMs, waveController, providerTag)));
       } catch {
         return null;
+      } finally {
+        externalSignal?.removeEventListener("abort", onExtAbort);
       }
     };
 
     const callOpenAiCompatBackup = async (
       provider: OpenAiCompatProvider,
-      timeoutMs: number
+      timeoutMs: number,
+      externalSignal?: AbortSignal
     ): Promise<ExtractionResponse | null> => {
-      const jsonInstruction = `${prompt}\n\nReturn ONLY raw valid JSON matching {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. No markdown fences or extra commentary.`;
+      const isGroq = provider.name === "groq";
+      // Groq free tier enforces 1000 OTPM on qwen3.8; single-line compact JSON with 550 max_tokens allows back-to-back scans per minute
+      const jsonInstruction = isGroq
+        ? `${prompt}\n\nReturn SINGLE-LINE minified JSON with NO newlines or extra spaces: {"n":scrim_name,"d":"YYYY-MM-DD","r":[[rank,team_name,wwcd,placement_points,kill_points,total_points],...]}`
+        : `${prompt}\n\nReturn ONLY raw valid JSON matching {"scrim_name": string, "scrim_date": string, "standings": [{"rank": number, "team_name": string, "wwcd": number, "placement_points": number, "kill_points": number, "total_points": number}]}. No markdown fences or extra commentary.`;
       const dataUri = `data:${normalizedMime};base64,${sanitizedBase64}`;
 
       for (const modelName of provider.models) {
+        if (externalSignal?.aborted) break;
         const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
         if (remainingMs < 4000) break;
         const perTryTimeout = Math.min(timeoutMs, remainingMs);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), perTryTimeout);
+        const onExtAbort = () => controller.abort();
+        externalSignal?.addEventListener("abort", onExtAbort, { once: true });
         try {
           const res = await fetch(provider.endpoint, {
             method: "POST",
-            signal: AbortSignal.timeout(perTryTimeout),
+            signal: controller.signal,
             headers: {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${provider.apiKey}`,
@@ -1037,8 +1140,8 @@ Extract every single row accurately from this tournament standings poster:
             body: JSON.stringify({
               model: modelName,
               temperature: 0.1,
-              max_tokens: 4096,
-              ...(provider.name === "groq" ? { response_format: { type: "json_object" } } : {}),
+              max_tokens: isGroq ? 550 : 4096,
+              ...(isGroq ? { response_format: { type: "json_object" } } : {}),
               messages: [
                 {
                   role: "user",
@@ -1069,6 +1172,9 @@ Extract every single row accurately from this tournament standings poster:
         } catch (err) {
           lastError = (err as any)?.message || String(err);
           modelErrors.push(`${provider.name}/${modelName}: timeout`);
+        } finally {
+          clearTimeout(timer);
+          externalSignal?.removeEventListener("abort", onExtAbort);
         }
       }
       return null;
@@ -1076,20 +1182,57 @@ Extract every single row accurately from this tournament standings poster:
 
     let providerUsed = "gemini";
 
-    // Phase 1 (0-9s): Primary Gemini Wave 1 (require >=12 rows before aborting fast backups like Groq)
+    // Phase 1 (0-10s): Race Gemini Wave 1 + Groq Vision IN PARALLEL from t=0.
+    // Whichever passes ALL first-scan quality checks (0 math mismatch, 0 missing ranks, >=14 teams, WWCD ok) wins immediately!
+    const groqProvider = backupProviders.find((p) => p.name === "groq");
+    const phase1Controller = new AbortController();
+    const phase1Timeout = (groqProvider || backupProviders.length > 0 || ocrSpaceKey || apiNinjasKey) ? 10500 : 25000;
+
+    const phase1Racers: Array<Promise<{ data: ExtractionResponse; name: string }>> = [];
     if (apiKey) {
-      const hasBackups = backupProviders.length > 0 || Boolean(ocrSpaceKey) || Boolean(apiNinjasKey);
-      const wave1Timeout = hasBackups ? 9000 : 25000;
-      parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout, "gemini");
-      if (parsed) providerUsed = "gemini";
+      phase1Racers.push(
+        runWave(WAVE_1_CANDIDATES, phase1Timeout, "gemini", phase1Controller.signal).then((res) => {
+          if (!res) throw new Error("gemini_w1_no_clean_win");
+          return { data: res, name: "gemini" };
+        })
+      );
+    }
+    if (groqProvider) {
+      phase1Racers.push(
+        callOpenAiCompatBackup(groqProvider, phase1Timeout, phase1Controller.signal).then((res) => {
+          if (!res) throw new Error("groq_empty");
+          const q = rememberCandidate(res, "groq");
+          if (q.isVerifiedClean) return { data: res, name: "groq" };
+          throw new Error(`groq_unverified_${q.rowCount}r_${q.mathMismatchCount}err`);
+        })
+      );
     }
 
-    // Phase 2: Run Gemini Wave 2 + Backup Vision LLMs (Groq/Mistral/OpenRouter) IN PARALLEL with OCR.Space.
-    // Pick the extraction with the most rows (preferring Vision LLMs over text-only OCR.Space!).
+    if (phase1Racers.length > 0) {
+      try {
+        const cleanWinner = await Promise.any(phase1Racers);
+        phase1Controller.abort();
+        parsed = cleanWinner.data;
+        providerUsed = cleanWinner.name;
+      } catch {
+        // Neither hit 100% verified clean in Phase 1; best imperfect result is preserved in bestPartialParsed
+      }
+    }
+
+    // If Phase 1 already yielded a solid table with 0 math errors & >=12 rows (e.g. smaller 12-team room or rare 0-WWCD lobby), use it directly!
+    if (!parsed && bestPartialParsed) {
+      const qBest = scoreExtractionQuality(bestPartialParsed);
+      if (qBest.rowCount >= 12 && qBest.mathMismatchCount === 0 && qBest.missingRanks === 0 && (qBest.maxPlace < 10 || qBest.totalWwcd > 0)) {
+        parsed = bestPartialParsed;
+        providerUsed = bestPartialProvider || "gemini";
+      }
+    }
+
+    // Phase 2: Only runs if Phase 1 had math mismatches, missing ranks, or missed WWCDs — race Wave 2 + remaining backups & pick highest quality!
     if (!parsed) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4500) {
-        const fastLlmProviders = backupProviders.filter((p) => p.name === "groq" || p.name === "mistral" || p.name === "freellmapi");
+        const otherFastProviders = backupProviders.filter((p) => p.name === "mistral" || p.name === "freellmapi");
         const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
 
         const ocrSpacePromise = ocrSpaceKey
@@ -1102,9 +1245,9 @@ Extract every single row accurately from this tournament standings poster:
           ? runWave(WAVE_2_CANDIDATES, Math.min(9500, remainingMs), "gemini_w2").catch(() => null)
           : Promise.resolve(null);
 
-        const fastBackupPromise = fastLlmProviders.length > 0
+        const fastBackupPromise = otherFastProviders.length > 0
           ? (async () => {
-              for (const prov of fastLlmProviders) {
+              for (const prov of otherFastProviders) {
                 const res = await callOpenAiCompatBackup(prov, Math.min(8500, remainingMs));
                 if (res) return { res, name: prov.name };
               }
@@ -1123,18 +1266,20 @@ Extract every single row accurately from this tournament standings poster:
           ocrSpacePromise,
         ]);
 
-        const visionCandidates: Array<{ data: ExtractionResponse; name: string }> = [];
-        if (wave2Res) visionCandidates.push({ data: wave2Res, name: "gemini_w2" });
-        if (fastBackupRes?.res) visionCandidates.push({ data: fastBackupRes.res, name: fastBackupRes.name });
-        if (openRouterRes) visionCandidates.push({ data: openRouterRes, name: "openrouter" });
-        if (bestPartialParsed) visionCandidates.push({ data: bestPartialParsed, name: bestPartialProvider || "gemini" });
+        if (wave2Res) rememberCandidate(wave2Res, "gemini_w2");
+        if (fastBackupRes?.res) rememberCandidate(fastBackupRes.res, fastBackupRes.name);
+        if (openRouterRes) rememberCandidate(openRouterRes, "openrouter");
 
-        visionCandidates.sort((a, b) => b.data.standings.length - a.data.standings.length);
-        const bestVision = visionCandidates[0] || null;
-
-        if (bestVision && (bestVision.data.standings.length >= 12 || !ocrSpaceRes || ocrSpaceRes.standings.length <= bestVision.data.standings.length)) {
-          parsed = bestVision.data;
-          providerUsed = bestVision.name;
+        if (bestPartialParsed) {
+          const qBest = scoreExtractionQuality(bestPartialParsed);
+          const qOcr = scoreExtractionQuality(ocrSpaceRes);
+          if (ocrSpaceRes && qBest.rowCount < 12 && qOcr.rowCount >= qBest.rowCount + 4) {
+            parsed = ocrSpaceRes;
+            providerUsed = "ocr_space";
+          } else {
+            parsed = bestPartialParsed;
+            providerUsed = bestPartialProvider || "gemini";
+          }
         } else if (ocrSpaceRes) {
           parsed = ocrSpaceRes;
           providerUsed = "ocr_space";
