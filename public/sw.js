@@ -28,13 +28,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Only cache same-origin static assets & shell; never intercept Supabase/external APIs
+  // Only cache same-origin static assets & shell; never intercept Supabase/external APIs or version checks
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === '/version.json') return;
 
   if (request.mode === 'navigate') {
     event.respondWith(

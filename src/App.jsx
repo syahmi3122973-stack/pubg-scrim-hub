@@ -1605,6 +1605,9 @@ export default function App() {
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [canInstallPwa, setCanInstallPwa] = useState(() => Boolean(typeof window !== 'undefined' && window.__pwaInstallPrompt));
+  const [isAppUpdateAvailable, setIsAppUpdateAvailable] = useState(false);
+  const [isAppUpdateDismissed, setIsAppUpdateDismissed] = useState(false);
+  const [isRefreshingApp, setIsRefreshingApp] = useState(false);
 
   useEffect(() => {
     const syncInstallable = () => setCanInstallPwa(Boolean(window.__pwaInstallPrompt));
@@ -1616,6 +1619,71 @@ export default function App() {
       window.removeEventListener('scrimhub-pwa-installed', onInstalled);
     };
   }, []);
+
+  useEffect(() => {
+    if (!import.meta.env.PROD || typeof window === 'undefined') return;
+    const localBuildId = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : '';
+    let lastCheckedAt = 0;
+
+    const checkLatestVersion = async () => {
+      const now = Date.now();
+      if (now - lastCheckedAt < 30_000) return;
+      lastCheckedAt = now;
+      try {
+        const res = await fetch(`/version.json?t=${now}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.buildId && localBuildId && data.buildId !== localBuildId) {
+          setIsAppUpdateAvailable(true);
+        }
+      } catch {
+        // Ignore offline/transient network check errors
+      }
+    };
+
+    const onSwUpdate = () => setIsAppUpdateAvailable(true);
+    const onFocusOrVisible = () => {
+      if (document.visibilityState === 'visible') {
+        checkLatestVersion();
+        navigator.serviceWorker?.getRegistration?.().then((reg) => reg?.update?.()).catch(() => {});
+      }
+    };
+
+    window.addEventListener('scrimhub-app-update', onSwUpdate);
+    window.addEventListener('focus', onFocusOrVisible);
+    document.addEventListener('visibilitychange', onFocusOrVisible);
+
+    const startupTimer = window.setTimeout(checkLatestVersion, 4000);
+    const pollTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') checkLatestVersion();
+    }, 180_000);
+
+    return () => {
+      window.removeEventListener('scrimhub-app-update', onSwUpdate);
+      window.removeEventListener('focus', onFocusOrVisible);
+      document.removeEventListener('visibilitychange', onFocusOrVisible);
+      window.clearTimeout(startupTimer);
+      window.clearInterval(pollTimer);
+    };
+  }, []);
+
+  const handleApplyAppUpdate = async () => {
+    setIsRefreshingApp(true);
+    try {
+      if ('caches' in window) {
+        const keys = await window.caches.keys();
+        await Promise.all(keys.filter((k) => k.startsWith('scrimhub-')).map((k) => window.caches.delete(k)));
+      }
+      const reg = await navigator.serviceWorker?.getRegistration?.();
+      if (reg?.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+      await reg?.update?.();
+    } catch {
+      // Proceed straight to hard reload even if cache API is unavailable
+    }
+    window.location.reload();
+  };
 
   const handleInstallPwa = async () => {
     const promptEvent = window.__pwaInstallPrompt;
@@ -6214,6 +6282,52 @@ export default function App() {
         onNavigateBackTab={handleNavigateBackTab}
       />
       
+      {/* App Update Prompt Banner (Floating Top Pill — Non-intrusive above content, clear of bottom dock & toasts) */}
+      {isAppUpdateAvailable && !isAppUpdateDismissed && (
+        <div
+          role="region"
+          aria-live="polite"
+          aria-label="Kemas kini aplikasi tersedia"
+          className="fixed top-16 md:top-5 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[65] w-[calc(100vw-1.5rem)] max-w-md animate-feedback-pop"
+        >
+          <div className="rounded-2xl bg-[#141418]/95 backdrop-blur-md border border-[#D7FF00]/30 shadow-[0_18px_48px_rgba(0,0,0,0.8)] px-3.5 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-[#D7FF00]/15 border border-[#D7FF00]/30 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-[#D7FF00]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white leading-tight truncate">
+                  Versi Terbaru Tersedia
+                </p>
+                <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2">
+                  Kemas kini baru dah siap — muat semula untuk paparan &amp; ciri terkini.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                disabled={isRefreshingApp}
+                onClick={handleApplyAppUpdate}
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-95 text-zinc-950 text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingApp ? 'animate-spin' : ''}`} />
+                <span>{isRefreshingApp ? 'Memuat...' : 'Muat Semula'}</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Tutup notifikasi kemas kini"
+                onClick={() => setIsAppUpdateDismissed(true)}
+                className="min-w-[44px] min-h-[44px] rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Alert: Ergonomik di Thumb Zone (Bawah) pada telefon & centered pada workspace PC */}
       {toastMessage && (
         <div
