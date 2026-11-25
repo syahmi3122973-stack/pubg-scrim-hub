@@ -343,6 +343,9 @@ export async function executePosterOcrExtraction({
           total_points: Number(s.total_points) || 0
         };
       });
+      const isTextOnlyFallback =
+        extractionResult.provider_used === 'ocr_space' ||
+        extractionResult.provider_used === 'api_ninjas';
       return {
         ok: true,
         scrimName: parsedTitle,
@@ -350,7 +353,7 @@ export async function executePosterOcrExtraction({
         posterUrl: extractionResult.poster_url || null,
         posterFileName: extractionResult.poster_file_name || safeOriginalFileName || '',
         standings: parsedStandings,
-        toastMessage: `Extract siap: ${parsedTitle} (${parsedDate}) • ${parsedStandings.length} Team`
+        toastMessage: `Extract siap: ${parsedTitle} (${parsedDate}) • ${parsedStandings.length} Team${isTextOnlyFallback ? ' (Mod Teks — semak WWCD)' : ''}`
       };
     }
 

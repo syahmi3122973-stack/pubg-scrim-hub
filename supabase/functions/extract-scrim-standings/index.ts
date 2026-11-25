@@ -352,13 +352,15 @@ interface ModelCandidate {
 }
 
 const WAVE_1_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
-  { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.8-flash" },
+  { name: "gemma-4-31b-it" },
 ];
 
 const WAVE_2_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemma-3-27b-it" },
+  { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-flash-latest" },
 ];
 
