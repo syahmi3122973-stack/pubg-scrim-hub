@@ -3375,6 +3375,17 @@ export default function App() {
     const fileName = scrim?.matches?.[0]?.ocrPosterFileName || `${baseName}-poster.${ext}`;
 
     try {
+      const host = new URL(posterUrl).hostname.toLowerCase();
+      if (host.endsWith('google.com') || host.endsWith('googleusercontent.com')) {
+        window.open(posterUrl, '_blank', 'noopener,noreferrer');
+        showToast('Membuka muat turun poster asal dari Google Drive.');
+        return;
+      }
+    } catch {
+      return;
+    }
+
+    try {
       const res = await fetch(posterUrl);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const blob = await res.blob();
@@ -4688,6 +4699,8 @@ export default function App() {
       errorMsg: '',
       file: null,
       previewUrl: null,
+      posterUrl: null,
+      posterFileName: '',
       scrimName: '',
       scrimDate: new Date().toISOString().split('T')[0],
       standings: []
@@ -4719,6 +4732,8 @@ export default function App() {
       errorMsg: '',
       file: selectedFile,
       previewUrl: objectUrl,
+      posterUrl: null,
+      posterFileName: '',
       scrimName: '',
       standings: []
     }));
@@ -4757,6 +4772,8 @@ export default function App() {
       errorMsg: res.ok ? '' : (res.toastMessage || 'Tak dapat ekstrak poster.'),
       scrimName: res.scrimName ?? prev.scrimName,
       scrimDate: res.scrimDate ?? prev.scrimDate,
+      posterUrl: res.posterUrl ?? null,
+      posterFileName: res.posterFileName ?? '',
       standings: res.standings ?? prev.standings
     }));
 
@@ -10855,7 +10872,6 @@ export default function App() {
             setOcrJob={setOcrJob}
             onStartBackgroundScan={startBackgroundOcrScan}
             onResetOcrJob={resetOcrJob}
-            uploadMedia={uploadMediaToSupabase}
           />
         )}
 

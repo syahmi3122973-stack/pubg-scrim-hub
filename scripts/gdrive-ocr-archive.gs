@@ -72,11 +72,15 @@ function doPost(e) {
     const bytes = Utilities.base64Decode(base64Data);
     const blob = Utilities.newBlob(bytes, mimeType, fileName);
     const savedFile = timeFolder.createFile(blob);
+    savedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const fileId = savedFile.getId();
 
     return ContentService.createTextOutput(
       JSON.stringify({
         ok: true,
-        fileId: savedFile.getId(),
+        fileId: fileId,
+        downloadUrl: 'https://drive.google.com/uc?export=download&id=' + fileId,
+        viewUrl: savedFile.getUrl(),
         folderPath: ROOT_FOLDER_NAME + '/' + uploaderFolderName + '/' + timestampFolderName + '/' + fileName,
       })
     ).setMimeType(ContentService.MimeType.JSON);

@@ -168,14 +168,14 @@ async function archivePosterToGoogleDrive(params: {
   mimeType: string;
   uploaderName: string;
   fileName: string;
-}): Promise<void> {
+}): Promise<{ fileId?: string; downloadUrl?: string } | null> {
   const webhookUrl = Deno.env.get("GDRIVE_WEBHOOK_URL")?.trim();
   const webhookSecret = Deno.env.get("GDRIVE_WEBHOOK_SECRET")?.trim();
   if (!webhookUrl || !webhookSecret || !/^https:\/\//i.test(webhookUrl)) {
-    return;
+    return null;
   }
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: "POST",
       redirect: "follow",
       signal: AbortSignal.timeout(15000),
@@ -189,8 +189,20 @@ async function archivePosterToGoogleDrive(params: {
         fileName: params.fileName,
       }),
     });
+    if (!res.ok) return null;
+    const json = await res.json().catch(() => null);
+    if (!json?.ok) return null;
+    const fileId = typeof json.fileId === "string" ? json.fileId.trim() : "";
+    const downloadUrl =
+      typeof json.downloadUrl === "string" && /^https:\/\//i.test(json.downloadUrl)
+        ? json.downloadUrl.trim()
+        : fileId
+          ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+          : "";
+    return downloadUrl ? { fileId, downloadUrl } : null;
   } catch {
     // Archiving must never block or break OCR extraction
+    return null;
   }
 }
 
@@ -1170,6 +1182,10 @@ Extract every single row accurately from this tournament standings poster:
     });
 
     const safeDate = parseFlexibleDate(parsed.scrim_date);
+    const archiveResult = await Promise.race([
+      archiveTask,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+    ]);
 
     return new Response(
       JSON.stringify({
@@ -1177,6 +1193,8 @@ Extract every single row accurately from this tournament standings poster:
         provider_used: providerUsed,
         scrim_name: (parsed.scrim_name?.trim() || "Untitled Scrim").slice(0, 120),
         scrim_date: safeDate,
+        poster_url: archiveResult?.downloadUrl || null,
+        poster_file_name: archiveResult?.downloadUrl ? resolvedFileName : null,
         has_math_mismatch: hasGlobalMismatch,
         total_teams_extracted: validatedStandings.length,
         standings: validatedStandings,

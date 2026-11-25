@@ -347,6 +347,8 @@ export async function executePosterOcrExtraction({
         ok: true,
         scrimName: parsedTitle,
         scrimDate: parsedDate,
+        posterUrl: extractionResult.poster_url || null,
+        posterFileName: extractionResult.poster_file_name || safeOriginalFileName || '',
         standings: parsedStandings,
         toastMessage: `Extract siap: ${parsedTitle} (${parsedDate}) • ${parsedStandings.length} Team`
       };
@@ -447,8 +449,7 @@ export default function ScrimDataHubView({
   ocrJob,
   setOcrJob,
   onStartBackgroundScan,
-  onResetOcrJob,
-  uploadMedia = null
+  onResetOcrJob
 }) {
   const [isHeaderInfoOpen, setIsHeaderInfoOpen] = useState(false);
 
@@ -458,6 +459,8 @@ export default function ScrimDataHubView({
     progress: 0,
     file: null,
     previewUrl: null,
+    posterUrl: null,
+    posterFileName: '',
     scrimName: '',
     scrimDate: new Date().toISOString().split('T')[0],
     scrimTier: 'Tier 1 (Pro)',
@@ -470,6 +473,8 @@ export default function ScrimDataHubView({
   const {
     file,
     previewUrl,
+    posterUrl = null,
+    posterFileName = '',
     isProcessing,
     progress: ocrProgress = 0,
     errorMsg: ocrErrorMsg = '',
@@ -603,6 +608,8 @@ export default function ScrimDataHubView({
         progress: res.ok ? 100 : 0,
         scrimName: res.scrimName ?? prev.scrimName,
         scrimDate: res.scrimDate ?? prev.scrimDate,
+        posterUrl: res.posterUrl ?? null,
+        posterFileName: res.posterFileName ?? '',
         standings: res.standings ?? prev.standings
       }));
       showToast?.(res.toastMessage);
@@ -710,25 +717,10 @@ export default function ScrimDataHubView({
       setIsSaving(true);
       const effectiveHost = hostUsername.trim() || profileName || (currentUser?.email ? currentUser.email.split('@')[0] : `${scrimName.trim()} Organizer`);
 
-      let ocrPosterUrl = null;
-      const ocrPosterFileName = file?.name ? sanitizeTextInput(file.name, 80) : '';
-      if (file && typeof uploadMedia === 'function') {
-        try {
-          let fileToUpload = file;
-          if (file.size > 5 * 1024 * 1024) {
-            const compressed = await optimizePosterForOcr(file);
-            if (compressed?.dataUrl) {
-              const blob = await fetch(compressed.dataUrl).then((r) => r.blob());
-              fileToUpload = new File([blob], `${(ocrPosterFileName || 'poster').replace(/\.[^.]+$/, '')}.jpg`, {
-                type: 'image/jpeg'
-              });
-            }
-          }
-          ocrPosterUrl = await uploadMedia(fileToUpload, 'uploads');
-        } catch (uploadErr) {
-          console.warn('OCR poster archive upload skipped:', uploadErr);
-        }
-      }
+      // Store Google Drive link returned by OCR archive (0 bytes used on Supabase Storage)
+      const ocrPosterUrl =
+        typeof posterUrl === 'string' && /^https?:\/\//i.test(posterUrl) ? posterUrl : null;
+      const ocrPosterFileName = sanitizeTextInput(posterFileName || file?.name || '', 80);
 
       // 1. Try inserting into normalized tables (`scrim_sessions` & `scrim_standings`)
       let committedToNewSchema = false;
