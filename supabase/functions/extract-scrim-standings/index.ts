@@ -500,6 +500,7 @@ function countWwcdIcons(tok: string, allowAsterisk = false): number {
 function cleanOcrNum(tok: string): number | null {
   const s = String(tok || "")
     .trim()
+    .replace(/[,.;:]+$/g, "")
     .replace(/[OoQqDd]/g, "0")
     .replace(/[Il|!]/g, "1")
     .replace(/[Zz]/g, "2")
@@ -508,6 +509,43 @@ function cleanOcrNum(tok: string): number | null {
     .replace(/[Gb]/g, "6")
     .replace(/[B]/g, "8");
   return /^\d{1,3}$/.test(s) ? Number(s) : null;
+}
+
+function mergeOcrStandings(
+  primary: ExtractionResponse | null,
+  secondary: ExtractionResponse | null
+): ExtractionResponse | null {
+  if (!primary) return secondary;
+  if (!secondary) return primary;
+
+  const byRank = new Map<number, StandingRow>();
+  const addRows = (rows: StandingRow[] = []) => {
+    for (const r of rows) {
+      const rk = Number(r.rank) || 0;
+      if (rk < 1 || rk > 25) continue;
+      const existing = byRank.get(rk);
+      const rMathOk = r.placement_points + r.kill_points === r.total_points;
+      if (!existing) {
+        byRank.set(rk, r);
+      } else {
+        const exMathOk = existing.placement_points + existing.kill_points === existing.total_points;
+        if ((!exMathOk && rMathOk) || (exMathOk === rMathOk && r.wwcd > existing.wwcd)) {
+          byRank.set(rk, r);
+        }
+      }
+    }
+  };
+  addRows(primary.standings);
+  addRows(secondary.standings);
+
+  const merged = Array.from(byRank.values()).sort((a, b) => a.rank - b.rank);
+  if (merged.length === 0) return null;
+  const pickName =
+    primary.scrim_name && primary.scrim_name !== "Untitled Scrim"
+      ? primary.scrim_name
+      : secondary.scrim_name || "Untitled Scrim";
+  const pickDate = primary.scrim_date || secondary.scrim_date || "";
+  return { scrim_name: pickName, scrim_date: pickDate, standings: merged };
 }
 
 function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
@@ -519,6 +557,7 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
   if (rawLines.length === 0) return null;
 
   let scrimName = "Untitled Scrim";
+  let scrimDate = "";
   const segments: string[] = [];
   for (const line of rawLines) {
     // Split dual-column lines where a second rank token (#10..#25) appears after a tab
@@ -531,6 +570,13 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
 
   const rows: StandingRow[] = [];
   for (const seg of segments) {
+    if (
+      !scrimDate &&
+      /\b(?:jan|feb|mar|mac|apr|may|mei|jun|jul|aug|ogos|sep|oct|okt|nov|dec|dis)[a-z]*[\s,]+\d{4}\b/i.test(seg)
+    ) {
+      scrimDate = seg.replace(/\t+/g, " ").trim();
+      continue;
+    }
     if (
       rows.length === 0 &&
       scrimName === "Untitled Scrim" &&
@@ -641,7 +687,7 @@ function parseStandingsFromOcrText(rawText: string): ExtractionResponse | null {
 
   rows.sort((a, b) => a.rank - b.rank);
   if (rows.length < 3) return null;
-  return { scrim_name: scrimName, scrim_date: "", standings: rows };
+  return { scrim_name: scrimName, scrim_date: scrimDate, standings: rows };
 }
 
 async function extractTextWithOcrSpace(
@@ -1182,44 +1228,15 @@ Extract every single row accurately from this tournament standings poster:
 
     let providerUsed = "gemini";
 
-    // Phase 1 (0-10s): Race Gemini Wave 1 + Groq Vision IN PARALLEL from t=0.
-    // Whichever passes ALL first-scan quality checks (0 math mismatch, 0 missing ranks, >=14 teams, WWCD ok) wins immediately!
-    const groqProvider = backupProviders.find((p) => p.name === "groq");
-    const phase1Controller = new AbortController();
-    const phase1Timeout = (groqProvider || backupProviders.length > 0 || ocrSpaceKey || apiNinjasKey) ? 10500 : 25000;
-
-    const phase1Racers: Array<Promise<{ data: ExtractionResponse; name: string }>> = [];
+    // Phase 1 (0-9s): Primary Gemini Wave 1 (saves Groq daily TPD quota for when Gemini misses or hits limits)
     if (apiKey) {
-      phase1Racers.push(
-        runWave(WAVE_1_CANDIDATES, phase1Timeout, "gemini", phase1Controller.signal).then((res) => {
-          if (!res) throw new Error("gemini_w1_no_clean_win");
-          return { data: res, name: "gemini" };
-        })
-      );
-    }
-    if (groqProvider) {
-      phase1Racers.push(
-        callOpenAiCompatBackup(groqProvider, phase1Timeout, phase1Controller.signal).then((res) => {
-          if (!res) throw new Error("groq_empty");
-          const q = rememberCandidate(res, "groq");
-          if (q.isVerifiedClean) return { data: res, name: "groq" };
-          throw new Error(`groq_unverified_${q.rowCount}r_${q.mathMismatchCount}err`);
-        })
-      );
+      const hasBackups = backupProviders.length > 0 || Boolean(ocrSpaceKey) || Boolean(apiNinjasKey);
+      const wave1Timeout = hasBackups ? 9000 : 25000;
+      parsed = await runWave(WAVE_1_CANDIDATES, wave1Timeout, "gemini");
+      if (parsed) providerUsed = "gemini";
     }
 
-    if (phase1Racers.length > 0) {
-      try {
-        const cleanWinner = await Promise.any(phase1Racers);
-        phase1Controller.abort();
-        parsed = cleanWinner.data;
-        providerUsed = cleanWinner.name;
-      } catch {
-        // Neither hit 100% verified clean in Phase 1; best imperfect result is preserved in bestPartialParsed
-      }
-    }
-
-    // If Phase 1 already yielded a solid table with 0 math errors & >=12 rows (e.g. smaller 12-team room or rare 0-WWCD lobby), use it directly!
+    // If Phase 1 already yielded a solid table with 0 math errors & >=12 rows, accept it without spending Groq quota!
     if (!parsed && bestPartialParsed) {
       const qBest = scoreExtractionQuality(bestPartialParsed);
       if (qBest.rowCount >= 12 && qBest.mathMismatchCount === 0 && qBest.missingRanks === 0 && (qBest.maxPlace < 10 || qBest.totalWwcd > 0)) {
@@ -1228,11 +1245,12 @@ Extract every single row accurately from this tournament standings poster:
       }
     }
 
-    // Phase 2: Only runs if Phase 1 had math mismatches, missing ranks, or missed WWCDs — race Wave 2 + remaining backups & pick highest quality!
+    // Phase 2: Race Gemini Wave 2 + Vision Backups (Groq/Mistral/OpenRouter) + parallel Text OCR (OCR.Space + API Ninjas).
+    // Vision AI always takes priority; if all Vision AI fail, merge OCR.Space & API Ninjas so missed rows are filled!
     if (!parsed) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4500) {
-        const otherFastProviders = backupProviders.filter((p) => p.name === "mistral" || p.name === "freellmapi");
+        const fastLlmProviders = backupProviders.filter((p) => p.name === "groq" || p.name === "mistral" || p.name === "freellmapi");
         const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
 
         const ocrSpacePromise = ocrSpaceKey
@@ -1241,14 +1259,20 @@ Extract every single row accurately from this tournament standings poster:
               .catch(() => null)
           : Promise.resolve(null);
 
+        const apiNinjasPromise = apiNinjasKey
+          ? extractTextWithApiNinjas(sanitizedBase64, normalizedMime, apiNinjasKey, Math.min(8500, remainingMs))
+              .then((txt) => (txt ? parseStandingsFromOcrText(txt) : null))
+              .catch(() => null)
+          : Promise.resolve(null);
+
         const wave2Promise = apiKey
           ? runWave(WAVE_2_CANDIDATES, Math.min(9500, remainingMs), "gemini_w2").catch(() => null)
           : Promise.resolve(null);
 
-        const fastBackupPromise = otherFastProviders.length > 0
+        const fastBackupPromise = fastLlmProviders.length > 0
           ? (async () => {
-              for (const prov of otherFastProviders) {
-                const res = await callOpenAiCompatBackup(prov, Math.min(8500, remainingMs));
+              for (const prov of fastLlmProviders) {
+                const res = await callOpenAiCompatBackup(prov, Math.min(9000, remainingMs));
                 if (res) return { res, name: prov.name };
               }
               return null;
@@ -1259,50 +1283,39 @@ Extract every single row accurately from this tournament standings poster:
           ? callOpenAiCompatBackup(openRouterProv, Math.min(9500, remainingMs)).catch(() => null)
           : Promise.resolve(null);
 
-        const [wave2Res, fastBackupRes, openRouterRes, ocrSpaceRes] = await Promise.all([
+        const [wave2Res, fastBackupRes, openRouterRes, ocrSpaceRes, apiNinjasRes] = await Promise.all([
           wave2Promise,
           fastBackupPromise,
           openRouterPromise,
           ocrSpacePromise,
+          apiNinjasPromise,
         ]);
 
         if (wave2Res) rememberCandidate(wave2Res, "gemini_w2");
         if (fastBackupRes?.res) rememberCandidate(fastBackupRes.res, fastBackupRes.name);
         if (openRouterRes) rememberCandidate(openRouterRes, "openrouter");
 
+        const mergedTextRes = mergeOcrStandings(ocrSpaceRes, apiNinjasRes);
+        const textProviderLabel =
+          ocrSpaceRes && apiNinjasRes
+            ? "ocr_space"
+            : apiNinjasRes
+              ? "api_ninjas"
+              : "ocr_space";
+
         if (bestPartialParsed) {
           const qBest = scoreExtractionQuality(bestPartialParsed);
-          const qOcr = scoreExtractionQuality(ocrSpaceRes);
-          if (ocrSpaceRes && qBest.rowCount < 12 && qOcr.rowCount >= qBest.rowCount + 4) {
-            parsed = ocrSpaceRes;
-            providerUsed = "ocr_space";
+          const qText = scoreExtractionQuality(mergedTextRes);
+          if (mergedTextRes && qBest.rowCount < 12 && qText.rowCount >= qBest.rowCount + 4) {
+            parsed = mergedTextRes;
+            providerUsed = textProviderLabel;
           } else {
             parsed = bestPartialParsed;
             providerUsed = bestPartialProvider || "gemini";
           }
-        } else if (ocrSpaceRes) {
-          parsed = ocrSpaceRes;
-          providerUsed = "ocr_space";
-        }
-      }
-    }
-
-    // Phase 3 (fallback): API Ninjas OCR if Phases 1 & 2 missed (and restore best partial if API Ninjas also missed)
-    if (!parsed && apiNinjasKey) {
-      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-      if (remainingMs >= 4000) {
-        const ninjaText = await extractTextWithApiNinjas(
-          sanitizedBase64,
-          normalizedMime,
-          apiNinjasKey,
-          Math.min(8000, remainingMs)
-        );
-        if (ninjaText) {
-          const ninjaParsed = parseStandingsFromOcrText(ninjaText);
-          if (ninjaParsed) {
-            parsed = ninjaParsed;
-            providerUsed = "api_ninjas";
-          }
+        } else if (mergedTextRes) {
+          parsed = mergedTextRes;
+          providerUsed = textProviderLabel;
         }
       }
     }
