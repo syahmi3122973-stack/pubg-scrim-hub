@@ -1641,6 +1641,34 @@ export default function App() {
   const [selectedPerformanceHost, setSelectedPerformanceHost] = useState('ALL');
   const [performanceModalCategory, setPerformanceModalCategory] = useState('ALL');
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [canInstallPwa, setCanInstallPwa] = useState(() => Boolean(typeof window !== 'undefined' && window.__pwaInstallPrompt));
+
+  useEffect(() => {
+    const syncInstallable = () => setCanInstallPwa(Boolean(window.__pwaInstallPrompt));
+    const onInstalled = () => setCanInstallPwa(false);
+    window.addEventListener('scrimhub-pwa-installable', syncInstallable);
+    window.addEventListener('scrimhub-pwa-installed', onInstalled);
+    return () => {
+      window.removeEventListener('scrimhub-pwa-installable', syncInstallable);
+      window.removeEventListener('scrimhub-pwa-installed', onInstalled);
+    };
+  }, []);
+
+  const handleInstallPwa = async () => {
+    const promptEvent = window.__pwaInstallPrompt;
+    if (!promptEvent) return;
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice?.outcome === 'accepted') {
+        window.__pwaInstallPrompt = null;
+        setCanInstallPwa(false);
+        showToast('SCRIMHUB sedang dipasang sebagai Web App.');
+      }
+    } catch {
+      // ignore cancelled prompt
+    }
+  };
 
   // Clear any legacy hardcoded organization entries from localStorage
   useEffect(() => {
@@ -6448,6 +6476,17 @@ export default function App() {
                   <span className="truncate">Feedback / Bug</span>
                 </button>
 
+                {canInstallPwa && (
+                  <button
+                    type="button"
+                    onClick={handleInstallPwa}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-1.5 min-h-[34px] rounded-md text-[13px] text-[#D7FF00] hover:bg-[#D7FF00]/10 font-semibold transition-colors cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate">Install Web App</span>
+                  </button>
+                )}
+
                 {currentUser ? (
                   <button
                     type="button"
@@ -6774,6 +6813,19 @@ export default function App() {
                       </button>
                     </div>
                     <div className="py-1">
+                      {canInstallPwa && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNavMenuOpen(false);
+                            handleInstallPwa();
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-[#D7FF00]/10 text-[#D7FF00] transition font-bold cursor-pointer flex items-center gap-2"
+                        >
+                          <Download className="w-3.5 h-3.5 shrink-0" />
+                          <span>Install Web App</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
