@@ -8792,18 +8792,15 @@ export default function App() {
                   </label>
                   <select
                     id="team-matrix-period-select"
+                    name="teamMatrixPeriod"
                     value={teamStatsPeriod}
+                    data-active={teamStatsPeriod !== 'ALL' ? 'true' : 'false'}
                     onChange={(e) => setTeamStatsPeriod(e.target.value)}
-                    className={
-                      'px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all focus:outline-none ' +
-                      (teamStatsPeriod !== 'ALL'
-                        ? 'bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/45'
-                        : 'bg-[#18181D] text-zinc-300 border border-white/[0.08] hover:bg-[#222229]')
-                    }
+                    className="sss-brand-select matrix-period-select w-auto max-w-full"
                     title="Tapis ranking ikut bulan atau 30 hari terkini"
                   >
                     {monthOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value} className="bg-[#111114] text-white">
+                      <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}

@@ -835,6 +835,56 @@ body {
     color: #fde047;
     margin-inline-end: 0.4rem;
   }
+
+  .sss-brand-select.matrix-period-select option:hover,
+  .sss-brand-select.matrix-period-select option:focus-visible {
+    background-color: rgba(215, 255, 0, 0.12);
+    color: #FFFFFF;
+  }
+
+  .sss-brand-select.matrix-period-select option:checked {
+    background-color: rgba(215, 255, 0, 0.16);
+    color: #D7FF00;
+    font-weight: 700;
+  }
+
+  .sss-brand-select.matrix-period-select option::checkmark {
+    color: #D7FF00;
+  }
+
+  .sss-brand-select.matrix-period-select::picker-icon {
+    color: #a1a1aa;
+  }
+
+  .sss-brand-select.matrix-period-select[data-active="true"]::picker-icon {
+    color: #D7FF00;
+  }
+}
+
+.sss-brand-select.matrix-period-select {
+  color: #d4d4d8;
+  font-weight: 500;
+}
+
+.sss-brand-select.matrix-period-select:hover {
+  background-color: #222229;
+  color: #ffffff;
+}
+
+.sss-brand-select.matrix-period-select:focus-visible {
+  outline-color: #D7FF00;
+}
+
+.sss-brand-select.matrix-period-select[data-active="true"] {
+  background-color: rgba(215, 255, 0, 0.14);
+  color: #D7FF00;
+  box-shadow: inset 0 0 0 1px rgba(215, 255, 0, 0.42);
+  font-weight: 600;
+}
+
+.sss-brand-select.matrix-period-select[data-active="true"]:hover {
+  background-color: rgba(215, 255, 0, 0.2);
+  color: #e6ff57;
 }
 
 /* Solid Layered Dark Surface System (No Card Borders, Liquid Glass Reserved Strictly for Navbars) */
