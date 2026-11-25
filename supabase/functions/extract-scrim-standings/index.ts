@@ -317,7 +317,7 @@ const extractionSchema = {
           wwcd: {
             type: "INTEGER",
             description:
-              "Win/WWCD count (column labeled 'WWCD', 'WIN', 'CHICKEN', or shown ONLY as an icon header like rabbit/bunny face 🐰/🐇, star ⭐, frying pan, chicken 🍗, helmet, spider, crown 👑, or trophy 🏆). Cells may contain digits (0, 1, 2) OR repeated visual icons/emojis (e.g. ⭐ = 1, ⭐⭐ = 2, ★ = 1, ★★ = 2, 🐰 = 1, 🐰🐰 = 2, 🏆🏆 = 2). COUNT every win icon in that row's WWCD cell. Do NOT count country flags inside team_name (🇲🇲, 🇹🇼) as WWCD. Output 0 if the WWCD cell is blank/empty.",
+              "Win/WWCD count (column labeled 'WWCD', 'WIN', 'CHICKEN', or an icon/mascot header like bunny 🐰, star ⭐, ribbon 🎀, chicken 🍗, crown 👑, trophy 🏆, helmet, pan, spider). Cells may show a digit (0, 1, 2) OR ANY visual sticker/emoji/badge (including ribbons/bows 🎀, stars ⭐, bunnies 🐰, hearts 💖, flowers 🌸, crowns 👑, trophies 🏆, chickens 🍗, skulls, checkmarks) — even subtle stickers over dark maroon or colored row backgrounds! COUNT how many stickers/icons appear inside that row's WWCD cell (1 icon = 1, 2 icons = 2, etc.). Do NOT count country flags inside team_name (🇲🇲, 🇹🇼). Output 0 ONLY if the cell has nothing inside it.",
           },
           placement_points: {
             type: "INTEGER",
@@ -352,13 +352,13 @@ interface ModelCandidate {
 }
 
 const WAVE_1_CANDIDATES: ModelCandidate[] = [
+  { name: "gemini-3.8-flash", thinkingConfig: { thinkingLevel: "LOW" } },
   { name: "gemini-3.6-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-3-flash-preview", thinkingConfig: { thinkingLevel: "MINIMAL" } },
 ];
 
 const WAVE_2_CANDIDATES: ModelCandidate[] = [
-  { name: "gemini-3.5-flash", thinkingConfig: { thinkingLevel: "MINIMAL" } },
-  { name: "gemini-omni-flash-preview" },
+  { name: "gemini-3.5-flash-lite", thinkingConfig: { thinkingLevel: "MINIMAL" } },
   { name: "gemini-flash-latest" },
 ];
 
@@ -461,12 +461,12 @@ function extractJsonObject(raw: string): ExtractionResponse | null {
 
 function countWwcdIcons(tok: string, allowAsterisk = false): number {
   const cleaned = String(tok || "")
-    .replace(/[\uFE0E\uFE0F\s]/g, "")
+    .replace(/[\uFE0E\uFE0F\u200D\s]/g, "")
     .trim();
   if (!cleaned) return 0;
   const iconPattern = allowAsterisk
-    ? /^[⭐🌟★☆✦✧✪✫✬✭✮✯🐰🐇🏆👑🍗🔥✓✔*]+$/u
-    : /^[⭐🌟★☆✦✧✪✫✬✭✮✯🐰🐇🏆👑🍗🔥✓✔]+$/u;
+    ? /^[⭐🌟★☆✦✧✪✫✬✭✮✯🐰🐇🎀🎗️🌸🌺🌷🌼🦋💖💗❤️🩷💜💙👑🏆🥇🍗🍳🔥⚡🎯🛡️⚔️💀✓✔*]+$/u
+    : /^[⭐🌟★☆✦✧✪✫✬✭✮✯🐰🐇🎀🎗️🌸🌺🌷🌼🦋💖💗❤️🩷💜💙👑🏆🥇🍗🍳🔥⚡🎯🛡️⚔️💀✓✔]+$/u;
   if (!iconPattern.test(cleaned)) return 0;
   return Array.from(cleaned).length;
 }
@@ -854,11 +854,12 @@ Extract every single row accurately from this tournament standings poster:
    - Map columns strictly by column header alignment:
      * Rank column: '#', '#1', 'RANK', 'NO' -> rank (integer).
      * Team column: 'TEAMS', 'TEAM', 'TEAM NAME' -> exact team_name string (ignore small logo icon left of the name; keep exact text, and do not swallow win icons from the adjacent WWCD column).
-     * WWCD column: 'WWCD', 'WIN', 'CHICKEN', or ANY icon/mascot header (bunny/rabbit face 🐰/🐇 e.g. in BunnyKun Scrims, star ⭐, frying pan, chicken 🍗, helmet, spider, crown 👑, trophy 🏆). VERY IMPORTANT:
-       - Custom organizer posters often use a mascot icon (e.g. a rabbit/bunny head 🐰) as the WWCD column header and place repeated emojis/icons inside each winning team's cell instead of a number!
-       - COUNT the win icons in that row's WWCD cell to get the wwcd integer: e.g. ⭐ (or 🐰/🏆/👑/★) = 1, ⭐⭐ (or 🐰🐰) = 2, ⭐⭐⭐ = 3.
-       - Do NOT confuse country flags attached to a team name (e.g. 🇲🇲, 🇹🇼) with WWCD icons.
-       - Blank/empty cells (or if no WWCD column exists) mean 0. Do NOT shift PLACE into WWCD when WWCD is blank!
+     * WWCD column: 'WWCD', 'WIN', 'CHICKEN', or ANY icon/mascot header (bunny 🐰/🐇, ribbon/bow 🎀, star ⭐, pan, chicken 🍗, helmet, spider, crown 👑, trophy 🏆). VERY IMPORTANT:
+       - Organizers use ANY small decorative sticker, graphic, badge, or emoji inside a team's WWCD cell to mark wins — e.g. pink ribbons/bows 🎀 (Stella Scrims), stars ⭐, bunnies 🐰, hearts 💖, flowers 🌸, crowns 👑, trophies 🏆, chickens 🍗, bullets/icons, or digits.
+       - Scan EVERY row's WWCD cell carefully (including dark red/maroon or shaded top-3 rows where small pink/pastel stickers like ribbons 🎀 can blend in).
+       - If ANY sticker/icon/badge is inside that cell, COUNT how many icons appear (1 icon => wwcd = 1, 2 icons => wwcd = 2, etc.).
+       - Do NOT confuse country flags inside TEAM NAME (e.g. 🇲🇲, 🇹🇼) with WWCD icons.
+       - Output 0 ONLY when the WWCD cell is completely blank/empty (or no WWCD column exists). Do NOT shift PLACE into WWCD when WWCD is blank!
      * Placement column: 'PLACE.', 'PLACE', 'PP', 'PLACEMENT' -> placement_points.
      * Elims/Kills column: 'ELIMS.', 'ELIMS', 'KP', 'KILLS' -> kill_points.
      * Total column: 'TOTAL', 'TOT', 'PTS' -> total_points.
@@ -1062,12 +1063,13 @@ Extract every single row accurately from this tournament standings poster:
       if (parsed) providerUsed = "gemini";
     }
 
-    // Phase 2 (14-24s): Run Gemini Wave 2 + Groq/Mistral (if set) IN PARALLEL with OCR.Space (~3.4s)
-    // Guaranteed OCR.Space never gets starved by slow LLM fallbacks!
+    // Phase 2 (14-24s): Run Gemini Wave 2 + Backup Vision LLMs (Groq/Mistral/OpenRouter) IN PARALLEL with OCR.Space.
+    // Vision LLMs always take priority over text-only OCR.Space so visual WWCD stickers (ribbons/stars/bunnies) are preserved!
     if (!parsed) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4500) {
         const fastLlmProviders = backupProviders.filter((p) => p.name === "groq" || p.name === "mistral" || p.name === "freellmapi");
+        const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
 
         const ocrSpacePromise = ocrSpaceKey
           ? extractTextWithOcrSpace(sanitizedBase64, normalizedMime, ocrSpaceKey, Math.min(8500, remainingMs))
@@ -1076,7 +1078,7 @@ Extract every single row accurately from this tournament standings poster:
           : Promise.resolve(null);
 
         const wave2Promise = apiKey
-          ? runWave(WAVE_2_CANDIDATES, Math.min(9000, remainingMs)).catch(() => null)
+          ? runWave(WAVE_2_CANDIDATES, Math.min(9500, remainingMs)).catch(() => null)
           : Promise.resolve(null);
 
         const fastBackupPromise = fastLlmProviders.length > 0
@@ -1089,9 +1091,14 @@ Extract every single row accurately from this tournament standings poster:
             })()
           : Promise.resolve(null);
 
-        const [wave2Res, fastBackupRes, ocrSpaceRes] = await Promise.all([
+        const openRouterPromise = openRouterProv
+          ? callOpenAiCompatBackup(openRouterProv, Math.min(9500, remainingMs)).catch(() => null)
+          : Promise.resolve(null);
+
+        const [wave2Res, fastBackupRes, openRouterRes, ocrSpaceRes] = await Promise.all([
           wave2Promise,
           fastBackupPromise,
+          openRouterPromise,
           ocrSpacePromise,
         ]);
 
@@ -1101,6 +1108,9 @@ Extract every single row accurately from this tournament standings poster:
         } else if (fastBackupRes?.res) {
           parsed = fastBackupRes.res;
           providerUsed = fastBackupRes.name;
+        } else if (openRouterRes) {
+          parsed = openRouterRes;
+          providerUsed = "openrouter";
         } else if (ocrSpaceRes) {
           parsed = ocrSpaceRes;
           providerUsed = "ocr_space";
@@ -1108,7 +1118,7 @@ Extract every single row accurately from this tournament standings poster:
       }
     }
 
-    // Phase 3 (24-36s): API Ninjas OCR (~2s) -> OpenRouter Vision (only if Phases 1 & 2 both missed)
+    // Phase 3 (fallback): API Ninjas OCR if Phases 1 & 2 all missed
     if (!parsed && apiNinjasKey) {
       const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
       if (remainingMs >= 4000) {
@@ -1125,15 +1135,6 @@ Extract every single row accurately from this tournament standings poster:
             providerUsed = "api_ninjas";
           }
         }
-      }
-    }
-
-    if (!parsed) {
-      const openRouterProv = backupProviders.find((p) => p.name === "openrouter");
-      const remainingMs = TOTAL_BUDGET_MS - (Date.now() - reqStartedAt);
-      if (openRouterProv && remainingMs >= 5000) {
-        parsed = await callOpenAiCompatBackup(openRouterProv, Math.min(9000, remainingMs));
-        if (parsed) providerUsed = "openrouter";
       }
     }
 
