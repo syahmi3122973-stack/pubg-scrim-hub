@@ -10113,12 +10113,12 @@ export default function App() {
                                 e.stopPropagation();
                                 handleDownloadOcrPoster(s, ocrPosterUrl);
                               }}
-                              aria-label={`Muat turun poster asal OCR ${s.title}`}
-                              title="Muat turun poster asal (OCR)"
+                              aria-label={`Muat turun Poster Original OCR ${s.title}`}
+                              title="Poster Original (OCR)"
                               className="h-7 px-2 rounded-md border border-white/[0.08] hover:border-[#D7FF00]/40 hover:bg-[#D7FF00]/[0.08] text-zinc-300 hover:text-[#D7FF00] inline-flex items-center gap-1 text-[11px] font-medium transition cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
                             >
                               <Download className="w-3.5 h-3.5" />
-                              <span className="hidden sm:inline">Poster</span>
+                              <span className="hidden sm:inline">Poster Original</span>
                             </button>
                           )}
                           {isAuthorizedAdmin(s) && (
@@ -14231,10 +14231,10 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => handleDownloadOcrPoster(inspectedScrim)}
-                    className="px-3 py-2 bg-[#19191E] hover:bg-[#23232A] text-zinc-200 hover:text-[#D7FF00] font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    className="px-3 py-2 bg-[#19191E] hover:bg-[#23232A] text-zinc-300 hover:text-[#D7FF00] font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#D7FF00]" />
-                    <span>Download Poster Asal</span>
+                    <Download className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Poster Original</span>
                   </button>
                 )}
               </div>
