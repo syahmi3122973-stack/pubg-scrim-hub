@@ -6342,44 +6342,34 @@ export default function App() {
         onNavigateBackTab={handleNavigateBackTab}
       />
       
-      {/* App Update Prompt Banner (Floating Top Pill — Non-intrusive above content, clear of bottom dock & toasts) */}
+      {/* App Update Prompt Pill (Floating Top Pill — Clean & Minimal) */}
       {isAppUpdateAvailable && !isAppUpdateDismissed && (
         <div
           role="region"
           aria-live="polite"
-          aria-label="Kemas kini aplikasi tersedia"
-          className="fixed top-16 md:top-5 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[65] w-[calc(100vw-1.5rem)] max-w-md animate-feedback-pop"
+          aria-label="Refresh to Update"
+          className="fixed top-16 md:top-5 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[65] max-w-[calc(100vw-1.5rem)] animate-feedback-pop"
         >
-          <div className="rounded-2xl bg-[#141418]/95 backdrop-blur-md border border-[#D7FF00]/30 shadow-[0_18px_48px_rgba(0,0,0,0.8)] px-3.5 py-2.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-[#D7FF00]/15 border border-[#D7FF00]/30 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-[#D7FF00]" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-white leading-tight truncate">
-                  Versi Terbaru Tersedia
-                </p>
-                <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2">
-                  Kemas kini baru dah siap — muat semula untuk paparan &amp; ciri terkini.
-                </p>
-              </div>
-            </div>
+          <div className="rounded-full bg-[#141418]/95 backdrop-blur-md border border-[#D7FF00]/30 shadow-[0_18px_48px_rgba(0,0,0,0.8)] pl-4 pr-1.5 py-1.5 flex items-center gap-2.5">
+            <span className="text-xs font-semibold text-white whitespace-nowrap">
+              Refresh to Update
+            </span>
 
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
                 disabled={isRefreshingApp}
                 onClick={handleApplyAppUpdate}
-                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-95 text-zinc-950 text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
+                className="min-h-[40px] px-3.5 py-1.5 rounded-full bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-95 text-zinc-950 text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingApp ? 'animate-spin' : ''}`} />
-                <span>{isRefreshingApp ? 'Memuat...' : 'Muat Semula'}</span>
+                <span>{isRefreshingApp ? 'Refreshing...' : 'Refresh'}</span>
               </button>
               <button
                 type="button"
                 aria-label="Tutup notifikasi kemas kini"
                 onClick={() => setIsAppUpdateDismissed(true)}
-                className="min-w-[44px] min-h-[44px] rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                className="min-w-[40px] min-h-[40px] rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 <X className="w-4 h-4" />
               </button>
