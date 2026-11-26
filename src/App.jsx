@@ -1782,7 +1782,7 @@ export default function App() {
 
     const checkLatestVersion = async () => {
       const now = Date.now();
-      if (now - lastCheckedAt < 30_000) return;
+      if (now - lastCheckedAt < 8_000) return;
       lastCheckedAt = now;
       try {
         const res = await fetch(`/version.json?t=${now}`, { cache: 'no-store' });
@@ -1803,19 +1803,27 @@ export default function App() {
         navigator.serviceWorker?.getRegistration?.().then((reg) => reg?.update?.()).catch(() => {});
       }
     };
+    const onPageShowOrOnline = () => {
+      checkLatestVersion();
+      navigator.serviceWorker?.getRegistration?.().then((reg) => reg?.update?.()).catch(() => {});
+    };
 
     window.addEventListener('scrimhub-app-update', onSwUpdate);
     window.addEventListener('focus', onFocusOrVisible);
+    window.addEventListener('pageshow', onPageShowOrOnline);
+    window.addEventListener('online', onPageShowOrOnline);
     document.addEventListener('visibilitychange', onFocusOrVisible);
 
     const startupTimer = window.setTimeout(checkLatestVersion, 4000);
     const pollTimer = window.setInterval(() => {
       if (document.visibilityState === 'visible') checkLatestVersion();
-    }, 180_000);
+    }, 30_000);
 
     return () => {
       window.removeEventListener('scrimhub-app-update', onSwUpdate);
       window.removeEventListener('focus', onFocusOrVisible);
+      window.removeEventListener('pageshow', onPageShowOrOnline);
+      window.removeEventListener('online', onPageShowOrOnline);
       document.removeEventListener('visibilitychange', onFocusOrVisible);
       window.clearTimeout(startupTimer);
       window.clearInterval(pollTimer);
@@ -6957,7 +6965,7 @@ export default function App() {
           role="region"
           aria-live="polite"
           aria-label="Refresh to Update"
-          className="fixed top-14 md:top-4 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[65] max-w-[calc(100vw-1.5rem)] animate-feedback-pop"
+          className="fixed top-[max(3.25rem,calc(env(safe-area-inset-top,0px)+2.75rem))] md:top-4 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[85] max-w-[calc(100vw-1.5rem)] animate-feedback-pop"
         >
           {!isAppUpdateConfirmOpen ? (
             <div className="rounded-full bg-[#141418]/95 backdrop-blur-md border border-[#D7FF00]/30 shadow-[0_12px_32px_rgba(0,0,0,0.75)] pl-3 pr-1 py-1 flex items-center gap-2">
