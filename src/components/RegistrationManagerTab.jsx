@@ -18,8 +18,6 @@ import {
 } from 'lucide-react';
 import { safeExternalUrl, safeMediaUrl } from '../utils/security';
 
-const EVENT_CATEGORIES = ['Semua', 'Night Scrim', 'Mid Scrim', 'Fast Tour'];
-
 function normalizeWhatsAppDigits(raw) {
   let digits = String(raw || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -42,7 +40,6 @@ export default function RegistrationManagerTab({
   const [registrations, setRegistrations] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState('Semua');
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [sessionFilter, setSessionFilter] = useState('all');
@@ -123,12 +120,11 @@ export default function RegistrationManagerTab({
   const availableTimings = useMemo(() => {
     const set = new Set();
     for (const s of authorizedScrims) {
-      if (categoryFilter !== 'Semua' && s.event_category !== categoryFilter) continue;
       const timing = String(s.session_timing || '').trim();
       if (timing) set.add(timing);
     }
     return ['Semua Masa', ...Array.from(set)];
-  }, [authorizedScrims, categoryFilter]);
+  }, [authorizedScrims]);
 
   useEffect(() => {
     if (!availableTimings.includes(timingFilter)) {
@@ -140,7 +136,6 @@ export default function RegistrationManagerTab({
     return registrations.filter((reg) => {
       const scrim = authorizedScrimMap.get(reg.scrim_id);
       if (!scrim) return false;
-      if (categoryFilter !== 'Semua' && scrim.event_category !== categoryFilter) return false;
       if (timingFilter !== 'Semua Masa' && String(scrim.session_timing || '').trim() !== timingFilter) {
         return false;
       }
@@ -148,7 +143,7 @@ export default function RegistrationManagerTab({
       if (statusFilter !== 'Semua' && reg.status !== statusFilter) return false;
       return true;
     });
-  }, [registrations, authorizedScrimMap, categoryFilter, timingFilter, sessionFilter, statusFilter]);
+  }, [registrations, authorizedScrimMap, timingFilter, sessionFilter, statusFilter]);
 
   const counts = useMemo(() => {
     let pending = 0;
@@ -309,48 +304,9 @@ export default function RegistrationManagerTab({
           </div>
         </div>
 
-        {/* Fast Filter Tabs: Category + Dynamic Custom Timings + Status */}
+        {/* Fast Filter Bar: Session Select + Dynamic Custom Timings + Status */}
         <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/85 space-y-2.5">
-          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Tapis kategori acara">
-            {EVENT_CATEGORIES.map((cat) => {
-              const active = categoryFilter === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-1.5 min-h-[38px] rounded-xl text-xs font-bold border transition cursor-pointer ${
-                    active
-                      ? 'bg-[#D7FF00] text-black border-[#D7FF00]'
-                      : 'bg-white/[0.03] text-zinc-300 border-white/[0.08] hover:border-white/25 hover:text-white'
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-
-            <div className="ml-auto flex items-center gap-1.5">
-              <select
-                value={sessionFilter}
-                onChange={(e) => setSessionFilter(e.target.value)}
-                aria-label="Tapis sesi kejohanan"
-                className="bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-1.5 min-h-[38px] text-xs text-zinc-200 focus:outline-none max-w-[210px]"
-              >
-                <option value="all">Semua Sesi ({authorizedScrims.length})</option>
-                {authorizedScrims.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Dynamic Custom Timing Chips + Status Pills */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/[0.05]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mr-1">Masa:</span>
               {availableTimings.map((t) => {
@@ -371,6 +327,23 @@ export default function RegistrationManagerTab({
                 );
               })}
             </div>
+
+            <select
+              value={sessionFilter}
+              onChange={(e) => setSessionFilter(e.target.value)}
+              aria-label="Tapis sesi kejohanan"
+              className="bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-1.5 min-h-[38px] text-xs text-zinc-200 focus:outline-none max-w-[210px]"
+            >
+              <option value="all">Semua Sesi ({authorizedScrims.length})</option>
+              {authorizedScrims.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/[0.05]">
 
             <div className="flex flex-wrap items-center gap-1.5">
               {[

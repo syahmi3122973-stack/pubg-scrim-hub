@@ -25,8 +25,6 @@ import RegistrationManagerTab from './RegistrationManagerTab';
 import { scanReceiptImage } from '../utils/receiptOcr';
 import { safeExternalUrl, safeMediaUrl, sanitizeTextInput, validateUploadFile } from '../utils/security';
 
-const PORTAL_CATEGORIES = ['Semua', 'Night Scrim', 'Mid Scrim', 'Fast Tour'];
-
 function getUsedRosterSlots(scrim) {
   const used = new Set();
   const matches = Array.isArray(scrim?.matches) ? scrim.matches : [];
@@ -57,7 +55,6 @@ export default function PortalTournamentView({
   onSavePortalTournament = null,
   onTogglePortalRegistration = null
 }) {
-  const [categoryFilter, setCategoryFilter] = useState('Semua');
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [slotCounts, setSlotCounts] = useState({});
@@ -246,16 +243,15 @@ export default function PortalTournamentView({
     }
   };
 
-  // Dynamic custom timings derived strictly from open sessions in the selected category
+  // Dynamic custom timings derived strictly from open sessions
   const availableTimings = useMemo(() => {
     const set = new Set();
     for (const s of openSessions) {
-      if (categoryFilter !== 'Semua' && s.event_category !== categoryFilter) continue;
       const timing = String(s.session_timing || '').trim();
       if (timing) set.add(timing);
     }
     return ['Semua Masa', ...Array.from(set)];
-  }, [openSessions, categoryFilter]);
+  }, [openSessions]);
 
   useEffect(() => {
     if (!availableTimings.includes(timingFilter)) {
@@ -265,13 +261,12 @@ export default function PortalTournamentView({
 
   const filteredSessions = useMemo(() => {
     return openSessions.filter((s) => {
-      if (categoryFilter !== 'Semua' && s.event_category !== categoryFilter) return false;
       if (timingFilter !== 'Semua Masa' && String(s.session_timing || '').trim() !== timingFilter) {
         return false;
       }
       return true;
     });
-  }, [openSessions, categoryFilter, timingFilter]);
+  }, [openSessions, timingFilter]);
 
   const getSessionSlotMeta = useCallback(
     (scrim) => {
@@ -588,30 +583,10 @@ export default function PortalTournamentView({
                 </div>
               </div>
 
-              {currentUser && (
-                <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/85 space-y-2.5">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {PORTAL_CATEGORIES.map((cat) => {
-                      const active = categoryFilter === cat;
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setCategoryFilter(cat)}
-                          className={`px-3 py-1.5 min-h-[38px] rounded-xl text-xs font-semibold border transition cursor-pointer ${
-                            active
-                              ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-bold'
-                              : 'bg-[#111114] text-zinc-300 border-white/[0.08] hover:border-white/25 hover:text-white'
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-
+              {currentUser && availableTimings.length > 1 && (
+                <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/85">
                   {/* Custom Timing Filter Chips derived from admin session settings */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/[0.06]">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mr-1">
                       Masa Sesi:
                     </span>
