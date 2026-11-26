@@ -60,7 +60,6 @@ import {
   Crop,
   MoreVertical,
   GitMerge,
-  Ticket,
   Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -70,7 +69,6 @@ import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments,
 import TeamLogoCropper from './components/TeamLogoCropper';
 import AuroraPetalCanvas from './components/AuroraPetalCanvas';
 import PortalTournamentView from './components/PortalTournamentView';
-import RegistrationManagerTab from './components/RegistrationManagerTab';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 import {
   safeExternalUrl,
@@ -708,7 +706,6 @@ export default function App() {
     }
     return 'register';
   });
-  const [adminWorkspaceTab, setAdminWorkspaceTab] = useState('scorer');
 
   // Page / Tab History Stack & OCR Inner Overlay State for Mobile Back-Button Navigation
   const [tabHistory, setTabHistory] = useState([]);
@@ -7444,7 +7441,6 @@ export default function App() {
           ];
 
           const toolItems = [
-            { id: 'register', label: 'Portal Tournament', Icon: Ticket, active: ['register', 'status', 'portal-tournament'].includes(activeTab) },
             { id: 'scorer', label: 'Quick Scorer', Icon: Edit3, active: activeTab === 'scorer' },
             { id: 'scrim-data', label: 'Imbas Keputusan', Icon: currentUser ? Upload : Lock, active: activeTab === 'scrim-data' }
           ];
@@ -7975,17 +7971,6 @@ export default function App() {
                       </div>
                     )}
                     <div className="py-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigateToTab('register');
-                          setIsNavMenuOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-white/5 text-[#D7FF00] transition font-bold cursor-pointer flex items-center gap-2"
-                      >
-                        <Ticket className="w-3.5 h-3.5 shrink-0" />
-                        <span>Portal Tournament</span>
-                      </button>
                       <button
                         type="button"
                         onClick={() => handleOpenGuide(0)}
@@ -12362,61 +12347,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ADMIN WORKSPACE SUB-TABS: SCORER vs REGISTRATION MANAGER */}
-                {activeTab === 'admin' && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 rounded-2xl bg-[#111114] border border-white/[0.06]">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setAdminWorkspaceTab('scorer')}
-                        className={`px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-extrabold transition cursor-pointer ${
-                          adminWorkspaceTab === 'scorer'
-                            ? 'bg-[#D7FF00] text-black'
-                            : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
-                        }`}
-                      >
-                        Scorer &amp; Poster
-                      </button>
-                      {isApprovedPortalAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => setAdminWorkspaceTab('registrations')}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-extrabold transition cursor-pointer ${
-                            adminWorkspaceTab === 'registrations'
-                              ? 'bg-[#D7FF00] text-black'
-                              : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
-                          }`}
-                        >
-                          <Ticket className="w-3.5 h-3.5" />
-                          <span>Registration Manager</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigateToTab('register')}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-xs font-semibold text-zinc-200 transition cursor-pointer"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 text-[#D7FF00]" />
-                      <span>Buka Portal Tournament</span>
-                    </button>
-                  </div>
-                )}
-
-                {activeTab === 'admin' && isApprovedPortalAdmin && adminWorkspaceTab === 'registrations' && (
-                  <RegistrationManagerTab
-                    supabase={supabase}
-                    authorizedScrims={portalAuthorizedScrims}
-                    onAutoSeedSession={handleAutoSeedSession}
-                    showToast={showToast}
-                    currentUser={currentUser}
-                    isMasterAdmin={isMasterAdmin}
-                  />
-                )}
-
                 {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
-                <div id="admin-workspace-grid" className={`${activeTab === 'admin' && isApprovedPortalAdmin && adminWorkspaceTab === 'registrations' ? 'hidden ' : ''}grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20`}>
+                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
                   
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
