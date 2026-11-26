@@ -1493,9 +1493,10 @@ export default function App() {
     try {
       setIsDownloadingAdminPoster(true);
       const dataUrl = await toPng(adminPosterRef.current, {
-        quality: 0.98,
-        pixelRatio: 2,
-        backgroundColor: '#0D0D0D'
+        quality: 0.99,
+        pixelRatio: 3,
+        cacheBust: true,
+        backgroundColor: '#000000'
       });
       const link = document.createElement('a');
       const cleanTitle = (activeAdminScrim.title || 'scrim-hub')
@@ -12322,121 +12323,120 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Esports Visual Poster Card */}
-                    <div
-                      ref={adminPosterRef}
-                      className="bg-[#0D0D0D] text-white rounded-3xl p-4 sm:p-5 shadow-2xl relative font-sans select-none overflow-hidden"
-                      style={{ backgroundColor: '#0D0D0D' }}
-                    >
-                      {/* Poster Header */}
-                      <div className="relative pb-3 mb-3 border-b border-white/10">
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <div className="flex items-center gap-2">
-                            {activeAdminScrim?.logo_url ? (
-                              <img src={activeAdminScrim.logo_url} alt="Logo" className="w-7 h-7 rounded-lg object-cover border border-white/10" />
-                            ) : (
-                              <div className="w-6 h-6 rounded-lg bg-[#D7FF00] flex items-center justify-center text-black font-black text-xs">
-                                {activeAdminScrim?.event_type === 'Tour' ? 'TR' : 'SC'}
-                              </div>
-                            )}
-                            <span className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-[#D7FF00]">
-                              {activeAdminScrim?.event_type === 'Tour' ? 'TOURNAMENT STANDINGS' : 'SCRIM STANDINGS'}
-                            </span>
-                          </div>
+                    {/* Esports Visual Poster Card — 1:1 Square Hierarchy Matching Reference */}
+                    {(() => {
+                      const rawDate = String(activeAdminScrim?.date || '').trim();
+                      let formattedPosterDate = rawDate ? rawDate.toUpperCase() : '';
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+                        const dt = new Date(`${rawDate}T00:00:00`);
+                        if (!isNaN(dt.getTime())) {
+                          const weekday = dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+                          const day = dt.getDate();
+                          const month = dt.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+                          const year = dt.getFullYear();
+                          formattedPosterDate = `${weekday} , ${day} ${month} ${year}`;
+                        }
+                      }
+                      const rawLogo = activeAdminScrim?.logo_url || '';
+                      const hasCustomLogo = Boolean(rawLogo && !rawLogo.includes('images.unsplash.com/photo-1542751371'));
+                      const hostBrandMark = (activeAdminScrim?.host_name || 'SCRIMHUB').trim().toUpperCase();
+                      const isCompactRows = adminLiveStandings.length > 16;
 
-                          <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border bg-[#D7FF00]/15 text-[#D7FF00] border-[#D7FF00]/30">
-                            {adminPosterViewMode === 'overall' ? 'OVERALL RESULTS' : `${inputMap.toUpperCase()} • MATCH ${selectedMatchIdx + 1}`}
-                          </span>
-                        </div>
+                      return (
+                        <div
+                          ref={adminPosterRef}
+                          className="w-full aspect-square bg-black text-white p-2.5 sm:p-3.5 shadow-2xl relative font-sans select-none overflow-hidden"
+                          style={{ backgroundColor: '#000000' }}
+                        >
+                          <div className="w-full h-full border border-white/85 px-3 py-2.5 sm:px-4 sm:py-3.5 flex flex-col justify-between overflow-hidden">
+                            {/* Centered Hero Header */}
+                            <div className="text-center space-y-0.5 shrink-0">
+                              {hasCustomLogo ? (
+                                <img
+                                  src={rawLogo}
+                                  alt={hostBrandMark}
+                                  crossOrigin="anonymous"
+                                  className="h-9 sm:h-11 w-auto max-w-[160px] object-contain mx-auto mb-1"
+                                />
+                              ) : (
+                                <div className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-white leading-none pb-0.5 truncate">
+                                  {hostBrandMark}
+                                </div>
+                              )}
 
-                        <h3 className="text-base sm:text-lg font-black uppercase tracking-wider text-white truncate">
-                          {activeAdminScrim?.title ? `${activeAdminScrim.title.toUpperCase()}` : 'PUBG MOBILE SCRIM'}
-                        </h3>
-                        
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400 mt-1 flex-wrap">
-                          <span className="text-[#D7FF00] font-bold">{activeAdminScrim?.tier || 'Tier 1'}</span>
-                          <span>•</span>
-                          <span>Host: {activeAdminScrim?.host_name || 'Admin'}</span>
-                          {activeAdminScrim?.date && (
-                            <>
-                              <span>•</span>
-                              <span>{activeAdminScrim.date}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                              <h3 className="text-[11px] sm:text-sm font-black uppercase tracking-wider text-[#F5D66B] leading-tight truncate px-1">
+                                {activeAdminScrim?.title ? activeAdminScrim.title.toUpperCase() : 'SCRIM EDITION'}
+                              </h3>
 
-                      {/* Esports Leaderboard Table */}
-                      <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <table className="w-full text-left font-mono text-[11px]">
-                          <thead>
-                            <tr className="text-[9px] uppercase tracking-wider text-zinc-400 border-b border-white/10">
-                              <th className="py-1.5 px-1 w-8 text-center">#</th>
-                              <th className="py-1.5 px-2">TEAM NAME</th>
-                              <th className="py-1.5 px-1 w-8 text-center">M</th>
-                              <th className="py-1.5 px-1 w-10 text-center text-zinc-300">PLACE</th>
-                              <th className="py-1.5 px-1 w-8 text-center">ELIM</th>
-                              <th className="py-1.5 px-2 w-10 text-center font-black text-[#D7FF00]">TOTAL</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {adminLiveStandings.map((row, pos) => {
-                              const isTop1 = pos === 0;
-                              const isTop3 = pos < 3;
-                              const hasWWCD = Number(row.wwcd) > 0;
-                              return (
-                                <tr 
-                                  key={pos} 
-                                  className={'transition ' + (
-                                    isTop1 
-                                      ? 'bg-[#D7FF00]/10 font-bold text-white' 
-                                      : isTop3 
-                                      ? 'bg-zinc-900/60 text-zinc-200' 
-                                      : 'hover:bg-zinc-900/30 text-zinc-300'
-                                  )}
-                                >
-                                  <td className="py-1.5 px-1 text-center font-bold">
-                                    <span className={
-                                      isTop1 
-                                        ? 'text-[#D7FF00] font-black' 
-                                        : pos === 1 
-                                        ? 'text-zinc-300' 
-                                        : pos === 2 
-                                        ? 'text-amber-400' 
-                                        : 'text-zinc-500'
-                                    }>
-                                      {`#${pos + 1}`}
-                                    </span>
-                                  </td>
-                                  <td className="py-1.5 px-2 font-sans font-bold truncate max-w-[130px]">
-                                    <div className="flex items-center gap-1.5 truncate">
-                                      <span className="truncate">{row.teamName}</span>
-                                      {hasWWCD && (
-                                        <span className="text-[8px] bg-amber-400 text-black font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider flex-shrink-0">
-                                          WWCD{row.wwcd > 1 ? ` x${row.wwcd}` : ''}
+                              <p className="text-[8px] sm:text-[9.5px] font-bold uppercase tracking-wider text-white/95 leading-tight truncate px-1">
+                                {adminPosterViewMode === 'match'
+                                  ? `${formattedPosterDate ? `${formattedPosterDate} • ` : ''}MATCH ${selectedMatchIdx + 1} (${(inputMap || 'ERANGEL').toUpperCase()})`
+                                  : (formattedPosterDate || (activeAdminScrim?.event_type === 'Tour' ? 'OFFICIAL TOURNAMENT' : 'OFFICIAL SCRIM'))}
+                              </p>
+                            </div>
+
+                            {/* Centered Leaderboard Standings */}
+                            <div className="my-auto py-1 flex-1 flex flex-col justify-center overflow-hidden">
+                              {adminLiveStandings.length === 0 ? (
+                                <div className="text-center text-[11px] text-zinc-500 font-medium py-6">
+                                  Isi markah untuk jana poster standings 1:1.
+                                </div>
+                              ) : (
+                                <table className="w-full table-fixed border-collapse text-center">
+                                  <thead>
+                                    <tr className="text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider text-white">
+                                      <th className="w-[8%] pb-1 font-black">#</th>
+                                      <th className="w-[44%] pb-1 font-black">TEAM NAME</th>
+                                      <th className="w-[10%] pb-1 font-black">
+                                        <span className="inline-flex items-center justify-center" title="WWCD">
+                                          <svg className="w-3 h-3" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path fill="#EF4444" d="M12 2c1.2 0 2.1.8 2.3 1.9.6-.2 1.3.1 1.6.7.4.7.1 1.5-.6 1.8l-.6.3H9.3l-.6-.3c-.7-.3-1-1.1-.6-1.8.3-.6 1-.9 1.6-.7C9.9 2.8 10.8 2 12 2z" />
+                                            <circle cx="12" cy="13" r="7" fill="#FFFFFF" />
+                                            <polygon points="12,14 15,15.5 12,17" fill="#F59E0B" />
+                                            <circle cx="10.2" cy="11.5" r="1" fill="#111111" />
+                                          </svg>
                                         </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-1.5 px-1 text-center text-zinc-400">{row.matchesPlayed}</td>
-                                  <td className="py-1.5 px-1 text-center font-bold text-zinc-200">{row.placePts}</td>
-                                  <td className="py-1.5 px-1 text-center text-zinc-300">{row.killPts}</td>
-                                  <td className="py-1.5 px-2 text-center font-black text-[#D7FF00] bg-[#D7FF00]/10">
-                                    {row.totalPts}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                      </th>
+                                      <th className="w-[13%] pb-1 font-black">PLACE</th>
+                                      <th className="w-[12%] pb-1 font-black">KILLS</th>
+                                      <th className="w-[13%] pb-1 font-black">TOTAL</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className={isCompactRows ? 'text-[8px] sm:text-[9.5px] leading-tight' : 'text-[9px] sm:text-[10.5px] leading-snug'}>
+                                    {adminLiveStandings.map((row, pos) => {
+                                      const isTop3 = pos < 3;
+                                      const rowColor = isTop3 ? 'text-[#F5D66B]' : 'text-white/95';
+                                      const wwcdVal = Number(row.wwcd) || 0;
+                                      return (
+                                        <tr key={pos} className={`${rowColor} font-bold tabular-nums`}>
+                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{pos + 1}</td>
+                                          <td className={`${isCompactRows ? 'py-[1px]' : 'py-[1.5px]'} px-1 truncate uppercase tracking-tight`}>
+                                            {row.teamName}
+                                          </td>
+                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>
+                                            {wwcdVal > 0 ? wwcdVal : ''}
+                                          </td>
+                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{row.placePts}</td>
+                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{row.killPts}</td>
+                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{row.totalPts}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
 
-                      {/* Poster Footer */}
-                      <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                        <span>TIEBREAK: TOTAL PTS &gt; PLACEMENT PTS &gt; ELIMS &gt; WWCD</span>
-                        <span className="text-[#D7FF00]/80 font-bold">scrim.rykhor.my</span>
-                      </div>
-                    </div>
+                            {/* Centered Gold Footer */}
+                            <div className="text-center pt-1 shrink-0">
+                              <p className="text-[8px] sm:text-[9.5px] font-black uppercase tracking-wide text-[#F5D66B] leading-tight">
+                                CONGRATULATIONS TO ALL THE TEAMS &amp; KEEP GRINDING!
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Primary Poster Action Buttons */}
                     <div className="space-y-2">
