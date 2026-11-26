@@ -1584,7 +1584,19 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
+  const [isPasswordRecoveryModalOpen, setIsPasswordRecoveryModalOpen] = useState(false);
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState('');
+  const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState('');
+  const [showRecoveryPassword, setShowRecoveryPassword] = useState(false);
+  const [isUpdatingRecoveryPassword, setIsUpdatingRecoveryPassword] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [newAccountPassword, setNewAccountPassword] = useState('');
+  const [confirmAccountPassword, setConfirmAccountPassword] = useState('');
+  const [showNewAccountPassword, setShowNewAccountPassword] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   // Master Admin Authorization Check
   const isMasterAdmin = useMemo(() => {
@@ -1816,6 +1828,19 @@ export default function App() {
     }
   }, []);
 
+  const refreshProfilesFromCloud = useCallback(async () => {
+    try {
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*');
+      if (!error && Array.isArray(profileData)) {
+        setProfiles(profileData);
+      }
+    } catch {
+      // Silently ignore transient offline profile sync errors
+    }
+  }, []);
+
   useEffect(() => {
     const channel = supabase
       .channel('public-scrims-live')
@@ -1836,11 +1861,27 @@ export default function App() {
           setAdminSelectedScrimId((prevId) => prevId || row.id);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (!deletedId) return;
+            setProfiles((prev) => prev.filter((p) => p.id !== deletedId));
+            return;
+          }
+          const row = payload.new;
+          if (!row?.id) return;
+          setProfiles((prev) => [row, ...prev.filter((p) => p.id !== row.id)]);
+        }
+      )
       .subscribe();
 
     const onVisibleOrFocused = () => {
       if (document.visibilityState === 'visible') {
         refreshScrimsFromCloud();
+        refreshProfilesFromCloud();
       }
     };
     window.addEventListener('focus', onVisibleOrFocused);
@@ -1851,15 +1892,21 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisibleOrFocused);
       supabase.removeChannel(channel);
     };
-  }, [refreshScrimsFromCloud]);
+  }, [refreshScrimsFromCloud, refreshProfilesFromCloud]);
 
   useEffect(() => {
     if (activeTab === 'records') {
       refreshScrimsFromCloud();
+    } else if (activeTab === 'hosts') {
+      refreshProfilesFromCloud();
     }
-  }, [activeTab, refreshScrimsFromCloud]);
+  }, [activeTab, refreshScrimsFromCloud, refreshProfilesFromCloud]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+      setIsPasswordRecoveryModalOpen(true);
+    }
+
     async function initApp() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -1902,6 +1949,14 @@ export default function App() {
         const u = session?.user || null;
         setCurrentUser(u);
         setIsAuthChecking(false);
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsAuthModalOpen(false);
+          setIsPasswordRecoveryModalOpen(true);
+        } else if (event === 'SIGNED_IN' && u) {
+          setIsAuthModalOpen(false);
+          setIsForgotPasswordMode(false);
+          refreshProfilesFromCloud();
+        }
         if (!u || event === 'SIGNED_OUT') {
           setProfileName('');
           setProfileContact('');
@@ -1914,6 +1969,7 @@ export default function App() {
           setAdminSelectedScrimId('');
           setIsOrgPopoverOpen(false);
           setIsProfileModalOpen(false);
+          setIsChangePasswordOpen(false);
         }
       });
 
@@ -2018,6 +2074,55 @@ export default function App() {
     initApp();
   }, []);
 
+  const handleGoogleAuth = async () => {
+    setIsGoogleAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) {
+        const msg = String(error.message || '');
+        if (/not enabled|unsupported provider/i.test(msg)) {
+          showToast('Google/Gmail OAuth belum diaktifkan di Supabase Auth Dashboard (Providers -> Google).');
+        } else {
+          showToast('Log masuk Google gagal: ' + msg);
+        }
+      }
+    } catch (err) {
+      showToast('Log masuk Google gagal: ' + (err?.message || 'Ralat rangkaian'));
+    } finally {
+      setIsGoogleAuthLoading(false);
+    }
+  };
+
+  const handleUpdateAccountPassword = async ({ nextPassword, confirmPassword, onSuccess, setBusy }) => {
+    if (!nextPassword || nextPassword.length < 8) {
+      showToast('Password baru mestilah sekurang-kurangnya 8 aksara.');
+      return;
+    }
+    if (nextPassword !== confirmPassword) {
+      showToast('Pengesahan password baru tidak sepadan.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: nextPassword });
+      if (error) {
+        showToast('Tukar password gagal: ' + error.message);
+      } else {
+        showToast('Password akaun berjaya dikemaskini!');
+        onSuccess?.();
+      }
+    } catch (err) {
+      showToast('Tukar password gagal: ' + (err?.message || 'Ralat rangkaian'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     const cleanEmail = authEmail.trim().toLowerCase();
@@ -2025,6 +2130,27 @@ export default function App() {
       showToast('Masukkan alamat email yang sah.');
       return;
     }
+
+    if (isForgotPasswordMode) {
+      setAuthLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: window.location.origin
+        });
+        if (error) {
+          showToast('Reset password gagal: ' + error.message);
+        } else {
+          showToast(`Link reset password dihantar ke ${cleanEmail}. Semak Inbox atau Spam.`);
+          setIsForgotPasswordMode(false);
+        }
+      } catch (err) {
+        showToast('Reset password gagal: ' + (err?.message || 'Ralat rangkaian'));
+      } finally {
+        setAuthLoading(false);
+      }
+      return;
+    }
+
     if (isRegisterMode && authPassword.length < 8) {
       showToast('Password mestilah sekurang-kurangnya 8 aksara.');
       return;
@@ -2042,6 +2168,7 @@ export default function App() {
       } else {
         showToast('Akaun siap! Boleh log masuk sekarang.');
         setIsRegisterMode(false);
+        refreshProfilesFromCloud();
         if (data?.user) {
           setCurrentUser(data.user);
           setIsAuthModalOpen(false);
@@ -2063,6 +2190,7 @@ export default function App() {
         showToast('Welcome back, ' + data.user.email);
         setAuthPassword('');
         setIsAuthModalOpen(false);
+        refreshProfilesFromCloud();
         if (data?.user && data?.session) {
           const acc = {
             id: data.user.id,
@@ -5229,6 +5357,18 @@ export default function App() {
   const organizersList = useMemo(() => {
     const map = {};
 
+    profiles.forEach(prof => {
+      if (!prof?.id) return;
+      map[prof.id] = {
+        id: prof.id,
+        name: prof.display_name || 'Host Berdaftar',
+        contact: prof.contact || '',
+        bio: prof.bio || 'Penganjur berdaftar di Scrim Hub.',
+        avatar_url: prof.avatar_url || '',
+        scrims: []
+      };
+    });
+
     scrims.forEach(s => {
       const hostKey = s.created_by || s.host_name || 'Admin';
       if (!map[hostKey]) {
@@ -5245,10 +5385,15 @@ export default function App() {
       map[hostKey].scrims.push(s);
     });
 
-    return Object.values(map).filter(h => 
-      h.name.toLowerCase().includes(searchHostQuery.toLowerCase()) ||
-      h.contact.toLowerCase().includes(searchHostQuery.toLowerCase())
-    );
+    const query = searchHostQuery.toLowerCase().trim();
+    return Object.values(map)
+      .filter(h =>
+        !query ||
+        h.name.toLowerCase().includes(query) ||
+        h.contact.toLowerCase().includes(query) ||
+        h.bio.toLowerCase().includes(query)
+      )
+      .sort((a, b) => (b.scrims.length - a.scrims.length) || a.name.localeCompare(b.name));
   }, [scrims, profiles, searchHostQuery]);
 
   const filteredTeamPerformance = useMemo(() => {
@@ -5988,7 +6133,7 @@ export default function App() {
   };
 
   const renderSignUpLegalNotice = () => {
-    if (!isRegisterMode) return null;
+    if (!isRegisterMode || isForgotPasswordMode) return null;
     const openLegalTab = (e, tab) => {
       e.preventDefault();
       setIsAuthModalOpen(false);
@@ -6014,6 +6159,186 @@ export default function App() {
           Privacy Policy
         </a>
       </p>
+    );
+  };
+
+  const renderAuthPortalBody = ({ idPrefix, headingId, subtitleDefault, footerSlot = null }) => {
+    const titleText = isForgotPasswordMode
+      ? 'Reset Password'
+      : isRegisterMode
+        ? 'Create Host Account'
+        : 'Host Account Portal';
+    const subtitleText = isForgotPasswordMode
+      ? 'Masukkan email Gmail anda untuk terima link reset password.'
+      : isRegisterMode
+        ? 'Perlawanan pertama anda cuma selangkah selepas mendaftar.'
+        : subtitleDefault;
+
+    return (
+      <>
+        <div className="space-y-1.5 text-center">
+          <h2 id={headingId} className="text-xl font-black tracking-tight text-white text-balance">
+            {titleText}
+          </h2>
+          <p className="text-xs text-zinc-400 text-pretty">
+            {subtitleText}
+          </p>
+        </div>
+
+        {!isForgotPasswordMode && (
+          <>
+            <button
+              type="button"
+              onClick={handleGoogleAuth}
+              disabled={isGoogleAuthLoading || authLoading}
+              className="w-full min-h-[48px] px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2.5 active:scale-[0.99] cursor-pointer disabled:opacity-60 shadow-xs"
+            >
+              {isGoogleAuthLoading ? (
+                <>
+                  <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
+                  <span>Menghubung ke Google...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-2H12z" />
+                    <path fill="#34A853" d="M3.6 7.4l3.2 2.3C7.7 7.6 9.7 6 12 6c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 8.3 2.5 5.1 4.5 3.6 7.4z" />
+                    <path fill="#FBBC05" d="M12 21.5c2.6 0 4.8-.9 6.4-2.3l-3-2.5c-.8.6-1.9 1-3.4 1-3.9 0-5.2-2.6-5.5-3.9l-3.2 2.4c1.6 3.1 4.9 5.3 8.7 5.3z" />
+                    <path fill="#4285F4" d="M21.1 12.2c0-.6-.1-1.1-.2-2H12v3.9h5.5c-.3 1.4-1.1 2.4-2.1 3.1l3 2.5c1.8-1.6 2.7-4.1 2.7-7.5z" />
+                  </svg>
+                  <span>{isRegisterMode ? 'Daftar dengan Google (Gmail)' : 'Log Masuk dengan Google (Gmail)'}</span>
+                </>
+              )}
+            </button>
+
+            <div className="relative flex items-center justify-center py-0.5">
+              <div className="w-full border-t border-white/10" />
+              <span className="px-3 text-[10px] font-mono uppercase tracking-wider text-zinc-500 bg-transparent shrink-0">
+                atau guna email
+              </span>
+              <div className="w-full border-t border-white/10" />
+            </div>
+          </>
+        )}
+
+        <form onSubmit={handleAuthSubmit} aria-labelledby={headingId} className="space-y-4">
+          <div>
+            <label htmlFor={`${idPrefix}-email`} className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Email / Gmail
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id={`${idPrefix}-email`}
+                name="email"
+                type="email"
+                required
+                autoComplete="username"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint={isForgotPasswordMode ? 'done' : 'next'}
+                placeholder="nama@gmail.com"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
+              />
+            </div>
+          </div>
+
+          {!isForgotPasswordMode && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor={`${idPrefix}-password`} className="block text-xs font-semibold text-zinc-300">
+                  Password
+                </label>
+                {!isRegisterMode && (
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordMode(true)}
+                    className="text-[11px] font-semibold text-zinc-400 hover:text-[#D7FF00] transition cursor-pointer py-0.5 px-1 rounded focus-visible:outline-2 focus-visible:outline-[#D7FF00]"
+                  >
+                    Lupa password?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id={`${idPrefix}-password`}
+                  name="password"
+                  type={showAuthPassword ? 'text' : 'password'}
+                  required
+                  minLength={isRegisterMode ? 8 : undefined}
+                  autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+                  enterKeyHint="done"
+                  placeholder="••••••••"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-12 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAuthPassword(prev => !prev)}
+                  aria-pressed={showAuthPassword}
+                  aria-label={showAuthPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-[#D7FF00] transition cursor-pointer"
+                >
+                  {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={authLoading}
+            className="w-full min-h-[48px] py-3 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition text-sm flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer disabled:opacity-60"
+          >
+            {authLoading ? (
+              <>
+                <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <span>
+                {isForgotPasswordMode
+                  ? 'Hantar Link Reset Password'
+                  : isRegisterMode
+                    ? 'Create Account'
+                    : 'Sign In'}
+              </span>
+            )}
+          </button>
+
+          {renderSignUpLegalNotice()}
+
+          <div className="text-center pt-0.5 space-y-1">
+            {isForgotPasswordMode ? (
+              <button
+                type="button"
+                onClick={() => setIsForgotPasswordMode(false)}
+                className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
+              >
+                Kembali ke Log Masuk
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPasswordMode(false);
+                  setIsRegisterMode(!isRegisterMode);
+                }}
+                className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
+              >
+                {isRegisterMode ? 'Dah ada akaun? Log Masuk' : 'Belum ada akaun? Daftar sini'}
+              </button>
+            )}
+          </div>
+
+          {footerSlot}
+        </form>
+      </>
     );
   };
 
@@ -10242,12 +10567,17 @@ export default function App() {
           <div className="space-y-4">
             
             <div className="glass-panel rounded-3xl p-4 sm:p-5 space-y-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
-                  <Award className="w-5 h-5 text-[#D7FF00]"/>
-                  <span>Direktori Penganjur</span>
-                </h2>
-                <p className="text-xs text-zinc-400">Senarai host &amp; penganjur berdaftar.</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
+                    <Award className="w-5 h-5 text-[#D7FF00]"/>
+                    <span>Direktori Penganjur</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400">Semua host &amp; akaun penganjur berdaftar.</p>
+                </div>
+                <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-white/[0.06] text-[#D7FF00] shrink-0">
+                  {organizersList.length} Penganjur
+                </span>
               </div>
 
               <div className="relative">
@@ -10320,19 +10650,23 @@ export default function App() {
                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                       Sesi Kejohanan:
                     </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {host.scrims.slice(0, 4).map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => setInspectedScrim(s)}
-                          className="px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/10 text-[11px] font-semibold text-zinc-200 hover:border-[#D7FF00]/40 hover:text-white flex items-center gap-1 transition"
-                        >
-                          <span>{s.title}</span>
-                          <span className="text-[10px] text-zinc-400 font-mono">({s.event_type || 'Scrim'})</span>
-                          <ExternalLink className="w-3 h-3 text-zinc-400"/>
-                        </button>
-                      ))}
-                    </div>
+                    {host.scrims.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {host.scrims.slice(0, 4).map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => setInspectedScrim(s)}
+                            className="px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/10 text-[11px] font-semibold text-zinc-200 hover:border-[#D7FF00]/40 hover:text-white flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <span>{s.title}</span>
+                            <span className="text-[10px] text-zinc-400 font-mono">({s.event_type || 'Scrim'})</span>
+                            <ExternalLink className="w-3 h-3 text-zinc-400"/>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-zinc-500">Belum ada sesi kejohanan lagi.</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -10962,110 +11296,22 @@ export default function App() {
             
             {!currentUser ? (
               <div data-aurora-target={activeTab === 'admin' ? 'admin' : 'scorer'} className="glass-modal rounded-3xl max-w-md mx-auto my-6 sm:my-10 p-6 sm:p-7 space-y-5">
-                <div className="space-y-1.5 text-center">
-                  <h2 id="admin-login-heading" className="text-xl font-black tracking-tight text-white text-balance">
-                    {isRegisterMode ? 'Create Host Account' : 'Host Account Portal'}
-                  </h2>
-                  <p className="text-xs text-zinc-400 text-pretty">
-                    {isRegisterMode
-                      ? 'Perlawanan pertama anda cuma selangkah selepas mendaftar.'
-                      : 'Log masuk untuk urus sesi & save rekod ke Cloud.'}
-                  </p>
-                </div>
-
-                <form onSubmit={handleAuthSubmit} aria-labelledby="admin-login-heading" className="space-y-4">
-                  <div>
-                    <label htmlFor="admin-auth-email" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                      Email
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        id="admin-auth-email"
-                        name="email"
-                        type="email"
-                        required
-                        autoComplete="username"
-                        autoCorrect="off"
-                        autoCapitalize="none"
-                        spellCheck={false}
-                        enterKeyHint="next"
-                        placeholder="host@esports.com"
-                        value={authEmail}
-                        onChange={(e) => setAuthEmail(e.target.value)}
-                        className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="admin-auth-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        id="admin-auth-password"
-                        name="password"
-                        type={showAuthPassword ? 'text' : 'password'}
-                        required
-                        minLength={isRegisterMode ? 8 : undefined}
-                        autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
-                        enterKeyHint="done"
-                        placeholder="••••••••"
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-12 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
-                      />
+                {renderAuthPortalBody({
+                  idPrefix: 'admin-auth',
+                  headingId: 'admin-login-heading',
+                  subtitleDefault: 'Log masuk untuk urus sesi & save rekod ke Cloud.',
+                  footerSlot: (
+                    <div className="pt-3 border-t border-white/10 text-center">
                       <button
                         type="button"
-                        onClick={() => setShowAuthPassword(prev => !prev)}
-                        aria-pressed={showAuthPassword}
-                        aria-label={showAuthPassword ? 'Hide password' : 'Show password'}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-[#D7FF00] transition cursor-pointer"
+                        onClick={() => navigateToTab('scorer')}
+                        className="text-xs text-zinc-400 hover:text-white font-semibold transition cursor-pointer"
                       >
-                        {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        Atau guna Quick Scorer tanpa login →
                       </button>
                     </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full min-h-[48px] py-3 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition text-sm flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer disabled:opacity-60"
-                  >
-                    {authLoading ? (
-                      <>
-                        <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <span>{isRegisterMode ? 'Create Account' : 'Sign In'}</span>
-                    )}
-                  </button>
-
-                  {renderSignUpLegalNotice()}
-
-                  <div className="text-center pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsRegisterMode(!isRegisterMode)}
-                      className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
-                    >
-                      {isRegisterMode ? 'Dah ada akaun? Log Masuk' : 'Belum ada akaun? Daftar sini'}
-                    </button>
-                  </div>
-
-                  <div className="pt-3 border-t border-white/10 text-center">
-                    <button
-                      type="button"
-                      onClick={() => navigateToTab('scorer')}
-                      className="text-xs text-zinc-400 hover:text-white font-semibold transition cursor-pointer"
-                    >
-                      Atau guna Quick Scorer tanpa login →
-                    </button>
-                  </div>
-                </form>
+                  )
+                })}
               </div>
             ) : (
               <div className="space-y-4 sm:space-y-6 pb-28 md:pb-12">
@@ -12177,7 +12423,7 @@ export default function App() {
                   className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-[#D7FF00]"
                 >
                   <option value="ALL" className="bg-zinc-950 text-white">All Hosts</option>
-                  {organizersList.map(h => (
+                  {organizersList.filter(h => h.scrims.length > 0).map(h => (
                     <option key={h.id || h.name} value={h.id || h.name} className="bg-zinc-950 text-white">
                       Host: {h.name}
                     </option>
@@ -12657,17 +12903,6 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="text-center space-y-1.5 pr-6 pl-6">
-              <h2 id="auth-modal-title" className="text-xl font-black tracking-tight text-white text-balance">
-                {isRegisterMode ? 'Create Host Account' : 'Host Account Portal'}
-              </h2>
-              <p className="text-xs text-zinc-400 text-pretty">
-                {isRegisterMode
-                  ? 'Perlawanan pertama anda cuma selangkah selepas mendaftar.'
-                  : 'Log masuk untuk buka dashboard host.'}
-              </p>
-            </div>
-
             {pendingCloudSync && (
               <div className="p-3 bg-[#D7FF00]/10 border border-[#D7FF00]/20 rounded-2xl text-xs text-[#D7FF00] font-semibold flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-[#D7FF00] flex-shrink-0" />
@@ -12675,88 +12910,131 @@ export default function App() {
               </div>
             )}
 
-            <form onSubmit={handleAuthSubmit} aria-labelledby="auth-modal-title" className="space-y-4">
-              <div>
-                <label htmlFor="auth-modal-email" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    id="auth-modal-email"
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="username"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    enterKeyHint="next"
-                    placeholder="host@esports.com"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
-                  />
-                </div>
-              </div>
+            {renderAuthPortalBody({
+              idPrefix: 'auth-modal',
+              headingId: 'auth-modal-title',
+              subtitleDefault: 'Log masuk untuk buka dashboard host.'
+            })}
+          </div>
+        </div>
+      )}
 
+      {/* PASSWORD RECOVERY MODAL (FROM EMAIL RESET LINK) */}
+      {isPasswordRecoveryModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsPasswordRecoveryModalOpen(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-recovery-title"
+            className="glass-modal rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 relative"
+          >
+            <button
+              type="button"
+              onClick={() => setIsPasswordRecoveryModalOpen(false)}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
+              aria-label="Tutup modal reset password"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-1.5 px-6">
+              <div className="w-11 h-11 rounded-2xl bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/25 flex items-center justify-center mx-auto mb-2">
+                <LockKeyhole className="w-5 h-5" />
+              </div>
+              <h2 id="password-recovery-title" className="text-xl font-black tracking-tight text-white">
+                Tetapkan Password Baru
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Masukkan password baru untuk akaun {currentUser?.email || 'anda'} (minimum 8 aksara).
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateAccountPassword({
+                  nextPassword: recoveryNewPassword,
+                  confirmPassword: recoveryConfirmPassword,
+                  setBusy: setIsUpdatingRecoveryPassword,
+                  onSuccess: () => {
+                    setRecoveryNewPassword('');
+                    setRecoveryConfirmPassword('');
+                    setIsPasswordRecoveryModalOpen(false);
+                    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+                      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                    }
+                  }
+                });
+              }}
+              className="space-y-4"
+            >
               <div>
-                <label htmlFor="auth-modal-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  Password
+                <label htmlFor="recovery-new-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Password Baru
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
-                    id="auth-modal-password"
-                    name="password"
-                    type={showAuthPassword ? 'text' : 'password'}
+                    id="recovery-new-password"
+                    type={showRecoveryPassword ? 'text' : 'password'}
                     required
-                    minLength={isRegisterMode ? 8 : undefined}
-                    autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
-                    enterKeyHint="done"
-                    placeholder="••••••••"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-12 py-2.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
+                    minLength={8}
+                    autoComplete="new-password"
+                    placeholder="Minimum 8 aksara"
+                    value={recoveryNewPassword}
+                    onChange={(e) => setRecoveryNewPassword(e.target.value)}
+                    className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-12 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowAuthPassword(prev => !prev)}
-                    aria-pressed={showAuthPassword}
-                    aria-label={showAuthPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-[#D7FF00] transition cursor-pointer"
+                    onClick={() => setShowRecoveryPassword((prev) => !prev)}
+                    aria-label={showRecoveryPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white transition cursor-pointer"
                   >
-                    {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showRecoveryPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="recovery-confirm-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Sahkan Password Baru
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="recovery-confirm-password"
+                    type={showRecoveryPassword ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    placeholder="Taip semula password baru"
+                    value={recoveryConfirmPassword}
+                    onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                    className="w-full min-h-[48px] bg-zinc-900/90 border border-white/15 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#D7FF00] transition"
+                  />
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={authLoading}
+                disabled={isUpdatingRecoveryPassword}
                 className="w-full min-h-[48px] py-3 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
-                {authLoading ? (
+                {isUpdatingRecoveryPassword ? (
                   <>
                     <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
-                    <span>Processing...</span>
+                    <span>Menyimpan...</span>
                   </>
                 ) : (
-                  <span>{isRegisterMode ? 'Create Account' : 'Sign In'}</span>
+                  <span>Simpan Password Baru</span>
                 )}
               </button>
-
-              {renderSignUpLegalNotice()}
-
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsRegisterMode(!isRegisterMode)}
-                  className="text-xs text-[#D7FF00] hover:underline font-semibold cursor-pointer py-1"
-                >
-                  {isRegisterMode ? 'Dah ada akaun? Log Masuk' : 'Belum ada akaun? Daftar sini'}
-                </button>
-              </div>
             </form>
           </div>
         </div>
@@ -13239,6 +13517,122 @@ export default function App() {
                     <span className="text-[10px] font-mono text-sky-400">Akaun Aktif</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: KESELAMATAN & PASSWORD */}
+            <div className="px-5 md:px-6 lg:px-8 mb-6">
+              <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-white tracking-tight">Keselamatan &amp; Password</h4>
+                    <p className="text-[11px] font-mono text-zinc-400 truncate mt-0.5">{currentUser.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePasswordOpen((prev) => !prev)}
+                    className="h-9 px-3 rounded-lg border border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.05] text-xs font-medium text-zinc-200 inline-flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                  >
+                    <LockKeyhole className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <span>{isChangePasswordOpen ? 'Tutup' : 'Tukar Password'}</span>
+                  </button>
+                </div>
+
+                {isChangePasswordOpen && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleUpdateAccountPassword({
+                        nextPassword: newAccountPassword,
+                        confirmPassword: confirmAccountPassword,
+                        setBusy: setIsSavingPassword,
+                        onSuccess: () => {
+                          setNewAccountPassword('');
+                          setConfirmAccountPassword('');
+                          setIsChangePasswordOpen(false);
+                        }
+                      });
+                    }}
+                    className="p-4 sm:p-5 space-y-3.5"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      <div>
+                        <label htmlFor="profile-new-password" className="block text-zinc-400 uppercase font-mono font-medium mb-1.5 text-[10px] tracking-wider">
+                          Password Baru (Min. 8 aksara)
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="profile-new-password"
+                            type={showNewAccountPassword ? 'text' : 'password'}
+                            required
+                            minLength={8}
+                            autoComplete="new-password"
+                            placeholder="••••••••"
+                            value={newAccountPassword}
+                            onChange={(e) => setNewAccountPassword(e.target.value)}
+                            className="w-full min-h-[44px] bg-black/60 border border-white/[0.1] focus:border-[#D7FF00] rounded-xl pl-3.5 pr-11 py-2 text-xs text-white placeholder:text-zinc-500 focus:outline-none transition"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewAccountPassword((prev) => !prev)}
+                            aria-label={showNewAccountPassword ? 'Hide password' : 'Show password'}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white cursor-pointer"
+                          >
+                            {showNewAccountPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="profile-confirm-password" className="block text-zinc-400 uppercase font-mono font-medium mb-1.5 text-[10px] tracking-wider">
+                          Sahkan Password Baru
+                        </label>
+                        <input
+                          id="profile-confirm-password"
+                          type={showNewAccountPassword ? 'text' : 'password'}
+                          required
+                          minLength={8}
+                          autoComplete="new-password"
+                          placeholder="Taip semula password baru"
+                          value={confirmAccountPassword}
+                          onChange={(e) => setConfirmAccountPassword(e.target.value)}
+                          className="w-full min-h-[44px] bg-black/60 border border-white/[0.1] focus:border-[#D7FF00] rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-zinc-500 focus:outline-none transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsChangePasswordOpen(false);
+                          setNewAccountPassword('');
+                          setConfirmAccountPassword('');
+                        }}
+                        className="px-3.5 py-2 rounded-lg border border-white/[0.1] hover:border-white/[0.2] text-zinc-300 font-medium text-xs cursor-pointer transition"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingPassword}
+                        className="px-4 py-2 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black font-semibold text-xs cursor-pointer transition flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                      >
+                        {isSavingPassword ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Menyimpan...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Simpan Password</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
 
