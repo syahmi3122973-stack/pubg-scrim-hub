@@ -12331,6 +12331,20 @@ export default function App() {
                                   type="button"
                                   onClick={() => {
                                     setIsScorerActionsMenuOpen(false);
+                                    navigateToTab('register');
+                                  }}
+                                  className="w-full px-3.5 py-2 text-left text-[#D7FF00] hover:bg-zinc-800/80 flex items-center gap-2 font-bold transition cursor-pointer"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5 text-[#D7FF00]" />
+                                  <span>Portal Tournament</span>
+                                </button>
+                              </div>
+
+                              <div className="py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsScorerActionsMenuOpen(false);
                                     handleDeleteScrim(activeAdminScrim.id);
                                   }}
                                   className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 font-bold transition cursor-pointer"
