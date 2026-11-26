@@ -81,6 +81,121 @@ import {
 const MASTER_ADMIN_EMAIL = (import.meta.env.VITE_MASTER_ADMIN_EMAIL || 'syahmi3122973@gmail.com')
   .trim()
   .toLowerCase();
+
+const GOOGLE_OAUTH_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '1030961819771-ffjmlat1k80e6bu6sds6so8dt25r9k6l.apps.googleusercontent.com';
+
+async function generateGsiNoncePair() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const rawNonce = btoa(String.fromCharCode(...bytes));
+  const encoded = new TextEncoder().encode(rawNonce);
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  const hashedNonce = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return { rawNonce, hashedNonce };
+}
+
+function GoogleIdentityButton({ isRegisterMode, isBusy, disabled, onCredential, onFallbackClick }) {
+  const btnContainerRef = useRef(null);
+  const rawNonceRef = useRef('');
+  const onCredentialRef = useRef(onCredential);
+  const [isGsiRendered, setIsGsiRendered] = useState(false);
+
+  onCredentialRef.current = onCredential;
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !GOOGLE_OAUTH_CLIENT_ID) return;
+    const isProductionOrigin = window.location.hostname === 'scrim.rykhor.my';
+    if (!isProductionOrigin && !import.meta.env.VITE_GOOGLE_CLIENT_ID) return;
+
+    let cancelled = false;
+    let retryTimer = null;
+
+    const mountGsi = async () => {
+      if (cancelled) return;
+      const gsiId = window.google?.accounts?.id;
+      const hostEl = btnContainerRef.current;
+      if (!gsiId || !hostEl) {
+        retryTimer = window.setTimeout(mountGsi, 250);
+        return;
+      }
+
+      try {
+        const { rawNonce, hashedNonce } = await generateGsiNoncePair();
+        if (cancelled || !btnContainerRef.current) return;
+        rawNonceRef.current = rawNonce;
+
+        gsiId.initialize({
+          client_id: GOOGLE_OAUTH_CLIENT_ID,
+          nonce: hashedNonce,
+          use_fedcm_for_prompt: true,
+          callback: (resp) => {
+            if (resp?.credential) {
+              onCredentialRef.current?.(resp.credential, rawNonceRef.current);
+            }
+          }
+        });
+
+        hostEl.innerHTML = '';
+        const targetWidth = Math.max(240, Math.min(380, hostEl.parentElement?.clientWidth || 340));
+        gsiId.renderButton(hostEl, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          shape: 'rectangular',
+          text: isRegisterMode ? 'signup_with' : 'continue_with',
+          logo_alignment: 'center',
+          width: targetWidth
+        });
+        setIsGsiRendered(true);
+      } catch {
+        setIsGsiRendered(false);
+      }
+    };
+
+    mountGsi();
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [isRegisterMode]);
+
+  return (
+    <div className="w-full space-y-2">
+      <div
+        ref={btnContainerRef}
+        className={isGsiRendered && !isBusy ? 'w-full flex justify-center min-h-[44px]' : 'hidden'}
+      />
+      {(!isGsiRendered || isBusy) && (
+        <button
+          type="button"
+          onClick={onFallbackClick}
+          disabled={disabled || isBusy}
+          className="w-full min-h-[48px] px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2.5 active:scale-[0.99] cursor-pointer disabled:opacity-60 shadow-xs"
+        >
+          {isBusy ? (
+            <>
+              <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
+              <span>Menghubung ke Google...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-2H12z" />
+                <path fill="#34A853" d="M3.6 7.4l3.2 2.3C7.7 7.6 9.7 6 12 6c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 8.3 2.5 5.1 4.5 3.6 7.4z" />
+                <path fill="#FBBC05" d="M12 21.5c2.6 0 4.8-.9 6.4-2.3l-3-2.5c-.8.6-1.9 1-3.4 1-3.9 0-5.2-2.6-5.5-3.9l-3.2 2.4c1.6 3.1 4.9 5.3 8.7 5.3z" />
+                <path fill="#4285F4" d="M21.1 12.2c0-.6-.1-1.1-.2-2H12v3.9h5.5c-.3 1.4-1.1 2.4-2.1 3.1l3 2.5c1.8-1.6 2.7-4.1 2.7-7.5z" />
+              </svg>
+              <span>{isRegisterMode ? 'Daftar dengan Google (Gmail)' : 'Log Masuk dengan Google (Gmail)'}</span>
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 import {
   cleanTeamDisplayName,
   getCanonicalTeamKey,
@@ -2073,6 +2188,60 @@ export default function App() {
 
     initApp();
   }, []);
+
+  const persistSignedInSession = async (data) => {
+    if (!data?.user) return;
+    setCurrentUser(data.user);
+    showToast('Welcome back, ' + data.user.email);
+    setAuthPassword('');
+    setIsAuthModalOpen(false);
+    refreshProfilesFromCloud();
+    if (data.session) {
+      const acc = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
+        avatarUrl: data.user.user_metadata?.avatar_url || '',
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        },
+        lastActive: Date.now()
+      };
+      setSavedAccounts(prev => {
+        const filtered = prev.filter(a => a.email.toLowerCase() !== acc.email.toLowerCase());
+        const nextList = [acc, ...filtered];
+        try {
+          localStorage.setItem('pubg_saved_accounts', JSON.stringify(nextList));
+        } catch {}
+        return nextList;
+      });
+    }
+    if (pendingCloudSync) {
+      await syncMatchToCloud(data.user, playgroundSession);
+    }
+  };
+
+  const handleGoogleIdTokenLogin = async (credential, rawNonce) => {
+    if (!credential) return;
+    setIsGoogleAuthLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: credential,
+        nonce: rawNonce
+      });
+      if (error) {
+        showToast('Log masuk Google gagal: ' + error.message);
+      } else {
+        await persistSignedInSession(data);
+      }
+    } catch (err) {
+      showToast('Log masuk Google gagal: ' + (err?.message || 'Ralat rangkaian'));
+    } finally {
+      setIsGoogleAuthLoading(false);
+    }
+  };
 
   const handleGoogleAuth = async () => {
     setIsGoogleAuthLoading(true);
@@ -6187,29 +6356,13 @@ export default function App() {
 
         {!isForgotPasswordMode && (
           <>
-            <button
-              type="button"
-              onClick={handleGoogleAuth}
-              disabled={isGoogleAuthLoading || authLoading}
-              className="w-full min-h-[48px] px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-950 font-bold rounded-xl transition text-sm flex items-center justify-center gap-2.5 active:scale-[0.99] cursor-pointer disabled:opacity-60 shadow-xs"
-            >
-              {isGoogleAuthLoading ? (
-                <>
-                  <progress className="loading-spinner loading-spinner-dark w-4 h-4" aria-hidden="true" />
-                  <span>Menghubung ke Google...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-2H12z" />
-                    <path fill="#34A853" d="M3.6 7.4l3.2 2.3C7.7 7.6 9.7 6 12 6c1.9 0 3.1.8 3.9 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 8.3 2.5 5.1 4.5 3.6 7.4z" />
-                    <path fill="#FBBC05" d="M12 21.5c2.6 0 4.8-.9 6.4-2.3l-3-2.5c-.8.6-1.9 1-3.4 1-3.9 0-5.2-2.6-5.5-3.9l-3.2 2.4c1.6 3.1 4.9 5.3 8.7 5.3z" />
-                    <path fill="#4285F4" d="M21.1 12.2c0-.6-.1-1.1-.2-2H12v3.9h5.5c-.3 1.4-1.1 2.4-2.1 3.1l3 2.5c1.8-1.6 2.7-4.1 2.7-7.5z" />
-                  </svg>
-                  <span>{isRegisterMode ? 'Daftar dengan Google (Gmail)' : 'Log Masuk dengan Google (Gmail)'}</span>
-                </>
-              )}
-            </button>
+            <GoogleIdentityButton
+              isRegisterMode={isRegisterMode}
+              isBusy={isGoogleAuthLoading}
+              disabled={authLoading}
+              onCredential={handleGoogleIdTokenLogin}
+              onFallbackClick={handleGoogleAuth}
+            />
 
             <div className="relative flex items-center justify-center py-0.5">
               <div className="w-full border-t border-white/10" />
