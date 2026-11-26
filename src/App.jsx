@@ -2190,7 +2190,13 @@ export default function App() {
     }
   }, [adminMatchCount, selectedMatchIdx]);
 
-  const handleQuickNewSession = useCallback(() => {
+  const toCloudScrimPayload = (scrim) => {
+    if (!scrim) return scrim;
+    const { is_draft: _omitDraft, ...cloudPayload } = scrim;
+    return cloudPayload;
+  };
+
+  const handleQuickNewSession = useCallback(async () => {
     if (!currentUser) return;
     const hostDisplayName = profileName || (currentUser?.email ? currentUser.email.split('@')[0] : 'Host Admin');
     const sessionNum = adminHostedScrims.length + 1;
@@ -2214,11 +2220,11 @@ export default function App() {
       created_by: currentUser.id,
       co_hosts: [],
       claim_token: generateSecureToken('token_'),
-      is_finished: false,
-      is_draft: true
+      is_finished: false
     };
-    setScrims(prev => [newSession, ...prev]);
+    setScrims(prev => [{ ...newSession, is_draft: true }, ...prev]);
     setAdminSelectedScrimId(newSession.id);
+    setSelectedScrimId(newSession.id);
     setSelectedMatchIdx(0);
     setInputMap('Erangel');
     setMatchSlots(Array.from({ length: 16 }, (_, idx) => ({
@@ -2232,7 +2238,18 @@ export default function App() {
       totalPts: 0,
       wwcd: false
     })));
-    showToast(`Sesi baru "${newSession.title}" dah ready!`);
+
+    try {
+      const { error } = await supabase.from('scrims').insert([newSession]);
+      if (error) {
+        showToast(`Sesi "${newSession.title}" lokal sahaja (Cloud sync gagal: ${error.message})`);
+      } else {
+        setScrims(prev => prev.map(s => (s.id === newSession.id ? newSession : s)));
+        showToast(`Sesi baru "${newSession.title}" siap & sync ke Cloud (Pending)!`);
+      }
+    } catch (err) {
+      showToast(`Sesi "${newSession.title}" lokal sahaja (${err?.message || 'offline'})`);
+    }
   }, [currentUser, profileName, profileContact, adminHostedScrims.length]);
 
   useEffect(() => {
@@ -2706,7 +2723,7 @@ export default function App() {
     showToast(`Match ${nextMatchNo} (${defaultMap}) dah tambah.`);
 
     try {
-      await supabase.from('scrims').upsert(updatedScrim);
+      await supabase.from('scrims').upsert(toCloudScrimPayload(updatedScrim));
     } catch (err) {
       console.error('Error persisting new round:', err);
     }
@@ -2762,7 +2779,7 @@ export default function App() {
     showToast(`Match ${lastMatchIndex + 1} dah padam.`);
 
     try {
-      await supabase.from('scrims').upsert(updatedScrim);
+      await supabase.from('scrims').upsert(toCloudScrimPayload(updatedScrim));
     } catch (err) {
       console.error('Error removing round:', err);
     }
@@ -3100,13 +3117,12 @@ export default function App() {
       ? activeAdminScrim.id
       : 'scrim_' + Date.now();
 
-    const updatedScrim = {
+    const updatedScrim = toCloudScrimPayload({
       ...activeAdminScrim,
       id: targetId,
       matches: existingMatches,
-      total_matches: existingMatches.length,
-      is_draft: false
-    };
+      total_matches: existingMatches.length
+    });
 
     const { error } = await supabase.from('scrims').upsert(updatedScrim);
 
