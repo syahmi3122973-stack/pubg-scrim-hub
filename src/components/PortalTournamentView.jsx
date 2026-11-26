@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Calendar,
   CheckCircle2,
   Clock,
   ExternalLink,
   FileCheck2,
+  Gamepad2,
   ImagePlus,
   Loader2,
   Lock,
@@ -15,6 +17,7 @@ import {
   QrCode,
   Search,
   ShieldCheck,
+  Swords,
   Ticket,
   Trash2,
   Upload,
@@ -59,6 +62,7 @@ export default function PortalTournamentView({
   onTogglePortalRegistration = null
 }) {
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
+  const [registerStep, setRegisterStep] = useState('list'); // 'list' -> 'detail' -> 'form'
   const [isRequestingAccess, setIsRequestingAccess] = useState(false);
 
   useEffect(() => {
@@ -73,9 +77,10 @@ export default function PortalTournamentView({
   const [isPortalFormOpen, setIsPortalFormOpen] = useState(false);
   const [editingPortalScrim, setEditingPortalScrim] = useState(null);
   const [ptTitle, setPtTitle] = useState('');
-  const [ptCategory, setPtCategory] = useState('Night Scrim');
   const [ptTiming, setPtTiming] = useState('');
   const [ptDate, setPtDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [ptTotalMatches, setPtTotalMatches] = useState(5);
+  const [ptRoomType, setPtRoomType] = useState('Squad TPP');
   const [ptEntryFee, setPtEntryFee] = useState('0');
   const [ptMaxSlots, setPtMaxSlots] = useState(16);
   const [ptWhatsappLink, setPtWhatsappLink] = useState('');
@@ -180,9 +185,10 @@ export default function PortalTournamentView({
   const openPortalCreateModal = () => {
     setEditingPortalScrim(null);
     setPtTitle('');
-    setPtCategory('Night Scrim');
     setPtTiming('');
     setPtDate(new Date().toISOString().split('T')[0]);
+    setPtTotalMatches(5);
+    setPtRoomType('Squad TPP');
     setPtEntryFee('0');
     setPtMaxSlots(16);
     setPtWhatsappLink('');
@@ -196,9 +202,10 @@ export default function PortalTournamentView({
     if (!scrim) return;
     setEditingPortalScrim(scrim);
     setPtTitle(scrim.title || '');
-    setPtCategory(scrim.event_category || 'Night Scrim');
     setPtTiming(scrim.session_timing || '');
     setPtDate(scrim.date || new Date().toISOString().split('T')[0]);
+    setPtTotalMatches(Math.min(12, Math.max(1, Number(scrim.total_matches || scrim.matches?.length || 5))));
+    setPtRoomType(scrim.room_type || 'Squad TPP');
     setPtEntryFee(String(scrim.entry_fee ?? 0));
     setPtMaxSlots(Math.min(25, Math.max(2, Number(scrim.max_slots || 16))));
     setPtWhatsappLink(scrim.whatsapp_lobby_link || '');
@@ -228,13 +235,15 @@ export default function PortalTournamentView({
 
       const payload = {
         title: cleanTitle,
-        event_category: ptCategory,
+        event_category: editingPortalScrim?.event_category || 'Night Scrim',
         session_timing: sanitizeTextInput(ptTiming, 40) || null,
         date: ptDate || new Date().toISOString().split('T')[0],
+        total_matches: Math.min(12, Math.max(1, Number.parseInt(ptTotalMatches, 10) || 5)),
+        room_type: sanitizeTextInput(ptRoomType, 40) || 'Squad TPP',
         entry_fee: Number(Math.max(0, Number.parseFloat(ptEntryFee) || 0).toFixed(2)),
         max_slots: Math.min(25, Math.max(2, Number.parseInt(ptMaxSlots, 10) || 16)),
         whatsapp_lobby_link: safeExternalUrl(ptWhatsappLink),
-        description: sanitizeTextInput(ptDesc, 400),
+        description: sanitizeTextInput(ptDesc, 1200),
         qr_image_url: safeMediaUrl(qrUrl),
         portal_enabled: true
       };
@@ -297,16 +306,11 @@ export default function PortalTournamentView({
   );
 
   useEffect(() => {
-    if (filteredSessions.length === 0) {
+    if (selectedSessionId && !openSessions.some((s) => s.id === selectedSessionId)) {
       setSelectedSessionId('');
-      return;
+      setRegisterStep('list');
     }
-    const stillVisible = filteredSessions.some((s) => s.id === selectedSessionId);
-    if (!stillVisible) {
-      const firstOpen = filteredSessions.find((s) => !getSessionSlotMeta(s).isFull) || filteredSessions[0];
-      setSelectedSessionId(firstOpen.id);
-    }
-  }, [filteredSessions, selectedSessionId, getSessionSlotMeta]);
+  }, [openSessions, selectedSessionId]);
 
   const selectedSession = useMemo(
     () => filteredSessions.find((s) => s.id === selectedSessionId) || null,
@@ -554,208 +558,406 @@ export default function PortalTournamentView({
         )}
 
         {portalSection === 'register' && (
-          <>
-            {/* SCRIM HUB Grid Hero Overview (Matches About & Direktori Penganjur) */}
-            <section className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
-                <div className="lg:col-span-8 p-5 sm:p-7 space-y-2.5 min-w-0">
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
-                    <span className="text-[#D7FF00] font-semibold">Portal Tournament</span>
-                    <span className="text-zinc-600">/</span>
-                    <span>Pendaftaran &amp; Resit</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white text-balance">
-                    Daftar Slot Kejohanan <span className="text-[#D7FF00]">SCRIM HUB</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl text-pretty">
-                    Pilih kategori kejohanan, pantau baki slot semasa, imbas QR DuitNow dan muat naik resit dengan pengesahan OCR automatik.
-                  </p>
-                </div>
-
-                <div className="lg:col-span-4 bg-[#050506]/75 p-5 sm:p-6 flex flex-col justify-center">
-                  <div className="grid grid-cols-3 divide-x divide-white/[0.08] border border-white/[0.08] rounded-xl bg-[#0A0A0A] text-center">
-                    <div className="py-2.5 px-1.5">
-                      <span className="text-[10px] font-mono text-zinc-500 block">TERBUKA</span>
-                      <span className="text-sm font-mono font-bold text-[#D7FF00] tabular-nums">{openSessions.length}</span>
-                    </div>
-                    <div className="py-2.5 px-1.5">
-                      <span className="text-[10px] font-mono text-zinc-500 block">MASA</span>
-                      <span className="text-sm font-mono font-bold text-white tabular-nums">
-                        {Math.max(0, availableTimings.length - 1)}
-                      </span>
-                    </div>
-                    <div className="py-2.5 px-1.5">
-                      <span className="text-[10px] font-mono text-zinc-500 block">AKAUN</span>
-                      <span className={`text-xs font-mono font-bold ${currentUser ? 'text-emerald-400' : 'text-amber-300'}`}>
-                        {currentUser ? 'AKTIF' : 'LOGIN'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+          <div className="space-y-5">
+            {/* Step Progress Indicator */}
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => setRegisterStep('list')}
+                  className={`px-2 py-1 rounded-md transition cursor-pointer ${
+                    registerStep === 'list'
+                      ? 'bg-[#D7FF00] text-zinc-950 font-bold'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  1. Pilih Sesi
+                </button>
+                <span className="text-zinc-600">→</span>
+                <button
+                  type="button"
+                  disabled={!selectedSession}
+                  onClick={() => selectedSession && setRegisterStep('detail')}
+                  className={`px-2 py-1 rounded-md transition ${
+                    registerStep === 'detail'
+                      ? 'bg-[#D7FF00] text-zinc-950 font-bold'
+                      : selectedSession
+                        ? 'text-zinc-400 hover:text-white cursor-pointer'
+                        : 'text-zinc-600 cursor-not-allowed'
+                  }`}
+                >
+                  2. Info Sesi
+                </button>
+                <span className="text-zinc-600">→</span>
+                <span
+                  className={`px-2 py-1 rounded-md ${
+                    registerStep === 'form'
+                      ? 'bg-[#D7FF00] text-zinc-950 font-bold'
+                      : 'text-zinc-600'
+                  }`}
+                >
+                  3. Daftar
+                </span>
               </div>
+            </div>
 
-              {currentUser && availableTimings.length > 1 && (
-                <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/85">
-                  {/* Custom Timing Filter Chips derived from admin session settings */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mr-1">
-                      Masa Sesi:
-                    </span>
-                    {availableTimings.map((t) => {
-                      const active = timingFilter === t;
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setTimingFilter(t)}
-                          className={`px-2.5 py-1 min-h-[34px] rounded-lg text-[11px] font-mono font-medium border transition cursor-pointer ${
-                            active
-                              ? 'bg-[#EDEDED] text-zinc-950 border-[#EDEDED] font-bold'
-                              : 'bg-[#09090B] text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* Auth Gate when user is not logged in */}
-            {!currentUser ? (
-              <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/90 overflow-hidden p-5 sm:p-8 space-y-6">
-                <div className="flex items-start gap-3 p-4 rounded-2xl border border-[#D7FF00]/25 bg-[#D7FF00]/[0.05]">
-                  <Lock className="w-5 h-5 text-[#D7FF00] shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <h2 className="text-sm font-bold text-white">Log Masuk Diperlukan Untuk Mendaftar &amp; Muat Naik Resit</h2>
-                    <p className="text-xs text-zinc-400">
-                      Sila daftar akaun atau log masuk terlebih dahulu sebelum memilih sesi, melihat QR bayaran, dan menghantar resit pasukan anda.
-                    </p>
-                  </div>
-                </div>
-                <div className="max-w-md mx-auto">{authGateNode}</div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                {/* Left Column: Open Sessions List */}
-                <div className="lg:col-span-5 space-y-3">
-                  <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 overflow-hidden">
-                    <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between">
-                      <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-300 font-mono">
-                        Pilih Sesi ({filteredSessions.length})
-                      </h2>
-                      <span className="text-[11px] font-mono text-zinc-500">Slot Langsung</span>
-                    </div>
-
-                    {filteredSessions.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-zinc-500">
-                        {openSessions.length === 0
-                          ? 'Belum ada tournament dibuka di Portal Tournament buat masa ini.'
-                          : 'Tiada tournament terbuka sepadan dengan penapis kategori/masa ini.'}
+            {/* STEP 1: PILIH SESI */}
+            {registerStep === 'list' && (
+              <>
+                <section className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+                    <div className="lg:col-span-8 p-5 sm:p-7 space-y-2 min-w-0">
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
+                        <span className="text-[#D7FF00] font-semibold">Langkah 1</span>
+                        <span className="text-zinc-600">/</span>
+                        <span>Pilih Sesi Tournament</span>
                       </div>
-                    ) : (
-                      <div className="divide-y divide-white/[0.08]">
-                        {filteredSessions.map((session) => {
-                          const meta = getSessionSlotMeta(session);
-                          const isSelected = selectedSession?.id === session.id;
-                          const fee = Number(session.entry_fee || 0);
+                      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white text-balance">
+                        Senarai Sesi <span className="text-[#D7FF00]">Portal Tournament</span>
+                      </h1>
+                      <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl text-pretty">
+                        Pilih sesi kejohanan di bawah untuk melihat butiran penuh termasuk jumlah match, jenis room, baki slot, dan peraturan sebelum mendaftar.
+                      </p>
+                    </div>
+
+                    <div className="lg:col-span-4 bg-[#050506]/75 p-5 sm:p-6 flex flex-col justify-center">
+                      <div className="grid grid-cols-2 divide-x divide-white/[0.08] border border-white/[0.08] rounded-xl bg-[#0A0A0A] text-center">
+                        <div className="py-2.5 px-2">
+                          <span className="text-[10px] font-mono text-zinc-500 block">SESI TERBUKA</span>
+                          <span className="text-sm font-mono font-bold text-[#D7FF00] tabular-nums">{openSessions.length}</span>
+                        </div>
+                        <div className="py-2.5 px-2">
+                          <span className="text-[10px] font-mono text-zinc-500 block">AKAUN</span>
+                          <span className={`text-xs font-mono font-bold ${currentUser ? 'text-emerald-400' : 'text-amber-300'}`}>
+                            {currentUser ? 'AKTIF' : 'AWAM'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {availableTimings.length > 1 && (
+                    <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/85">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mr-1">
+                          Masa Sesi:
+                        </span>
+                        {availableTimings.map((t) => {
+                          const active = timingFilter === t;
                           return (
                             <button
-                              key={session.id}
+                              key={t}
                               type="button"
-                              onClick={() => setSelectedSessionId(session.id)}
-                              className={`w-full text-left p-4 transition cursor-pointer block ${
-                                isSelected
-                                  ? 'bg-[#D7FF00]/[0.07] border-l-2 border-l-[#D7FF00]'
-                                  : 'hover:bg-white/[0.02]'
+                              onClick={() => setTimingFilter(t)}
+                              className={`px-2.5 py-1 min-h-[34px] rounded-lg text-[11px] font-mono font-medium border transition cursor-pointer ${
+                                active
+                                  ? 'bg-[#EDEDED] text-zinc-950 border-[#EDEDED] font-bold'
+                                  : 'bg-[#09090B] text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
                               }`}
                             >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 space-y-1">
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    {session.event_category && (
-                                      <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[10px] font-mono font-semibold text-zinc-300">
-                                        {session.event_category}
-                                      </span>
-                                    )}
-                                    {session.session_timing && (
-                                      <span className="px-2 py-0.5 rounded-md bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[10px] font-mono font-bold text-[#D7FF00]">
-                                        {session.session_timing}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <h3 className="text-sm font-bold text-white truncate">{session.title}</h3>
-                                  <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-400">
-                                    <span className="inline-flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      {session.date || '-'}
-                                    </span>
-                                    <span>{fee > 0 ? `RM ${fee.toFixed(2)}` : 'PERCUMA'}</span>
-                                  </div>
-                                </div>
-
-                                <div className="text-right shrink-0">
-                                  <span
-                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold border ${
-                                      meta.isFull
-                                        ? 'bg-red-500/15 text-red-300 border-red-500/35'
-                                        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                                    }`}
-                                  >
-                                    <Users className="w-3 h-3" />
-                                    {meta.isFull ? 'PENUH' : `${meta.remaining}/${meta.maxSlots} Baki`}
-                                  </span>
-                                </div>
-                              </div>
+                              {t}
                             </button>
                           );
                         })}
                       </div>
+                    </div>
+                  )}
+                </section>
+
+                <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 overflow-hidden">
+                  <div className="px-4 sm:px-6 py-3.5 border-b border-white/[0.08] flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-300 font-mono">
+                      Pilih Sesi ({filteredSessions.length})
+                    </h2>
+                    <span className="text-[11px] font-mono text-zinc-500">Tekan sesi untuk info penuh</span>
+                  </div>
+
+                  {filteredSessions.length === 0 ? (
+                    <div className="p-10 text-center text-xs text-zinc-500">
+                      {openSessions.length === 0
+                        ? 'Belum ada tournament dibuka di Portal Tournament buat masa ini.'
+                        : 'Tiada tournament terbuka sepadan dengan penapis masa ini.'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-white/[0.08]">
+                      {filteredSessions.map((session, idx) => {
+                        const meta = getSessionSlotMeta(session);
+                        const fee = Number(session.entry_fee || 0);
+                        const totalMatches = Number(session.total_matches || session.matches?.length || 5);
+                        const isRightCol = idx % 2 === 1;
+                        const isSecondRowPlus = idx >= 2;
+                        return (
+                          <button
+                            key={session.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSessionId(session.id);
+                              setSubmittedRecord(null);
+                              setRegisterStep('detail');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`w-full text-left p-4 sm:p-5 hover:bg-white/[0.03] transition cursor-pointer flex items-center justify-between gap-4 border-white/[0.08] ${
+                              !isRightCol ? 'md:border-r ' : ''
+                            }${isSecondRowPlus ? 'md:border-t' : ''}`}
+                          >
+                            <div className="min-w-0 space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {session.session_timing && (
+                                  <span className="px-2 py-0.5 rounded-md bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[10px] font-mono font-bold text-[#D7FF00]">
+                                    {session.session_timing}
+                                  </span>
+                                )}
+                                <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.08] text-[10px] font-mono text-zinc-300">
+                                  {session.room_type || 'Squad TPP'} · {totalMatches} Match
+                                </span>
+                              </div>
+                              <h3 className="text-sm sm:text-base font-bold text-white truncate">{session.title}</h3>
+                              <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-zinc-400">
+                                <span className="inline-flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {session.date || '-'}
+                                </span>
+                                <span className="text-white font-semibold">
+                                  {fee > 0 ? `RM ${fee.toFixed(2)}` : 'PERCUMA'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 shrink-0">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold border ${
+                                  meta.isFull
+                                    ? 'bg-red-500/15 text-red-300 border-red-500/35'
+                                    : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                }`}
+                              >
+                                <Users className="w-3 h-3" />
+                                {meta.isFull ? 'PENUH' : `${meta.remaining}/${meta.maxSlots}`}
+                              </span>
+                              <ArrowRight className="w-4 h-4 text-zinc-500" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* STEP 2: MAKLUMAT SESI */}
+            {registerStep === 'detail' && selectedSession && (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setRegisterStep('list')}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.08] bg-[#111113] hover:bg-[#17171A] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Kembali ke Senarai Sesi</span>
+                </button>
+
+                <section className="rounded-2xl border border-white/[0.08] vercel-grid-surface overflow-hidden">
+                  <div className="p-5 sm:p-7 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
+                        <span className="text-[#D7FF00] font-semibold">Langkah 2</span>
+                        <span className="text-zinc-600">/</span>
+                        <span>Maklumat Tournament</span>
+                      </div>
+
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
+                          selectedSlotMeta?.isFull
+                            ? 'bg-red-500/15 text-red-300 border-red-500/35'
+                            : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                        }`}
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        {selectedSlotMeta?.isFull
+                          ? 'SLOT PENUH'
+                          : `${selectedSlotMeta?.remaining} / ${selectedSlotMeta?.maxSlots} Slot Tersedia`}
+                      </span>
+                    </div>
+
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                      {selectedSession.title}
+                    </h1>
+                    {selectedSession.host_name && (
+                      <p className="text-xs font-mono text-zinc-400">
+                        Penganjur: <span className="text-zinc-200 font-semibold">{selectedSession.host_name}</span>
+                        {selectedSession.host_contact ? ` · ${selectedSession.host_contact}` : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 6-Field Spec Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-white/[0.08] bg-[#09090B]/90">
+                    <div className="p-4 border-b border-r border-white/[0.08] space-y-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-500 flex items-center gap-1">
+                        <Ticket className="w-3 h-3 text-[#D7FF00]" />
+                        Nama Tournament
+                      </span>
+                      <p className="text-xs sm:text-sm font-bold text-white break-words">{selectedSession.title}</p>
+                    </div>
+
+                    <div className="p-4 border-b sm:border-r border-white/[0.08] space-y-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-[#D7FF00]" />
+                        Masa &amp; Tarikh
+                      </span>
+                      <p className="text-xs sm:text-sm font-mono font-bold text-[#D7FF00]">
+                        {selectedSession.session_timing || 'Akan Diumumkan'}
+                      </p>
+                      <p className="text-[11px] font-mono text-zinc-400">{selectedSession.date || '-'}</p>
+                    </div>
+
+                    <div className="p-4 border-b border-r sm:border-r-0 border-white/[0.08] space-y-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-500 flex items-center gap-1">
+                        <Swords className="w-3 h-3 text-[#D7FF00]" />
+                        Jumlah Match
+                      </span>
+                      <p className="text-xs sm:text-sm font-mono font-bold text-white">
+                        {Number(selectedSession.total_matches || selectedSession.matches?.length || 5)} Match
+                      </p>
+                    </div>
+
+                    <div className="p-4 border-b sm:border-b-0 sm:border-r border-white/[0.08] space-y-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-500 flex items-center gap-1">
+                        <Gamepad2 className="w-3 h-3 text-[#D7FF00]" />
+                        Jenis Room
+                      </span>
+                      <p className="text-xs sm:text-sm font-bold text-white">
+                        {selectedSession.room_type || 'Squad TPP'}
+                      </p>
+                    </div>
+
+                    <div className="p-4 border-r border-white/[0.08] space-y-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-500 flex items-center gap-1">
+                        <Users className="w-3 h-3 text-[#D7FF00]" />
+                        Jumlah Slot
+                      </span>
+                      <p className="text-xs sm:text-sm font-mono font-bold text-white">
+                        {selectedSlotMeta?.maxSlots} Slot
+                        <span className="text-emerald-400 font-normal ml-1.5">
+                          ({selectedSlotMeta?.remaining} baki)
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="p-4 space-y-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-500">Harga</span>
+                      <p className="text-sm sm:text-base font-mono font-extrabold text-[#D7FF00]">
+                        {requiresReceipt ? `RM ${entryFee.toFixed(2)}` : 'PERCUMA'}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Deskripsi Admin */}
+                <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/90 overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-white/[0.08]">
+                    <h2 className="text-xs font-mono uppercase tracking-wider font-bold text-zinc-300">
+                      Deskripsi &amp; Peraturan Tournament
+                    </h2>
+                  </div>
+                  <div className="p-5">
+                    {selectedSession.description ? (
+                      <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                        {selectedSession.description}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-zinc-500 italic">
+                        Tiada catatan tambahan diisi oleh penganjur untuk sesi ini.
+                      </p>
                     )}
                   </div>
                 </div>
 
-                {/* Right Column: QR + Form */}
-                <div className="lg:col-span-7 space-y-4">
-                  {submittedRecord && (
-                    <div className="rounded-2xl border border-[#D7FF00]/40 bg-[#D7FF00]/[0.07] p-4 sm:p-5 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-[#D7FF00] shrink-0 mt-0.5" />
-                        <div className="space-y-1 min-w-0">
-                          <h3 className="text-sm font-extrabold text-white">
-                            Pendaftaran Berjaya Dihantar!
-                          </h3>
-                          <p className="text-xs text-zinc-300">
-                            Pasukan <strong className="text-white">[{submittedRecord.team_tag}] {submittedRecord.team_name}</strong> kini dalam senarai{' '}
-                            <span className="text-amber-300 font-semibold">Pending Verification</span> bagi{' '}
-                            <strong className="text-white">{submittedRecord.sessionTitle}</strong>.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onChangePortalSection('status');
-                          handleStatusLookup();
-                        }}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl bg-[#D7FF00] text-black text-xs font-extrabold cursor-pointer"
-                      >
-                        <Search className="w-3.5 h-3.5" />
-                        <span>Semak Status &amp; Link Lobby</span>
-                      </button>
-                    </div>
-                  )}
+                {/* CTA: Masuk Page Borang Pendaftaran */}
+                <button
+                  type="button"
+                  disabled={selectedSlotMeta?.isFull}
+                  onClick={() => {
+                    setSubmittedRecord(null);
+                    setRegisterStep('form');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-full py-4 px-6 min-h-[52px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.99] text-zinc-950 text-sm font-extrabold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>{selectedSlotMeta?.isFull ? 'Sesi Ini Telah Penuh' : 'Register Sekarang'}</span>
+                  {!selectedSlotMeta?.isFull && <ArrowRight className="w-4 h-4 stroke-[2.5]" />}
+                </button>
+              </div>
+            )}
 
-                  {selectedSession ? (
+            {/* STEP 3: BORANG PENDAFTARAN & BAYARAN */}
+            {registerStep === 'form' && selectedSession && (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setRegisterStep('detail')}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.08] bg-[#111113] hover:bg-[#17171A] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Kembali ke Maklumat Sesi</span>
+                </button>
+
+                {!currentUser ? (
+                  <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/90 overflow-hidden p-5 sm:p-8 space-y-6">
+                    <div className="flex items-start gap-3 p-4 rounded-2xl border border-[#D7FF00]/25 bg-[#D7FF00]/[0.05]">
+                      <Lock className="w-5 h-5 text-[#D7FF00] shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <h2 className="text-sm font-bold text-white">
+                          Log Masuk Diperlukan Untuk Mendaftar ({selectedSession.title})
+                        </h2>
+                        <p className="text-xs text-zinc-400">
+                          Sila daftar akaun atau log masuk terlebih dahulu sebelum mengisi borang pasukan dan memuat naik resit bayaran.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="max-w-md mx-auto">{authGateNode}</div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-w-2xl mx-auto">
+                    {submittedRecord && (
+                      <div className="rounded-2xl border border-[#D7FF00]/40 bg-[#D7FF00]/[0.07] p-4 sm:p-5 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-[#D7FF00] shrink-0 mt-0.5" />
+                          <div className="space-y-1 min-w-0">
+                            <h3 className="text-sm font-extrabold text-white">
+                              Pendaftaran Berjaya Dihantar!
+                            </h3>
+                            <p className="text-xs text-zinc-300">
+                              Pasukan <strong className="text-white">[{submittedRecord.team_tag}] {submittedRecord.team_name}</strong> kini dalam senarai{' '}
+                              <span className="text-amber-300 font-semibold">Pending Verification</span> bagi{' '}
+                              <strong className="text-white">{submittedRecord.sessionTitle}</strong>.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChangePortalSection('status');
+                            handleStatusLookup();
+                          }}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl bg-[#D7FF00] text-black text-xs font-extrabold cursor-pointer"
+                        >
+                          <Search className="w-3.5 h-3.5" />
+                          <span>Semak Status &amp; Link Lobby</span>
+                        </button>
+                      </div>
+                    )}
+
                     <form
                       onSubmit={handleSubmitRegistration}
                       className="rounded-3xl border border-white/[0.08] bg-[#09090B]/90 overflow-hidden"
                     >
                       <div className="px-5 py-4 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <p className="text-[11px] font-mono text-[#D7FF00] uppercase">Borang Pendaftaran Pasukan</p>
+                          <p className="text-[11px] font-mono text-[#D7FF00] uppercase">
+                            Langkah 3 · Borang Pendaftaran
+                          </p>
                           <h2 className="text-base font-extrabold text-white">{selectedSession.title}</h2>
                         </div>
                         <div className="text-right font-mono text-xs">
@@ -943,7 +1145,7 @@ export default function PortalTournamentView({
                         <button
                           type="submit"
                           disabled={isSubmitting || ocrStatus.scanning || selectedSlotMeta?.isFull}
-                          className="w-full py-3.5 px-5 min-h-[48px] rounded-2xl bg-[#D7FF00] hover:bg-[#c8ef00] text-black text-sm font-extrabold transition cursor-pointer disabled:opacity-50"
+                          className="w-full py-3.5 px-5 min-h-[48px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-sm font-extrabold transition cursor-pointer disabled:opacity-50"
                         >
                           {selectedSlotMeta?.isFull
                             ? 'Sesi Ini Telah Penuh'
@@ -953,15 +1155,11 @@ export default function PortalTournamentView({
                         </button>
                       </div>
                     </form>
-                  ) : (
-                    <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 p-8 text-center text-xs text-zinc-400">
-                      Pilih satu sesi terbuka di sebelah kiri untuk memulakan pendaftaran.
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
-          </>
+          </div>
         )}
 
         {portalSection === 'status' && (
@@ -1183,7 +1381,10 @@ export default function PortalTournamentView({
             type="button"
             role="tab"
             aria-selected={portalSection === 'register'}
-            onClick={() => onChangePortalSection('register')}
+            onClick={() => {
+              onChangePortalSection('register');
+              setRegisterStep('list');
+            }}
             className={`flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] rounded-full transition-colors select-none active:scale-95 cursor-pointer ${
               portalSection === 'register'
                 ? 'text-[#D7FF00]'
@@ -1285,17 +1486,16 @@ export default function PortalTournamentView({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
-                    Kategori Acara
+                    Jenis Room
                   </label>
-                  <select
-                    value={ptCategory}
-                    onChange={(e) => setPtCategory(e.target.value)}
-                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-white focus:outline-none"
-                  >
-                    <option value="Night Scrim" className="bg-zinc-950 text-white">Night Scrim</option>
-                    <option value="Mid Scrim" className="bg-zinc-950 text-white">Mid Scrim</option>
-                    <option value="Fast Tour" className="bg-zinc-950 text-white">Fast Tour</option>
-                  </select>
+                  <input
+                    type="text"
+                    maxLength={40}
+                    value={ptRoomType}
+                    onChange={(e) => setPtRoomType(e.target.value)}
+                    placeholder="cth: Squad TPP / Solo FPP"
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                  />
                 </div>
 
                 <div>
@@ -1313,8 +1513,8 @@ export default function PortalTournamentView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5">
-                <div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="col-span-2 sm:col-span-1">
                   <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
                     Tarikh
                   </label>
@@ -1327,7 +1527,20 @@ export default function PortalTournamentView({
                 </div>
                 <div>
                   <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
-                    Yuran (RM)
+                    Jumlah Match
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={ptTotalMatches}
+                    onChange={(e) => setPtTotalMatches(e.target.value)}
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2.5 min-h-[44px] text-sm font-mono text-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                    Harga (RM)
                   </label>
                   <input
                     type="number"
@@ -1340,7 +1553,7 @@ export default function PortalTournamentView({
                 </div>
                 <div>
                   <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
-                    Max Slot
+                    Jumlah Slot
                   </label>
                   <input
                     type="number"
@@ -1411,14 +1624,14 @@ export default function PortalTournamentView({
 
               <div>
                 <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
-                  Penerangan Ringkas (Opsional)
+                  Deskripsi, Peraturan &amp; Jadual Tournament
                 </label>
                 <textarea
-                  rows="2"
-                  maxLength={400}
+                  rows="3"
+                  maxLength={1200}
                   value={ptDesc}
                   onChange={(e) => setPtDesc(e.target.value)}
-                  placeholder="Peraturan ringkas, jadual lobby atau maklumat hadiah..."
+                  placeholder="Isi maklumat lengkap: susunan map, peraturan bilik, masa lobby, hadiah, dll..."
                   className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none"
                 />
               </div>

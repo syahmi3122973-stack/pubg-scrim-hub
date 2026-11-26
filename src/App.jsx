@@ -3731,9 +3731,10 @@ export default function App() {
       return { ok: true };
     }
 
-    const defaultMatches = PLAYGROUND_DEFAULT_MAPS.map((mapName, idx) => ({
+    const requestedMatches = Math.min(12, Math.max(1, Number.parseInt(payload?.total_matches, 10) || 5));
+    const defaultMatches = Array.from({ length: requestedMatches }, (_, idx) => ({
       matchNo: idx + 1,
-      map: mapName,
+      map: PLAYGROUND_DEFAULT_MAPS[idx % PLAYGROUND_DEFAULT_MAPS.length] || 'Erangel',
       results: []
     }));
 
@@ -3741,16 +3742,17 @@ export default function App() {
       id: 'portal_' + Date.now(),
       event_type: 'Tour',
       tier: 'Open Community',
+      room_type: 'Squad TPP',
       host_name: profileName || currentUser.email?.split('@')[0] || 'Host Admin',
       host_contact: profileContact || '',
       logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
-      total_matches: defaultMatches.length,
       matches: defaultMatches,
       created_by: currentUser.id,
       co_hosts: [],
       claim_token: generateSecureToken('token_'),
       is_finished: false,
       ...payload,
+      total_matches: requestedMatches,
       portal_enabled: true
     };
 
