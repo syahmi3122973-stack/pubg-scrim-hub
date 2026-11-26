@@ -2818,6 +2818,7 @@ export default function App() {
   const [editDesc, setEditDesc] = useState('');
   const [editContact, setEditContact] = useState('');
   const [editLogoFile, setEditLogoFile] = useState(null);
+  const [editRemoveLogo, setEditRemoveLogo] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -2975,6 +2976,7 @@ export default function App() {
     setEditDesc(targetScrim.description || '');
     setEditContact(targetScrim.host_contact || '');
     setEditLogoFile(null);
+    setEditRemoveLogo(false);
     setIsEditScrimModalOpen(true);
   };
 
@@ -2992,6 +2994,8 @@ export default function App() {
 
       if (editLogoFile) {
         updatedLogoUrl = await uploadMediaToSupabase(editLogoFile, 'logos');
+      } else if (editRemoveLogo) {
+        updatedLogoUrl = '';
       }
 
       const updatedData = {
@@ -14838,17 +14842,79 @@ export default function App() {
                 </div>
 
                 <div>
-                  <span className="block text-zinc-400 uppercase font-bold mb-1">Change Event Logo (Optional)</span>
-                  <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 min-h-[44px] text-zinc-300 cursor-pointer transition">
-                    <Upload className="w-4 h-4 text-[#D7FF00]"/>
-                    <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setEditLogoFile(e.target.files[0] || null)}
-                      className="hidden"
-                    />
-                  </label>
+                  <span className="block text-zinc-400 uppercase font-bold mb-1">Event / Poster Logo (Optional)</span>
+                  {(() => {
+                    const editingLogoUrl = (editTargetScrim || activeAdminScrim)?.logo_url || '';
+                    const hasCustomCurrentLogo = Boolean(
+                      editingLogoUrl && !editingLogoUrl.includes('images.unsplash.com/photo-1542751371')
+                    );
+                    const hasActiveLogo = Boolean(editLogoFile) || (hasCustomCurrentLogo && !editRemoveLogo);
+
+                    return (
+                      <div className="space-y-2">
+                        {hasActiveLogo && (
+                          <div className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-zinc-900/70 border border-white/10">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {!editLogoFile && hasCustomCurrentLogo ? (
+                                <img
+                                  src={editingLogoUrl}
+                                  alt="Event logo"
+                                  className="w-8 h-8 rounded-lg object-cover border border-white/10 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-[#D7FF00]/15 border border-[#D7FF00]/30 flex items-center justify-center shrink-0">
+                                  <ImageIcon className="w-4 h-4 text-[#D7FF00]" />
+                                </div>
+                              )}
+                              <span className="text-[11px] font-medium text-zinc-200 truncate">
+                                {editLogoFile ? editLogoFile.name : 'Logo poster aktif'}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditLogoFile(null);
+                                setEditRemoveLogo(true);
+                              }}
+                              className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-[11px] font-bold inline-flex items-center gap-1 transition cursor-pointer shrink-0 active:scale-95"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Padam Logo</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {editRemoveLogo && !editLogoFile && (
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-400/25 text-[11px] text-amber-300">
+                            <span>Logo akan dipadam selepas klik Save (guna teks nama host di poster).</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditRemoveLogo(false)}
+                              className="font-bold underline hover:text-amber-200 shrink-0 cursor-pointer"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        )}
+
+                        <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 min-h-[44px] text-zinc-300 cursor-pointer transition">
+                          <Upload className="w-4 h-4 text-[#D7FF00]"/>
+                          <span className="truncate">{editLogoFile ? editLogoFile.name : 'Choose new event logo image'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const picked = e.target.files[0] || null;
+                              setEditLogoFile(picked);
+                              if (picked) setEditRemoveLogo(false);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div>
