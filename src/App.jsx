@@ -10874,118 +10874,222 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 3: HOST DIRECTORY */}
-        {activeTab === 'hosts' && (
-          <div className="space-y-4">
-            
-            <div className="glass-panel rounded-3xl p-4 sm:p-5 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
-                    <Award className="w-5 h-5 text-[#D7FF00]"/>
-                    <span>Direktori Penganjur</span>
-                  </h2>
-                  <p className="text-xs text-zinc-400">Semua host &amp; akaun penganjur berdaftar.</p>
-                </div>
-                <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-white/[0.06] text-[#D7FF00] shrink-0">
-                  {organizersList.length} Penganjur
-                </span>
-              </div>
+        {/* VIEW 3: HOST DIRECTORY (Vercel / Team Matrix & About Hairline Grid) */}
+        {activeTab === 'hosts' && (() => {
+          const totalHostedSessions = organizersList.reduce((acc, h) => acc + h.scrims.length, 0);
+          const activeHostCount = organizersList.filter((h) => h.scrims.length > 0).length;
 
-              <div className="relative">
-                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3"/>
-                <input
-                  type="search"
-                  enterKeyHint="search"
-                  placeholder="Cari nama host..."
-                  value={searchHostQuery}
-                  onChange={(e) => setSearchHostQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  className="w-full glass-tile rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D7FF00]/50 placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden"
-                />
-              </div>
-            </div>
+          return (
+            <div className="max-w-5xl mx-auto space-y-5 sm:space-y-6 pt-1 pb-28 md:pb-12">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {organizersList.map((host, idx) => (
-                <div key={idx} data-aurora-target={idx === 0 ? 'hosts' : undefined} className="glass-panel glass-panel-hover rounded-3xl p-5 space-y-3 flex flex-col justify-between transition">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-3">
-                        {host.avatar_url ? (
-                          <img 
-                            src={host.avatar_url} 
-                            alt={host.name} 
-                            className="w-12 h-12 rounded-2xl object-cover bg-[#19191E]"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-[#D7FF00] text-black font-black flex items-center justify-center text-base">
-                            {host.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-
-                        <div>
-                          <h3 className="font-black text-base text-white">{host.name}</h3>
-                          <span className="text-[10px] bg-[#1F240D] text-[#D7FF00] px-2 py-0.5 rounded-full font-mono font-bold">
-                            {host.scrims.length} Sesi
-                          </span>
-                        </div>
-                      </div>
-
-                      {(() => {
-                        const safeHostHref = buildSafeContactUrl(host.contact);
-                        return safeHostHref ? (
-                          <a
-                            href={safeHostHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1.5 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-xl text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(215, 255, 0,0.18)] active:scale-95"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5"/>
-                            <span>Mesej</span>
-                          </a>
-                        ) : null;
-                      })()}
+              {/* 1. ABOUT-STYLE GRID HERO HEADER + INTEGRATED SEARCH */}
+              <div className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
+                <div className="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div className="space-y-2.5 min-w-0">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
+                      <span className="text-[#D7FF00] font-semibold">Directory</span>
+                      <span className="text-zinc-600">/</span>
+                      <span>Penganjur Berdaftar</span>
                     </div>
 
-                    <p className="text-xs text-zinc-200 leading-relaxed bg-zinc-950/60 p-2.5 rounded-xl text-pretty">
-                      {host.bio}
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                      <span>Direktori Penganjur</span>
+                    </h1>
+
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl text-pretty">
+                      Semua akaun host, penganjur scrim &amp; kejohanan berdaftar di SCRIM HUB.
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-white/10 space-y-1.5">
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Sesi Kejohanan:
+                  {/* Team Matrix Monospace Counter Strip */}
+                  <div className="flex items-center gap-4 sm:gap-5 text-xs font-mono tabular-nums text-zinc-300 shrink-0 pt-1 sm:pt-0">
+                    <span>
+                      <strong className="text-[#D7FF00] font-bold">{organizersList.length}</strong> Penganjur
                     </span>
-                    {host.scrims.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {host.scrims.slice(0, 4).map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => setInspectedScrim(s)}
-                            className="px-2.5 py-1 rounded-lg bg-zinc-950/60 border border-white/10 text-[11px] font-semibold text-zinc-200 hover:border-[#D7FF00]/40 hover:text-white flex items-center gap-1 transition cursor-pointer"
-                          >
-                            <span>{s.title}</span>
-                            <span className="text-[10px] text-zinc-400 font-mono">({s.event_type || 'Scrim'})</span>
-                            <ExternalLink className="w-3 h-3 text-zinc-400"/>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-zinc-500">Belum ada sesi kejohanan lagi.</p>
+                    <span>
+                      <strong className="text-white font-bold">{activeHostCount}</strong> Aktif
+                    </span>
+                    <span>
+                      <strong className="text-white font-bold">{totalHostedSessions}</strong> Sesi
+                    </span>
+                  </div>
+                </div>
+
+                {/* Hairline Divided Search Row */}
+                <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/80 flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="search"
+                      enterKeyHint="search"
+                      placeholder="Cari nama host, bio atau contact..."
+                      value={searchHostQuery}
+                      onChange={(e) => setSearchHostQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      className="w-full bg-black/60 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl pl-9 pr-9 py-2 min-h-[40px] text-xs text-white placeholder:text-zinc-500 focus:outline-none transition [&::-webkit-search-cancel-button]:hidden"
+                    />
+                    {searchHostQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchHostQuery('')}
+                        aria-label="Clear carian penganjur"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-          </div>
-        )}
+              {/* 2. TEAM MATRIX STYLE HAIRLINE HOST DIRECTORY PANEL */}
+              <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                <div className="px-4 sm:px-6 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xs sm:text-sm font-semibold text-white tracking-tight">
+                      Senarai Host &amp; Akaun
+                    </h2>
+                    <span className="text-[11px] font-mono tabular-nums text-zinc-500">
+                      {organizersList.length} akaun
+                    </span>
+                  </div>
+                  <span className="hidden sm:inline text-[11px] font-mono text-zinc-500">
+                    Profil · Sesi Terkini
+                  </span>
+                </div>
+
+                {organizersList.length === 0 ? (
+                  <div className="min-h-[240px] flex flex-col items-center justify-center py-12 px-4 text-center space-y-3">
+                    <Award className="w-7 h-7 text-zinc-600 mx-auto" />
+                    <div className="space-y-1 max-w-xs">
+                      <p className="text-xs sm:text-sm font-semibold text-white">
+                        {searchHostQuery.trim()
+                          ? `Tiada penganjur padan dengan "${searchHostQuery.trim()}"`
+                          : 'Belum ada penganjur berdaftar lagi'}
+                      </p>
+                      <p className="text-[11px] text-zinc-400">
+                        {searchHostQuery.trim()
+                          ? 'Cuba cari nama atau contact lain.'
+                          : 'Akaun baru yang mendaftar akan automatik dipaparkan di sini.'}
+                      </p>
+                    </div>
+                    {searchHostQuery.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchHostQuery('')}
+                        className="px-3.5 py-1.5 rounded-lg border border-white/[0.12] hover:border-white/[0.25] text-xs font-medium text-zinc-200 hover:bg-white/[0.04] transition cursor-pointer"
+                      >
+                        Reset Carian
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y divide-white/[0.06] md:divide-y-0">
+                    {organizersList.map((host, idx) => {
+                      const safeHostHref = buildSafeContactUrl(host.contact);
+                      const isRightCol = idx % 2 === 1;
+                      const isSecondRowPlus = idx >= 2;
+
+                      return (
+                        <div
+                          key={host.id || `${host.name}_${idx}`}
+                          data-aurora-target={idx === 0 ? 'hosts' : undefined}
+                          className={
+                            'p-4 sm:p-5 flex flex-col justify-between gap-3.5 hover:bg-white/[0.025] transition-colors border-white/[0.06] ' +
+                            (!isRightCol ? 'md:border-r ' : '') +
+                            (isSecondRowPlus ? 'md:border-t' : '')
+                          }
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {host.avatar_url ? (
+                                  <img
+                                    src={host.avatar_url}
+                                    alt={host.name}
+                                    className="w-11 h-11 rounded-xl object-cover border border-white/[0.1] bg-[#141418] shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-11 h-11 rounded-xl border border-white/[0.1] bg-[#141418] text-[#D7FF00] font-mono font-bold flex items-center justify-center text-sm shrink-0">
+                                    {host.name.slice(0, 2).toUpperCase()}
+                                  </div>
+                                )}
+
+                                <div className="min-w-0">
+                                  <h3 className="font-bold text-sm text-white truncate">
+                                    {host.name}
+                                  </h3>
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[11px] font-mono">
+                                    <span className={`inline-flex items-center gap-1.5 ${host.scrims.length > 0 ? 'text-[#D7FF00]' : 'text-zinc-400'}`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${host.scrims.length > 0 ? 'bg-[#D7FF00]' : 'bg-zinc-500'}`} />
+                                      <span>{host.scrims.length} Sesi</span>
+                                    </span>
+                                    {host.contact && (
+                                      <>
+                                        <span className="text-zinc-700">·</span>
+                                        <span className="text-zinc-400 truncate max-w-[130px]">{host.contact}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {safeHostHref && (
+                                <a
+                                  href={safeHostHref}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="min-h-[36px] px-3 py-1.5 bg-[#D7FF00] hover:bg-[#e5ff47] text-black font-bold rounded-lg text-xs inline-flex items-center gap-1.5 active:scale-95 transition shrink-0"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span>Mesej</span>
+                                </a>
+                              )}
+                            </div>
+
+                            <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2 text-pretty">
+                              {host.bio}
+                            </p>
+                          </div>
+
+                          <div className="pt-2.5 border-t border-white/[0.06] space-y-1.5">
+                            <span className="text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider block">
+                              Sesi Kejohanan
+                            </span>
+                            {host.scrims.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {host.scrims.slice(0, 4).map((s) => (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    onClick={() => setInspectedScrim(s)}
+                                    className="px-2.5 py-1 rounded-md bg-black/50 border border-white/[0.08] text-[11px] font-medium text-zinc-200 hover:border-[#D7FF00]/45 hover:text-white inline-flex items-center gap-1.5 transition cursor-pointer"
+                                  >
+                                    <span className="truncate max-w-[140px]">{s.title}</span>
+                                    <span className="text-[10px] text-zinc-500 font-mono">{s.event_type === 'Tour' ? 'TR' : 'SC'}</span>
+                                    <ExternalLink className="w-3 h-3 text-zinc-500 shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[11px] font-mono text-zinc-500">Belum ada sesi kejohanan lagi.</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          );
+        })()}
 
         {/* VIEW 4: SHOWCASE */}
         {activeTab === 'showcase' && (
