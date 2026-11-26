@@ -13676,28 +13676,28 @@ export default function App() {
               </div>
             )}
 
-            {/* SECTION 1: SESI DIANJURKAN (Vercel Hairline List Panel — Zero Card-in-Card) */}
-            <div className="px-5 md:px-6 lg:px-8 mb-6">
-              <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
-                <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3">
+            {/* SECTION 1: SESI DIANJURKAN (Compact — 3 Latest Scrims) */}
+            <div className="px-5 md:px-6 lg:px-8 mb-4">
+              <div className="rounded-2xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
+                <div className="px-3.5 sm:px-4 py-2.5 border-b border-white/[0.08] flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <h4 className="text-sm font-semibold text-white tracking-tight">Sesi Dianjurkan</h4>
-                    <span className="text-[11px] font-mono tabular-nums text-zinc-500">
-                      {adminHostedScrims.length}
+                    <h4 className="text-xs sm:text-sm font-semibold text-white tracking-tight">Sesi Dianjurkan</h4>
+                    <span className="text-[10px] font-mono tabular-nums text-zinc-500">
+                      {adminHostedScrims.length > 3 ? `3 / ${adminHostedScrims.length}` : adminHostedScrims.length}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
                         setIsProfileModalOpen(false);
                         navigateToTab('history');
                       }}
-                      className="h-8 px-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] hover:bg-white/[0.04] text-[11px] font-medium text-zinc-300 hover:text-white inline-flex items-center gap-1 transition cursor-pointer"
+                      className="h-7 px-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] hover:bg-white/[0.04] text-[11px] font-medium text-zinc-300 hover:text-white inline-flex items-center gap-1 transition cursor-pointer"
                     >
                       <span>Semua</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <ChevronRight className="w-3 h-3" />
                     </button>
                     <button
                       type="button"
@@ -13705,9 +13705,9 @@ export default function App() {
                         setIsProfileModalOpen(false);
                         handleQuickNewSession();
                       }}
-                      className="h-8 px-2.5 rounded-lg border border-[#D7FF00]/30 hover:border-[#D7FF00]/60 bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.12] text-[11px] font-medium text-[#D7FF00] inline-flex items-center gap-1 transition cursor-pointer"
+                      className="h-7 px-2.5 rounded-lg border border-[#D7FF00]/30 hover:border-[#D7FF00]/60 bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.12] text-[11px] font-medium text-[#D7FF00] inline-flex items-center gap-1 transition cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3 h-3" />
                       <span>Sesi Baru</span>
                     </button>
                   </div>
@@ -13715,7 +13715,7 @@ export default function App() {
 
                 {adminHostedScrims.length > 0 ? (
                   <div className="divide-y divide-white/[0.06]">
-                    {adminHostedScrims.map((s) => (
+                    {adminHostedScrims.slice(0, 3).map((s) => (
                       <div
                         key={s.id}
                         role="button"
@@ -13733,40 +13733,40 @@ export default function App() {
                             navigateToTab('admin');
                           }
                         }}
-                        className="px-4 sm:px-5 py-3 hover:bg-white/[0.03] active:bg-white/[0.05] flex items-center justify-between gap-3 transition-colors cursor-pointer group"
+                        className="px-3.5 sm:px-4 py-2 min-h-[44px] hover:bg-white/[0.03] active:bg-white/[0.05] flex items-center justify-between gap-2.5 transition-colors cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           {s.poster_url ? (
-                            <img src={s.poster_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                            <img src={s.poster_url} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" />
                           ) : (
-                            <span className="w-8 h-8 rounded-md border border-white/[0.08] font-mono font-bold text-[10px] text-[#D7FF00] flex items-center justify-center shrink-0">
+                            <span className="w-7 h-7 rounded-md border border-white/[0.08] font-mono font-bold text-[10px] text-[#D7FF00] flex items-center justify-center shrink-0">
                               {s.event_type === 'Tour' ? 'TR' : 'SC'}
                             </span>
                           )}
                           <div className="min-w-0">
-                            <h5 className="text-[13px] font-semibold text-white truncate group-hover:text-[#D7FF00] transition-colors">
+                            <h5 className="text-xs font-semibold text-white truncate group-hover:text-[#D7FF00] transition-colors leading-tight">
                               {s.title || 'Official Scrim'}
                             </h5>
-                            <span className="text-[11px] text-zinc-500 font-mono block">
-                              {s.matches_count || 4} Match · Skuad
+                            <span className="text-[10px] text-zinc-500 font-mono block leading-tight mt-0.5">
+                              {s.total_matches || s.matches?.length || 4} Match{s.date ? ` · ${s.date}` : ''}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5 shrink-0">
-                          <span className={`inline-flex items-center gap-1.5 text-[11px] font-mono font-medium ${
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-medium ${
                             s.is_finished ? 'text-emerald-400' : 'text-amber-300'
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${s.is_finished ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                             <span>{s.is_finished ? 'Selesai' : 'Live'}</span>
                           </span>
-                          <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition" />
+                          <ChevronRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-300 transition" />
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="py-10 px-4 text-center text-xs text-zinc-500">
+                  <div className="py-5 px-4 text-center text-xs text-zinc-500">
                     Belum ada sesi dianjurkan lagi.
                   </div>
                 )}
