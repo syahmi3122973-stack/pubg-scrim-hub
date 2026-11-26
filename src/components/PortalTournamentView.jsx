@@ -167,7 +167,7 @@ export default function PortalTournamentView({
         .select('id, scrim_id, team_name, team_tag, captain_whatsapp, status, assigned_slot, created_at')
         .eq('registered_by', currentUser.id)
         .order('created_at', { ascending: false })
-        .limit(15);
+        .limit(50);
       if (!error && Array.isArray(data)) {
         setMyRegistrations(data);
       }
@@ -177,10 +177,22 @@ export default function PortalTournamentView({
   }, [supabase, currentUser]);
 
   useEffect(() => {
-    if (portalSection === 'status' && currentUser?.id) {
+    if (currentUser?.id && (portalSection === 'register' || portalSection === 'status')) {
       fetchMyRegistrations();
+    } else if (!currentUser?.id) {
+      setMyRegistrations([]);
     }
   }, [portalSection, currentUser, fetchMyRegistrations]);
+
+  const activeRegistrationByScrim = useMemo(() => {
+    const map = new Map();
+    for (const reg of myRegistrations) {
+      if (reg?.scrim_id && reg.status !== 'rejected' && !map.has(reg.scrim_id)) {
+        map.set(reg.scrim_id, reg);
+      }
+    }
+    return map;
+  }, [myRegistrations]);
 
   // STRICT ISOLATION: ONLY tournaments opened inside Portal Tournament (portal_enabled === true)
   const openSessions = useMemo(() => {
@@ -330,6 +342,11 @@ export default function PortalTournamentView({
     [selectedSession, getSessionSlotMeta]
   );
 
+  const activeUserRegForSession = useMemo(
+    () => (selectedSession ? activeRegistrationByScrim.get(selectedSession.id) || null : null),
+    [selectedSession, activeRegistrationByScrim]
+  );
+
   const entryFee = Number(selectedSession?.entry_fee || 0);
   const requiresReceipt = entryFee > 0;
   const sessionQrUrl = safeMediaUrl(selectedSession?.qr_image_url);
@@ -395,6 +412,10 @@ export default function PortalTournamentView({
   const handleSubmitRegistration = async (e) => {
     e.preventDefault();
     if (!currentUser || !selectedSession || isSubmitting) return;
+    if (activeUserRegForSession) {
+      showToast?.('Team anda sudah berdaftar untuk sesi ini.');
+      return;
+    }
     if (selectedSlotMeta?.isFull) {
       showToast?.('Sesi ini sudah penuh.');
       return;
@@ -424,6 +445,23 @@ export default function PortalTournamentView({
 
     setIsSubmitting(true);
     try {
+      // Prevent duplicate registration for the same WhatsApp number on the same session
+      try {
+        const { data: existingRows } = await supabase.rpc('check_registration_status', {
+          p_whatsapp: cleanWhatsapp
+        });
+        const dupInSession = Array.isArray(existingRows)
+          ? existingRows.find((r) => r.scrim_id === selectedSession.id && r.status !== 'rejected')
+          : null;
+        if (dupInSession) {
+          await fetchMyRegistrations();
+          showToast?.('Team anda sudah berdaftar untuk sesi ini.');
+          return;
+        }
+      } catch {
+        // Proceed if RPC check fails transiently
+      }
+
       let uploadedReceiptUrl = null;
       let driveArchiveUrl = null;
       if (receiptFile) {
@@ -524,7 +562,7 @@ export default function PortalTournamentView({
         isDuplicateRef: false,
         error: ''
       });
-      await fetchSlotCounts();
+      await Promise.all([fetchSlotCounts(), fetchMyRegistrations()]);
       showToast?.('Pendaftaran berjaya dihantar! Menunggu pengesahan admin.');
     } catch (err) {
       showToast?.(`Pendaftaran gagal: ${err?.message || 'ralat'}`);
@@ -787,7 +825,13 @@ export default function PortalTournamentView({
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                              {activeRegistrationByScrim.has(session.id) && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono font-bold bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/35">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Berdaftar
+                                </span>
+                              )}
                               <span
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold border ${
                                   meta.isFull
@@ -951,16 +995,30 @@ export default function PortalTournamentView({
                 {/* CTA: Masuk Page Borang Pendaftaran */}
                 <button
                   type="button"
-                  disabled={selectedSlotMeta?.isFull}
+                  disabled={Boolean(activeUserRegForSession) || selectedSlotMeta?.isFull}
                   onClick={() => {
+                    if (activeUserRegForSession) return;
                     setSubmittedRecord(null);
                     setRegisterStep('form');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="w-full py-4 px-6 mb-4 min-h-[52px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.99] text-zinc-950 text-sm font-extrabold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full py-4 px-6 mb-4 min-h-[52px] rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition ${
+                    activeUserRegForSession
+                      ? 'border border-emerald-500/35 bg-emerald-500/15 text-emerald-300 cursor-not-allowed'
+                      : 'bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.99] text-zinc-950 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                  }`}
                 >
-                  <span>{selectedSlotMeta?.isFull ? 'Sesi Ini Telah Penuh' : 'Register Sekarang'}</span>
-                  {!selectedSlotMeta?.isFull && <ArrowRight className="w-4 h-4 stroke-[2.5]" />}
+                  {activeUserRegForSession ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Team anda sudah berdaftar</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{selectedSlotMeta?.isFull ? 'Sesi Ini Telah Penuh' : 'Register Sekarang'}</span>
+                      {!selectedSlotMeta?.isFull && <ArrowRight className="w-4 h-4 stroke-[2.5]" />}
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -1232,14 +1290,21 @@ export default function PortalTournamentView({
 
                         <button
                           type="submit"
-                          disabled={isSubmitting || ocrStatus.scanning || selectedSlotMeta?.isFull}
-                          className="w-full py-3.5 px-5 min-h-[48px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-sm font-extrabold transition cursor-pointer disabled:opacity-50"
+                          disabled={
+                            isSubmitting ||
+                            ocrStatus.scanning ||
+                            selectedSlotMeta?.isFull ||
+                            Boolean(activeUserRegForSession)
+                          }
+                          className="w-full py-3.5 px-5 min-h-[48px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-sm font-extrabold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {selectedSlotMeta?.isFull
-                            ? 'Sesi Ini Telah Penuh'
-                            : isSubmitting
-                              ? 'Menghantar Pendaftaran...'
-                              : 'Hantar Pendaftaran Pasukan'}
+                          {activeUserRegForSession
+                            ? 'Team anda sudah berdaftar'
+                            : selectedSlotMeta?.isFull
+                              ? 'Sesi Ini Telah Penuh'
+                              : isSubmitting
+                                ? 'Menghantar Pendaftaran...'
+                                : 'Hantar Pendaftaran Pasukan'}
                         </button>
                       </div>
                     </form>
