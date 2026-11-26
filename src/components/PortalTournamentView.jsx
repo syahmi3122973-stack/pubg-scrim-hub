@@ -25,6 +25,7 @@ import {
   X
 } from 'lucide-react';
 import RegistrationManagerTab from './RegistrationManagerTab';
+import { optimizePosterForOcr } from './ScrimDataHubView';
 import { scanReceiptImage } from '../utils/receiptOcr';
 import { safeExternalUrl, safeMediaUrl, sanitizeTextInput, validateUploadFile } from '../utils/security';
 
@@ -424,12 +425,58 @@ export default function PortalTournamentView({
     setIsSubmitting(true);
     try {
       let uploadedReceiptUrl = null;
+      let driveArchiveUrl = null;
       if (receiptFile) {
-        const uploadedUrl = await uploadMediaToSupabase(receiptFile, 'receipts');
+        const { data: sessionRes } = await supabase.auth.getSession();
+        const accessToken = sessionRes?.session?.access_token;
+
+        const archiveReceiptToDrive = async () => {
+          try {
+            const optimized = await optimizePosterForOcr(receiptFile);
+            if (!optimized?.dataUrl) return null;
+            const ext = optimized.mimeType.includes('png')
+              ? 'png'
+              : optimized.mimeType.includes('webp')
+                ? 'webp'
+                : 'jpg';
+            const folderLabel =
+              sanitizeTextInput(`Resit Portal - ${selectedSession.title || 'Tournament'}`, 70) ||
+              'Resit Portal';
+            const receiptFileName =
+              sanitizeTextInput(`${cleanTag}_${cleanName}_${Date.now()}.${ext}`, 75) ||
+              `resit_${Date.now()}.${ext}`;
+            const { data: arcData, error: arcErr } = await supabase.functions.invoke(
+              'extract-scrim-standings',
+              {
+                headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+                body: {
+                  archiveOnly: true,
+                  imageBase64: optimized.dataUrl,
+                  mimeType: optimized.mimeType,
+                  uploaderName: folderLabel,
+                  fileName: receiptFileName
+                }
+              }
+            );
+            if (arcErr) return null;
+            return arcData?.poster_url && /^https?:\/\//i.test(arcData.poster_url)
+              ? arcData.poster_url
+              : null;
+          } catch {
+            // Non-blocking: registration must proceed even if Drive webhook is slow/unavailable
+            return null;
+          }
+        };
+
+        const [uploadedUrl, archivedUrl] = await Promise.all([
+          uploadMediaToSupabase(receiptFile, 'receipts'),
+          archiveReceiptToDrive()
+        ]);
         if (!uploadedUrl) {
           throw new Error('Gagal muat naik resit bayaran.');
         }
         uploadedReceiptUrl = uploadedUrl;
+        driveArchiveUrl = archivedUrl;
       }
 
       const payload = {
@@ -457,7 +504,8 @@ export default function PortalTournamentView({
       setSubmittedRecord({
         ...data,
         sessionTitle: selectedSession.title,
-        sessionTiming: selectedSession.session_timing || selectedSession.date
+        sessionTiming: selectedSession.session_timing || selectedSession.date,
+        receiptDriveUrl: driveArchiveUrl
       });
       setStatusWhatsappInput(cleanWhatsapp);
       setTeamName('');
@@ -959,6 +1007,20 @@ export default function PortalTournamentView({
                               <span className="text-amber-300 font-semibold">Pending Verification</span> bagi{' '}
                               <strong className="text-white">{submittedRecord.sessionTitle}</strong>.
                             </p>
+                            {submittedRecord.receiptDriveUrl && (
+                              <p className="text-[11px] text-emerald-300 flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <span>Salinan resit berjaya disimpan ke Google Drive.</span>
+                                <a
+                                  href={safeExternalUrl(submittedRecord.receiptDriveUrl)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 underline font-semibold hover:text-emerald-200"
+                                >
+                                  <span>Lihat Fail</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </p>
+                            )}
                           </div>
                         </div>
                         <button

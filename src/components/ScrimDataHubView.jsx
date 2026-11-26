@@ -173,7 +173,7 @@ function readPosterFileAsBase64(selectedFile) {
 }
 
 // Downscale only oversized posters while preserving crisp text, digits, and tiny WWCD icons on first scan
-function optimizePosterForOcr(selectedFile) {
+export function optimizePosterForOcr(selectedFile) {
   return new Promise((resolve) => {
     const MAX_DIM = 2048;
     const PASSTHROUGH_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
