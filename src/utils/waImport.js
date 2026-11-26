@@ -8,21 +8,72 @@ const KEYCAP_MAP = {
 const PLACEHOLDER_RE = /^(?:open|empty|kosong|available|avail|tba|tbd|free|slot\s*kosong|reserved|booked|none|n\/a|observer|obs|caster|-+|\.+)$/i;
 const META_HEADER_RE = /^(?:tarikh|date|masa|waktu|time|map|maps|host|organizer|penganjur|room|room\s*id|id|pass|password|pw|link|fee|yuran|prize|hadiah|format|mode|tier|server|lobby|start|pukul|jam|rules|peraturan|group|kumpulan|match|round|day|week|list\s*team|team\s*list|list)\s*(?:[:=-]|$)/i;
 const STANDALONE_HEADER_RE = /^(?:slot\s*(?:list|scrim|tour|tournament|open|kosong).*|slot|senarai\s*(?:pasukan|team|slot).*|daftar\s*(?:pasukan|team).*|list\s*(?:team|pasukan|slot).*|pubg\s*mobile.*|scrim\s*(?:list|schedule|malam|petang|pagi|hub)?.*|jadual\s*.*|maps?\s+[a-z]{2,8}|(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*,\s*\d{1,2}\s+[a-z]+.*|group\s*[a-z0-9]?|match\s*\d*)$/i;
+const ROSTER_LINE_RE = /^(?:ign|roster|players?|line\s*up|lineup|anggota|ahli)\s*[:=\-–—>]\s*(.+)$/i;
 
 /**
- * Parses a pasted WhatsApp/Telegram PUBG room list while preserving explicit slot numbers (1..25).
- * When explicit numbered slots exist (e.g., slots 6..25 with 1..5 empty for observers),
- * non-numbered header lines (scrim title, date, maps, "List Team:") are automatically ignored.
+ * Splits optional trailing roster/IGN list from a team line, e.g.:
+ * - "NEKO REAPERS (Kira, Sora, LynX, Vex)"
+ * - "NEKO REAPERS | IGN: Kira / Sora / LynX / Vex"
+ * - "NEKO REAPERS - IGN: Kira, Sora"
+ */
+function extractTeamAndRoster(rawPart) {
+  let teamPart = String(rawPart || '').trim();
+  let rosterPart = '';
+
+  // Strip trailing phone numbers first
+  teamPart = teamPart.replace(/\s*[-–—(|]?\s*(?:\+?6?0\d{8,11}|\+\d{9,15})\s*\)?$/, '').trim();
+
+  // Check explicit delimiter + IGN/Roster keyword: "Team - IGN: a, b, c" or "Team | a, b, c"
+  const labeledMatch = teamPart.match(/^(.*?)\s*(?:\||[-–—])\s*(?:ign|roster|players?|line\s*up|lineup)\s*[:=]?\s*(.+)$/i);
+  if (labeledMatch && labeledMatch[1].trim()) {
+    teamPart = labeledMatch[1].trim();
+    rosterPart = labeledMatch[2].trim();
+  } else {
+    const pipeMultiMatch = teamPart.match(/^(.*?)\s*\|\s*([^|]+[,/][^|]+)$/);
+    if (pipeMultiMatch && pipeMultiMatch[1].trim()) {
+      teamPart = pipeMultiMatch[1].trim();
+      rosterPart = pipeMultiMatch[2].trim();
+    } else {
+      // Check trailing bracketed list: "Team (Kira, Sora, LynX, Vex)" or "Team [IGN: a, b]"
+      const parenMatch = teamPart.match(/^(.*?)\s*(?:\(([^()]{3,160})\)|\[([^\[\]]{3,160})\])$/);
+      if (parenMatch && parenMatch[1].trim()) {
+        const inner = (parenMatch[2] || parenMatch[3] || '').trim();
+        const hasIgnPrefix = /^(?:ign|roster|players?|lineup)\s*[:=]/i.test(inner);
+        const hasMultiNames = /[,/&]/.test(inner);
+        if (hasIgnPrefix || hasMultiNames) {
+          teamPart = parenMatch[1].trim();
+          rosterPart = inner.replace(/^(?:ign|roster|players?|lineup)\s*[:=]\s*/i, '').trim();
+        }
+      }
+    }
+  }
+
+  return {
+    teamName: sanitizeTextInput(teamPart, 60),
+    players: sanitizeTextInput(rosterPart, 160)
+  };
+}
+
+/**
+ * Parses a pasted WhatsApp/Telegram PUBG room list while preserving explicit slot numbers (1..25)
+ * and optional player IGN rosters per team.
  */
 export function parseWhatsAppTeamImport(rawText) {
   const lines = String(rawText || '').split(/\r?\n/);
   const numberedSlots = new Map();
+  const numberedRosters = new Map();
   const unnumbered = [];
   let sawExplicitSlotLine = false;
+  let lastSlotNo = null;
+  let lastUnnumberedIdx = -1;
 
   for (const rawLine of lines) {
     let line = rawLine.trim();
-    if (!line) continue;
+    if (!line) {
+      lastSlotNo = null;
+      lastUnnumberedIdx = -1;
+      continue;
+    }
 
     // Normalize WhatsApp markdown & keycap emojis
     line = line.replace(/[*_~`]/g, '').trim();
@@ -47,6 +98,22 @@ export function parseWhatsAppTeamImport(rawText) {
     // Ignore clock/timezone lines like "— 8:00 PM (UTC+8)"
     if (/^[—–-]?\s*\d{1,2}:\d{2}\s*(?:am|pm)?(?:\s*\(UTC[^)]*\))?$/i.test(line)) continue;
 
+    // Multi-line roster directly under the previous team line (e.g. "IGN: Kira, Sora, LynX, Vex")
+    const rosterLineMatch = line.match(ROSTER_LINE_RE);
+    if (rosterLineMatch) {
+      const cleanPlayers = sanitizeTextInput(rosterLineMatch[1], 160);
+      if (cleanPlayers) {
+        if (lastSlotNo !== null) {
+          const prev = numberedRosters.get(lastSlotNo);
+          numberedRosters.set(lastSlotNo, prev ? `${prev}, ${cleanPlayers}` : cleanPlayers);
+        } else if (lastUnnumberedIdx >= 0 && unnumbered[lastUnnumberedIdx]) {
+          const prev = unnumbered[lastUnnumberedIdx].players;
+          unnumbered[lastUnnumberedIdx].players = prev ? `${prev}, ${cleanPlayers}` : cleanPlayers;
+        }
+      }
+      continue;
+    }
+
     // Match explicit room slot number: "6\tYANGON", "Slot 4: Vampire", "03) Squad", "#7 Team", "S8 - BTR"
     const numberedMatch = line.match(
       /^(?:(?:slot|sl|s|no|team|squad)\s*#?(\d{1,2})|#?(\d{1,2}))\s*(?:[:.)\-–—|>]|\s+)\s*(.*)$/i
@@ -56,28 +123,42 @@ export function parseWhatsAppTeamImport(rawText) {
       const parsedNum = Number(numberedMatch[1] || numberedMatch[2]);
       if (parsedNum >= 1 && parsedNum <= 25) {
         sawExplicitSlotLine = true;
-        let teamPart = (numberedMatch[3] || '').trim();
-        teamPart = teamPart.replace(/\s*[-–—(|]?\s*(?:\+?6?0\d{8,11}|\+\d{9,15})\s*\)?$/, '').trim();
-        teamPart = sanitizeTextInput(teamPart, 60);
-        if (!teamPart || PLACEHOLDER_RE.test(teamPart)) {
+        const { teamName, players } = extractTeamAndRoster(numberedMatch[3] || '');
+        if (!teamName || PLACEHOLDER_RE.test(teamName)) {
           numberedSlots.delete(parsedNum);
-        } else if (teamPart.length >= 2 || /^[A-Za-z0-9]$/.test(teamPart)) {
-          numberedSlots.set(parsedNum, teamPart);
+          numberedRosters.delete(parsedNum);
+          lastSlotNo = null;
+        } else if (teamName.length >= 2 || /^[A-Za-z0-9]$/.test(teamName)) {
+          numberedSlots.set(parsedNum, teamName);
+          if (players) {
+            numberedRosters.set(parsedNum, players);
+          } else {
+            numberedRosters.delete(parsedNum);
+          }
+          lastSlotNo = parsedNum;
+          lastUnnumberedIdx = -1;
         }
         continue;
       }
     }
 
     if (META_HEADER_RE.test(line) || STANDALONE_HEADER_RE.test(line)) {
+      lastSlotNo = null;
+      lastUnnumberedIdx = -1;
       continue;
     }
 
-    let plain = line.replace(/^[-*•–—]\s*/, '').trim();
-    plain = plain.replace(/\s*[-–—(|]?\s*(?:\+?6?0\d{8,11}|\+\d{9,15})\s*\)?$/, '').trim();
-    plain = sanitizeTextInput(plain, 60);
-    if (!plain || PLACEHOLDER_RE.test(plain)) continue;
-    if (plain.length >= 2 || /^[A-Za-z0-9]$/.test(plain)) {
-      unnumbered.push(plain);
+    const plainRaw = line.replace(/^[-*•–—]\s*/, '').trim();
+    const { teamName, players } = extractTeamAndRoster(plainRaw);
+    if (!teamName || PLACEHOLDER_RE.test(teamName)) {
+      lastSlotNo = null;
+      lastUnnumberedIdx = -1;
+      continue;
+    }
+    if (teamName.length >= 2 || /^[A-Za-z0-9]$/.test(teamName)) {
+      unnumbered.push({ teamName, players });
+      lastUnnumberedIdx = unnumbered.length - 1;
+      lastSlotNo = null;
     }
   }
 
@@ -89,6 +170,7 @@ export function parseWhatsAppTeamImport(rawText) {
     return {
       mode: 'EXPLICIT_SLOTS',
       slotMap: numberedSlots,
+      rosterMap: numberedRosters,
       teamCount: numberedSlots.size,
       minSlot,
       maxSlot
@@ -97,14 +179,19 @@ export function parseWhatsAppTeamImport(rawText) {
 
   // Fallback: unnumbered team list maps sequentially to slots 1..N (max 25)
   const seqMap = new Map();
+  const seqRosterMap = new Map();
   const sliced = unnumbered.slice(0, 25);
-  sliced.forEach((name, idx) => {
-    seqMap.set(idx + 1, name);
+  sliced.forEach((entry, idx) => {
+    seqMap.set(idx + 1, entry.teamName);
+    if (entry.players) {
+      seqRosterMap.set(idx + 1, entry.players);
+    }
   });
 
   return {
     mode: 'SEQUENTIAL',
     slotMap: seqMap,
+    rosterMap: seqRosterMap,
     teamCount: sliced.length,
     minSlot: sliced.length > 0 ? 1 : 0,
     maxSlot: sliced.length

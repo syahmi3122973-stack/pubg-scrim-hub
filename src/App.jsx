@@ -1199,12 +1199,15 @@ export default function App() {
 
   
   // Dynamic Match Slots
+  const [showSlotIgn, setShowSlotIgn] = useState(false);
+  const [scorerSlotQuery, setScorerSlotQuery] = useState('');
   const [matchSlots, setMatchSlots] = useState(() => {
     return Array.from({ length: 16 }, (_, idx) => ({
       slot: idx + 1,
       teamId: '',
       teamName: '',
       tag: '',
+      players: '',
       placement: '',
       kills: 0,
       placePts: 0,
@@ -1222,8 +1225,9 @@ export default function App() {
       return;
     }
 
-    const { mode, slotMap, teamCount, minSlot, maxSlot } = parsed;
+    const { mode, slotMap, rosterMap, teamCount, minSlot, maxSlot } = parsed;
     const isExplicitRooms = mode === 'EXPLICIT_SLOTS';
+    const hasImportedIgn = Boolean(rosterMap && rosterMap.size > 0);
 
     if (activeTab === 'admin' || activeTab === 'scorer') {
       if (activeAdminScrim?.is_finished) {
@@ -1249,9 +1253,13 @@ export default function App() {
           const slotNo = idx + 1;
           const existingSlot = prev[idx];
           const importedName = slotMap.get(slotNo);
+          const importedPlayers = rosterMap?.get(slotNo) || '';
           const newTeamName = isExplicitRooms
             ? (importedName || '')
             : (importedName || existingSlot?.teamName || '');
+          const newPlayers = importedPlayers
+            ? importedPlayers
+            : (isExplicitRooms ? '' : (existingSlot?.players || ''));
           const meta = importedName
             ? resolveSlotMeta(importedName)
             : isExplicitRooms
@@ -1262,6 +1270,7 @@ export default function App() {
             teamId: meta.teamId,
             teamName: newTeamName,
             tag: meta.tag,
+            players: newPlayers,
             placement: (!newTeamName && isExplicitRooms) ? '' : (existingSlot?.placement ?? ''),
             kills: (!newTeamName && isExplicitRooms) ? 0 : (existingSlot?.kills ?? 0),
             placePts: (!newTeamName && isExplicitRooms) ? 0 : (existingSlot?.placePts ?? 0),
@@ -1271,7 +1280,7 @@ export default function App() {
         });
       });
 
-      // Sync imported team names across all matches in active session by exact room slot number
+      // Sync imported team names & IGNs across all matches in active session by exact room slot number
       if (activeAdminScrim && Array.isArray(activeAdminScrim.matches)) {
         setScrims(prevScrims => prevScrims.map(scrim => {
           if (scrim.id !== activeAdminScrim.id) return scrim;
@@ -1286,6 +1295,7 @@ export default function App() {
             for (let sNum = 1; sNum <= Math.max(targetCount, ...bySlot.keys()); sNum += 1) {
               const existingRow = bySlot.get(sNum);
               const importedName = slotMap.get(sNum);
+              const importedPlayers = rosterMap?.get(sNum) || '';
               if (importedName) {
                 const meta = resolveSlotMeta(importedName);
                 updatedResults.push({
@@ -1293,7 +1303,8 @@ export default function App() {
                   slot: sNum,
                   teamId: meta.teamId,
                   teamName: importedName,
-                  tag: meta.tag
+                  tag: meta.tag,
+                  ...(importedPlayers ? { players: importedPlayers } : {})
                 });
               } else if (!isExplicitRooms && existingRow) {
                 updatedResults.push(existingRow);
@@ -1305,8 +1316,13 @@ export default function App() {
         }));
       }
 
+      if (hasImportedIgn) {
+        setShowSlotIgn(true);
+      }
+
       const emptyPrefixNote = minSlot > 1 ? ` (Slot #${minSlot}–#${maxSlot}, Slot #1–#${minSlot - 1} kosong)` : '';
-      showToast(`${teamCount} pasukan diimport ke Quick Scorer!${emptyPrefixNote}`);
+      const ignNote = hasImportedIgn ? ` + ${rosterMap.size} roster IGN` : '';
+      showToast(`${teamCount} pasukan${ignNote} diimport ke Quick Scorer!${emptyPrefixNote}`);
       setIsImportModalOpen(false);
       setImportRawText('');
       return;
@@ -2608,11 +2624,13 @@ export default function App() {
     setSelectedScrimId(newSession.id);
     setSelectedMatchIdx(0);
     setInputMap('Erangel');
+    setScorerSlotQuery('');
     setMatchSlots(Array.from({ length: 16 }, (_, idx) => ({
       slot: idx + 1,
       teamId: '',
       teamName: '',
       tag: '',
+      players: '',
       placement: '',
       kills: 0,
       placePts: 0,
@@ -2812,6 +2830,7 @@ export default function App() {
               teamId: r?.teamId || '',
               teamName: r?.teamName || '',
               tag: r?.tag || '',
+              players: r?.players || '',
               placement: r && r.placement !== undefined && r.placement !== null && r.placement !== '' ? r.placement : '',
               kills: Number(r?.kills) || 0,
               placePts: Number(r?.placePts) || 0,
@@ -2832,11 +2851,13 @@ export default function App() {
         const carryTeam = prev[idx]?.teamName || activeAdminScrim?.matches?.[0]?.results?.[idx]?.teamName || '';
         const carryId = prev[idx]?.teamId || activeAdminScrim?.matches?.[0]?.results?.[idx]?.teamId || '';
         const carryTag = prev[idx]?.tag || activeAdminScrim?.matches?.[0]?.results?.[idx]?.tag || '';
+        const carryPlayers = prev[idx]?.players || activeAdminScrim?.matches?.[0]?.results?.[idx]?.players || '';
         return {
           slot: idx + 1,
           teamId: carryId,
           teamName: carryTeam,
           tag: carryTag,
+          players: carryPlayers,
           placement: '',
           kills: 0,
           placePts: 0,
@@ -3185,6 +3206,7 @@ export default function App() {
         teamId: '',
         teamName: '',
         tag: '',
+        players: '',
         placement: '',
         kills: 0,
         placePts: 0,
@@ -3337,6 +3359,9 @@ export default function App() {
         currentRow.kills = kills;
         currentRow.totalPts = currentRow.placePts + kills;
         updated[index] = currentRow;
+      } else if (field === 'players') {
+        currentRow.players = value;
+        updated[index] = currentRow;
       } else if (field === 'teamName') {
         currentRow.teamName = value;
         const cleanVal = value.trim();
@@ -3357,8 +3382,8 @@ export default function App() {
       return updated;
     });
 
-    // When teamName is changed, propagate teamName across other matches in activeAdminScrim matching room slot
-    if (field === 'teamName' && activeAdminScrim && activeAdminScrim.matches) {
+    // Propagate teamName or player IGNs across other matches in activeAdminScrim matching room slot
+    if ((field === 'teamName' || field === 'players') && activeAdminScrim && activeAdminScrim.matches) {
       const targetSlot = Number(matchSlots[index]?.slot) || (index + 1);
       setScrims(prevScrims => prevScrims.map(scrim => {
         if (scrim.id !== activeAdminScrim.id) return scrim;
@@ -3367,7 +3392,7 @@ export default function App() {
           const matchIdx = m.results.findIndex((r, idx) => (r.slot != null ? Number(r.slot) === targetSlot : idx === index));
           if (matchIdx === -1) return m;
           const updatedResults = [...m.results];
-          updatedResults[matchIdx] = { ...updatedResults[matchIdx], teamName: value };
+          updatedResults[matchIdx] = { ...updatedResults[matchIdx], [field]: value };
           return { ...m, results: updatedResults };
         });
         return { ...scrim, matches: updatedMatches };
@@ -3438,11 +3463,14 @@ export default function App() {
         const tag = s.tag || cleanName.slice(0, 4).toUpperCase();
         const teamId = s.teamId || ('tm_' + cleanName.replace(/\s+/g, '_').toLowerCase());
 
+        const cleanPlayers = sanitizeTextInput(s.players || '', 160);
+
         return {
           slot: Number(s.slot) || (idx + 1),
           teamId,
           teamName: cleanName,
           tag,
+          ...(cleanPlayers ? { players: cleanPlayers } : {}),
           placement: validPlacement,
           kills,
           placePts: placePoints,
@@ -11943,154 +11971,239 @@ export default function App() {
                           <Edit3 className="w-3 h-3 text-zinc-500 group-hover:text-[#D7FF00] shrink-0" />
                         </button>
 
-                        {/* Inline Team Slot Stepper (Exact same design as Quick Scorer!) */}
-                        <div className="flex items-center justify-between sm:justify-end gap-2 bg-[#16161B] px-3 py-1.5 rounded-xl shrink-0">
-                          <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={handleRemoveTeamSlot}
-                              disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
-                              className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-rose-950 hover:text-rose-300 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition"
-                              title="Buang slot terakhir"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="font-mono font-black text-xs text-white px-1">
-                              {matchSlots.length} Slot
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleAddTeamSlot}
-                              disabled={activeAdminScrim?.is_finished || matchSlots.length >= 25}
-                              className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
-                              title="Tambah slot (maks 25)"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
+                        {/* Inline IGN Toggle + Team Slot Stepper */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setShowSlotIgn(prev => !prev)}
+                            aria-pressed={showSlotIgn}
+                            className={
+                              'px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer border ' +
+                              (showSlotIgn
+                                ? 'bg-[#D7FF00]/15 text-[#D7FF00] border-[#D7FF00]/40'
+                                : 'bg-[#16161B] hover:bg-[#1F1F26] text-zinc-300 border-white/5')
+                            }
+                            title="Tunjuk atau sembunyi ruangan IGN player bagi setiap slot"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>IGN</span>
+                            {matchSlots.some(s => Boolean(s.players && s.players.trim())) && (
+                              <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[10px] font-mono tabular-nums text-zinc-200">
+                                {matchSlots.filter(s => Boolean(s.players && s.players.trim())).length}
+                              </span>
+                            )}
+                          </button>
+
+                          <div className="flex items-center gap-2 bg-[#16161B] px-3 py-1.5 rounded-xl shrink-0">
+                            <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={handleRemoveTeamSlot}
+                                disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
+                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-rose-950 hover:text-rose-300 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition"
+                                title="Buang slot terakhir"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="font-mono font-black text-xs text-white px-1">
+                                {matchSlots.length} Slot
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleAddTeamSlot}
+                                disabled={activeAdminScrim?.is_finished || matchSlots.length >= 25}
+                                className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
+                                title="Tambah slot (maks 25)"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Quick Input Grid Table (Identikal seperti Scorer) */}
-                      <div className="rounded-2xl overflow-hidden bg-[#0D0D10]">
-                        <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                          <table className="w-full text-left text-xs">
-                            <thead className="bg-[#16161B] text-zinc-400 uppercase text-[10px] font-bold tracking-wider">
-                              <tr>
-                                <th className="py-2.5 px-3 w-12 text-center">Slot</th>
-                                <th className="py-2.5 px-3 min-w-[150px]">Team Name</th>
-                                <th className="py-2.5 px-2 w-24 text-center">Placement</th>
-                                <th className="py-2.5 px-2 w-28 text-center">Elims</th>
-                                <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
-                                <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5 font-mono tabular-nums">
-                              {matchSlots.map((row, idx) => {
-                                const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
-                                return (
-                                  <tr 
-                                    key={idx} 
-                                    className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.1]' : 'hover:bg-zinc-800/40')}
+                      {/* Quick Search Team / Player IGN Bar */}
+                      {(() => {
+                        const qIgn = scorerSlotQuery.trim().toLowerCase();
+                        const indexedSlots = matchSlots.map((row, idx) => ({ row, idx }));
+                        const visibleSlots = qIgn
+                          ? indexedSlots.filter(({ row }) =>
+                              String(row.slot).includes(qIgn) ||
+                              (row.teamName && row.teamName.toLowerCase().includes(qIgn)) ||
+                              (row.players && row.players.toLowerCase().includes(qIgn))
+                            )
+                          : indexedSlots;
+
+                        return (
+                          <>
+                            <div className="relative">
+                              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <input
+                                type="search"
+                                enterKeyHint="search"
+                                value={scorerSlotQuery}
+                                onChange={(e) => setScorerSlotQuery(e.target.value)}
+                                placeholder="Cari nama team atau IGN player (cth: Kira, Sora)..."
+                                className="w-full bg-[#121216] border border-white/[0.07] focus:border-[#D7FF00]/50 rounded-xl pl-8 pr-20 py-2 text-xs text-white placeholder:text-zinc-500 focus:outline-none transition [&::-webkit-search-cancel-button]:hidden"
+                              />
+                              {qIgn && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                  <span className="text-[10px] font-mono text-[#D7FF00] bg-[#D7FF00]/10 px-1.5 py-0.5 rounded-md tabular-nums">
+                                    {visibleSlots.length} padan
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setScorerSlotQuery('')}
+                                    aria-label="Clear carian team atau IGN"
+                                    className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
                                   >
-                                    {/* Slot # */}
-                                    <td className="py-2 px-3 text-center text-zinc-500 font-bold tabular-nums">
-                                      #{String(row.slot).padStart(2, '0')}
-                                    </td>
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
 
-                                    {/* Team Name */}
-                                    <td className="py-2 px-3 font-sans">
-                                      <input
-                                        type="text"
-                                        disabled={activeAdminScrim?.is_finished}
-                                        data-cell={`admin-teamName-${idx}`}
-                                        value={row.teamName}
-                                        onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                                        onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
-                                        placeholder={`Squad ${row.slot}...`}
-                                        className="w-full bg-[#19191E] rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
-                                      />
-                                    </td>
-
-                                    {/* Placement Dropdown */}
-                                    <td className="py-2 px-2 text-center">
-                                      <select
-                                        disabled={activeAdminScrim?.is_finished}
-                                        data-cell={`admin-placement-${idx}`}
-                                        value={row.placement || ''}
-                                        onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                        onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
-                                        className="w-full bg-[#19191E] rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] text-xs text-center disabled:opacity-40"
-                                      >
-                                        <option value="" className="bg-zinc-950 text-white">--</option>
-                                        {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
-                                          <option key={num} value={num} className="bg-zinc-950 text-white">
-                                            #{num}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </td>
-
-                                    {/* Elims with - / + buttons */}
-                                    <td className="py-2 px-2 text-center">
-                                      <div className="flex items-center justify-center gap-1">
-                                        <button
-                                          type="button"
-                                          disabled={activeAdminScrim?.is_finished}
-                                          onClick={() => handleAdjustKills(idx, -1)}
-                                          className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                            {/* Quick Input Grid Table (Identikal seperti Scorer) */}
+                            <div className="rounded-2xl overflow-hidden bg-[#0D0D10]">
+                              <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-[#16161B] text-zinc-400 uppercase text-[10px] font-bold tracking-wider">
+                                    <tr>
+                                      <th className="py-2.5 px-3 w-12 text-center">Slot</th>
+                                      <th className="py-2.5 px-3 min-w-[170px]">Team Name{showSlotIgn ? ' & IGN' : ''}</th>
+                                      <th className="py-2.5 px-2 w-24 text-center">Placement</th>
+                                      <th className="py-2.5 px-2 w-28 text-center">Elims</th>
+                                      <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
+                                      <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5 font-mono tabular-nums">
+                                    {visibleSlots.length === 0 ? (
+                                      <tr>
+                                        <td colSpan={6} className="py-8 px-4 text-center font-sans text-xs text-zinc-400">
+                                          Tiada team atau IGN padan dengan &ldquo;{scorerSlotQuery}&rdquo;.
+                                        </td>
+                                      </tr>
+                                    ) : visibleSlots.map(({ row, idx }) => {
+                                      const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
+                                      const shouldShowIgnField = showSlotIgn || Boolean(qIgn && row.players);
+                                      return (
+                                        <tr 
+                                          key={row.slot || idx} 
+                                          className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.1]' : 'hover:bg-zinc-800/40')}
                                         >
-                                          -
-                                        </button>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          disabled={activeAdminScrim?.is_finished}
-                                          data-cell={`admin-elims-${idx}`}
-                                          value={row.kills}
-                                          onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                                          onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
-                                          className="w-11 bg-[#19191E] rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] disabled:opacity-40 font-mono"
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={activeAdminScrim?.is_finished}
-                                          onClick={() => handleAdjustKills(idx, 1)}
-                                          className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    </td>
+                                          {/* Slot # */}
+                                          <td className="py-2 px-3 text-center text-zinc-500 font-bold tabular-nums align-top pt-3">
+                                            #{String(row.slot).padStart(2, '0')}
+                                          </td>
 
-                                    {/* WWCD Button */}
-                                    <td className="py-2 px-2 text-center font-sans">
-                                      <button
-                                        type="button"
-                                        disabled={activeAdminScrim?.is_finished}
-                                        onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
-                                        className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
-                                          isWWCD 
-                                            ? 'bg-[#D7FF00] text-zinc-950 shadow-xs font-bold' 
-                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
-                                        )}
-                                      >
-                                        {isWWCD ? 'WWCD' : 'Normal'}
-                                      </button>
-                                    </td>
+                                          {/* Team Name + Optional Player IGN */}
+                                          <td className="py-2 px-3 font-sans space-y-1.5">
+                                            <input
+                                              type="text"
+                                              disabled={activeAdminScrim?.is_finished}
+                                              data-cell={`admin-teamName-${idx}`}
+                                              value={row.teamName}
+                                              onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
+                                              onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
+                                              placeholder={`Squad ${row.slot}...`}
+                                              className="w-full bg-[#19191E] rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
+                                            />
+                                            {shouldShowIgnField && (
+                                              <input
+                                                type="text"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                value={row.players || ''}
+                                                onChange={(e) => handleSlotChange(idx, 'players', e.target.value)}
+                                                placeholder="IGN: player1, player2, player3, player4"
+                                                aria-label={`IGN player untuk Slot ${row.slot}`}
+                                                className="w-full bg-[#121216] border border-white/[0.06] focus:border-[#D7FF00]/50 rounded-lg px-2.5 py-1 text-[11px] font-mono text-zinc-300 focus:text-white focus:outline-none placeholder:text-zinc-600 disabled:opacity-40"
+                                              />
+                                            )}
+                                          </td>
 
-                                    {/* Total Pts */}
-                                    <td className="py-2 px-3 text-center text-[#D7FF00] font-black tabular-nums text-sm">
-                                      {row.totalPts}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                                          {/* Placement Dropdown */}
+                                          <td className="py-2 px-2 text-center">
+                                            <select
+                                              disabled={activeAdminScrim?.is_finished}
+                                              data-cell={`admin-placement-${idx}`}
+                                              value={row.placement || ''}
+                                              onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
+                                              onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
+                                              className="w-full bg-[#19191E] rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] text-xs text-center disabled:opacity-40"
+                                            >
+                                              <option value="" className="bg-zinc-950 text-white">--</option>
+                                              {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                                                <option key={num} value={num} className="bg-zinc-950 text-white">
+                                                  #{num}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </td>
+
+                                          {/* Elims with - / + buttons */}
+                                          <td className="py-2 px-2 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                              <button
+                                                type="button"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                onClick={() => handleAdjustKills(idx, -1)}
+                                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                              >
+                                                -
+                                              </button>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                data-cell={`admin-elims-${idx}`}
+                                                value={row.kills}
+                                                onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
+                                                onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
+                                                className="w-11 bg-[#19191E] rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] disabled:opacity-40 font-mono"
+                                              />
+                                              <button
+                                                type="button"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                onClick={() => handleAdjustKills(idx, 1)}
+                                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </td>
+
+                                          {/* WWCD Button */}
+                                          <td className="py-2 px-2 text-center font-sans">
+                                            <button
+                                              type="button"
+                                              disabled={activeAdminScrim?.is_finished}
+                                              onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
+                                              className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
+                                                isWWCD 
+                                                  ? 'bg-[#D7FF00] text-zinc-950 shadow-xs font-bold' 
+                                                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                                              )}
+                                            >
+                                              {isWWCD ? 'WWCD' : 'Normal'}
+                                            </button>
+                                          </td>
+
+                                          {/* Total Pts */}
+                                          <td className="py-2 px-3 text-center text-[#D7FF00] font-black tabular-nums text-sm">
+                                            {row.totalPts}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
 
                       {/* PMGC Standard Scoring Micro Note */}
                       <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono px-1">
@@ -15297,12 +15410,12 @@ export default function App() {
                   <span>Format Yang Boleh Masuk:</span>
                 </div>
                 <p className="text-zinc-300 leading-relaxed font-mono text-[10px]">
-                  6. YANGON GALACTICOS<br/>
-                  7. DACS ROOKIE<br/>
+                  6. YANGON GALACTICOS (Kira, Sora, LynX, Vex)<br/>
+                  7. DACS ROOKIE - IGN: Afiq, Dani, Zim, Ray<br/>
                   ...<br/>
                   25. AUTOTOOSOON
                 </p>
-                <p className="text-[10px] text-zinc-400">Nombor slot (#1–#25) dikekalkan — slot observer #1–#5 yang tiada dalam senarai automatik dibiarkan kosong.</p>
+                <p className="text-[10px] text-zinc-400">Nombor slot (#1–#25) &amp; IGN player dikekalkan automatik — slot observer yang tiada dibiarkan kosong.</p>
               </div>
 
               <div>
