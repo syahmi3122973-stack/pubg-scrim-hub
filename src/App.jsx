@@ -3745,7 +3745,7 @@ export default function App() {
       room_type: 'Squad TPP',
       host_name: profileName || currentUser.email?.split('@')[0] || 'Host Admin',
       host_contact: profileContact || '',
-      logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+      logo_url: null,
       matches: defaultMatches,
       created_by: currentUser.id,
       co_hosts: [],

@@ -29,6 +29,20 @@ import { optimizePosterForOcr } from './ScrimDataHubView';
 import { scanReceiptImage } from '../utils/receiptOcr';
 import { safeExternalUrl, safeMediaUrl, sanitizeTextInput, validateUploadFile } from '../utils/security';
 
+const LEGACY_PLACEHOLDER_LOGO = 'photo-1542751371-adc38448a05e';
+
+function getPortalSessionPosterUrl(scrim) {
+  const rawLogo = String(scrim?.logo_url || '').trim();
+  if (rawLogo && !rawLogo.includes(LEGACY_PLACEHOLDER_LOGO)) {
+    const safe = safeMediaUrl(rawLogo);
+    if (safe) return safe;
+  }
+  if (String(scrim?.title || '').trim().toLowerCase() === 'test') {
+    return '/posters/test-tournament-blue.jpg';
+  }
+  return null;
+}
+
 function getUsedRosterSlots(scrim) {
   const used = new Set();
   const matches = Array.isArray(scrim?.matches) ? scrim.matches : [];
@@ -90,6 +104,9 @@ export default function PortalTournamentView({
   const [ptMaxSlots, setPtMaxSlots] = useState(16);
   const [ptWhatsappLink, setPtWhatsappLink] = useState('');
   const [ptDesc, setPtDesc] = useState('');
+  const [ptPosterFile, setPtPosterFile] = useState(null);
+  const [ptPosterPreviewUrl, setPtPosterPreviewUrl] = useState('');
+  const [ptRemovePoster, setPtRemovePoster] = useState(false);
   const [ptQrFile, setPtQrFile] = useState(null);
   const [ptRemoveQr, setPtRemoveQr] = useState(false);
   const [isSavingPortal, setIsSavingPortal] = useState(false);
@@ -133,6 +150,14 @@ export default function PortalTournamentView({
       }
     };
   }, [receiptPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (ptPosterPreviewUrl && ptPosterPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(ptPosterPreviewUrl);
+      }
+    };
+  }, [ptPosterPreviewUrl]);
 
   const fetchSlotCounts = useCallback(async () => {
     if (!supabase) return;
@@ -211,6 +236,9 @@ export default function PortalTournamentView({
     setPtMaxSlots(16);
     setPtWhatsappLink('');
     setPtDesc('');
+    setPtPosterFile(null);
+    setPtPosterPreviewUrl('');
+    setPtRemovePoster(false);
     setPtQrFile(null);
     setPtRemoveQr(false);
     setIsPortalFormOpen(true);
@@ -229,6 +257,9 @@ export default function PortalTournamentView({
     setPtMaxSlots(Math.min(25, Math.max(2, Number(scrim.max_slots || 16))));
     setPtWhatsappLink(scrim.whatsapp_lobby_link || '');
     setPtDesc(scrim.description || '');
+    setPtPosterFile(null);
+    setPtPosterPreviewUrl('');
+    setPtRemovePoster(false);
     setPtQrFile(null);
     setPtRemoveQr(false);
     setIsPortalFormOpen(true);
@@ -245,6 +276,16 @@ export default function PortalTournamentView({
 
     setIsSavingPortal(true);
     try {
+      let posterUrl =
+        editingPortalScrim?.logo_url && !String(editingPortalScrim.logo_url).includes(LEGACY_PLACEHOLDER_LOGO)
+          ? editingPortalScrim.logo_url
+          : null;
+      if (ptPosterFile) {
+        posterUrl = await uploadMediaToSupabase(ptPosterFile, 'logos');
+      } else if (ptRemovePoster) {
+        posterUrl = null;
+      }
+
       let qrUrl = editingPortalScrim?.qr_image_url || null;
       if (ptQrFile) {
         qrUrl = await uploadMediaToSupabase(ptQrFile, 'qr-codes');
@@ -264,6 +305,7 @@ export default function PortalTournamentView({
         max_slots: Math.min(25, Math.max(2, Number.parseInt(ptMaxSlots, 10) || 16)),
         whatsapp_lobby_link: safeExternalUrl(ptWhatsappLink),
         description: sanitizeTextInput(ptDesc, 1200),
+        logo_url: safeMediaUrl(posterUrl),
         qr_image_url: safeMediaUrl(qrUrl),
         portal_enabled: true
       };
@@ -350,6 +392,13 @@ export default function PortalTournamentView({
   const entryFee = Number(selectedSession?.entry_fee || 0);
   const requiresReceipt = entryFee > 0;
   const sessionQrUrl = safeMediaUrl(selectedSession?.qr_image_url);
+  const selectedPosterUrl = useMemo(
+    () => (selectedSession ? getPortalSessionPosterUrl(selectedSession) : null),
+    [selectedSession]
+  );
+  const modalPosterPreviewUrl =
+    ptPosterPreviewUrl ||
+    (!ptRemovePoster && editingPortalScrim ? getPortalSessionPosterUrl(editingPortalScrim) : null);
 
   const handleReceiptChange = async (e) => {
     const file = e.target.files?.[0];
@@ -783,6 +832,7 @@ export default function PortalTournamentView({
                         const isRightCol = idx % 2 === 1;
                         const isSecondRowPlus = idx >= 2;
                         const isRegistered = activeRegistrationByScrim.has(session.id);
+                        const cardPosterUrl = getPortalSessionPosterUrl(session);
                         return (
                           <button
                             key={session.id}
@@ -793,10 +843,24 @@ export default function PortalTournamentView({
                               setRegisterStep('detail');
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                            className={`group w-full text-left p-4 sm:p-5 hover:bg-white/[0.03] active:bg-white/[0.04] transition cursor-pointer flex flex-col gap-3 border-white/[0.08] ${
+                            className={`group w-full text-left hover:bg-white/[0.03] active:bg-white/[0.04] transition cursor-pointer flex flex-col overflow-hidden border-white/[0.08] ${
                               !isRightCol ? 'md:border-r ' : ''
                             }${isSecondRowPlus ? 'md:border-t' : ''}`}
                           >
+                            {cardPosterUrl && (
+                              <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-black border-b border-white/[0.08]">
+                                <img
+                                  src={cardPosterUrl}
+                                  alt={`Poster ${session.title}`}
+                                  className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition duration-300"
+                                />
+                                <div
+                                  aria-hidden="true"
+                                  className="absolute inset-0 bg-gradient-to-t from-[#09090B]/90 via-transparent to-black/20"
+                                />
+                              </div>
+                            )}
+                            <div className="p-4 sm:p-5 flex flex-col gap-3 w-full">
                             {/* Top Meta & Status Bar */}
                             <div className="flex items-center justify-between gap-2 w-full">
                               <div className="flex items-center gap-2 min-w-0">
@@ -856,6 +920,7 @@ export default function PortalTournamentView({
                                 </span>
                               )}
                             </div>
+                            </div>
                           </button>
                         );
                       })}
@@ -877,36 +942,57 @@ export default function PortalTournamentView({
                   <span>Kembali ke Senarai Sesi</span>
                 </button>
 
-                <section className="rounded-2xl border border-white/[0.08] vercel-grid-surface overflow-hidden">
-                  <div className="p-5 sm:p-7 space-y-2.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
-                        <span className="text-[#D7FF00] font-semibold">Langkah 2</span>
-                        <span className="text-zinc-600">/</span>
-                        <span>Maklumat Tournament</span>
+                <section className="rounded-2xl border border-white/[0.08] bg-[#09090B] overflow-hidden">
+                  <div
+                    className={`relative overflow-hidden p-5 sm:p-7 ${
+                      selectedPosterUrl
+                        ? 'min-h-[220px] sm:min-h-[250px] flex flex-col justify-end'
+                        : 'vercel-grid-surface'
+                    }`}
+                  >
+                    {selectedPosterUrl && (
+                      <>
+                        <img
+                          src={selectedPosterUrl}
+                          alt={`Poster ${selectedSession.title}`}
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                        />
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 bg-gradient-to-t from-[#09090B] via-[#09090B]/70 to-black/30"
+                        />
+                      </>
+                    )}
+                    <div className="relative z-10 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.12] bg-[#0A0A0A]/85 backdrop-blur-sm text-[11px] font-mono text-zinc-300">
+                          <span className="text-[#D7FF00] font-semibold">Langkah 2</span>
+                          <span className="text-zinc-600">/</span>
+                          <span>Maklumat Tournament</span>
+                        </div>
+
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold drop-shadow ${
+                            selectedSlotMeta?.isFull ? 'text-red-400' : 'text-emerald-400'
+                          }`}
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          {selectedSlotMeta?.isFull
+                            ? 'SLOT PENUH'
+                            : `${selectedSlotMeta?.remaining} / ${selectedSlotMeta?.maxSlots} Slot Tersedia`}
+                        </span>
                       </div>
 
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold ${
-                          selectedSlotMeta?.isFull ? 'text-red-400' : 'text-emerald-400'
-                        }`}
-                      >
-                        <Users className="w-3.5 h-3.5" />
-                        {selectedSlotMeta?.isFull
-                          ? 'SLOT PENUH'
-                          : `${selectedSlotMeta?.remaining} / ${selectedSlotMeta?.maxSlots} Slot Tersedia`}
-                      </span>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
+                        {selectedSession.title}
+                      </h1>
+                      {selectedSession.host_name && (
+                        <p className="text-xs font-mono text-zinc-300">
+                          Penganjur: <span className="text-white font-semibold">{selectedSession.host_name}</span>
+                          {selectedSession.host_contact ? ` · ${selectedSession.host_contact}` : ''}
+                        </p>
+                      )}
                     </div>
-
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                      {selectedSession.title}
-                    </h1>
-                    {selectedSession.host_name && (
-                      <p className="text-xs font-mono text-zinc-400">
-                        Penganjur: <span className="text-zinc-200 font-semibold">{selectedSession.host_name}</span>
-                        {selectedSession.host_contact ? ` · ${selectedSession.host_contact}` : ''}
-                      </p>
-                    )}
                   </div>
 
                   {/* 6-Field Spec Grid */}
@@ -1757,6 +1843,64 @@ export default function PortalTournamentView({
                   placeholder="https://chat.whatsapp.com/..."
                   className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm text-white placeholder:text-zinc-500 focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <span className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Poster Background Tournament (Opsional)
+                </span>
+                {Boolean(modalPosterPreviewUrl) && (
+                  <div className="flex items-center justify-between gap-2 p-2 mb-2 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img
+                        src={modalPosterPreviewUrl}
+                        alt="Pratonton poster tournament"
+                        className="w-20 h-12 rounded-lg object-cover bg-black shrink-0 border border-white/10"
+                      />
+                      <span className="text-xs text-zinc-300 truncate">
+                        {ptPosterFile ? ptPosterFile.name : 'Poster aktif'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPtPosterFile(null);
+                        setPtPosterPreviewUrl('');
+                        setPtRemovePoster(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/15 border border-red-500/35 text-red-200 text-[11px] font-bold cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Padam</span>
+                    </button>
+                  </div>
+                )}
+                <label className="flex items-center justify-center gap-2 w-full bg-black/60 hover:bg-white/[0.04] border border-dashed border-white/[0.16] rounded-xl p-3 min-h-[44px] text-zinc-300 cursor-pointer transition">
+                  <ImagePlus className="w-4 h-4 text-[#D7FF00]" />
+                  <span className="truncate">
+                    {ptPosterFile ? ptPosterFile.name : 'Muat Naik Gambar Poster Background'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0] || null;
+                      if (!picked) return;
+                      const check = validateUploadFile(picked, { maxMb: 5 });
+                      if (!check.ok) {
+                        showToast?.(check.error);
+                        return;
+                      }
+                      if (ptPosterPreviewUrl && ptPosterPreviewUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(ptPosterPreviewUrl);
+                      }
+                      setPtPosterFile(picked);
+                      setPtPosterPreviewUrl(URL.createObjectURL(picked));
+                      setPtRemovePoster(false);
+                    }}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               <div>
