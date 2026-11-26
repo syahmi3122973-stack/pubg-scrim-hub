@@ -50,12 +50,22 @@ export default function PortalTournamentView({
   onChangePortalSection,
   onExitPortal,
   canManageRegistrations = false,
+  isMasterAdmin = false,
+  portalApprovalRecord = null,
+  onRequestPortalAccess = null,
   authorizedScrims = [],
   onAutoSeedSession,
   onSavePortalTournament = null,
   onTogglePortalRegistration = null
 }) {
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
+  const [isRequestingAccess, setIsRequestingAccess] = useState(false);
+
+  useEffect(() => {
+    if (portalSection === 'manage' && !canManageRegistrations) {
+      onChangePortalSection?.('register');
+    }
+  }, [portalSection, canManageRegistrations, onChangePortalSection]);
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [slotCounts, setSlotCounts] = useState({});
 
@@ -536,6 +546,7 @@ export default function PortalTournamentView({
             onAutoSeedSession={onAutoSeedSession}
             showToast={showToast}
             currentUser={currentUser}
+            isMasterAdmin={isMasterAdmin}
             onOpenCreateModal={onSavePortalTournament ? openPortalCreateModal : null}
             onOpenEditModal={onSavePortalTournament ? openPortalEditModal : null}
             onTogglePortalRegistration={onTogglePortalRegistration}
@@ -1119,13 +1130,43 @@ export default function PortalTournamentView({
           <span className="text-[11px] font-mono text-zinc-500">
             © 2026 SCRIM HUB by ry.khor · Portal Tournament
           </span>
-          <button
-            type="button"
-            onClick={onExitPortal}
-            className="text-xs text-[#D7FF00] hover:underline font-medium transition cursor-pointer"
-          >
-            Kembali ke SCRIM HUB
-          </button>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {currentUser && !canManageRegistrations && onRequestPortalAccess && (
+              portalApprovalRecord?.status === 'pending' ? (
+                <span className="text-[11px] font-mono text-amber-300 px-2.5 py-1 rounded-lg border border-amber-400/25 bg-amber-500/10">
+                  Permohonan Urus menunggu kelulusan admin
+                </span>
+              ) : portalApprovalRecord?.status === 'rejected' ? (
+                <span className="text-[11px] font-mono text-zinc-500">
+                  Akses Urus tidak diluluskan
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isRequestingAccess}
+                  onClick={async () => {
+                    setIsRequestingAccess(true);
+                    try {
+                      await onRequestPortalAccess();
+                    } finally {
+                      setIsRequestingAccess(false);
+                    }
+                  }}
+                  className="text-[11px] font-mono text-zinc-400 hover:text-white underline underline-offset-4 transition cursor-pointer disabled:opacity-50"
+                >
+                  {isRequestingAccess ? 'Menghantar...' : 'Penganjur? Mohon akses Urus'}
+                </button>
+              )
+            )}
+            <button
+              type="button"
+              onClick={onExitPortal}
+              className="text-xs text-[#D7FF00] hover:underline font-medium transition cursor-pointer"
+            >
+              Kembali ke SCRIM HUB
+            </button>
+          </div>
         </div>
       </footer>
 

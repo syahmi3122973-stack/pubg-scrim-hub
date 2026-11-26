@@ -33,6 +33,7 @@ export default function RegistrationManagerTab({
   onAutoSeedSession,
   showToast,
   currentUser,
+  isMasterAdmin = false,
   onOpenCreateModal = null,
   onOpenEditModal = null,
   onTogglePortalRegistration = null
@@ -45,11 +46,99 @@ export default function RegistrationManagerTab({
   const [sessionFilter, setSessionFilter] = useState('all');
   const [processingId, setProcessingId] = useState(null);
   const [previewReceipt, setPreviewReceipt] = useState(null);
+  const [portalApprovals, setPortalApprovals] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteNote, setInviteNote] = useState('');
+  const [isSavingApproval, setIsSavingApproval] = useState(false);
 
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
 
   const hasLoadedRef = useRef(false);
+
+  const fetchPortalApprovals = useCallback(async () => {
+    if (!supabase || !isMasterAdmin) {
+      setPortalApprovals([]);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('portal_admin_approvals')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        setPortalApprovals(data);
+      }
+    } catch {
+      // Non-fatal
+    }
+  }, [supabase, isMasterAdmin]);
+
+  useEffect(() => {
+    fetchPortalApprovals();
+  }, [fetchPortalApprovals]);
+
+  const handleGrantApprovalByEmail = async (e) => {
+    e.preventDefault();
+    if (!isMasterAdmin || !supabase || isSavingApproval) return;
+    const cleanEmail = inviteEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      showToastRef.current?.('Masukkan email pengguna yang sah.');
+      return;
+    }
+    setIsSavingApproval(true);
+    try {
+      const payload = {
+        user_email: cleanEmail,
+        display_name: cleanEmail.split('@')[0],
+        note: inviteNote.trim() || 'Diluluskan terus oleh Master Admin',
+        status: 'approved',
+        approved_by: currentUser?.email || 'syahmi3122973@gmail.com',
+        approved_at: new Date().toISOString()
+      };
+      const { data, error } = await supabase
+        .from('portal_admin_approvals')
+        .upsert([payload], { onConflict: 'user_email' })
+        .select('*')
+        .single();
+      if (error) throw error;
+      setPortalApprovals((prev) => [data, ...prev.filter((row) => row.id !== data.id && row.user_email !== data.user_email)]);
+      setInviteEmail('');
+      setInviteNote('');
+      showToastRef.current?.(`Akses Urus diluluskan untuk ${cleanEmail}`);
+    } catch (err) {
+      showToastRef.current?.(`Gagal luluskan akses: ${err?.message || 'ralat'}`);
+    } finally {
+      setIsSavingApproval(false);
+    }
+  };
+
+  const handleUpdateApprovalStatus = async (row, nextStatus) => {
+    if (!isMasterAdmin || !supabase || isSavingApproval) return;
+    setIsSavingApproval(true);
+    try {
+      const patch = {
+        status: nextStatus,
+        approved_by: currentUser?.email || 'syahmi3122973@gmail.com',
+        approved_at: nextStatus === 'approved' ? new Date().toISOString() : null
+      };
+      const { error } = await supabase
+        .from('portal_admin_approvals')
+        .update(patch)
+        .eq('id', row.id);
+      if (error) throw error;
+      setPortalApprovals((prev) => prev.map((item) => (item.id === row.id ? { ...item, ...patch } : item)));
+      showToastRef.current?.(
+        nextStatus === 'approved'
+          ? `Akses Urus diluluskan untuk ${row.user_email}`
+          : `Akses Urus disekat untuk ${row.user_email}`
+      );
+    } catch (err) {
+      showToastRef.current?.(`Gagal kemas kini akses: ${err?.message || 'ralat'}`);
+    } finally {
+      setIsSavingApproval(false);
+    }
+  };
 
   const authorizedScrimMap = useMemo(() => {
     const map = new Map();
@@ -369,6 +458,110 @@ export default function RegistrationManagerTab({
           </div>
         </div>
       </div>
+
+      {/* Master Admin Only: Kelulusan Akses Admin Urus */}
+      {isMasterAdmin && (
+        <div className="rounded-2xl border border-white/[0.08] bg-[#09090B]/85 overflow-hidden">
+          <div className="px-4 sm:px-5 py-3 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-[#D7FF00]">
+                Kelulusan Admin Portal ({portalApprovals.filter((a) => a.status === 'approved').length} Aktif)
+              </h3>
+              <p className="text-[11px] text-zinc-400">
+                Hanya akaun yang diluluskan oleh anda boleh membuka tournament &amp; melihat tab Urus.
+              </p>
+            </div>
+            {portalApprovals.some((a) => a.status === 'pending') && (
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/35 text-[11px] font-mono font-bold text-amber-300">
+                {portalApprovals.filter((a) => a.status === 'pending').length} Permohonan Baru
+              </span>
+            )}
+          </div>
+
+          <form
+            onSubmit={handleGrantApprovalByEmail}
+            className="px-4 sm:px-5 py-3 border-b border-white/[0.06] bg-[#0A0A0A]/80 flex flex-col sm:flex-row gap-2"
+          >
+            <input
+              type="email"
+              required
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="Email admin dibenarkan (cth: host@gmail.com)"
+              className="flex-1 bg-[#09090B] border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2 min-h-[40px] text-xs text-white placeholder:text-zinc-500 focus:outline-none"
+            />
+            <input
+              type="text"
+              maxLength={80}
+              value={inviteNote}
+              onChange={(e) => setInviteNote(e.target.value)}
+              placeholder="Label / Org (opsional)"
+              className="sm:w-48 bg-[#09090B] border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2 min-h-[40px] text-xs text-white placeholder:text-zinc-500 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={isSavingApproval}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-xs font-extrabold transition cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Luluskan</span>
+            </button>
+          </form>
+
+          {portalApprovals.length > 0 && (
+            <div className="divide-y divide-white/[0.06]">
+              {portalApprovals.map((row) => (
+                <div key={row.id} className="px-4 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-white truncate">{row.user_email}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                          row.status === 'approved'
+                            ? 'bg-[#D7FF00]/15 text-[#D7FF00] border-[#D7FF00]/35'
+                            : row.status === 'rejected'
+                              ? 'bg-red-500/15 text-red-300 border-red-500/35'
+                              : 'bg-amber-500/15 text-amber-300 border-amber-400/35'
+                        }`}
+                      >
+                        {row.status === 'approved' ? 'Diluluskan' : row.status === 'rejected' ? 'Ditolak' : 'Menunggu'}
+                      </span>
+                    </div>
+                    {(row.display_name || row.note) && (
+                      <p className="text-[11px] text-zinc-400 truncate">
+                        {[row.display_name, row.note].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {row.status !== 'approved' && (
+                      <button
+                        type="button"
+                        disabled={isSavingApproval}
+                        onClick={() => handleUpdateApprovalStatus(row, 'approved')}
+                        className="px-3 py-1.5 min-h-[34px] rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-[11px] font-extrabold transition cursor-pointer disabled:opacity-50"
+                      >
+                        Luluskan
+                      </button>
+                    )}
+                    {row.status !== 'rejected' && (
+                      <button
+                        type="button"
+                        disabled={isSavingApproval}
+                        onClick={() => handleUpdateApprovalStatus(row, 'rejected')}
+                        className="px-3 py-1.5 min-h-[34px] rounded-xl border border-red-500/35 bg-red-500/10 hover:bg-red-500/20 text-red-200 text-[11px] font-bold transition cursor-pointer disabled:opacity-50"
+                      >
+                        {row.status === 'approved' ? 'Tarik Akses' : 'Tolak'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Portal Tournaments Managed Strip (when inside Portal Tournament) */}
       {(typeof onOpenEditModal === 'function' || typeof onOpenCreateModal === 'function') && (

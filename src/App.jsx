@@ -1756,6 +1756,39 @@ export default function App() {
     return currentUser.email.trim().toLowerCase() === MASTER_ADMIN_EMAIL;
   }, [currentUser]);
 
+  const [portalApprovalRecord, setPortalApprovalRecord] = useState(null);
+  const isApprovedPortalAdmin = Boolean(isMasterAdmin || portalApprovalRecord?.status === 'approved');
+
+  useEffect(() => {
+    let active = true;
+    if (!currentUser || isMasterAdmin) {
+      setPortalApprovalRecord(null);
+      return undefined;
+    }
+    const loadPortalApproval = async () => {
+      try {
+        const emailLower = String(currentUser.email || '').trim().toLowerCase();
+        const filterExpr = emailLower
+          ? `user_id.eq.${currentUser.id},user_email.ilike.${emailLower}`
+          : `user_id.eq.${currentUser.id}`;
+        const { data, error } = await supabase
+          .from('portal_admin_approvals')
+          .select('*')
+          .or(filterExpr)
+          .maybeSingle();
+        if (active && !error) {
+          setPortalApprovalRecord(data || null);
+        }
+      } catch {
+        if (active) setPortalApprovalRecord(null);
+      }
+    };
+    loadPortalApproval();
+    return () => {
+      active = false;
+    };
+  }, [currentUser, isMasterAdmin]);
+
   const [isTeamManagerModalOpen, setIsTeamManagerModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [mergeTeamDraft, setMergeTeamDraft] = useState(null);
@@ -3677,8 +3710,8 @@ export default function App() {
   };
 
   const handleSavePortalTournament = useCallback(async (payload, existingScrimId = null) => {
-    if (!currentUser || (!isMasterAdmin && adminHostedScrims.length === 0)) {
-      return { error: 'Hanya admin yang dibenarkan membuka tournament di Portal Tournament.' };
+    if (!currentUser || !isApprovedPortalAdmin) {
+      return { error: `Akses ditolak. Akaun anda perlukan kelulusan ${MASTER_ADMIN_EMAIL} untuk membuka tournament.` };
     }
 
     if (existingScrimId) {
@@ -3730,7 +3763,34 @@ export default function App() {
     setScrims((prev) => [newPortalSession, ...prev]);
     showToast(`Tournament "${newPortalSession.title}" berjaya dibuka di Portal Tournament!`);
     return { ok: true };
-  }, [currentUser, isMasterAdmin, adminHostedScrims.length, scrims, isAuthorizedAdmin, profileName, profileContact, showToast]);
+  }, [currentUser, isApprovedPortalAdmin, scrims, isAuthorizedAdmin, profileName, profileContact, showToast]);
+
+  const handleRequestPortalAccess = useCallback(async (note = '') => {
+    if (!currentUser?.email) {
+      showToast('Sila log masuk dulu untuk memohon akses Urus.');
+      return { error: 'Perlu log masuk.' };
+    }
+    const emailLower = currentUser.email.trim().toLowerCase();
+    const requestRow = {
+      user_id: currentUser.id,
+      user_email: emailLower,
+      display_name: profileName || emailLower.split('@')[0],
+      note: sanitizeTextInput(note, 140) || 'Permohonan akses Urus Portal Tournament',
+      status: 'pending'
+    };
+    const { data, error } = await supabase
+      .from('portal_admin_approvals')
+      .insert([requestRow])
+      .select('*')
+      .single();
+    if (error) {
+      showToast(`Permohonan gagal: ${error.message}`);
+      return { error: error.message };
+    }
+    setPortalApprovalRecord(data);
+    showToast(`Permohonan akses Urus dihantar kepada ${MASTER_ADMIN_EMAIL}!`);
+    return { ok: true, data };
+  }, [currentUser, profileName, showToast]);
 
   const handleTogglePortalRegistration = useCallback(async (scrim) => {
     if (!scrim || !isAuthorizedAdmin(scrim)) {
@@ -7342,7 +7402,10 @@ export default function App() {
               }
             }}
             onExitPortal={() => navigateToTab('playground')}
-            canManageRegistrations={Boolean(currentUser && (isMasterAdmin || adminHostedScrims.length > 0))}
+            canManageRegistrations={Boolean(currentUser && isApprovedPortalAdmin)}
+            isMasterAdmin={isMasterAdmin}
+            portalApprovalRecord={portalApprovalRecord}
+            onRequestPortalAccess={handleRequestPortalAccess}
             authorizedScrims={portalAuthorizedScrims}
             onAutoSeedSession={handleAutoSeedSession}
             onSavePortalTournament={handleSavePortalTournament}
@@ -12314,18 +12377,20 @@ export default function App() {
                       >
                         Scorer &amp; Poster
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminWorkspaceTab('registrations')}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-extrabold transition cursor-pointer ${
-                          adminWorkspaceTab === 'registrations'
-                            ? 'bg-[#D7FF00] text-black'
-                            : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
-                        }`}
-                      >
-                        <Ticket className="w-3.5 h-3.5" />
-                        <span>Registration Manager</span>
-                      </button>
+                      {isApprovedPortalAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setAdminWorkspaceTab('registrations')}
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                            adminWorkspaceTab === 'registrations'
+                              ? 'bg-[#D7FF00] text-black'
+                              : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
+                          }`}
+                        >
+                          <Ticket className="w-3.5 h-3.5" />
+                          <span>Registration Manager</span>
+                        </button>
+                      )}
                     </div>
 
                     <button
@@ -12339,18 +12404,19 @@ export default function App() {
                   </div>
                 )}
 
-                {activeTab === 'admin' && adminWorkspaceTab === 'registrations' && (
+                {activeTab === 'admin' && isApprovedPortalAdmin && adminWorkspaceTab === 'registrations' && (
                   <RegistrationManagerTab
                     supabase={supabase}
                     authorizedScrims={portalAuthorizedScrims}
                     onAutoSeedSession={handleAutoSeedSession}
                     showToast={showToast}
                     currentUser={currentUser}
+                    isMasterAdmin={isMasterAdmin}
                   />
                 )}
 
                 {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
-                <div id="admin-workspace-grid" className={`${activeTab === 'admin' && adminWorkspaceTab === 'registrations' ? 'hidden ' : ''}grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20`}>
+                <div id="admin-workspace-grid" className={`${activeTab === 'admin' && isApprovedPortalAdmin && adminWorkspaceTab === 'registrations' ? 'hidden ' : ''}grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20`}>
                   
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
