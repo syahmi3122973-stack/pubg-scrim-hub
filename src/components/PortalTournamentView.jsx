@@ -11,11 +11,15 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  Plus,
   QrCode,
   Search,
   ShieldCheck,
   Ticket,
-  Users
+  Trash2,
+  Upload,
+  Users,
+  X
 } from 'lucide-react';
 import RegistrationManagerTab from './RegistrationManagerTab';
 import { scanReceiptImage } from '../utils/receiptOcr';
@@ -49,12 +53,29 @@ export default function PortalTournamentView({
   onExitPortal,
   canManageRegistrations = false,
   authorizedScrims = [],
-  onAutoSeedSession
+  onAutoSeedSession,
+  onSavePortalTournament = null,
+  onTogglePortalRegistration = null
 }) {
   const [categoryFilter, setCategoryFilter] = useState('Semua');
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [slotCounts, setSlotCounts] = useState({});
+
+  // Admin Create/Edit Portal Tournament Modal state
+  const [isPortalFormOpen, setIsPortalFormOpen] = useState(false);
+  const [editingPortalScrim, setEditingPortalScrim] = useState(null);
+  const [ptTitle, setPtTitle] = useState('');
+  const [ptCategory, setPtCategory] = useState('Night Scrim');
+  const [ptTiming, setPtTiming] = useState('');
+  const [ptDate, setPtDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [ptEntryFee, setPtEntryFee] = useState('0');
+  const [ptMaxSlots, setPtMaxSlots] = useState(16);
+  const [ptWhatsappLink, setPtWhatsappLink] = useState('');
+  const [ptDesc, setPtDesc] = useState('');
+  const [ptQrFile, setPtQrFile] = useState(null);
+  const [ptRemoveQr, setPtRemoveQr] = useState(false);
+  const [isSavingPortal, setIsSavingPortal] = useState(false);
 
   // Registration form fields
   const [teamName, setTeamName] = useState('');
@@ -144,10 +165,86 @@ export default function PortalTournamentView({
     }
   }, [portalSection, currentUser, fetchMyRegistrations]);
 
-  // Open sessions eligible for registration
+  // STRICT ISOLATION: ONLY tournaments opened inside Portal Tournament (portal_enabled === true)
   const openSessions = useMemo(() => {
-    return scrims.filter((s) => !s.is_finished && !s.is_draft);
+    return scrims.filter((s) => Boolean(s.portal_enabled) && !s.is_finished && !s.is_draft);
   }, [scrims]);
+
+  const openPortalCreateModal = () => {
+    setEditingPortalScrim(null);
+    setPtTitle('');
+    setPtCategory('Night Scrim');
+    setPtTiming('');
+    setPtDate(new Date().toISOString().split('T')[0]);
+    setPtEntryFee('0');
+    setPtMaxSlots(16);
+    setPtWhatsappLink('');
+    setPtDesc('');
+    setPtQrFile(null);
+    setPtRemoveQr(false);
+    setIsPortalFormOpen(true);
+  };
+
+  const openPortalEditModal = (scrim) => {
+    if (!scrim) return;
+    setEditingPortalScrim(scrim);
+    setPtTitle(scrim.title || '');
+    setPtCategory(scrim.event_category || 'Night Scrim');
+    setPtTiming(scrim.session_timing || '');
+    setPtDate(scrim.date || new Date().toISOString().split('T')[0]);
+    setPtEntryFee(String(scrim.entry_fee ?? 0));
+    setPtMaxSlots(Math.min(25, Math.max(2, Number(scrim.max_slots || 16))));
+    setPtWhatsappLink(scrim.whatsapp_lobby_link || '');
+    setPtDesc(scrim.description || '');
+    setPtQrFile(null);
+    setPtRemoveQr(false);
+    setIsPortalFormOpen(true);
+  };
+
+  const handleSavePortalForm = async (e) => {
+    e.preventDefault();
+    if (!onSavePortalTournament || isSavingPortal) return;
+    const cleanTitle = sanitizeTextInput(ptTitle, 120);
+    if (!cleanTitle) {
+      showToast?.('Sila masukkan nama tournament.');
+      return;
+    }
+
+    setIsSavingPortal(true);
+    try {
+      let qrUrl = editingPortalScrim?.qr_image_url || null;
+      if (ptQrFile) {
+        qrUrl = await uploadMediaToSupabase(ptQrFile, 'qr-codes');
+      } else if (ptRemoveQr) {
+        qrUrl = null;
+      }
+
+      const payload = {
+        title: cleanTitle,
+        event_category: ptCategory,
+        session_timing: sanitizeTextInput(ptTiming, 40) || null,
+        date: ptDate || new Date().toISOString().split('T')[0],
+        entry_fee: Number(Math.max(0, Number.parseFloat(ptEntryFee) || 0).toFixed(2)),
+        max_slots: Math.min(25, Math.max(2, Number.parseInt(ptMaxSlots, 10) || 16)),
+        whatsapp_lobby_link: safeExternalUrl(ptWhatsappLink),
+        description: sanitizeTextInput(ptDesc, 400),
+        qr_image_url: safeMediaUrl(qrUrl),
+        portal_enabled: true
+      };
+
+      const res = await onSavePortalTournament(payload, editingPortalScrim?.id || null);
+      if (res?.error) {
+        throw new Error(res.error);
+      }
+      setIsPortalFormOpen(false);
+      setEditingPortalScrim(null);
+      await fetchSlotCounts();
+    } catch (err) {
+      showToast?.(`Gagal simpan tournament portal: ${err?.message || 'ralat'}`);
+    } finally {
+      setIsSavingPortal(false);
+    }
+  };
 
   // Dynamic custom timings derived strictly from open sessions in the selected category
   const availableTimings = useMemo(() => {
@@ -475,6 +572,9 @@ export default function PortalTournamentView({
             onAutoSeedSession={onAutoSeedSession}
             showToast={showToast}
             currentUser={currentUser}
+            onOpenCreateModal={onSavePortalTournament ? openPortalCreateModal : null}
+            onOpenEditModal={onSavePortalTournament ? openPortalEditModal : null}
+            onTogglePortalRegistration={onTogglePortalRegistration}
           />
         )}
 
@@ -584,7 +684,9 @@ export default function PortalTournamentView({
 
                     {filteredSessions.length === 0 ? (
                       <div className="p-6 text-center text-xs text-zinc-500">
-                        Tiada sesi terbuka sepadan dengan penapis kategori/masa ini.
+                        {openSessions.length === 0
+                          ? 'Belum ada tournament dibuka di Portal Tournament buat masa ini.'
+                          : 'Tiada tournament terbuka sepadan dengan penapis kategori/masa ini.'}
                       </div>
                     ) : (
                       <div className="divide-y divide-white/[0.08]">
@@ -1035,6 +1137,216 @@ export default function PortalTournamentView({
           </div>
         )}
       </main>
+
+      {/* Modal: Admin Buka / Edit Tournament Portal */}
+      {isPortalFormOpen && canManageRegistrations && (
+        <div
+          className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setIsPortalFormOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingPortalScrim ? 'Edit Tournament Portal' : 'Buka Tournament Portal'}
+        >
+          <div
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-white/[0.1] bg-[#09090B] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[#D7FF00] font-bold">
+                  Portal Tournament
+                </p>
+                <h2 className="text-base font-extrabold text-white">
+                  {editingPortalScrim ? 'Edit Tournament Portal' : 'Buka Tournament Baharu'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPortalFormOpen(false)}
+                aria-label="Tutup modal tournament"
+                className="w-9 h-9 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePortalForm} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Nama Tournament *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={120}
+                  value={ptTitle}
+                  onChange={(e) => setPtTitle(e.target.value)}
+                  placeholder="cth: Night Scrim Elite Series"
+                  className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                    Kategori Acara
+                  </label>
+                  <select
+                    value={ptCategory}
+                    onChange={(e) => setPtCategory(e.target.value)}
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-white focus:outline-none"
+                  >
+                    <option value="Night Scrim" className="bg-zinc-950 text-white">Night Scrim</option>
+                    <option value="Mid Scrim" className="bg-zinc-950 text-white">Mid Scrim</option>
+                    <option value="Fast Tour" className="bg-zinc-950 text-white">Fast Tour</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                    Masa Sesi (Custom)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={40}
+                    value={ptTiming}
+                    onChange={(e) => setPtTiming(e.target.value)}
+                    placeholder="cth: 9:30 PM / 3:00 PM"
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-mono text-white placeholder:text-zinc-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                    Tarikh
+                  </label>
+                  <input
+                    type="date"
+                    value={ptDate}
+                    onChange={(e) => setPtDate(e.target.value)}
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-2.5 py-2.5 min-h-[44px] text-xs font-mono text-white [color-scheme:dark] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                    Yuran (RM)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={ptEntryFee}
+                    onChange={(e) => setPtEntryFee(e.target.value)}
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2.5 min-h-[44px] text-sm font-mono text-white focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                    Max Slot
+                  </label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="25"
+                    value={ptMaxSlots}
+                    onChange={(e) => setPtMaxSlots(e.target.value)}
+                    className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2.5 min-h-[44px] text-sm font-mono text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Link WhatsApp Lobby (Dibuka selepas Verified)
+                </label>
+                <input
+                  type="url"
+                  value={ptWhatsappLink}
+                  onChange={(e) => setPtWhatsappLink(e.target.value)}
+                  placeholder="https://chat.whatsapp.com/..."
+                  className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <span className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Kod QR DuitNow (Jika Yuran &gt; RM 0)
+                </span>
+                {Boolean(editingPortalScrim?.qr_image_url) && !ptRemoveQr && !ptQrFile && (
+                  <div className="flex items-center justify-between gap-2 p-2 mb-2 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img
+                        src={editingPortalScrim.qr_image_url}
+                        alt="QR Aktif"
+                        className="w-10 h-10 rounded-lg object-contain bg-white p-0.5 shrink-0"
+                      />
+                      <span className="text-xs text-zinc-300 truncate">Kod QR sedia ada</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPtQrFile(null);
+                        setPtRemoveQr(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/15 border border-red-500/35 text-red-200 text-[11px] font-bold cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Padam QR</span>
+                    </button>
+                  </div>
+                )}
+                <label className="flex items-center justify-center gap-2 w-full bg-black/60 hover:bg-white/[0.04] border border-dashed border-white/[0.16] rounded-xl p-3 min-h-[44px] text-zinc-300 cursor-pointer transition">
+                  <Upload className="w-4 h-4 text-[#D7FF00]" />
+                  <span className="truncate">{ptQrFile ? ptQrFile.name : 'Muat Naik Gambar QR Bayaran'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0] || null;
+                      setPtQrFile(picked);
+                      if (picked) setPtRemoveQr(false);
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Penerangan Ringkas (Opsional)
+                </label>
+                <textarea
+                  rows="2"
+                  maxLength={400}
+                  value={ptDesc}
+                  onChange={(e) => setPtDesc(e.target.value)}
+                  placeholder="Peraturan ringkas, jadual lobby atau maklumat hadiah..."
+                  className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setIsPortalFormOpen(false)}
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-white/[0.1] text-zinc-300 hover:text-white text-xs font-bold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPortal}
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-[#D7FF00] hover:bg-[#c8ef00] text-black text-xs font-extrabold cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingPortal ? 'Menyimpan...' : editingPortalScrim ? 'Simpan Perubahan' : 'Buka Tournament'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

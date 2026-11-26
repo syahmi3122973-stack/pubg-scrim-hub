@@ -1,14 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Edit3,
   ExternalLink,
   Eye,
   FileSearch,
+  Lock,
   MessageCircle,
+  Plus,
   RefreshCw,
   ShieldCheck,
+  Unlock,
   X,
   XCircle
 } from 'lucide-react';
@@ -30,16 +34,25 @@ export default function RegistrationManagerTab({
   authorizedScrims = [],
   onAutoSeedSession,
   showToast,
-  currentUser
+  currentUser,
+  onOpenCreateModal = null,
+  onOpenEditModal = null,
+  onTogglePortalRegistration = null
 }) {
   const [registrations, setRegistrations] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('Semua');
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [sessionFilter, setSessionFilter] = useState('all');
   const [processingId, setProcessingId] = useState(null);
   const [previewReceipt, setPreviewReceipt] = useState(null);
+
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
+
+  const hasLoadedRef = useRef(false);
 
   const authorizedScrimMap = useMemo(() => {
     const map = new Map();
@@ -49,38 +62,52 @@ export default function RegistrationManagerTab({
     return map;
   }, [authorizedScrims]);
 
-  const authorizedScrimIds = useMemo(
-    () => authorizedScrims.map((s) => s.id).filter(Boolean),
+  const authorizedIdsKey = useMemo(
+    () =>
+      authorizedScrims
+        .map((s) => s.id)
+        .filter(Boolean)
+        .sort()
+        .join('|'),
     [authorizedScrims]
   );
 
-  const fetchRegistrations = useCallback(async () => {
-    if (!supabase || authorizedScrimIds.length === 0) {
+  const fetchRegistrations = useCallback(async (isManual = false) => {
+    const ids = authorizedIdsKey ? authorizedIdsKey.split('|') : [];
+    if (!supabase || ids.length === 0) {
       setRegistrations([]);
-      setIsLoading(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
+      hasLoadedRef.current = true;
       return;
     }
-    setIsLoading(true);
+
+    if (hasLoadedRef.current || isManual) {
+      setIsRefreshing(true);
+    } else {
+      setIsInitialLoading(true);
+    }
+
     try {
       const { data, error } = await supabase
         .from('tournament_registrations')
         .select('*')
-        .in('scrim_id', authorizedScrimIds)
+        .in('scrim_id', ids)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setRegistrations(Array.isArray(data) ? data : []);
+      hasLoadedRef.current = true;
     } catch (err) {
-      if (typeof showToast === 'function') {
-        showToast(`Gagal muat pendaftaran: ${err?.message || 'ralat rangkaian'}`);
-      }
+      showToastRef.current?.(`Gagal muat pendaftaran: ${err?.message || 'ralat rangkaian'}`);
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
     }
-  }, [supabase, authorizedScrimIds, showToast]);
+  }, [supabase, authorizedIdsKey]);
 
   useEffect(() => {
-    fetchRegistrations();
+    fetchRegistrations(false);
   }, [fetchRegistrations]);
 
   useEffect(() => {
@@ -239,7 +266,7 @@ export default function RegistrationManagerTab({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs font-mono tabular-nums text-zinc-300 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums text-zinc-300 shrink-0">
             <span>
               <strong className="text-amber-300 font-bold">{counts.pending}</strong> Menunggu
             </span>
@@ -253,14 +280,24 @@ export default function RegistrationManagerTab({
             )}
             <button
               type="button"
-              onClick={fetchRegistrations}
-              disabled={isLoading}
+              onClick={() => fetchRegistrations(true)}
+              disabled={isRefreshing}
               aria-label="Muat semula senarai pendaftaran"
-              className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl border border-white/[0.1] bg-black/60 hover:bg-white/[0.06] text-xs font-semibold text-zinc-200 transition cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-w-[136px] min-h-[44px] rounded-xl border border-white/[0.1] bg-black/60 hover:bg-white/[0.06] text-xs font-semibold text-zinc-200 transition-colors cursor-pointer disabled:opacity-60"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Segar Semula</span>
+              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Menyegar...' : 'Segar Semula'}</span>
             </button>
+            {typeof onOpenCreateModal === 'function' && (
+              <button
+                type="button"
+                onClick={onOpenCreateModal}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[44px] rounded-xl bg-[#D7FF00] hover:bg-[#c8ef00] text-black text-xs font-extrabold transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>Buka Tournament</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -352,9 +389,99 @@ export default function RegistrationManagerTab({
         </div>
       </div>
 
+      {/* Portal Tournaments Managed Strip (when inside Portal Tournament) */}
+      {(typeof onOpenEditModal === 'function' || typeof onOpenCreateModal === 'function') && (
+        <div className="rounded-2xl border border-white/[0.08] bg-[#09090B]/85 overflow-hidden">
+          <div className="px-4 sm:px-5 py-3 border-b border-white/[0.08] flex items-center justify-between gap-2">
+            <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-zinc-300">
+              Tournament Portal Anda ({authorizedScrims.length})
+            </h3>
+            {authorizedScrims.length === 0 && typeof onOpenCreateModal === 'function' && (
+              <button
+                type="button"
+                onClick={onOpenCreateModal}
+                className="text-xs font-bold text-[#D7FF00] hover:underline cursor-pointer"
+              >
+                + Buka Tournament Pertama
+              </button>
+            )}
+          </div>
+          {authorizedScrims.length === 0 ? (
+            <div className="p-4 text-xs text-zinc-500">
+              Belum ada tournament dibuka di Portal Tournament. Klik <strong className="text-zinc-300">Buka Tournament</strong> di atas untuk membuka pendaftaran bagi pasukan.
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.06]">
+              {authorizedScrims.map((s) => (
+                <div key={s.id} className="px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm font-bold text-white truncate">{s.title}</span>
+                      {s.event_category && (
+                        <span className="px-2 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono text-zinc-300">
+                          {s.event_category}
+                        </span>
+                      )}
+                      {s.session_timing && (
+                        <span className="px-2 py-0.5 rounded bg-[#D7FF00]/10 text-[10px] font-mono font-bold text-[#D7FF00]">
+                          {s.session_timing}
+                        </span>
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                          s.is_finished
+                            ? 'bg-zinc-800/80 text-zinc-400 border-white/10'
+                            : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        }`}
+                      >
+                        {s.is_finished ? 'Ditutup' : 'Terbuka'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-mono text-zinc-400">
+                      Tarikh: {s.date || '-'} · Yuran: {Number(s.entry_fee || 0) > 0 ? `RM ${Number(s.entry_fee).toFixed(2)}` : 'PERCUMA'} · Slot: {s.max_slots || 16}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {typeof onOpenEditModal === 'function' && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenEditModal(s)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-xl border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-[#D7FF00]" />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                    {typeof onTogglePortalRegistration === 'function' && (
+                      <button
+                        type="button"
+                        onClick={() => onTogglePortalRegistration(s)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-xl border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                      >
+                        {s.is_finished ? (
+                          <>
+                            <Unlock className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Buka Semula</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Tutup Daftar</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Registration Rows Panel */}
       <div className="rounded-3xl border border-white/[0.08] bg-[#09090B]/85 backdrop-blur-sm overflow-hidden">
-        {isLoading ? (
+        {isInitialLoading ? (
           <div className="p-8 text-center text-xs text-zinc-400 font-mono">
             Memuatkan senarai pendaftaran...
           </div>

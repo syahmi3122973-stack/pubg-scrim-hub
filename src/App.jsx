@@ -1939,12 +1939,6 @@ export default function App() {
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newHostName, setNewHostName] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim');
-  const [newEventCategory, setNewEventCategory] = useState('Night Scrim');
-  const [newSessionTiming, setNewSessionTiming] = useState('');
-  const [newEntryFee, setNewEntryFee] = useState('0');
-  const [newMaxSlots, setNewMaxSlots] = useState(16);
-  const [newWhatsappLobbyLink, setNewWhatsappLobbyLink] = useState('');
-  const [newQrFile, setNewQrFile] = useState(null);
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -1952,10 +1946,12 @@ export default function App() {
   const [logoFile, setLogoFile] = useState(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  const showToast = (msg) => {
+  const toastTimerRef = useRef(null);
+  const showToast = useCallback((msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3500);
+  }, []);
 
   const sortScrimsNewest = (list) =>
     [...list].sort((a, b) => {
@@ -2532,6 +2528,10 @@ export default function App() {
     return scrims.filter(s => isAuthorizedAdmin(s));
   }, [scrims, currentUser, isAuthorizedAdmin]);
 
+  const portalAuthorizedScrims = useMemo(() => {
+    return adminHostedScrims.filter((s) => Boolean(s.portal_enabled));
+  }, [adminHostedScrims]);
+
   const userPendingScrimCount = useMemo(() => {
     if (!currentUser) return 0;
     return scrims.filter((s) => s && !s.is_finished && isUserOwnScrim(s)).length;
@@ -2639,12 +2639,7 @@ export default function App() {
       id: 'scrim_' + Date.now(),
       title: `Official Scrim - Session ${sessionNum}`,
       event_type: 'Scrim',
-      event_category: 'Night Scrim',
-      session_timing: '',
-      entry_fee: 0,
-      max_slots: 16,
-      whatsapp_lobby_link: null,
-      qr_image_url: null,
+      portal_enabled: false,
       tier: 'Tier 1 (Pro)',
       description: 'Official PUBG Mobile Scrim Session.',
       date: new Date().toISOString().split('T')[0],
@@ -2842,13 +2837,6 @@ export default function App() {
   const [editTitle, setEditTitle] = useState('');
   const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
-  const [editEventCategory, setEditEventCategory] = useState('Night Scrim');
-  const [editSessionTiming, setEditSessionTiming] = useState('');
-  const [editEntryFee, setEditEntryFee] = useState('0');
-  const [editMaxSlots, setEditMaxSlots] = useState(16);
-  const [editWhatsappLobbyLink, setEditWhatsappLobbyLink] = useState('');
-  const [editQrFile, setEditQrFile] = useState(null);
-  const [editRemoveQr, setEditRemoveQr] = useState(false);
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
   const [editDate, setEditDate] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -3024,13 +3012,6 @@ export default function App() {
     setEditTitle(targetScrim.title || '');
     setEditHostName(targetScrim.host_name || '');
     setEditEventType(targetScrim.event_type || 'Scrim');
-    setEditEventCategory(targetScrim.event_category || 'Night Scrim');
-    setEditSessionTiming(targetScrim.session_timing || '');
-    setEditEntryFee(String(targetScrim.entry_fee ?? 0));
-    setEditMaxSlots(Math.min(25, Math.max(2, Number(targetScrim.max_slots || 16))));
-    setEditWhatsappLobbyLink(targetScrim.whatsapp_lobby_link || '');
-    setEditQrFile(null);
-    setEditRemoveQr(false);
     setEditTier(targetScrim.tier || 'Tier 1 (Pro)');
     setEditDate(targetScrim.date || new Date().toISOString().split('T')[0]);
     setEditDesc(targetScrim.description || '');
@@ -3058,27 +3039,10 @@ export default function App() {
         updatedLogoUrl = '';
       }
 
-      let updatedQrUrl = editingScrim.qr_image_url || null;
-      if (editQrFile) {
-        updatedQrUrl = await uploadMediaToSupabase(editQrFile, 'qr-codes');
-      } else if (editRemoveQr) {
-        updatedQrUrl = null;
-      }
-
-      const parsedFee = Math.max(0, Number.parseFloat(editEntryFee) || 0);
-      const parsedSlots = Math.min(25, Math.max(2, Number.parseInt(editMaxSlots, 10) || 16));
-      const allowedCategories = ['Night Scrim', 'Mid Scrim', 'Fast Tour'];
-
       const updatedData = {
         title: sanitizeTextInput(editTitle, 120),
         host_name: sanitizeTextInput(editHostName, 80) || editingScrim.host_name || 'Tournament Organizer',
         event_type: editEventType === 'Tour' ? 'Tour' : 'Scrim',
-        event_category: allowedCategories.includes(editEventCategory) ? editEventCategory : 'Night Scrim',
-        session_timing: sanitizeTextInput(editSessionTiming, 40) || null,
-        entry_fee: Number(parsedFee.toFixed(2)),
-        max_slots: parsedSlots,
-        whatsapp_lobby_link: safeExternalUrl(editWhatsappLobbyLink),
-        qr_image_url: safeMediaUrl(updatedQrUrl),
         tier: sanitizeTextInput(editTier, 40) || 'Tier 1 (Pro)',
         date: editDate || editingScrim.date || new Date().toISOString().split('T')[0],
         description: sanitizeTextInput(editDesc, 400),
@@ -3657,15 +3621,6 @@ export default function App() {
         uploadedLogoUrl = await uploadMediaToSupabase(logoFile, 'logos');
       }
 
-      let uploadedQrUrl = null;
-      if (newQrFile) {
-        uploadedQrUrl = await uploadMediaToSupabase(newQrFile, 'qr-codes');
-      }
-
-      const parsedFee = Math.max(0, Number.parseFloat(newEntryFee) || 0);
-      const parsedSlots = Math.min(25, Math.max(2, Number.parseInt(newMaxSlots, 10) || 16));
-      const allowedCategories = ['Night Scrim', 'Mid Scrim', 'Fast Tour'];
-
       const generatedToken = generateSecureToken('token_');
       const hostDisplayName = sanitizeTextInput(newHostName, 80) || profileName || currentUser.email.split('@')[0];
 
@@ -3679,12 +3634,7 @@ export default function App() {
         id: 'scrim_' + Date.now(),
         title: sanitizeTextInput(newScrimTitle, 120),
         event_type: newEventType === 'Tour' ? 'Tour' : 'Scrim',
-        event_category: allowedCategories.includes(newEventCategory) ? newEventCategory : 'Night Scrim',
-        session_timing: sanitizeTextInput(newSessionTiming, 40) || null,
-        entry_fee: Number(parsedFee.toFixed(2)),
-        max_slots: parsedSlots,
-        whatsapp_lobby_link: safeExternalUrl(newWhatsappLobbyLink),
-        qr_image_url: safeMediaUrl(uploadedQrUrl),
+        portal_enabled: false,
         tier: sanitizeTextInput(newScrimTier, 40) || 'Tier 1 (Pro)',
         description: sanitizeTextInput(newScrimDesc, 400) || `Official PUBG Mobile ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} Session.`,
         date: newScrimDate || new Date().toISOString().split('T')[0],
@@ -3712,11 +3662,6 @@ export default function App() {
         setNewHostName('');
         setNewScrimDesc('');
         setNewHostContact('');
-        setNewSessionTiming('');
-        setNewEntryFee('0');
-        setNewMaxSlots(16);
-        setNewWhatsappLobbyLink('');
-        setNewQrFile(null);
         setLogoFile(null);
         setIsCreateScrimOpen(false);
         showToast(`Sesi ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} dah siap!`);
@@ -3727,6 +3672,80 @@ export default function App() {
       setIsUploadingLogo(false);
     }
   };
+
+  const handleSavePortalTournament = useCallback(async (payload, existingScrimId = null) => {
+    if (!currentUser || (!isMasterAdmin && adminHostedScrims.length === 0)) {
+      return { error: 'Hanya admin yang dibenarkan membuka tournament di Portal Tournament.' };
+    }
+
+    if (existingScrimId) {
+      const target = scrims.find((s) => s.id === existingScrimId);
+      if (!target || !isAuthorizedAdmin(target)) {
+        return { error: 'Akses edit tournament ini tidak dibenarkan.' };
+      }
+      const updatePatch = {
+        ...payload,
+        portal_enabled: true
+      };
+      const { error } = await supabase
+        .from('scrims')
+        .update(updatePatch)
+        .eq('id', existingScrimId);
+      if (error) return { error: error.message };
+
+      setScrims((prev) => prev.map((s) => (s.id === existingScrimId ? { ...s, ...updatePatch } : s)));
+      showToast('Maklumat tournament portal berjaya dikemas kini!');
+      return { ok: true };
+    }
+
+    const defaultMatches = PLAYGROUND_DEFAULT_MAPS.map((mapName, idx) => ({
+      matchNo: idx + 1,
+      map: mapName,
+      results: []
+    }));
+
+    const newPortalSession = {
+      id: 'portal_' + Date.now(),
+      event_type: 'Tour',
+      tier: 'Open Community',
+      host_name: profileName || currentUser.email?.split('@')[0] || 'Host Admin',
+      host_contact: profileContact || '',
+      logo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80',
+      total_matches: defaultMatches.length,
+      matches: defaultMatches,
+      created_by: currentUser.id,
+      co_hosts: [],
+      claim_token: generateSecureToken('token_'),
+      is_finished: false,
+      ...payload,
+      portal_enabled: true
+    };
+
+    const { error } = await supabase.from('scrims').insert([newPortalSession]);
+    if (error) return { error: error.message };
+
+    setScrims((prev) => [newPortalSession, ...prev]);
+    showToast(`Tournament "${newPortalSession.title}" berjaya dibuka di Portal Tournament!`);
+    return { ok: true };
+  }, [currentUser, isMasterAdmin, adminHostedScrims.length, scrims, isAuthorizedAdmin, profileName, profileContact, showToast]);
+
+  const handleTogglePortalRegistration = useCallback(async (scrim) => {
+    if (!scrim || !isAuthorizedAdmin(scrim)) {
+      showToast('Akses tidak dibenarkan.');
+      return;
+    }
+    const nextFinished = !scrim.is_finished;
+    const { error } = await supabase
+      .from('scrims')
+      .update({ is_finished: nextFinished })
+      .eq('id', scrim.id);
+    if (error) {
+      showToast(`Gagal kemas kini status: ${error.message}`);
+      return;
+    }
+    setScrims((prev) => prev.map((s) => (s.id === scrim.id ? { ...s, is_finished: nextFinished } : s)));
+    showToast(nextFinished ? `Pendaftaran "${scrim.title}" ditutup.` : `Pendaftaran "${scrim.title}" dibuka semula!`);
+  }, [isAuthorizedAdmin, showToast]);
 
   const handleAutoSeedSession = useCallback(async (targetScrim, reg) => {
     if (!targetScrim || !reg) {
@@ -7321,8 +7340,10 @@ export default function App() {
             }}
             onExitPortal={() => navigateToTab('playground')}
             canManageRegistrations={Boolean(currentUser && (isMasterAdmin || adminHostedScrims.length > 0))}
-            authorizedScrims={adminHostedScrims}
+            authorizedScrims={portalAuthorizedScrims}
             onAutoSeedSession={handleAutoSeedSession}
+            onSavePortalTournament={handleSavePortalTournament}
+            onTogglePortalRegistration={handleTogglePortalRegistration}
           />
         </div>
       )}
@@ -12318,7 +12339,7 @@ export default function App() {
                 {activeTab === 'admin' && adminWorkspaceTab === 'registrations' && (
                   <RegistrationManagerTab
                     supabase={supabase}
-                    authorizedScrims={adminHostedScrims}
+                    authorizedScrims={portalAuthorizedScrims}
                     onAutoSeedSession={handleAutoSeedSession}
                     showToast={showToast}
                     currentUser={currentUser}
@@ -15177,92 +15198,6 @@ export default function App() {
                 </label>
               </div>
 
-              {/* Portal Tournament Registration Settings */}
-              <div className="pt-2 border-t border-white/10 space-y-3">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-[#D7FF00] font-bold">
-                  Tetapan Pendaftaran Portal Tournament
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Kategori Sesi</label>
-                    <select
-                      value={newEventCategory}
-                      onChange={(e) => setNewEventCategory(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-[#D7FF00] font-semibold"
-                    >
-                      <option value="Night Scrim" className="bg-zinc-950 text-white">Night Scrim</option>
-                      <option value="Mid Scrim" className="bg-zinc-950 text-white">Mid Scrim</option>
-                      <option value="Fast Tour" className="bg-zinc-950 text-white">Fast Tour</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Masa Sesi (Custom)</label>
-                    <input
-                      type="text"
-                      maxLength={40}
-                      placeholder="cth: 9:30 PM / 3:00 PM"
-                      value={newSessionTiming}
-                      onChange={(e) => setNewSessionTiming(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00] font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Yuran Penyertaan (RM)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={newEntryFee}
-                      onChange={(e) => setNewEntryFee(e.target.value)}
-                      placeholder="0 = Percuma"
-                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#D7FF00]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Maksimum Slot (2–25)</label>
-                    <input
-                      type="number"
-                      min="2"
-                      max="25"
-                      value={newMaxSlots}
-                      onChange={(e) => setNewMaxSlots(e.target.value)}
-                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#D7FF00]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Link WhatsApp Lobby (Opsional)</label>
-                  <input
-                    type="url"
-                    placeholder="https://chat.whatsapp.com/..."
-                    value={newWhatsappLobbyLink}
-                    onChange={(e) => setNewWhatsappLobbyLink(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Kod QR DuitNow (Opsional)</label>
-                  <label className="flex items-center justify-center gap-1.5 w-full bg-zinc-900 hover:bg-zinc-850 border border-dashed border-white/15 rounded-xl px-3 py-2.5 text-zinc-300 cursor-pointer transition">
-                    <Upload className="w-3.5 h-3.5 text-[#D7FF00]" />
-                    <span className="truncate">{newQrFile ? newQrFile.name : 'Muat Naik Gambar QR Bayaran'}</span>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      onChange={(e) => setNewQrFile(e.target.files[0] || null)}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
                 <button
                   type="button"
@@ -15522,123 +15457,6 @@ export default function App() {
                     onChange={(e) => setEditDesc(e.target.value)}
                     className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-base sm:text-xs text-white placeholder-zinc-500 resize-y focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00]"
                   />
-                </div>
-
-                {/* Portal Tournament Registration Settings (Edit) */}
-                <div className="pt-2 border-t border-white/10 space-y-3">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-[#D7FF00] font-bold">
-                    Tetapan Pendaftaran Portal Tournament
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label htmlFor="edit-event-category" className="block text-zinc-400 uppercase font-bold mb-1">Kategori Sesi</label>
-                      <select
-                        id="edit-event-category"
-                        value={editEventCategory}
-                        onChange={(e) => setEditEventCategory(e.target.value)}
-                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white focus:outline-none focus-visible:border-[#D7FF00]"
-                      >
-                        <option value="Night Scrim" className="bg-zinc-950 text-white">Night Scrim</option>
-                        <option value="Mid Scrim" className="bg-zinc-950 text-white">Mid Scrim</option>
-                        <option value="Fast Tour" className="bg-zinc-950 text-white">Fast Tour</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="edit-session-timing" className="block text-zinc-400 uppercase font-bold mb-1">Masa Sesi (Custom)</label>
-                      <input
-                        id="edit-session-timing"
-                        type="text"
-                        maxLength={40}
-                        value={editSessionTiming}
-                        onChange={(e) => setEditSessionTiming(e.target.value)}
-                        placeholder="cth: 9:30 PM / 3:00 PM"
-                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label htmlFor="edit-entry-fee" className="block text-zinc-400 uppercase font-bold mb-1">Yuran (RM)</label>
-                      <input
-                        id="edit-entry-fee"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={editEntryFee}
-                        onChange={(e) => setEditEntryFee(e.target.value)}
-                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs font-mono text-white focus:outline-none focus-visible:border-[#D7FF00]"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="edit-max-slots" className="block text-zinc-400 uppercase font-bold mb-1">Maksimum Slot</label>
-                      <input
-                        id="edit-max-slots"
-                        type="number"
-                        min="2"
-                        max="25"
-                        value={editMaxSlots}
-                        onChange={(e) => setEditMaxSlots(e.target.value)}
-                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs font-mono text-white focus:outline-none focus-visible:border-[#D7FF00]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="edit-wa-lobby" className="block text-zinc-400 uppercase font-bold mb-1">Link WhatsApp Lobby</label>
-                    <input
-                      id="edit-wa-lobby"
-                      type="url"
-                      value={editWhatsappLobbyLink}
-                      onChange={(e) => setEditWhatsappLobbyLink(e.target.value)}
-                      placeholder="https://chat.whatsapp.com/..."
-                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00]"
-                    />
-                  </div>
-
-                  <div>
-                    <span className="block text-zinc-400 uppercase font-bold mb-1">Kod QR DuitNow</span>
-                    {Boolean((editTargetScrim || activeAdminScrim)?.qr_image_url) && !editRemoveQr && !editQrFile && (
-                      <div className="flex items-center justify-between gap-2 p-2 mb-2 rounded-xl bg-zinc-900/70 border border-white/10">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <img
-                            src={(editTargetScrim || activeAdminScrim)?.qr_image_url}
-                            alt="QR Bayaran Aktif"
-                            className="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shrink-0"
-                          />
-                          <span className="text-[11px] font-medium text-zinc-200 truncate">Kod QR aktif</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditQrFile(null);
-                            setEditRemoveQr(true);
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Padam QR</span>
-                        </button>
-                      </div>
-                    )}
-                    <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 min-h-[44px] text-zinc-300 cursor-pointer transition">
-                      <Upload className="w-4 h-4 text-[#D7FF00]" />
-                      <span className="truncate">{editQrFile ? editQrFile.name : 'Pilih Gambar QR DuitNow Baharu'}</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        onChange={(e) => {
-                          const picked = e.target.files[0] || null;
-                          setEditQrFile(picked);
-                          if (picked) setEditRemoveQr(false);
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
                 </div>
               </div>
 
