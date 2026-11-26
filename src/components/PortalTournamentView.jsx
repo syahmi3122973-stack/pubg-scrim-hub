@@ -499,72 +499,91 @@ export default function PortalTournamentView({
   }, [scrims]);
 
   return (
-    <div className="min-h-screen bg-[#070709] text-zinc-100">
-      {/* Standalone Top Bar */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#070709]/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={onExitPortal}
-              className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.08] text-xs font-bold text-zinc-200 transition cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>SCRIM HUB</span>
-            </button>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
-                <span className="text-[#D7FF00] font-bold">PORTAL TOURNAMENT</span>
-                <span>/</span>
-                <span className="truncate">scrim.rykhor.my</span>
-              </div>
-            </div>
-          </div>
-
-          <nav aria-label="Navigasi Portal Tournament" className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => onChangePortalSection('register')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-bold border transition cursor-pointer ${
-                portalSection === 'register'
-                  ? 'bg-[#D7FF00] text-black border-[#D7FF00]'
-                  : 'bg-white/[0.03] text-zinc-300 border-white/[0.08] hover:text-white'
-              }`}
-            >
-              <Ticket className="w-3.5 h-3.5" />
-              <span>Daftar Sesi</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangePortalSection('status')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-bold border transition cursor-pointer ${
-                portalSection === 'status'
-                  ? 'bg-[#D7FF00] text-black border-[#D7FF00]'
-                  : 'bg-white/[0.03] text-zinc-300 border-white/[0.08] hover:text-white'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>Semak Status</span>
-            </button>
-            {canManageRegistrations && (
+    <div className="min-h-screen bg-transparent text-zinc-100 flex flex-col">
+      {/* Standalone SCRIM HUB Geist Header Bar */}
+      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-black/70 backdrop-blur-md">
+        <div className="max-w-[1360px] mx-auto px-3.5 sm:px-6 lg:px-10">
+          <div className="h-14 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <button
                 type="button"
-                onClick={() => onChangePortalSection('manage')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-bold border transition cursor-pointer ${
-                  portalSection === 'manage'
-                    ? 'bg-white text-black border-white'
-                    : 'bg-white/[0.03] text-zinc-300 border-white/[0.08] hover:text-white'
+                onClick={onExitPortal}
+                title="Kembali ke SCRIM HUB"
+                className="inline-flex items-center gap-2 px-2.5 py-1.5 min-h-[38px] rounded-xl border border-white/[0.08] bg-[#111113] hover:bg-[#17171A] hover:border-white/[0.16] text-xs font-semibold text-zinc-200 hover:text-white transition cursor-pointer shrink-0"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
+                <img
+                  src="/logo.png"
+                  alt="SCRIM HUB"
+                  className="w-5 h-5 rounded object-cover border border-white/10 hidden sm:block"
+                />
+                <span>Scrim Hub</span>
+              </button>
+
+              <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-500 min-w-0">
+                <span className="select-none hidden sm:inline">/</span>
+                <span className="text-[#D7FF00] font-semibold truncate">portal-tournament</span>
+                <span className="hidden md:inline-block ml-1.5 text-[10px] px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.02] text-zinc-400">
+                  ry.khor
+                </span>
+              </div>
+            </div>
+
+            <nav
+              aria-label="Navigasi Portal Tournament"
+              role="tablist"
+              className="flex items-stretch h-full gap-1 sm:gap-2 overflow-x-auto no-scrollbar"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={portalSection === 'register'}
+                onClick={() => onChangePortalSection('register')}
+                className={`vercel-tab inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 h-full text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+                  portalSection === 'register'
+                    ? 'text-white'
+                    : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Pengurusan</span>
+                <Ticket className={`w-3.5 h-3.5 ${portalSection === 'register' ? 'text-[#D7FF00]' : 'text-zinc-500'}`} />
+                <span>Daftar Sesi</span>
               </button>
-            )}
-          </nav>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={portalSection === 'status'}
+                onClick={() => onChangePortalSection('status')}
+                className={`vercel-tab inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 h-full text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+                  portalSection === 'status'
+                    ? 'text-white'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Search className={`w-3.5 h-3.5 ${portalSection === 'status' ? 'text-[#D7FF00]' : 'text-zinc-500'}`} />
+                <span>Semak Status</span>
+              </button>
+              {canManageRegistrations && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={portalSection === 'manage'}
+                  onClick={() => onChangePortalSection('manage')}
+                  className={`vercel-tab inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 h-full text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+                    portalSection === 'manage'
+                      ? 'text-white'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <ShieldCheck className={`w-3.5 h-3.5 ${portalSection === 'manage' ? 'text-[#D7FF00]' : 'text-zinc-500'}`} />
+                  <span>Pengurusan</span>
+                </button>
+              )}
+            </nav>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-[1360px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 py-5 sm:py-7 space-y-5 sm:space-y-6">
         {portalSection === 'manage' && canManageRegistrations && (
           <RegistrationManagerTab
             supabase={supabase}
@@ -580,35 +599,47 @@ export default function PortalTournamentView({
 
         {portalSection === 'register' && (
           <>
-            {/* Grid Hero Header matching Team Matrix / About */}
+            {/* SCRIM HUB Grid Hero Overview (Matches About & Direktori Penganjur) */}
             <section className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
-              <div className="p-5 sm:p-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div className="space-y-2.5 min-w-0">
+              <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+                <div className="lg:col-span-8 p-5 sm:p-7 space-y-2.5 min-w-0">
                   <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
                     <span className="text-[#D7FF00] font-semibold">Portal Tournament</span>
                     <span className="text-zinc-600">/</span>
                     <span>Pendaftaran &amp; Resit</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                    Daftar Slot Scrim &amp; Kejohanan
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white text-balance">
+                    Daftar Slot Kejohanan <span className="text-[#D7FF00]">SCRIM HUB</span>
                   </h1>
-                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl">
-                    Pilih kategori, semak baki slot semasa, imbas QR DuitNow dan muat naik resit dengan pengesahan OCR automatik.
+                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl text-pretty">
+                    Pilih kategori kejohanan, pantau baki slot semasa, imbas QR DuitNow dan muat naik resit dengan pengesahan OCR automatik.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-5 text-xs font-mono tabular-nums text-zinc-300 shrink-0">
-                  <span>
-                    <strong className="text-[#D7FF00] font-bold">{openSessions.length}</strong> Sesi Terbuka
-                  </span>
-                  <span>
-                    <strong className="text-white font-bold">{currentUser ? 'Aktif' : 'Perlu Login'}</strong> Status Akaun
-                  </span>
+                <div className="lg:col-span-4 bg-[#050506]/75 p-5 sm:p-6 flex flex-col justify-center">
+                  <div className="grid grid-cols-3 divide-x divide-white/[0.08] border border-white/[0.08] rounded-xl bg-[#0A0A0A] text-center">
+                    <div className="py-2.5 px-1.5">
+                      <span className="text-[10px] font-mono text-zinc-500 block">TERBUKA</span>
+                      <span className="text-sm font-mono font-bold text-[#D7FF00] tabular-nums">{openSessions.length}</span>
+                    </div>
+                    <div className="py-2.5 px-1.5">
+                      <span className="text-[10px] font-mono text-zinc-500 block">MASA</span>
+                      <span className="text-sm font-mono font-bold text-white tabular-nums">
+                        {Math.max(0, availableTimings.length - 1)}
+                      </span>
+                    </div>
+                    <div className="py-2.5 px-1.5">
+                      <span className="text-[10px] font-mono text-zinc-500 block">AKAUN</span>
+                      <span className={`text-xs font-mono font-bold ${currentUser ? 'text-emerald-400' : 'text-amber-300'}`}>
+                        {currentUser ? 'AKTIF' : 'LOGIN'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {currentUser && (
-                <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/80 space-y-2.5">
+                <div className="px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0A0A0A]/85 space-y-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {PORTAL_CATEGORIES.map((cat) => {
                       const active = categoryFilter === cat;
@@ -617,10 +648,10 @@ export default function PortalTournamentView({
                           key={cat}
                           type="button"
                           onClick={() => setCategoryFilter(cat)}
-                          className={`px-3 py-1.5 min-h-[38px] rounded-xl text-xs font-bold border transition cursor-pointer ${
+                          className={`px-3 py-1.5 min-h-[38px] rounded-xl text-xs font-semibold border transition cursor-pointer ${
                             active
-                              ? 'bg-[#D7FF00] text-black border-[#D7FF00]'
-                              : 'bg-white/[0.03] text-zinc-300 border-white/[0.08] hover:border-white/25 hover:text-white'
+                              ? 'bg-[#D7FF00] text-black border-[#D7FF00] font-bold'
+                              : 'bg-[#111114] text-zinc-300 border-white/[0.08] hover:border-white/25 hover:text-white'
                           }`}
                         >
                           {cat}
@@ -630,7 +661,7 @@ export default function PortalTournamentView({
                   </div>
 
                   {/* Custom Timing Filter Chips derived from admin session settings */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/[0.05]">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/[0.06]">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mr-1">
                       Masa Sesi:
                     </span>
@@ -641,10 +672,10 @@ export default function PortalTournamentView({
                           key={t}
                           type="button"
                           onClick={() => setTimingFilter(t)}
-                          className={`px-2.5 py-1 min-h-[34px] rounded-lg text-[11px] font-semibold border transition cursor-pointer ${
+                          className={`px-2.5 py-1 min-h-[34px] rounded-lg text-[11px] font-mono font-medium border transition cursor-pointer ${
                             active
-                              ? 'bg-white text-black border-white'
-                              : 'bg-black/50 text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
+                              ? 'bg-[#EDEDED] text-zinc-950 border-[#EDEDED] font-bold'
+                              : 'bg-[#09090B] text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
                           }`}
                         >
                           {t}
@@ -999,20 +1030,39 @@ export default function PortalTournamentView({
 
         {portalSection === 'status' && (
           <div className="space-y-5">
-            {/* Grid Hero Lookup */}
+            {/* SCRIM HUB Grid Hero Lookup */}
             <section className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
-              <div className="p-5 sm:p-7 space-y-3">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
-                  <span className="text-[#D7FF00] font-semibold">Portal Tournament</span>
-                  <span className="text-zinc-600">/</span>
-                  <span>Semak Status</span>
+              <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+                <div className="lg:col-span-8 p-5 sm:p-7 space-y-2.5">
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
+                    <span className="text-[#D7FF00] font-semibold">Portal Tournament</span>
+                    <span className="text-zinc-600">/</span>
+                    <span>Semak Status</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white text-balance">
+                    Semak Status Pendaftaran &amp; Lobby WA
+                  </h1>
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-xl text-pretty">
+                    Masukkan nombor WhatsApp kapten yang didaftarkan. Butang sertai WhatsApp Lobby dibuka automatik sebaik resit disahkan admin.
+                  </p>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                  Semak Status Pendaftaran &amp; Link Lobby
-                </h1>
-                <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
-                  Masukkan nombor WhatsApp kapten yang digunakan semasa pendaftaran. Butang WhatsApp Lobby akan dibuka secara automatik selepas admin mengesahkan resit anda.
-                </p>
+
+                <div className="lg:col-span-4 bg-[#050506]/75 p-5 sm:p-6 flex flex-col justify-center">
+                  <div className="grid grid-cols-2 divide-x divide-white/[0.08] border border-white/[0.08] rounded-xl bg-[#0A0A0A] text-center">
+                    <div className="py-2.5 px-2">
+                      <span className="text-[10px] font-mono text-zinc-500 block">REKOD ANDA</span>
+                      <span className="text-sm font-mono font-bold text-[#D7FF00] tabular-nums">
+                        {myRegistrations.length}
+                      </span>
+                    </div>
+                    <div className="py-2.5 px-2">
+                      <span className="text-[10px] font-mono text-zinc-500 block">HASIL CARIAN</span>
+                      <span className="text-sm font-mono font-bold text-white tabular-nums">
+                        {hasSearchedStatus ? statusResults.length : '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <form
@@ -1024,12 +1074,12 @@ export default function PortalTournamentView({
                   value={statusWhatsappInput}
                   onChange={(e) => setStatusWhatsappInput(e.target.value)}
                   placeholder="Masukkan WhatsApp Kapten (cth: 0123456789)"
-                  className="flex-1 bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-4 py-2.5 min-h-[44px] text-sm font-mono text-white placeholder:text-zinc-500 focus:outline-none"
+                  className="flex-1 bg-[#09090B] border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-4 py-2.5 min-h-[44px] text-sm font-mono text-white placeholder:text-zinc-500 focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={isCheckingStatus}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl bg-[#D7FF00] hover:bg-[#c8ef00] text-black text-xs font-extrabold transition cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.99] text-zinc-950 text-xs font-extrabold transition cursor-pointer disabled:opacity-50"
                 >
                   <Search className="w-4 h-4" />
                   <span>{isCheckingStatus ? 'Menyemak...' : 'Semak Status'}</span>
@@ -1138,6 +1188,38 @@ export default function PortalTournamentView({
         )}
       </main>
 
+      {/* SCRIM HUB Brand Footer */}
+      <footer className="max-w-[1360px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 py-6">
+        <div className="pt-5 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
+          <span className="text-[11px] font-mono text-zinc-500">
+            © 2026 SCRIM HUB by ry.khor · Portal Tournament
+          </span>
+          <div className="flex items-center gap-4 text-xs">
+            <button
+              type="button"
+              onClick={() => onChangePortalSection('register')}
+              className="text-zinc-400 hover:text-white transition cursor-pointer"
+            >
+              Daftar Sesi
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangePortalSection('status')}
+              className="text-zinc-400 hover:text-white transition cursor-pointer"
+            >
+              Semak Status
+            </button>
+            <button
+              type="button"
+              onClick={onExitPortal}
+              className="text-[#D7FF00] hover:underline font-medium transition cursor-pointer"
+            >
+              Kembali ke SCRIM HUB
+            </button>
+          </div>
+        </div>
+      </footer>
+
       {/* Modal: Admin Buka / Edit Tournament Portal */}
       {isPortalFormOpen && canManageRegistrations && (
         <div
@@ -1148,7 +1230,7 @@ export default function PortalTournamentView({
           aria-label={editingPortalScrim ? 'Edit Tournament Portal' : 'Buka Tournament Portal'}
         >
           <div
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-white/[0.1] bg-[#09090B] shadow-2xl"
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto glass-modal rounded-3xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between gap-2">

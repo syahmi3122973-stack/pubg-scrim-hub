@@ -249,16 +249,16 @@ export default function RegistrationManagerTab({
 
   return (
     <div className="space-y-4">
-      {/* Header Matrix Panel */}
+      {/* Header Matrix Panel (Matches SCRIM HUB About / Direktori Penganjur) */}
       <div className="rounded-2xl border border-white/[0.08] vercel-grid-surface relative overflow-hidden">
-        <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5 min-w-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+          <div className="lg:col-span-7 p-4 sm:p-6 space-y-1.5 min-w-0">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-white/[0.1] bg-[#0A0A0A]/90 text-[11px] font-mono text-zinc-300">
               <span className="text-[#D7FF00] font-semibold">Admin</span>
               <span className="text-zinc-600">/</span>
               <span>Registration Manager</span>
             </div>
-            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
               Pengesahan Resit &amp; Auto-Seed Pasukan
             </h2>
             <p className="text-xs text-zinc-400">
@@ -266,38 +266,46 @@ export default function RegistrationManagerTab({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums text-zinc-300 shrink-0">
-            <span>
-              <strong className="text-amber-300 font-bold">{counts.pending}</strong> Menunggu
-            </span>
-            <span>
-              <strong className="text-[#D7FF00] font-bold">{counts.verified}</strong> Disahkan
-            </span>
-            {counts.duplicate > 0 && (
-              <span>
-                <strong className="text-red-400 font-bold">{counts.duplicate}</strong> Duplikat
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => fetchRegistrations(true)}
-              disabled={isRefreshing}
-              aria-label="Muat semula senarai pendaftaran"
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-w-[136px] min-h-[44px] rounded-xl border border-white/[0.1] bg-black/60 hover:bg-white/[0.06] text-xs font-semibold text-zinc-200 transition-colors cursor-pointer disabled:opacity-60"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing ? 'Menyegar...' : 'Segar Semula'}</span>
-            </button>
-            {typeof onOpenCreateModal === 'function' && (
+          <div className="lg:col-span-5 bg-[#050506]/75 p-4 sm:p-6 flex flex-col justify-center gap-3">
+            <div className={`grid ${counts.duplicate > 0 ? 'grid-cols-3' : 'grid-cols-2'} divide-x divide-white/[0.08] border border-white/[0.08] rounded-xl bg-[#0A0A0A] text-center font-mono tabular-nums`}>
+              <div className="py-2 px-2">
+                <span className="text-[10px] text-zinc-500 block">MENUNGGU</span>
+                <span className="text-sm font-bold text-amber-300">{counts.pending}</span>
+              </div>
+              <div className="py-2 px-2">
+                <span className="text-[10px] text-zinc-500 block">DISAHKAN</span>
+                <span className="text-sm font-bold text-[#D7FF00]">{counts.verified}</span>
+              </div>
+              {counts.duplicate > 0 && (
+                <div className="py-2 px-2">
+                  <span className="text-[10px] text-zinc-500 block">DUPLIKAT</span>
+                  <span className="text-sm font-bold text-red-400">{counts.duplicate}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={onOpenCreateModal}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[44px] rounded-xl bg-[#D7FF00] hover:bg-[#c8ef00] text-black text-xs font-extrabold transition cursor-pointer"
+                onClick={() => fetchRegistrations(true)}
+                disabled={isRefreshing}
+                aria-label="Muat semula senarai pendaftaran"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-w-[136px] min-h-[42px] rounded-xl border border-white/[0.12] bg-[#0F0F12] hover:bg-[#18181C] text-xs font-semibold text-zinc-200 transition-colors cursor-pointer disabled:opacity-60"
               >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>Buka Tournament</span>
+                <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Menyegar...' : 'Segar Semula'}</span>
               </button>
-            )}
+              {typeof onOpenCreateModal === 'function' && (
+                <button
+                  type="button"
+                  onClick={onOpenCreateModal}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[42px] rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.98] text-zinc-950 text-xs font-extrabold transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>Buka Tournament</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

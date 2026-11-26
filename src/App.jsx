@@ -230,6 +230,9 @@ const TAB_AURORA_THEMES = {
   about: { key: 'about', anchorX: 0.5, anchorY: 0.44, radius: 0.56, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.34 },
   privacy: { key: 'privacy', anchorX: 0.3, anchorY: 0.46, radius: 0.5, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.28 },
   terms: { key: 'terms', anchorX: 0.7, anchorY: 0.46, radius: 0.5, primaryColor: '#FFFFFF', accentColor: '#A1A1AA', intensity: 0.28 },
+  register: { key: 'portal', anchorX: 0.48, anchorY: 0.48, radius: 0.6, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
+  status: { key: 'portal', anchorX: 0.52, anchorY: 0.5, radius: 0.58, primaryColor: '#FFFFFF', accentColor: '#34D399', intensity: 0.34 },
+  'portal-tournament': { key: 'portal', anchorX: 0.48, anchorY: 0.48, radius: 0.6, primaryColor: '#FFFFFF', accentColor: '#D7FF00', intensity: 0.36 },
 };
 
 const InstagramIcon = ({ className = "w-3.5 h-3.5" }) => (
