@@ -20,6 +20,7 @@ import {
   Swords,
   Ticket,
   Trash2,
+  Trophy,
   Upload,
   Users,
   X
@@ -81,6 +82,7 @@ export default function PortalTournamentView({
   const [ptDate, setPtDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [ptTotalMatches, setPtTotalMatches] = useState(5);
   const [ptRoomType, setPtRoomType] = useState('Squad TPP');
+  const [ptPrizePool, setPtPrizePool] = useState('');
   const [ptEntryFee, setPtEntryFee] = useState('0');
   const [ptMaxSlots, setPtMaxSlots] = useState(16);
   const [ptWhatsappLink, setPtWhatsappLink] = useState('');
@@ -189,6 +191,7 @@ export default function PortalTournamentView({
     setPtDate(new Date().toISOString().split('T')[0]);
     setPtTotalMatches(5);
     setPtRoomType('Squad TPP');
+    setPtPrizePool('');
     setPtEntryFee('0');
     setPtMaxSlots(16);
     setPtWhatsappLink('');
@@ -206,6 +209,7 @@ export default function PortalTournamentView({
     setPtDate(scrim.date || new Date().toISOString().split('T')[0]);
     setPtTotalMatches(Math.min(12, Math.max(1, Number(scrim.total_matches || scrim.matches?.length || 5))));
     setPtRoomType(scrim.room_type || 'Squad TPP');
+    setPtPrizePool(scrim.prize_pool || '');
     setPtEntryFee(String(scrim.entry_fee ?? 0));
     setPtMaxSlots(Math.min(25, Math.max(2, Number(scrim.max_slots || 16))));
     setPtWhatsappLink(scrim.whatsapp_lobby_link || '');
@@ -240,6 +244,7 @@ export default function PortalTournamentView({
         date: ptDate || new Date().toISOString().split('T')[0],
         total_matches: Math.min(12, Math.max(1, Number.parseInt(ptTotalMatches, 10) || 5)),
         room_type: sanitizeTextInput(ptRoomType, 40) || 'Squad TPP',
+        prize_pool: sanitizeTextInput(ptPrizePool, 140) || null,
         entry_fee: Number(Math.max(0, Number.parseFloat(ptEntryFee) || 0).toFixed(2)),
         max_slots: Math.min(25, Math.max(2, Number.parseInt(ptMaxSlots, 10) || 16)),
         whatsapp_lobby_link: safeExternalUrl(ptWhatsappLink),
@@ -720,6 +725,12 @@ export default function PortalTournamentView({
                                 <span className="text-white font-semibold">
                                   {fee > 0 ? `RM ${fee.toFixed(2)}` : 'PERCUMA'}
                                 </span>
+                                {session.prize_pool && (
+                                  <span className="inline-flex items-center gap-1 text-[#D7FF00] font-semibold">
+                                    <Trophy className="w-3 h-3" />
+                                    {session.prize_pool}
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -851,6 +862,16 @@ export default function PortalTournamentView({
                         {requiresReceipt ? `RM ${entryFee.toFixed(2)}` : 'PERCUMA'}
                       </p>
                     </div>
+
+                    <div className="col-span-2 sm:col-span-3 p-4 border-t border-white/[0.08] bg-[#D7FF00]/[0.03] flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[10px] font-mono uppercase text-zinc-400 flex items-center gap-1.5">
+                        <Trophy className="w-3.5 h-3.5 text-[#D7FF00]" />
+                        Prize Pool Tournament
+                      </span>
+                      <p className="text-sm sm:text-base font-mono font-extrabold text-[#D7FF00]">
+                        {selectedSession.prize_pool || 'Akan Diumumkan'}
+                      </p>
+                    </div>
                   </div>
                 </section>
 
@@ -883,7 +904,7 @@ export default function PortalTournamentView({
                     setRegisterStep('form');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="w-full py-4 px-6 min-h-[52px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.99] text-zinc-950 text-sm font-extrabold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 px-6 mb-4 min-h-[52px] rounded-2xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-[0.99] text-zinc-950 text-sm font-extrabold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>{selectedSlotMeta?.isFull ? 'Sesi Ini Telah Penuh' : 'Register Sekarang'}</span>
                   {!selectedSlotMeta?.isFull && <ArrowRight className="w-4 h-4 stroke-[2.5]" />}
@@ -1564,6 +1585,20 @@ export default function PortalTournamentView({
                     className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3 py-2.5 min-h-[44px] text-sm font-mono text-white focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Prize Pool Tournament (Opsional)
+                </label>
+                <input
+                  type="text"
+                  maxLength={140}
+                  value={ptPrizePool}
+                  onChange={(e) => setPtPrizePool(e.target.value)}
+                  placeholder="cth: RM 500 (Top 1 RM 300, Top 2 RM 150, MVP RM 50)"
+                  className="w-full bg-black/70 border border-white/[0.1] focus:border-[#D7FF00]/60 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                />
               </div>
 
               <div>
