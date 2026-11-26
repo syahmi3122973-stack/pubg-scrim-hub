@@ -1781,6 +1781,84 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const sortScrimsNewest = (list) =>
+    [...list].sort((a, b) => {
+      const timeA = parseInt(String(a?.id || '').replace(/\D+/g, ''), 10) || 0;
+      const timeB = parseInt(String(b?.id || '').replace(/\D+/g, ''), 10) || 0;
+      return timeB - timeA;
+    });
+
+  const lastScrimSyncRef = useRef(0);
+  const refreshScrimsFromCloud = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastScrimSyncRef.current < 2000) return;
+    lastScrimSyncRef.current = now;
+    try {
+      const { data: scrimData, error } = await supabase
+        .from('scrims')
+        .select('*')
+        .order('date', { ascending: false });
+      if (error || !Array.isArray(scrimData)) return;
+      const dbIds = new Set(scrimData.map((s) => s.id));
+      let nextTopId = '';
+      setScrims((prev) => {
+        const unsavedDrafts = prev.filter((s) => s?.is_draft && s.id && !dbIds.has(s.id));
+        const sorted = sortScrimsNewest([...scrimData, ...unsavedDrafts]);
+        nextTopId = sorted[0]?.id || '';
+        return sorted;
+      });
+      if (nextTopId) {
+        setSelectedScrimId((prevId) => prevId || nextTopId);
+        setAdminSelectedScrimId((prevId) => prevId || nextTopId);
+      }
+    } catch {
+      // Silently ignore transient offline background sync errors
+    }
+  }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public-scrims-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scrims' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (!deletedId) return;
+            setScrims((prev) => prev.filter((s) => s.id !== deletedId));
+            return;
+          }
+          const row = payload.new;
+          if (!row?.id) return;
+          setScrims((prev) => sortScrimsNewest([row, ...prev.filter((s) => s.id !== row.id)]));
+          setSelectedScrimId((prevId) => prevId || row.id);
+          setAdminSelectedScrimId((prevId) => prevId || row.id);
+        }
+      )
+      .subscribe();
+
+    const onVisibleOrFocused = () => {
+      if (document.visibilityState === 'visible') {
+        refreshScrimsFromCloud();
+      }
+    };
+    window.addEventListener('focus', onVisibleOrFocused);
+    document.addEventListener('visibilitychange', onVisibleOrFocused);
+
+    return () => {
+      window.removeEventListener('focus', onVisibleOrFocused);
+      document.removeEventListener('visibilitychange', onVisibleOrFocused);
+      supabase.removeChannel(channel);
+    };
+  }, [refreshScrimsFromCloud]);
+
+  useEffect(() => {
+    if (activeTab === 'records') {
+      refreshScrimsFromCloud();
+    }
+  }, [activeTab, refreshScrimsFromCloud]);
+
   useEffect(() => {
     async function initApp() {
       try {
@@ -1907,11 +1985,7 @@ export default function App() {
         ];
 
         if (mergedScrims.length > 0) {
-          const sorted = [...mergedScrims].sort((a, b) => {
-            const timeA = parseInt(String(a.id).replace(/\D+/g, ''), 10) || 0;
-            const timeB = parseInt(String(b.id).replace(/\D+/g, ''), 10) || 0;
-            return timeB - timeA;
-          });
+          const sorted = sortScrimsNewest(mergedScrims);
 
           setScrims(sorted);
           setSelectedScrimId(sorted[0].id);
