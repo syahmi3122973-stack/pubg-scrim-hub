@@ -818,14 +818,12 @@ export default function PortalTournamentView({
                                   </span>
                                 )}
                                 <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border ${
-                                    meta.isFull
-                                      ? 'bg-red-500/15 text-red-300 border-red-500/35'
-                                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                  className={`inline-flex items-center gap-1 text-[11px] font-mono font-bold ${
+                                    meta.isFull ? 'text-red-400' : 'text-emerald-400'
                                   }`}
                                 >
-                                  <Users className="w-3 h-3" />
-                                  {meta.isFull ? 'PENUH' : `${meta.remaining}/${meta.maxSlots}`}
+                                  <Users className="w-3.5 h-3.5" />
+                                  {meta.isFull ? 'PENUH' : `${meta.remaining}/${meta.maxSlots} Slot`}
                                 </span>
                               </div>
                             </div>
@@ -889,10 +887,8 @@ export default function PortalTournamentView({
                       </div>
 
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border ${
-                          selectedSlotMeta?.isFull
-                            ? 'bg-red-500/15 text-red-300 border-red-500/35'
-                            : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                        className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold ${
+                          selectedSlotMeta?.isFull ? 'text-red-400' : 'text-emerald-400'
                         }`}
                       >
                         <Users className="w-3.5 h-3.5" />
