@@ -2821,7 +2821,13 @@ export default function App() {
   const [editRemoveLogo, setEditRemoveLogo] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  const lastHydratedScrimIdRef = useRef('');
+
   useEffect(() => {
+    const activeScrimId = activeAdminScrim?.id || '';
+    const isSameScrim = Boolean(activeScrimId && lastHydratedScrimIdRef.current === activeScrimId);
+    lastHydratedScrimIdRef.current = activeScrimId;
+
     if (activeAdminScrim && activeAdminScrim.matches && activeAdminScrim.matches[selectedMatchIdx]) {
       const saved = activeAdminScrim.matches[selectedMatchIdx];
       setInputMap(saved.map || PLAYGROUND_DEFAULT_MAPS[selectedMatchIdx % 5] || 'Erangel');
@@ -2856,19 +2862,30 @@ export default function App() {
       setInputMap(PLAYGROUND_DEFAULT_MAPS[selectedMatchIdx % 5] || 'Erangel');
     }
 
+    const seedResults =
+      activeAdminScrim?.matches?.find((m) => Array.isArray(m?.results) && m.results.length > 0)?.results || [];
+    const seedBySlot = new Map();
+    seedResults.forEach((r, i) => {
+      const sNum = Number(r?.slot) || (i + 1);
+      seedBySlot.set(sNum, r);
+    });
+    const maxSeedSlot = seedBySlot.size > 0 ? Math.max(...seedBySlot.keys()) : 16;
+
     setMatchSlots(prev => {
-      const currentCount = prev.length || 16;
+      const currentCount = isSameScrim
+        ? Math.min(25, Math.max(16, prev.length || 16, maxSeedSlot))
+        : Math.min(25, Math.max(16, maxSeedSlot));
+      const prevHasAnyTeam = isSameScrim && prev.some((s) => Boolean(s?.teamName?.trim() || s?.players?.trim()));
+
       return Array.from({ length: currentCount }, (_, idx) => {
-        const carryTeam = prev[idx]?.teamName || activeAdminScrim?.matches?.[0]?.results?.[idx]?.teamName || '';
-        const carryId = prev[idx]?.teamId || activeAdminScrim?.matches?.[0]?.results?.[idx]?.teamId || '';
-        const carryTag = prev[idx]?.tag || activeAdminScrim?.matches?.[0]?.results?.[idx]?.tag || '';
-        const carryPlayers = prev[idx]?.players || activeAdminScrim?.matches?.[0]?.results?.[idx]?.players || '';
+        const slotNo = idx + 1;
+        const source = prevHasAnyTeam ? prev[idx] : seedBySlot.get(slotNo);
         return {
-          slot: idx + 1,
-          teamId: carryId,
-          teamName: carryTeam,
-          tag: carryTag,
-          players: carryPlayers,
+          slot: slotNo,
+          teamId: source?.teamId || '',
+          teamName: source?.teamName || '',
+          tag: source?.tag || '',
+          players: source?.players || '',
           placement: '',
           kills: 0,
           placePts: 0,
