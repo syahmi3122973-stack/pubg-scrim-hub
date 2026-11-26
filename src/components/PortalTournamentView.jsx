@@ -13,7 +13,6 @@ import {
   Loader2,
   Lock,
   MessageCircle,
-  Plus,
   QrCode,
   Search,
   ShieldCheck,
@@ -60,10 +59,13 @@ export default function PortalTournamentView({
   authorizedScrims = [],
   onAutoSeedSession,
   onSavePortalTournament = null,
-  onTogglePortalRegistration = null
+  onTogglePortalRegistration = null,
+  onOpenPortalQuickScore = null,
+  renderQuickScorer = null
 }) {
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
   const [registerStep, setRegisterStep] = useState('list'); // 'list' -> 'detail' -> 'form'
+  const [urusResetKey, setUrusResetKey] = useState(0);
   const [isRequestingAccess, setIsRequestingAccess] = useState(false);
 
   useEffect(() => {
@@ -559,6 +561,9 @@ export default function PortalTournamentView({
             onOpenCreateModal={onSavePortalTournament ? openPortalCreateModal : null}
             onOpenEditModal={onSavePortalTournament ? openPortalEditModal : null}
             onTogglePortalRegistration={onTogglePortalRegistration}
+            onOpenPortalQuickScore={onOpenPortalQuickScore}
+            renderQuickScorer={renderQuickScorer}
+            urusResetKey={urusResetKey}
           />
         )}
 
@@ -1440,7 +1445,10 @@ export default function PortalTournamentView({
               type="button"
               role="tab"
               aria-selected={portalSection === 'manage'}
-              onClick={() => onChangePortalSection('manage')}
+              onClick={() => {
+                onChangePortalSection('manage');
+                setUrusResetKey((k) => k + 1);
+              }}
               className={`flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] rounded-full transition-colors select-none active:scale-95 cursor-pointer ${
                 portalSection === 'manage'
                   ? 'text-[#D7FF00]'

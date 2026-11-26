@@ -3910,6 +3910,146 @@ export default function App() {
     return { assignedSlot };
   }, [teams]);
 
+  const handleOpenPortalQuickScore = useCallback(async (targetScrim) => {
+    if (!targetScrim?.id) return;
+    let workingScrim = scrims.find((s) => s.id === targetScrim.id) || targetScrim;
+
+    try {
+      const { data: regRows, error: regError } = await supabase
+        .from('tournament_registrations')
+        .select('id, team_name, team_tag, status, assigned_slot, created_at')
+        .eq('scrim_id', workingScrim.id)
+        .in('status', ['verified', 'pending_verification'])
+        .order('created_at', { ascending: true });
+
+      if (!regError && Array.isArray(regRows) && regRows.length > 0) {
+        const sortedRegs = [...regRows].sort((a, b) => {
+          const aVer = a.status === 'verified' ? 0 : 1;
+          const bVer = b.status === 'verified' ? 0 : 1;
+          if (aVer !== bVer) return aVer - bVer;
+          if (a.assigned_slot && b.assigned_slot) return a.assigned_slot - b.assigned_slot;
+          return 0;
+        });
+
+        const maxSlots = Math.min(25, Math.max(2, Number(workingScrim.max_slots || 16)));
+        const existingMatches = Array.isArray(workingScrim.matches) && workingScrim.matches.length > 0
+          ? workingScrim.matches.map((m) => ({
+              ...m,
+              results: Array.isArray(m?.results) ? [...m.results] : []
+            }))
+          : Array.from({ length: Math.min(12, Math.max(1, Number(workingScrim.total_matches || 5))) }, (_, idx) => ({
+              matchNo: idx + 1,
+              map: PLAYGROUND_DEFAULT_MAPS[idx % PLAYGROUND_DEFAULT_MAPS.length] || 'Erangel',
+              results: []
+            }));
+
+        const match0Results = existingMatches[0]?.results || [];
+        const presentKeys = new Set(
+          match0Results
+            .filter((r) => r && r.teamName)
+            .map((r) => getCanonicalTeamKey(r.teamName))
+        );
+        const occupiedSlots = new Set(
+          match0Results
+            .filter((r) => r && (r.teamName || r.teamId) && Number(r.slot) > 0)
+            .map((r) => Number(r.slot))
+        );
+
+        const newlySeededRows = [];
+        const createdTeams = [];
+        let localTeamsSnapshot = [...teams];
+
+        for (const reg of sortedRegs) {
+          const cleanName = sanitizeTextInput(reg.team_name, 80);
+          if (!cleanName) continue;
+          const canonicalKey = getCanonicalTeamKey(cleanName);
+          if (presentKeys.has(canonicalKey)) continue;
+
+          let targetSlot = reg.assigned_slot ? Number(reg.assigned_slot) : null;
+          if (!targetSlot || occupiedSlots.has(targetSlot) || targetSlot > maxSlots) {
+            targetSlot = null;
+            for (let slot = 1; slot <= maxSlots; slot += 1) {
+              if (!occupiedSlots.has(slot)) {
+                targetSlot = slot;
+                break;
+              }
+            }
+          }
+          if (!targetSlot) break;
+
+          const cleanTag = sanitizeTextInput(reg.team_tag, 10).toUpperCase() || cleanName.slice(0, 4).toUpperCase();
+          let existingTeam = localTeamsSnapshot.find((t) => getCanonicalTeamKey(t.name) === canonicalKey);
+          if (!existingTeam) {
+            existingTeam = {
+              id: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36) + '_' + newlySeededRows.length,
+              name: cleanName,
+              tag: cleanTag
+            };
+            localTeamsSnapshot.push(existingTeam);
+            createdTeams.push(existingTeam);
+          }
+
+          presentKeys.add(canonicalKey);
+          occupiedSlots.add(targetSlot);
+          newlySeededRows.push({
+            slot: targetSlot,
+            teamId: existingTeam.id,
+            teamName: existingTeam.name,
+            tag: existingTeam.tag || cleanTag,
+            players: '',
+            placement: '',
+            kills: 0,
+            placePts: 0,
+            totalPts: 0,
+            wwcd: 0
+          });
+        }
+
+        if (createdTeams.length > 0) {
+          setTeams((prev) => [...prev, ...createdTeams]);
+          try {
+            await supabase.from('teams').insert(createdTeams);
+          } catch {
+            // Ignore team sync duplicates
+          }
+        }
+
+        if (newlySeededRows.length > 0) {
+          const updatedMatches = existingMatches.map((m, idx) => {
+            const nextResults = [...m.results];
+            for (const row of newlySeededRows) {
+              const hasSlot = nextResults.some((r) => Number(r?.slot) === row.slot);
+              if (idx === 0 || !hasSlot) {
+                const filtered = nextResults.filter((r) => Number(r?.slot) !== row.slot);
+                filtered.push({ ...row });
+                nextResults.splice(0, nextResults.length, ...filtered);
+              }
+            }
+            nextResults.sort((a, b) => Number(a.slot) - Number(b.slot));
+            return { ...m, results: nextResults };
+          });
+
+          workingScrim = toCloudScrimPayload({
+            ...workingScrim,
+            matches: updatedMatches,
+            total_matches: updatedMatches.length
+          });
+          setScrims((prev) => prev.map((s) => (s.id === workingScrim.id ? workingScrim : s)));
+          try {
+            await supabase.from('scrims').upsert(workingScrim);
+          } catch {
+            // Keep hydrated state even if offline
+          }
+        }
+      }
+    } catch {
+      // Fall back to existing scrim roster on query failure
+    }
+
+    setAdminSelectedScrimId(workingScrim.id);
+    setSelectedMatchIdx(0);
+  }, [scrims, teams]);
+
   const handleCopyHostShareLink = () => {
     if (!activeAdminScrim) return;
     const shareUrl = `${window.location.origin}?claim_scrim=${activeAdminScrim.id}&token=${activeAdminScrim.claim_token || 'shared'}`;
@@ -7279,6 +7419,667 @@ export default function App() {
     );
   };
 
+  const renderQuickScorerWorkspace = () => (
+                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
+                  
+                  {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
+                  <div className="lg:col-span-7 space-y-4">
+                    
+                    <div data-aurora-target={activeTab === 'admin' ? 'admin' : 'scorer'} className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-4">
+                      
+                      {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+                        <div>
+                          <h2 className="text-sm sm:text-base font-black text-white">
+                            Isi Markah Match
+                          </h2>
+                          <p className="text-[11px] font-mono tabular-nums text-zinc-400">
+                            Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                          {/* Quick WhatsApp / Text Import Button (High Contrast Emerald) */}
+                          <button
+                            type="button"
+                            onClick={() => setIsImportModalOpen(true)}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            title="Paste list team dari WhatsApp / Discord"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-emerald-300"/>
+                            <span>Import WA</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleRandomizeTestData}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-[#19191E] hover:bg-[#23232A] disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            title="Isi markah demo untuk test"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-zinc-100"/>
+                            <span>Demo</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleClearAdminForm}
+                            disabled={activeAdminScrim?.is_finished}
+                            className="px-2.5 py-1.5 bg-[#19191E] hover:bg-rose-950 hover:text-rose-300 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 disabled:opacity-40 cursor-pointer"
+                            title="Clear markah match ni"
+                          >
+                            <Trash2 className="w-3.5 h-3.5"/>
+                            <span className="hidden sm:inline">Clear</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Match Navigation Selector Bar & Dynamic + / - Match */}
+                      <div className="relative group">
+                        <div className="p-1 bg-[#16161B] rounded-2xl flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                          {adminMatchesList.map((m, mIdx) => {
+                            const isSelected = selectedMatchIdx === mIdx;
+                            const savedMap = m.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
+                            const displayedMap = isSelected ? (inputMap || savedMap) : savedMap;
+                            const hasSaved = Boolean(m.results && m.results.length > 0 && m.results.some(r => Number(r.totalPts) > 0 || Number(r.kills) > 0 || (r.placement !== '' && r.placement !== null && r.placement !== undefined)));
+                            return (
+                              <button
+                                key={mIdx}
+                                type="button"
+                                onClick={() => setSelectedMatchIdx(mIdx)}
+                                className={'py-1.5 px-3 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[76px] sm:flex-1 shrink-0 ' + (
+                                  isSelected 
+                                    ? 'bg-[#23232A] text-[#D7FF00]' 
+                                    : 'text-zinc-400 hover:text-white hover:bg-[#1C1C22]'
+                                )}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[11px]">Match {mIdx + 1}</span>
+                                  {hasSaved && <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" title="Markah Disimpan"></span>}
+                                </div>
+                                <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
+                                  isSelected ? 'bg-[#D7FF00]/20 text-[#D7FF00]' : 'text-zinc-500'
+                                )}>
+                                  {displayedMap}
+                                </span>
+                              </button>
+                            );
+                          })}
+
+                          {/* Dynamic + Match & - Match buttons (Advance feature!) */}
+                          {!activeAdminScrim?.is_finished && (
+                            <div className="flex items-center gap-1 pl-1 shrink-0">
+                              {adminMatchCount > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveLastMatch}
+                                  className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/10 flex items-center justify-center transition active:scale-90"
+                                  title="Padam match terakhir"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={handleAddNewMatch}
+                                className="h-8 px-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[#D7FF00] border border-[#D7FF00]/30 font-black text-xs transition flex items-center gap-1 active:scale-95"
+                                title="Tambah match baru"
+                              >
+                                <Plus className="w-3.5 h-3.5 text-[#D7FF00]" />
+                                <span>Match</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Clean Single Row: Map Selector + Session Title + Inline Team Slot Stepper (Exact Quick Scorer Style) */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        {/* Map Selector for this match */}
+                        <div className="flex items-center gap-2 bg-zinc-950/70 px-3 py-1.5 rounded-xl shrink-0">
+                          <span className="text-[11px] font-bold text-zinc-400">Map (M{selectedMatchIdx + 1}):</span>
+                          <select
+                            disabled={activeAdminScrim?.is_finished}
+                            value={inputMap}
+                            onChange={(e) => {
+                              const newMap = e.target.value;
+                              setInputMap(newMap);
+                              if (activeAdminScrim) {
+                                const current = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
+                                if (current[selectedMatchIdx]) {
+                                  current[selectedMatchIdx] = { ...current[selectedMatchIdx], map: newMap };
+                                  const updatedScrim = { ...activeAdminScrim, matches: current };
+                                  setScrims(prev => {
+                                    const exists = prev.some(s => s.id === activeAdminScrim.id);
+                                    if (exists) {
+                                      return prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s);
+                                    } else {
+                                      return [updatedScrim, ...prev];
+                                    }
+                                  });
+                                }
+                              }
+                            }}
+                            className="bg-[#19191E] rounded-lg px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] transition cursor-pointer"
+                          >
+                            <option value="Erangel" className="bg-zinc-950 text-white">Erangel</option>
+                            <option value="Miramar" className="bg-zinc-950 text-white">Miramar</option>
+                            <option value="Rondo" className="bg-zinc-950 text-white">Rondo</option>
+                            <option value="Sanhok" className="bg-zinc-950 text-white">Sanhok</option>
+                            <option value="Vikendi" className="bg-zinc-950 text-white">Vikendi</option>
+                          </select>
+                        </div>
+
+                        {/* Middle: Session Title & Edit Info link */}
+                        <button
+                          type="button"
+                          onClick={openEditScrimModal}
+                          className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white truncate px-2 py-1 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer group"
+                          title="Tap untuk edit info sesi"
+                        >
+                          <span className="text-[#D7FF00] font-mono font-bold">[{activeAdminScrim?.tier || 'Tier 1'}]</span>
+                          <span className="truncate group-hover:text-[#D7FF00] transition font-bold">{activeAdminScrim?.title || 'PUBG Mobile Scrim'}</span>
+                          <Edit3 className="w-3 h-3 text-zinc-500 group-hover:text-[#D7FF00] shrink-0" />
+                        </button>
+
+                        {/* Inline IGN Toggle + Team Slot Stepper */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setShowSlotIgn(prev => !prev)}
+                            aria-pressed={showSlotIgn}
+                            className={
+                              'px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer border ' +
+                              (showSlotIgn
+                                ? 'bg-[#D7FF00]/15 text-[#D7FF00] border-[#D7FF00]/40'
+                                : 'bg-[#16161B] hover:bg-[#1F1F26] text-zinc-300 border-white/5')
+                            }
+                            title="Tunjuk atau sembunyi ruangan IGN player bagi setiap slot"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>IGN</span>
+                            {matchSlots.some(s => Boolean(s.players && s.players.trim())) && (
+                              <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[10px] font-mono tabular-nums text-zinc-200">
+                                {matchSlots.filter(s => Boolean(s.players && s.players.trim())).length}
+                              </span>
+                            )}
+                          </button>
+
+                          <div className="flex items-center gap-2 bg-[#16161B] px-3 py-1.5 rounded-xl shrink-0">
+                            <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={handleRemoveTeamSlot}
+                                disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
+                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-rose-950 hover:text-rose-300 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition"
+                                title="Buang slot terakhir"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="font-mono font-black text-xs text-white px-1">
+                                {matchSlots.length} Slot
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleAddTeamSlot}
+                                disabled={activeAdminScrim?.is_finished || matchSlots.length >= 25}
+                                className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
+                                title="Tambah slot (maks 25)"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quick Search Team / Player IGN Bar */}
+                      {(() => {
+                        const qIgn = scorerSlotQuery.trim().toLowerCase();
+                        const indexedSlots = matchSlots.map((row, idx) => ({ row, idx }));
+                        const visibleSlots = qIgn
+                          ? indexedSlots.filter(({ row }) =>
+                              String(row.slot).includes(qIgn) ||
+                              (row.teamName && row.teamName.toLowerCase().includes(qIgn)) ||
+                              (row.players && row.players.toLowerCase().includes(qIgn))
+                            )
+                          : indexedSlots;
+
+                        return (
+                          <>
+                            <div className="relative">
+                              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <input
+                                type="search"
+                                enterKeyHint="search"
+                                value={scorerSlotQuery}
+                                onChange={(e) => setScorerSlotQuery(e.target.value)}
+                                placeholder="Cari nama team atau IGN player (cth: Kira, Sora)..."
+                                className="w-full bg-[#121216] border border-white/[0.07] focus:border-[#D7FF00]/50 rounded-xl pl-8 pr-20 py-2 text-xs text-white placeholder:text-zinc-500 focus:outline-none transition [&::-webkit-search-cancel-button]:hidden"
+                              />
+                              {qIgn && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                  <span className="text-[10px] font-mono text-[#D7FF00] bg-[#D7FF00]/10 px-1.5 py-0.5 rounded-md tabular-nums">
+                                    {visibleSlots.length} padan
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setScorerSlotQuery('')}
+                                    aria-label="Clear carian team atau IGN"
+                                    className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Quick Input Grid Table (Identikal seperti Scorer) */}
+                            <div className="rounded-2xl overflow-hidden bg-[#0D0D10]">
+                              <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-[#16161B] text-zinc-400 uppercase text-[10px] font-bold tracking-wider">
+                                    <tr>
+                                      <th className="py-2.5 px-3 w-12 text-center">Slot</th>
+                                      <th className="py-2.5 px-3 min-w-[170px]">Team Name{showSlotIgn ? ' & IGN' : ''}</th>
+                                      <th className="py-2.5 px-2 w-24 text-center">Placement</th>
+                                      <th className="py-2.5 px-2 w-28 text-center">Elims</th>
+                                      <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
+                                      <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5 font-mono tabular-nums">
+                                    {visibleSlots.length === 0 ? (
+                                      <tr>
+                                        <td colSpan={6} className="py-8 px-4 text-center font-sans text-xs text-zinc-400">
+                                          Tiada team atau IGN padan dengan &ldquo;{scorerSlotQuery}&rdquo;.
+                                        </td>
+                                      </tr>
+                                    ) : visibleSlots.map(({ row, idx }) => {
+                                      const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
+                                      const shouldShowIgnField = showSlotIgn || Boolean(qIgn && row.players);
+                                      return (
+                                        <tr 
+                                          key={row.slot || idx} 
+                                          className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.1]' : 'hover:bg-zinc-800/40')}
+                                        >
+                                          {/* Slot # */}
+                                          <td className="py-2 px-3 text-center text-zinc-500 font-bold tabular-nums align-top pt-3">
+                                            #{String(row.slot).padStart(2, '0')}
+                                          </td>
+
+                                          {/* Team Name + Optional Player IGN */}
+                                          <td className="py-2 px-3 font-sans space-y-1.5">
+                                            <input
+                                              type="text"
+                                              disabled={activeAdminScrim?.is_finished}
+                                              data-cell={`admin-teamName-${idx}`}
+                                              value={row.teamName}
+                                              onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
+                                              onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
+                                              placeholder={`Squad ${row.slot}...`}
+                                              className="w-full bg-[#19191E] rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
+                                            />
+                                            {shouldShowIgnField && (
+                                              <input
+                                                type="text"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                value={row.players || ''}
+                                                onChange={(e) => handleSlotChange(idx, 'players', e.target.value)}
+                                                placeholder="IGN: player1, player2, player3, player4"
+                                                aria-label={`IGN player untuk Slot ${row.slot}`}
+                                                className="w-full bg-[#121216] border border-white/[0.06] focus:border-[#D7FF00]/50 rounded-lg px-2.5 py-1 text-[11px] font-mono text-zinc-300 focus:text-white focus:outline-none placeholder:text-zinc-600 disabled:opacity-40"
+                                              />
+                                            )}
+                                          </td>
+
+                                          {/* Placement Dropdown */}
+                                          <td className="py-2 px-2 text-center">
+                                            <select
+                                              disabled={activeAdminScrim?.is_finished}
+                                              data-cell={`admin-placement-${idx}`}
+                                              value={row.placement || ''}
+                                              onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
+                                              onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
+                                              className="w-full bg-[#19191E] rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] text-xs text-center disabled:opacity-40"
+                                            >
+                                              <option value="" className="bg-zinc-950 text-white">--</option>
+                                              {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
+                                                <option key={num} value={num} className="bg-zinc-950 text-white">
+                                                  #{num}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </td>
+
+                                          {/* Elims with - / + buttons */}
+                                          <td className="py-2 px-2 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                              <button
+                                                type="button"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                onClick={() => handleAdjustKills(idx, -1)}
+                                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                              >
+                                                -
+                                              </button>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                data-cell={`admin-elims-${idx}`}
+                                                value={row.kills}
+                                                onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
+                                                onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
+                                                className="w-11 bg-[#19191E] rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] disabled:opacity-40 font-mono"
+                                              />
+                                              <button
+                                                type="button"
+                                                disabled={activeAdminScrim?.is_finished}
+                                                onClick={() => handleAdjustKills(idx, 1)}
+                                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </td>
+
+                                          {/* WWCD Button */}
+                                          <td className="py-2 px-2 text-center font-sans">
+                                            <button
+                                              type="button"
+                                              disabled={activeAdminScrim?.is_finished}
+                                              onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
+                                              className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
+                                                isWWCD 
+                                                  ? 'bg-[#D7FF00] text-zinc-950 shadow-xs font-bold' 
+                                                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                                              )}
+                                            >
+                                              {isWWCD ? 'WWCD' : 'Normal'}
+                                            </button>
+                                          </td>
+
+                                          {/* Total Pts */}
+                                          <td className="py-2 px-3 text-center text-[#D7FF00] font-black tabular-nums text-sm">
+                                            {row.totalPts}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+
+                      {/* PMGC Standard Scoring Micro Note */}
+                      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono px-1">
+                        <span>PMGC: WWCD=10pts • Elim=1pt</span>
+                        <span>Total = Place + Elims</span>
+                      </div>
+
+                      {/* Save to Cloud Button & Mobile Jump */}
+                      <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSaveMatchScore}
+                          disabled={activeAdminScrim?.is_finished}
+                          className={'flex-1 w-full py-3 px-4 font-black rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition shadow-[0_0_20px_rgba(215, 255, 0,0.18)] active:scale-98 ' + (
+                            activeAdminScrim?.is_finished 
+                              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                              : 'bg-[#D7FF00] hover:bg-[#c2e600] text-black'
+                          )}
+                        >
+                          <Save className="w-4 h-4"/>
+                          <span>{activeAdminScrim?.is_finished ? 'Keputusan Dah Lock' : `Save Match ${selectedMatchIdx + 1} ke Cloud`}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className="lg:hidden w-full py-3 px-4 bg-[#19191E] hover:bg-[#23232A] text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 active:scale-98 uppercase tracking-wider"
+                        >
+                          <ImageIcon className="w-4 h-4 text-[#D7FF00]" />
+                          <span>Lihat Poster ↓</span>
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
+                  <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-6 space-y-3.5 scroll-mt-6">
+                    
+                    {/* Mode Selector Toggle: Overall Standings vs Current Match */}
+                    <div className="flex items-center gap-1.5 bg-[#111114] p-1 rounded-2xl text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setAdminPosterViewMode('overall')}
+                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
+                          adminPosterViewMode === 'overall'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                            : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
+                        )}
+                      >
+                        <span>Overall</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdminPosterViewMode('match')}
+                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
+                          adminPosterViewMode === 'match'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
+                            : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
+                        )}
+                      >
+                        <span>Match {selectedMatchIdx + 1}</span>
+                      </button>
+                    </div>
+
+                    {/* Esports Visual Poster Card — 1:1 Square Hierarchy with SCRIMHUB Matrix / About Design */}
+                    {(() => {
+                      const rawDate = String(activeAdminScrim?.date || '').trim();
+                      let formattedPosterDate = rawDate ? rawDate.toUpperCase() : '';
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+                        const dt = new Date(`${rawDate}T00:00:00`);
+                        if (!isNaN(dt.getTime())) {
+                          const weekday = dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+                          const day = dt.getDate();
+                          const month = dt.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+                          const year = dt.getFullYear();
+                          formattedPosterDate = `${weekday} , ${day} ${month} ${year}`;
+                        }
+                      }
+                      const rawLogo = activeAdminScrim?.logo_url || '';
+                      const hasCustomLogo = Boolean(rawLogo && !rawLogo.includes('images.unsplash.com/photo-1542751371'));
+                      const hostBrandMark = (activeAdminScrim?.host_name || 'SCRIMHUB').trim().toUpperCase();
+                      const isCompactRows = adminLiveStandings.length > 16;
+
+                      return (
+                        <div
+                          ref={adminPosterRef}
+                          className="w-full aspect-square text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl relative font-sans select-none overflow-hidden"
+                          style={{
+                            backgroundColor: '#070709',
+                            backgroundImage: [
+                              'radial-gradient(ellipse 85% 42% at 50% 0%, rgba(215, 255, 0, 0.14), transparent 70%)',
+                              'radial-gradient(ellipse 70% 35% at 50% 100%, rgba(16, 185, 129, 0.10), transparent 70%)',
+                              'linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px)',
+                              'linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px)'
+                            ].join(', '),
+                            backgroundSize: '100% 100%, 100% 100%, 24px 24px, 24px 24px'
+                          }}
+                        >
+                          {/* Outer SCRIMHUB Hairline Box Frame */}
+                          <div className="w-full h-full rounded-xl border border-white/[0.14] bg-[#09090B]/70 p-2.5 sm:p-3 flex flex-col justify-between gap-2 overflow-hidden relative">
+                            {/* Subtle Top Volt-Lime Accent Bar */}
+                            <div
+                              aria-hidden="true"
+                              className="absolute inset-x-10 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#D7FF00]/80 to-transparent"
+                            />
+
+                            {/* Level 1-3: Centered Hero Header Box */}
+                            <div className="rounded-xl border border-white/[0.08] bg-[#101014]/90 px-3 py-2 text-center space-y-0.5 shrink-0">
+                              {hasCustomLogo ? (
+                                <img
+                                  src={rawLogo}
+                                  alt={hostBrandMark}
+                                  crossOrigin="anonymous"
+                                  className="h-8 sm:h-10 w-auto max-w-[150px] object-contain mx-auto mb-1"
+                                />
+                              ) : (
+                                <div className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-white leading-none pb-0.5 truncate">
+                                  {hostBrandMark}
+                                </div>
+                              )}
+
+                              <h3 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-[#D7FF00] leading-tight truncate px-1">
+                                {activeAdminScrim?.title ? activeAdminScrim.title.toUpperCase() : 'SCRIM EDITION'}
+                              </h3>
+
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5">
+                                <span className="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-200 leading-tight truncate">
+                                  {adminPosterViewMode === 'match'
+                                    ? `${formattedPosterDate ? `${formattedPosterDate} • ` : ''}MATCH ${selectedMatchIdx + 1} (${(inputMap || 'ERANGEL').toUpperCase()})`
+                                    : (formattedPosterDate || (activeAdminScrim?.event_type === 'Tour' ? 'OFFICIAL TOURNAMENT' : 'OFFICIAL SCRIM'))}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Level 4: Boxed 6-Column Leaderboard Table */}
+                            <div className="flex-1 min-h-0 rounded-xl border border-white/[0.09] bg-[#0B0B0F]/92 overflow-hidden flex flex-col justify-center">
+                              {adminLiveStandings.length === 0 ? (
+                                <div className="text-center text-[11px] text-zinc-500 font-medium py-6">
+                                  Isi markah untuk jana poster standings 1:1.
+                                </div>
+                              ) : (
+                                <table className="w-full h-full table-fixed border-collapse text-center">
+                                  <thead>
+                                    <tr className="bg-[#14141A] border-b border-white/[0.08] text-[7.5px] sm:text-[9px] font-mono font-black uppercase tracking-wider text-zinc-300">
+                                      <th className="w-[8%] py-1 font-black">#</th>
+                                      <th className="w-[44%] py-1 font-black">TEAM NAME</th>
+                                      <th className="w-[10%] py-1 font-black">
+                                        <span className="inline-flex items-center justify-center" title="WWCD">
+                                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path fill="#EF4444" d="M12 2c1.2 0 2.1.8 2.3 1.9.6-.2 1.3.1 1.6.7.4.7.1 1.5-.6 1.8l-.6.3H9.3l-.6-.3c-.7-.3-1-1.1-.6-1.8.3-.6 1-.9 1.6-.7C9.9 2.8 10.8 2 12 2z" />
+                                            <circle cx="12" cy="13" r="7" fill="#FFFFFF" />
+                                            <polygon points="12,14 15,15.5 12,17" fill="#F59E0B" />
+                                            <circle cx="10.2" cy="11.5" r="1" fill="#111111" />
+                                          </svg>
+                                        </span>
+                                      </th>
+                                      <th className="w-[13%] py-1 font-black">PLACE</th>
+                                      <th className="w-[12%] py-1 font-black">KILLS</th>
+                                      <th className="w-[13%] py-1 font-black text-[#D7FF00]">TOTAL</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className={'divide-y divide-white/[0.05] font-mono tabular-nums ' + (isCompactRows ? 'text-[7.5px] sm:text-[9px] leading-tight' : 'text-[8.5px] sm:text-[10px] leading-tight')}>
+                                    {adminLiveStandings.map((row, pos) => {
+                                      const isTop1 = pos === 0;
+                                      const isTop3 = pos < 3;
+                                      const rowBg = isTop1
+                                        ? 'bg-[#D7FF00]/[0.10]'
+                                        : isTop3
+                                        ? 'bg-white/[0.03]'
+                                        : '';
+                                      const rowText = isTop1
+                                        ? 'text-[#D7FF00]'
+                                        : isTop3
+                                        ? 'text-[#F5D66B]'
+                                        : 'text-zinc-100';
+                                      const wwcdVal = Number(row.wwcd) || 0;
+                                      const cellPad = isCompactRows ? 'py-[1px]' : 'py-[2px]';
+                                      return (
+                                        <tr key={pos} className={`${rowBg} ${rowText} font-bold`}>
+                                          <td className={cellPad}>{pos + 1}</td>
+                                          <td className={`${cellPad} px-1 font-sans font-extrabold truncate uppercase tracking-tight`}>
+                                            {row.teamName}
+                                          </td>
+                                          <td className={cellPad}>
+                                            {wwcdVal > 0 ? wwcdVal : ''}
+                                          </td>
+                                          <td className={cellPad}>{row.placePts}</td>
+                                          <td className={cellPad}>{row.killPts}</td>
+                                          <td className={`${cellPad} font-black ${isTop1 ? 'text-[#D7FF00]' : isTop3 ? 'text-[#F5D66B]' : 'text-[#D7FF00]/90'}`}>
+                                            {row.totalPts}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+
+                            {/* Level 5: Boxed Footer Tagline + Branding */}
+                            <div className="rounded-lg border border-white/[0.08] bg-[#101014]/90 px-2.5 py-1.5 text-center shrink-0 space-y-0.5">
+                              <p className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wide text-[#D7FF00] leading-tight">
+                                CONGRATULATIONS TO ALL THE TEAMS &amp; KEEP GRINDING!
+                              </p>
+                              <p className="text-[6.5px] sm:text-[7.5px] font-mono uppercase tracking-widest text-zinc-400 leading-none">
+                                POWERED BY SCRIMHUB · scrim.rykhor.my
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Primary Poster Action Buttons */}
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadAdminPoster}
+                        disabled={isDownloadingAdminPoster}
+                        className="w-full py-3 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl shadow-[0_0_20px_rgba(215, 255, 0,0.18)] text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
+                      >
+                        {isDownloadingAdminPoster ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin"/>
+                            <span>Rendering Poster PNG...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 text-black"/>
+                            <span>Export PNG</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopyDiscordText(activeAdminScrim)}
+                        className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/10 font-bold rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99]"
+                      >
+                        {copyFeedback ? <Check className="w-4 h-4 text-[#D7FF00]"/> : <Copy className="w-4 h-4 text-zinc-400"/>}
+                        <span>Salin Teks</span>
+                      </button>
+
+                      {/* Mobile Jump Back Up to Scoring Form */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="w-full lg:hidden py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl text-xs font-bold transition border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#D7FF00]" />
+                        <span>Balik Ke Borang ↑</span>
+                      </button>
+                    </div>
+
+                  </div>
+
+                </div>
+  );
+
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
       <BackButtonHandler
@@ -7409,6 +8210,8 @@ export default function App() {
             onAutoSeedSession={handleAutoSeedSession}
             onSavePortalTournament={handleSavePortalTournament}
             onTogglePortalRegistration={handleTogglePortalRegistration}
+            onOpenPortalQuickScore={handleOpenPortalQuickScore}
+            renderQuickScorer={() => renderQuickScorerWorkspace()}
           />
         </div>
       )}
@@ -12374,665 +13177,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
-                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
-                  
-                  {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
-                  <div className="lg:col-span-7 space-y-4">
-                    
-                    <div data-aurora-target={activeTab === 'admin' ? 'admin' : 'scorer'} className="bg-[#111114] rounded-3xl p-4 sm:p-5 space-y-4">
-                      
-                      {/* Clean Workspace Header with Actions (Exact Quick Scorer Style) */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
-                        <div>
-                          <h2 className="text-sm sm:text-base font-black text-white">
-                            Isi Markah Match
-                          </h2>
-                          <p className="text-[11px] font-mono tabular-nums text-zinc-400">
-                            Match {selectedMatchIdx + 1} of {adminMatchCount} • {matchSlots.length} Pasukan • [{activeAdminScrim?.title || 'Sesi Aktif'}]
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                          {/* Quick WhatsApp / Text Import Button (High Contrast Emerald) */}
-                          <button
-                            type="button"
-                            onClick={() => setIsImportModalOpen(true)}
-                            disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-40 text-emerald-300 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                            title="Paste list team dari WhatsApp / Discord"
-                          >
-                            <Copy className="w-3.5 h-3.5 text-emerald-300"/>
-                            <span>Import WA</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleRandomizeTestData}
-                            disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-[#19191E] hover:bg-[#23232A] disabled:opacity-40 text-zinc-100 rounded-xl text-xs font-medium transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                            title="Isi markah demo untuk test"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-zinc-100"/>
-                            <span>Demo</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleClearAdminForm}
-                            disabled={activeAdminScrim?.is_finished}
-                            className="px-2.5 py-1.5 bg-[#19191E] hover:bg-rose-950 hover:text-rose-300 text-zinc-200 rounded-xl text-xs font-medium transition flex items-center gap-1 disabled:opacity-40 cursor-pointer"
-                            title="Clear markah match ni"
-                          >
-                            <Trash2 className="w-3.5 h-3.5"/>
-                            <span className="hidden sm:inline">Clear</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Match Navigation Selector Bar & Dynamic + / - Match */}
-                      <div className="relative group">
-                        <div className="p-1 bg-[#16161B] rounded-2xl flex items-center gap-1 overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                          {adminMatchesList.map((m, mIdx) => {
-                            const isSelected = selectedMatchIdx === mIdx;
-                            const savedMap = m.map || PLAYGROUND_DEFAULT_MAPS[mIdx % 5] || 'Erangel';
-                            const displayedMap = isSelected ? (inputMap || savedMap) : savedMap;
-                            const hasSaved = Boolean(m.results && m.results.length > 0 && m.results.some(r => Number(r.totalPts) > 0 || Number(r.kills) > 0 || (r.placement !== '' && r.placement !== null && r.placement !== undefined)));
-                            return (
-                              <button
-                                key={mIdx}
-                                type="button"
-                                onClick={() => setSelectedMatchIdx(mIdx)}
-                                className={'py-1.5 px-3 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 min-w-[76px] sm:flex-1 shrink-0 ' + (
-                                  isSelected 
-                                    ? 'bg-[#23232A] text-[#D7FF00]' 
-                                    : 'text-zinc-400 hover:text-white hover:bg-[#1C1C22]'
-                                )}
-                              >
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[11px]">Match {mIdx + 1}</span>
-                                  {hasSaved && <span className="w-1.5 h-1.5 rounded-full bg-[#D7FF00]" title="Markah Disimpan"></span>}
-                                </div>
-                                <span className={'text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ' + (
-                                  isSelected ? 'bg-[#D7FF00]/20 text-[#D7FF00]' : 'text-zinc-500'
-                                )}>
-                                  {displayedMap}
-                                </span>
-                              </button>
-                            );
-                          })}
-
-                          {/* Dynamic + Match & - Match buttons (Advance feature!) */}
-                          {!activeAdminScrim?.is_finished && (
-                            <div className="flex items-center gap-1 pl-1 shrink-0">
-                              {adminMatchCount > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={handleRemoveLastMatch}
-                                  className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-rose-500/20 hover:text-rose-400 text-zinc-400 border border-white/10 flex items-center justify-center transition active:scale-90"
-                                  title="Padam match terakhir"
-                                >
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={handleAddNewMatch}
-                                className="h-8 px-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[#D7FF00] border border-[#D7FF00]/30 font-black text-xs transition flex items-center gap-1 active:scale-95"
-                                title="Tambah match baru"
-                              >
-                                <Plus className="w-3.5 h-3.5 text-[#D7FF00]" />
-                                <span>Match</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Clean Single Row: Map Selector + Session Title + Inline Team Slot Stepper (Exact Quick Scorer Style) */}
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                        {/* Map Selector for this match */}
-                        <div className="flex items-center gap-2 bg-zinc-950/70 px-3 py-1.5 rounded-xl shrink-0">
-                          <span className="text-[11px] font-bold text-zinc-400">Map (M{selectedMatchIdx + 1}):</span>
-                          <select
-                            disabled={activeAdminScrim?.is_finished}
-                            value={inputMap}
-                            onChange={(e) => {
-                              const newMap = e.target.value;
-                              setInputMap(newMap);
-                              if (activeAdminScrim) {
-                                const current = adminMatchesList.length > 0 ? [...adminMatchesList] : [];
-                                if (current[selectedMatchIdx]) {
-                                  current[selectedMatchIdx] = { ...current[selectedMatchIdx], map: newMap };
-                                  const updatedScrim = { ...activeAdminScrim, matches: current };
-                                  setScrims(prev => {
-                                    const exists = prev.some(s => s.id === activeAdminScrim.id);
-                                    if (exists) {
-                                      return prev.map(s => s.id === activeAdminScrim.id ? updatedScrim : s);
-                                    } else {
-                                      return [updatedScrim, ...prev];
-                                    }
-                                  });
-                                }
-                              }
-                            }}
-                            className="bg-[#19191E] rounded-lg px-2 py-0.5 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] transition cursor-pointer"
-                          >
-                            <option value="Erangel" className="bg-zinc-950 text-white">Erangel</option>
-                            <option value="Miramar" className="bg-zinc-950 text-white">Miramar</option>
-                            <option value="Rondo" className="bg-zinc-950 text-white">Rondo</option>
-                            <option value="Sanhok" className="bg-zinc-950 text-white">Sanhok</option>
-                            <option value="Vikendi" className="bg-zinc-950 text-white">Vikendi</option>
-                          </select>
-                        </div>
-
-                        {/* Middle: Session Title & Edit Info link */}
-                        <button
-                          type="button"
-                          onClick={openEditScrimModal}
-                          className="hidden md:flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white truncate px-2 py-1 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer group"
-                          title="Tap untuk edit info sesi"
-                        >
-                          <span className="text-[#D7FF00] font-mono font-bold">[{activeAdminScrim?.tier || 'Tier 1'}]</span>
-                          <span className="truncate group-hover:text-[#D7FF00] transition font-bold">{activeAdminScrim?.title || 'PUBG Mobile Scrim'}</span>
-                          <Edit3 className="w-3 h-3 text-zinc-500 group-hover:text-[#D7FF00] shrink-0" />
-                        </button>
-
-                        {/* Inline IGN Toggle + Team Slot Stepper */}
-                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => setShowSlotIgn(prev => !prev)}
-                            aria-pressed={showSlotIgn}
-                            className={
-                              'px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer border ' +
-                              (showSlotIgn
-                                ? 'bg-[#D7FF00]/15 text-[#D7FF00] border-[#D7FF00]/40'
-                                : 'bg-[#16161B] hover:bg-[#1F1F26] text-zinc-300 border-white/5')
-                            }
-                            title="Tunjuk atau sembunyi ruangan IGN player bagi setiap slot"
-                          >
-                            <Users className="w-3.5 h-3.5" />
-                            <span>IGN</span>
-                            {matchSlots.some(s => Boolean(s.players && s.players.trim())) && (
-                              <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[10px] font-mono tabular-nums text-zinc-200">
-                                {matchSlots.filter(s => Boolean(s.players && s.players.trim())).length}
-                              </span>
-                            )}
-                          </button>
-
-                          <div className="flex items-center gap-2 bg-[#16161B] px-3 py-1.5 rounded-xl shrink-0">
-                            <span className="text-[11px] font-bold text-zinc-400">Slot:</span>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={handleRemoveTeamSlot}
-                                disabled={activeAdminScrim?.is_finished || matchSlots.length <= 2}
-                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-rose-950 hover:text-rose-300 text-zinc-300 flex items-center justify-center font-bold text-xs disabled:opacity-30 transition"
-                                title="Buang slot terakhir"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="font-mono font-black text-xs text-white px-1">
-                                {matchSlots.length} Slot
-                              </span>
-                              <button
-                                type="button"
-                                onClick={handleAddTeamSlot}
-                                disabled={activeAdminScrim?.is_finished || matchSlots.length >= 25}
-                                className="w-6 h-6 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black flex items-center justify-center font-black text-xs disabled:opacity-30 transition shadow-xs"
-                                title="Tambah slot (maks 25)"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Quick Search Team / Player IGN Bar */}
-                      {(() => {
-                        const qIgn = scorerSlotQuery.trim().toLowerCase();
-                        const indexedSlots = matchSlots.map((row, idx) => ({ row, idx }));
-                        const visibleSlots = qIgn
-                          ? indexedSlots.filter(({ row }) =>
-                              String(row.slot).includes(qIgn) ||
-                              (row.teamName && row.teamName.toLowerCase().includes(qIgn)) ||
-                              (row.players && row.players.toLowerCase().includes(qIgn))
-                            )
-                          : indexedSlots;
-
-                        return (
-                          <>
-                            <div className="relative">
-                              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                              <input
-                                type="search"
-                                enterKeyHint="search"
-                                value={scorerSlotQuery}
-                                onChange={(e) => setScorerSlotQuery(e.target.value)}
-                                placeholder="Cari nama team atau IGN player (cth: Kira, Sora)..."
-                                className="w-full bg-[#121216] border border-white/[0.07] focus:border-[#D7FF00]/50 rounded-xl pl-8 pr-20 py-2 text-xs text-white placeholder:text-zinc-500 focus:outline-none transition [&::-webkit-search-cancel-button]:hidden"
-                              />
-                              {qIgn && (
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                  <span className="text-[10px] font-mono text-[#D7FF00] bg-[#D7FF00]/10 px-1.5 py-0.5 rounded-md tabular-nums">
-                                    {visibleSlots.length} padan
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setScorerSlotQuery('')}
-                                    aria-label="Clear carian team atau IGN"
-                                    className="w-6 h-6 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Quick Input Grid Table (Identikal seperti Scorer) */}
-                            <div className="rounded-2xl overflow-hidden bg-[#0D0D10]">
-                              <div className="overflow-x-auto scroll-smooth no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                <table className="w-full text-left text-xs">
-                                  <thead className="bg-[#16161B] text-zinc-400 uppercase text-[10px] font-bold tracking-wider">
-                                    <tr>
-                                      <th className="py-2.5 px-3 w-12 text-center">Slot</th>
-                                      <th className="py-2.5 px-3 min-w-[170px]">Team Name{showSlotIgn ? ' & IGN' : ''}</th>
-                                      <th className="py-2.5 px-2 w-24 text-center">Placement</th>
-                                      <th className="py-2.5 px-2 w-28 text-center">Elims</th>
-                                      <th className="py-2.5 px-2 w-20 text-center">WWCD</th>
-                                      <th className="py-2.5 px-3 w-20 text-center text-[#D7FF00]">Total Pts</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-white/5 font-mono tabular-nums">
-                                    {visibleSlots.length === 0 ? (
-                                      <tr>
-                                        <td colSpan={6} className="py-8 px-4 text-center font-sans text-xs text-zinc-400">
-                                          Tiada team atau IGN padan dengan &ldquo;{scorerSlotQuery}&rdquo;.
-                                        </td>
-                                      </tr>
-                                    ) : visibleSlots.map(({ row, idx }) => {
-                                      const isWWCD = Number(row.placement) === 1 || Boolean(row.wwcd);
-                                      const shouldShowIgnField = showSlotIgn || Boolean(qIgn && row.players);
-                                      return (
-                                        <tr 
-                                          key={row.slot || idx} 
-                                          className={'transition ' + (isWWCD ? 'bg-[#D7FF00]/[0.06] hover:bg-[#D7FF00]/[0.1]' : 'hover:bg-zinc-800/40')}
-                                        >
-                                          {/* Slot # */}
-                                          <td className="py-2 px-3 text-center text-zinc-500 font-bold tabular-nums align-top pt-3">
-                                            #{String(row.slot).padStart(2, '0')}
-                                          </td>
-
-                                          {/* Team Name + Optional Player IGN */}
-                                          <td className="py-2 px-3 font-sans space-y-1.5">
-                                            <input
-                                              type="text"
-                                              disabled={activeAdminScrim?.is_finished}
-                                              data-cell={`admin-teamName-${idx}`}
-                                              value={row.teamName}
-                                              onChange={(e) => handleSlotChange(idx, 'teamName', e.target.value)}
-                                              onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'teamName')}
-                                              placeholder={`Squad ${row.slot}...`}
-                                              className="w-full bg-[#19191E] rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#D7FF00] placeholder:text-zinc-600 disabled:opacity-40"
-                                            />
-                                            {shouldShowIgnField && (
-                                              <input
-                                                type="text"
-                                                disabled={activeAdminScrim?.is_finished}
-                                                value={row.players || ''}
-                                                onChange={(e) => handleSlotChange(idx, 'players', e.target.value)}
-                                                placeholder="IGN: player1, player2, player3, player4"
-                                                aria-label={`IGN player untuk Slot ${row.slot}`}
-                                                className="w-full bg-[#121216] border border-white/[0.06] focus:border-[#D7FF00]/50 rounded-lg px-2.5 py-1 text-[11px] font-mono text-zinc-300 focus:text-white focus:outline-none placeholder:text-zinc-600 disabled:opacity-40"
-                                              />
-                                            )}
-                                          </td>
-
-                                          {/* Placement Dropdown */}
-                                          <td className="py-2 px-2 text-center">
-                                            <select
-                                              disabled={activeAdminScrim?.is_finished}
-                                              data-cell={`admin-placement-${idx}`}
-                                              value={row.placement || ''}
-                                              onChange={(e) => handleSlotChange(idx, 'placement', e.target.value)}
-                                              onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'placement')}
-                                              className="w-full bg-[#19191E] rounded-lg py-1 px-1 font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] text-xs text-center disabled:opacity-40"
-                                            >
-                                              <option value="" className="bg-zinc-950 text-white">--</option>
-                                              {Array.from({ length: matchSlots.length }, (_, i) => i + 1).map((num) => (
-                                                <option key={num} value={num} className="bg-zinc-950 text-white">
-                                                  #{num}
-                                                </option>
-                                              ))}
-                                            </select>
-                                          </td>
-
-                                          {/* Elims with - / + buttons */}
-                                          <td className="py-2 px-2 text-center">
-                                            <div className="flex items-center justify-center gap-1">
-                                              <button
-                                                type="button"
-                                                disabled={activeAdminScrim?.is_finished}
-                                                onClick={() => handleAdjustKills(idx, -1)}
-                                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-200 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
-                                              >
-                                                -
-                                              </button>
-                                              <input
-                                                type="number"
-                                                min="0"
-                                                disabled={activeAdminScrim?.is_finished}
-                                                data-cell={`admin-elims-${idx}`}
-                                                value={row.kills}
-                                                onChange={(e) => handleSlotChange(idx, 'kills', e.target.value)}
-                                                onKeyDown={(e) => handleAdminCellKeyDown(e, idx, 'elims')}
-                                                className="w-11 bg-[#19191E] rounded-lg text-center py-1 text-xs font-bold tabular-nums text-white focus:outline-none focus:ring-1 focus:ring-[#D7FF00] disabled:opacity-40 font-mono"
-                                              />
-                                              <button
-                                                type="button"
-                                                disabled={activeAdminScrim?.is_finished}
-                                                onClick={() => handleAdjustKills(idx, 1)}
-                                                className="w-6 h-6 rounded-lg bg-[#23232A] hover:bg-[#2E2E37] text-zinc-100 flex items-center justify-center font-black text-xs transition active:scale-90 disabled:opacity-40"
-                                              >
-                                                +
-                                              </button>
-                                            </div>
-                                          </td>
-
-                                          {/* WWCD Button */}
-                                          <td className="py-2 px-2 text-center font-sans">
-                                            <button
-                                              type="button"
-                                              disabled={activeAdminScrim?.is_finished}
-                                              onClick={() => handleSlotChange(idx, 'wwcd', !isWWCD)}
-                                              className={'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition active:scale-95 ' + (
-                                                isWWCD 
-                                                  ? 'bg-[#D7FF00] text-zinc-950 shadow-xs font-bold' 
-                                                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
-                                              )}
-                                            >
-                                              {isWWCD ? 'WWCD' : 'Normal'}
-                                            </button>
-                                          </td>
-
-                                          {/* Total Pts */}
-                                          <td className="py-2 px-3 text-center text-[#D7FF00] font-black tabular-nums text-sm">
-                                            {row.totalPts}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </>
-                        );
-                      })()}
-
-                      {/* PMGC Standard Scoring Micro Note */}
-                      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono px-1">
-                        <span>PMGC: WWCD=10pts • Elim=1pt</span>
-                        <span>Total = Place + Elims</span>
-                      </div>
-
-                      {/* Save to Cloud Button & Mobile Jump */}
-                      <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleSaveMatchScore}
-                          disabled={activeAdminScrim?.is_finished}
-                          className={'flex-1 w-full py-3 px-4 font-black rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition shadow-[0_0_20px_rgba(215, 255, 0,0.18)] active:scale-98 ' + (
-                            activeAdminScrim?.is_finished 
-                              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                              : 'bg-[#D7FF00] hover:bg-[#c2e600] text-black'
-                          )}
-                        >
-                          <Save className="w-4 h-4"/>
-                          <span>{activeAdminScrim?.is_finished ? 'Keputusan Dah Lock' : `Save Match ${selectedMatchIdx + 1} ke Cloud`}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            document.getElementById('admin-leaderboard-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }}
-                          className="lg:hidden w-full py-3 px-4 bg-[#19191E] hover:bg-[#23232A] text-white rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 active:scale-98 uppercase tracking-wider"
-                        >
-                          <ImageIcon className="w-4 h-4 text-[#D7FF00]" />
-                          <span>Lihat Poster ↓</span>
-                        </button>
-                      </div>
-
-                    </div>
-                  </div>
-
-                  {/* RIGHT PANEL: Live Real-Time Leaderboard & Poster Preview (Sama seperti Scorer!) */}
-                  <div id="admin-leaderboard-preview" className="lg:col-span-5 lg:sticky lg:top-6 space-y-3.5 scroll-mt-6">
-                    
-                    {/* Mode Selector Toggle: Overall Standings vs Current Match */}
-                    <div className="flex items-center gap-1.5 bg-[#111114] p-1 rounded-2xl text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setAdminPosterViewMode('overall')}
-                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
-                          adminPosterViewMode === 'overall'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
-                        )}
-                      >
-                        <span>Overall</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminPosterViewMode('match')}
-                        className={'flex-1 py-1.5 px-2 rounded-xl text-center transition flex items-center justify-center gap-1.5 cursor-pointer ' + (
-                          adminPosterViewMode === 'match'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'bg-[#19191E] text-zinc-400 hover:text-zinc-200'
-                        )}
-                      >
-                        <span>Match {selectedMatchIdx + 1}</span>
-                      </button>
-                    </div>
-
-                    {/* Esports Visual Poster Card — 1:1 Square Hierarchy with SCRIMHUB Matrix / About Design */}
-                    {(() => {
-                      const rawDate = String(activeAdminScrim?.date || '').trim();
-                      let formattedPosterDate = rawDate ? rawDate.toUpperCase() : '';
-                      if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-                        const dt = new Date(`${rawDate}T00:00:00`);
-                        if (!isNaN(dt.getTime())) {
-                          const weekday = dt.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
-                          const day = dt.getDate();
-                          const month = dt.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
-                          const year = dt.getFullYear();
-                          formattedPosterDate = `${weekday} , ${day} ${month} ${year}`;
-                        }
-                      }
-                      const rawLogo = activeAdminScrim?.logo_url || '';
-                      const hasCustomLogo = Boolean(rawLogo && !rawLogo.includes('images.unsplash.com/photo-1542751371'));
-                      const hostBrandMark = (activeAdminScrim?.host_name || 'SCRIMHUB').trim().toUpperCase();
-                      const isCompactRows = adminLiveStandings.length > 16;
-
-                      return (
-                        <div
-                          ref={adminPosterRef}
-                          className="w-full aspect-square text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl relative font-sans select-none overflow-hidden"
-                          style={{
-                            backgroundColor: '#070709',
-                            backgroundImage: [
-                              'radial-gradient(ellipse 85% 42% at 50% 0%, rgba(215, 255, 0, 0.14), transparent 70%)',
-                              'radial-gradient(ellipse 70% 35% at 50% 100%, rgba(16, 185, 129, 0.10), transparent 70%)',
-                              'linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px)',
-                              'linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px)'
-                            ].join(', '),
-                            backgroundSize: '100% 100%, 100% 100%, 24px 24px, 24px 24px'
-                          }}
-                        >
-                          {/* Outer SCRIMHUB Hairline Box Frame */}
-                          <div className="w-full h-full rounded-xl border border-white/[0.14] bg-[#09090B]/70 p-2.5 sm:p-3 flex flex-col justify-between gap-2 overflow-hidden relative">
-                            {/* Subtle Top Volt-Lime Accent Bar */}
-                            <div
-                              aria-hidden="true"
-                              className="absolute inset-x-10 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#D7FF00]/80 to-transparent"
-                            />
-
-                            {/* Level 1-3: Centered Hero Header Box */}
-                            <div className="rounded-xl border border-white/[0.08] bg-[#101014]/90 px-3 py-2 text-center space-y-0.5 shrink-0">
-                              {hasCustomLogo ? (
-                                <img
-                                  src={rawLogo}
-                                  alt={hostBrandMark}
-                                  crossOrigin="anonymous"
-                                  className="h-8 sm:h-10 w-auto max-w-[150px] object-contain mx-auto mb-1"
-                                />
-                              ) : (
-                                <div className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-white leading-none pb-0.5 truncate">
-                                  {hostBrandMark}
-                                </div>
-                              )}
-
-                              <h3 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-[#D7FF00] leading-tight truncate px-1">
-                                {activeAdminScrim?.title ? activeAdminScrim.title.toUpperCase() : 'SCRIM EDITION'}
-                              </h3>
-
-                              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5">
-                                <span className="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-200 leading-tight truncate">
-                                  {adminPosterViewMode === 'match'
-                                    ? `${formattedPosterDate ? `${formattedPosterDate} • ` : ''}MATCH ${selectedMatchIdx + 1} (${(inputMap || 'ERANGEL').toUpperCase()})`
-                                    : (formattedPosterDate || (activeAdminScrim?.event_type === 'Tour' ? 'OFFICIAL TOURNAMENT' : 'OFFICIAL SCRIM'))}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Level 4: Boxed 6-Column Leaderboard Table */}
-                            <div className="flex-1 min-h-0 rounded-xl border border-white/[0.09] bg-[#0B0B0F]/92 overflow-hidden flex flex-col justify-center">
-                              {adminLiveStandings.length === 0 ? (
-                                <div className="text-center text-[11px] text-zinc-500 font-medium py-6">
-                                  Isi markah untuk jana poster standings 1:1.
-                                </div>
-                              ) : (
-                                <table className="w-full h-full table-fixed border-collapse text-center">
-                                  <thead>
-                                    <tr className="bg-[#14141A] border-b border-white/[0.08] text-[7.5px] sm:text-[9px] font-mono font-black uppercase tracking-wider text-zinc-300">
-                                      <th className="w-[8%] py-1 font-black">#</th>
-                                      <th className="w-[44%] py-1 font-black">TEAM NAME</th>
-                                      <th className="w-[10%] py-1 font-black">
-                                        <span className="inline-flex items-center justify-center" title="WWCD">
-                                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 24 24" aria-hidden="true">
-                                            <path fill="#EF4444" d="M12 2c1.2 0 2.1.8 2.3 1.9.6-.2 1.3.1 1.6.7.4.7.1 1.5-.6 1.8l-.6.3H9.3l-.6-.3c-.7-.3-1-1.1-.6-1.8.3-.6 1-.9 1.6-.7C9.9 2.8 10.8 2 12 2z" />
-                                            <circle cx="12" cy="13" r="7" fill="#FFFFFF" />
-                                            <polygon points="12,14 15,15.5 12,17" fill="#F59E0B" />
-                                            <circle cx="10.2" cy="11.5" r="1" fill="#111111" />
-                                          </svg>
-                                        </span>
-                                      </th>
-                                      <th className="w-[13%] py-1 font-black">PLACE</th>
-                                      <th className="w-[12%] py-1 font-black">KILLS</th>
-                                      <th className="w-[13%] py-1 font-black text-[#D7FF00]">TOTAL</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className={'divide-y divide-white/[0.05] font-mono tabular-nums ' + (isCompactRows ? 'text-[7.5px] sm:text-[9px] leading-tight' : 'text-[8.5px] sm:text-[10px] leading-tight')}>
-                                    {adminLiveStandings.map((row, pos) => {
-                                      const isTop1 = pos === 0;
-                                      const isTop3 = pos < 3;
-                                      const rowBg = isTop1
-                                        ? 'bg-[#D7FF00]/[0.10]'
-                                        : isTop3
-                                        ? 'bg-white/[0.03]'
-                                        : '';
-                                      const rowText = isTop1
-                                        ? 'text-[#D7FF00]'
-                                        : isTop3
-                                        ? 'text-[#F5D66B]'
-                                        : 'text-zinc-100';
-                                      const wwcdVal = Number(row.wwcd) || 0;
-                                      const cellPad = isCompactRows ? 'py-[1px]' : 'py-[2px]';
-                                      return (
-                                        <tr key={pos} className={`${rowBg} ${rowText} font-bold`}>
-                                          <td className={cellPad}>{pos + 1}</td>
-                                          <td className={`${cellPad} px-1 font-sans font-extrabold truncate uppercase tracking-tight`}>
-                                            {row.teamName}
-                                          </td>
-                                          <td className={cellPad}>
-                                            {wwcdVal > 0 ? wwcdVal : ''}
-                                          </td>
-                                          <td className={cellPad}>{row.placePts}</td>
-                                          <td className={cellPad}>{row.killPts}</td>
-                                          <td className={`${cellPad} font-black ${isTop1 ? 'text-[#D7FF00]' : isTop3 ? 'text-[#F5D66B]' : 'text-[#D7FF00]/90'}`}>
-                                            {row.totalPts}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              )}
-                            </div>
-
-                            {/* Level 5: Boxed Footer Tagline + Branding */}
-                            <div className="rounded-lg border border-white/[0.08] bg-[#101014]/90 px-2.5 py-1.5 text-center shrink-0 space-y-0.5">
-                              <p className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wide text-[#D7FF00] leading-tight">
-                                CONGRATULATIONS TO ALL THE TEAMS &amp; KEEP GRINDING!
-                              </p>
-                              <p className="text-[6.5px] sm:text-[7.5px] font-mono uppercase tracking-widest text-zinc-400 leading-none">
-                                POWERED BY SCRIMHUB · scrim.rykhor.my
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Primary Poster Action Buttons */}
-                    <div className="space-y-2">
-                      <button
-                        type="button"
-                        onClick={handleDownloadAdminPoster}
-                        disabled={isDownloadingAdminPoster}
-                        className="w-full py-3 px-4 bg-[#D7FF00] hover:bg-[#c2e600] text-black font-black rounded-2xl shadow-[0_0_20px_rgba(215, 255, 0,0.18)] text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
-                      >
-                        {isDownloadingAdminPoster ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin"/>
-                            <span>Rendering Poster PNG...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4 text-black"/>
-                            <span>Export PNG</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleCopyDiscordText(activeAdminScrim)}
-                        className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/10 font-bold rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-[0.99]"
-                      >
-                        {copyFeedback ? <Check className="w-4 h-4 text-[#D7FF00]"/> : <Copy className="w-4 h-4 text-zinc-400"/>}
-                        <span>Salin Teks</span>
-                      </button>
-
-                      {/* Mobile Jump Back Up to Scoring Form */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          document.getElementById('admin-workspace-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
-                        className="w-full lg:hidden py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-2xl text-xs font-bold transition border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5 rotate-90 text-[#D7FF00]" />
-                        <span>Balik Ke Borang ↑</span>
-                      </button>
-                    </div>
-
-                  </div>
-
-                </div>
+                {renderQuickScorerWorkspace()}
 
               </div>
             )}
