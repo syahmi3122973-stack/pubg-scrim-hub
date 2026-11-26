@@ -782,6 +782,7 @@ export default function PortalTournamentView({
                         const totalMatches = Number(session.total_matches || session.matches?.length || 5);
                         const isRightCol = idx % 2 === 1;
                         const isSecondRowPlus = idx >= 2;
+                        const isRegistered = activeRegistrationByScrim.has(session.id);
                         return (
                           <button
                             key={session.id}
@@ -792,57 +793,70 @@ export default function PortalTournamentView({
                               setRegisterStep('detail');
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                            className={`w-full text-left p-4 sm:p-5 hover:bg-white/[0.03] transition cursor-pointer flex items-center justify-between gap-4 border-white/[0.08] ${
+                            className={`group w-full text-left p-4 sm:p-5 hover:bg-white/[0.03] active:bg-white/[0.04] transition cursor-pointer flex flex-col gap-3 border-white/[0.08] ${
                               !isRightCol ? 'md:border-r ' : ''
                             }${isSecondRowPlus ? 'md:border-t' : ''}`}
                           >
-                            <div className="min-w-0 space-y-1.5">
-                              <div className="flex flex-wrap items-center gap-1.5">
+                            {/* Top Meta & Status Bar */}
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <div className="flex items-center gap-2 min-w-0">
                                 {session.session_timing && (
-                                  <span className="px-2 py-0.5 rounded-md bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[10px] font-mono font-bold text-[#D7FF00]">
+                                  <span className="px-2 py-0.5 rounded-md bg-[#D7FF00]/10 border border-[#D7FF00]/30 text-[11px] font-mono font-bold text-[#D7FF00] shrink-0">
                                     {session.session_timing}
                                   </span>
                                 )}
-                                <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.08] text-[10px] font-mono text-zinc-300">
+                                <span className="text-[11px] font-mono text-zinc-400 truncate">
                                   {session.room_type || 'Squad TPP'} · {totalMatches} Match
                                 </span>
                               </div>
-                              <h3 className="text-sm sm:text-base font-bold text-white truncate">{session.title}</h3>
-                              <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-zinc-400">
-                                <span className="inline-flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {session.date || '-'}
-                                </span>
-                                <span className="text-white font-semibold">
-                                  {fee > 0 ? `RM ${fee.toFixed(2)}` : 'PERCUMA'}
-                                </span>
-                                {session.prize_pool && (
-                                  <span className="inline-flex items-center gap-1 text-[#D7FF00] font-semibold">
-                                    <Trophy className="w-3 h-3" />
-                                    {session.prize_pool}
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isRegistered && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/35">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    Berdaftar
                                   </span>
                                 )}
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border ${
+                                    meta.isFull
+                                      ? 'bg-red-500/15 text-red-300 border-red-500/35'
+                                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                  }`}
+                                >
+                                  <Users className="w-3 h-3" />
+                                  {meta.isFull ? 'PENUH' : `${meta.remaining}/${meta.maxSlots}`}
+                                </span>
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-                              {activeRegistrationByScrim.has(session.id) && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono font-bold bg-[#D7FF00]/15 text-[#D7FF00] border border-[#D7FF00]/35">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Berdaftar
+                            {/* Primary Title Row */}
+                            <div className="flex items-center justify-between gap-3 w-full">
+                              <h3 className="text-base sm:text-lg font-extrabold tracking-tight text-white truncate">
+                                {session.title}
+                              </h3>
+                              <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-[#D7FF00] group-hover:translate-x-0.5 transition shrink-0" />
+                            </div>
+
+                            {/* Clean Footer Metadata Strip */}
+                            <div className="pt-2.5 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[11px] font-mono w-full">
+                              <div className="flex items-center gap-3 text-zinc-400">
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Calendar className="w-3 h-3 text-zinc-500" />
+                                  {session.date || '-'}
+                                </span>
+                                <span className="text-zinc-600">·</span>
+                                <span className="text-white font-bold">
+                                  {fee > 0 ? `RM ${fee.toFixed(2)}` : 'PERCUMA'}
+                                </span>
+                              </div>
+
+                              {session.prize_pool && (
+                                <span className="inline-flex items-center gap-1 text-[#D7FF00] font-bold">
+                                  <Trophy className="w-3 h-3 shrink-0" />
+                                  <span className="truncate max-w-[160px]">{session.prize_pool}</span>
                                 </span>
                               )}
-                              <span
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold border ${
-                                  meta.isFull
-                                    ? 'bg-red-500/15 text-red-300 border-red-500/35'
-                                    : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                                }`}
-                              >
-                                <Users className="w-3 h-3" />
-                                {meta.isFull ? 'PENUH' : `${meta.remaining}/${meta.maxSlots}`}
-                              </span>
-                              <ArrowRight className="w-4 h-4 text-zinc-500" />
                             </div>
                           </button>
                         );
