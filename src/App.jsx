@@ -2010,7 +2010,7 @@ export default function App() {
   }, [refreshScrimsFromCloud, refreshProfilesFromCloud]);
 
   useEffect(() => {
-    if (activeTab === 'records') {
+    if (activeTab === 'history' || activeTab === 'leaderboard') {
       refreshScrimsFromCloud();
     } else if (activeTab === 'hosts') {
       refreshProfilesFromCloud();
@@ -2477,6 +2477,16 @@ export default function App() {
     if (!currentUser) return [];
     return scrims.filter(s => isAuthorizedAdmin(s));
   }, [scrims, currentUser, isAuthorizedAdmin]);
+
+  const userPendingScrimCount = useMemo(() => {
+    if (!currentUser) return 0;
+    return scrims.filter((s) => {
+      if (!s || s.is_finished) return false;
+      const isOwner = s.created_by === currentUser.id || s.created_by === currentUser.email;
+      const isCoHost = Array.isArray(s.co_hosts) && s.co_hosts.includes(currentUser.id);
+      return isOwner || isCoHost;
+    }).length;
+  }, [scrims, currentUser]);
 
   const formattedDateJoined = useMemo(() => {
     if (currentUser?.created_at) {
@@ -7087,6 +7097,19 @@ export default function App() {
                       {renderActiveRail(active)}
                       <Icon className={'w-4 h-4 shrink-0 ' + (active ? 'text-[#D7FF00]' : 'text-zinc-500')} aria-hidden="true" />
                       <span className="truncate">{label}</span>
+                      {id === 'history' && userPendingScrimCount > 0 && (
+                        <span
+                          title={`${userPendingScrimCount} scrim pending`}
+                          aria-label={`${userPendingScrimCount} scrim pending`}
+                          className="ml-auto inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/35 text-[10px] font-mono font-bold tabular-nums text-orange-400 shrink-0"
+                        >
+                          <span className="relative flex h-2 w-2" aria-hidden="true">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+                          </span>
+                          <span>{userPendingScrimCount}</span>
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -7376,16 +7399,30 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigateToTab('history')}
-                title="Rekod Kejohanan & Live Leaderboard"
-                aria-label="Rekod Kejohanan"
-                className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
+                title={userPendingScrimCount > 0 ? `Rekod Kejohanan (${userPendingScrimCount} Pending Scrim)` : 'Rekod Kejohanan & Live Leaderboard'}
+                aria-label={userPendingScrimCount > 0 ? `Rekod Kejohanan (${userPendingScrimCount} pending scrim)` : 'Rekod Kejohanan'}
+                className={'relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer ' + (
                   activeTab === 'history' || activeTab === 'leaderboard'
                     ? 'bg-emerald-500/20 text-emerald-300 font-black' 
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 )}
               >
-                <Trophy className="w-4 h-4 text-emerald-400" />
+                <span className="relative inline-flex">
+                  <Trophy className="w-4 h-4 text-emerald-400" />
+                  {userPendingScrimCount > 0 && (
+                    <span className="xl:hidden absolute -top-1 -right-1 flex h-2 w-2" aria-hidden="true">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500 ring-1 ring-[#0E0E11]" />
+                    </span>
+                  )}
+                </span>
                 <span className="hidden xl:inline">Rekod</span>
+                {userPendingScrimCount > 0 && (
+                  <span className="hidden xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-[10px] font-mono font-bold text-orange-400 leading-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" aria-hidden="true" />
+                    <span>{userPendingScrimCount}</span>
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -15570,15 +15607,26 @@ export default function App() {
           <button
             type="button"
             onClick={() => navigateToTab('history')}
-            title="Live Standings & Rekod"
-            aria-label="Rekod"
+            title={userPendingScrimCount > 0 ? `Live Standings & Rekod (${userPendingScrimCount} Pending)` : 'Live Standings & Rekod'}
+            aria-label={userPendingScrimCount > 0 ? `Rekod (${userPendingScrimCount} pending scrim)` : 'Rekod'}
             className={'flex-1 flex flex-col items-center justify-center py-1 transition-colors select-none active:scale-95 ' + (
               activeTab === 'history' || activeTab === 'leaderboard'
                 ? 'text-[#D7FF00]'
                 : 'text-zinc-200 hover:text-white'
             )}
           >
-            <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
+            <span className="relative inline-flex">
+              <Trophy className={'w-5 h-5 ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'stroke-[2.2]' : 'stroke-[1.75]')} />
+              {userPendingScrimCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-1.5 flex h-2.5 w-2.5"
+                >
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 ring-2 ring-[#0E0E11] shadow-[0_0_8px_rgba(249,115,22,0.85)]" />
+                </span>
+              )}
+            </span>
             <span className={'text-[10px] tracking-tight mt-0.5 leading-none ' + (activeTab === 'history' || activeTab === 'leaderboard' ? 'font-bold' : 'font-medium')}>
               Rekod
             </span>
