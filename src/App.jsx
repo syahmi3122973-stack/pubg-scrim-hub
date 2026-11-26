@@ -2463,15 +2463,20 @@ export default function App() {
     showToast('Dah log keluar.');
   };
 
+  const isUserOwnScrim = useCallback((scrim) => {
+    if (!currentUser || !scrim) return false;
+    const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
+    const isCoHost = Array.isArray(scrim.co_hosts) && scrim.co_hosts.includes(currentUser.id);
+    return isOwner || isCoHost;
+  }, [currentUser]);
+
   const isAuthorizedAdmin = useCallback((scrim) => {
     if (!currentUser || !scrim) return false;
     if (currentUser.email && currentUser.email.trim().toLowerCase() === MASTER_ADMIN_EMAIL) {
       return true;
     }
-    const isOwner = scrim.created_by === currentUser.id || scrim.created_by === currentUser.email;
-    const isCoHost = scrim.co_hosts && scrim.co_hosts.includes(currentUser.id);
-    return isOwner || isCoHost;
-  }, [currentUser]);
+    return isUserOwnScrim(scrim);
+  }, [currentUser, isUserOwnScrim]);
 
   const adminHostedScrims = useMemo(() => {
     if (!currentUser) return [];
@@ -2480,13 +2485,8 @@ export default function App() {
 
   const userPendingScrimCount = useMemo(() => {
     if (!currentUser) return 0;
-    return scrims.filter((s) => {
-      if (!s || s.is_finished) return false;
-      const isOwner = s.created_by === currentUser.id || s.created_by === currentUser.email;
-      const isCoHost = Array.isArray(s.co_hosts) && s.co_hosts.includes(currentUser.id);
-      return isOwner || isCoHost;
-    }).length;
-  }, [scrims, currentUser]);
+    return scrims.filter((s) => s && !s.is_finished && isUserOwnScrim(s)).length;
+  }, [scrims, currentUser, isUserOwnScrim]);
 
   const formattedDateJoined = useMemo(() => {
     if (currentUser?.created_at) {
@@ -2847,9 +2847,11 @@ export default function App() {
     });
   }, [activeAdminScrim, selectedMatchIdx]);
 
-  // Rekod Scrim: semua pelawat boleh tengok maklumat & leaderboard, tapi akses edit dikawal ketat
+  // Rekod Scrim: paparkan hanya sesi Scrim & Tournament yang user buat sendiri (atau co-host) dalam tab Rekod
   const filteredScrims = useMemo(() => {
+    if (!currentUser) return [];
     return scrims.filter(s => {
+      if (!isUserOwnScrim(s)) return false;
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
       const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
       const matchStatus =
@@ -2866,7 +2868,7 @@ export default function App() {
         (s.host_name && s.host_name.toLowerCase().includes(q));
       return matchTier && matchType && matchStatus && matchSearch;
     });
-  }, [scrims, tierFilter, leaderboardEventTypeFilter, historyStatusFilter, searchScrimQuery]);
+  }, [scrims, currentUser, isUserOwnScrim, tierFilter, leaderboardEventTypeFilter, historyStatusFilter, searchScrimQuery]);
 
   const activePublicScrim = useMemo(() => {
     if (!filteredScrims.length) return null;
@@ -10477,10 +10479,14 @@ export default function App() {
                     <span>Sesi Baru</span>
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#18181D] text-[11px] font-semibold text-zinc-300 shrink-0">
-                    <Eye className="w-3.5 h-3.5 text-[#D7FF00]" />
-                    <span>Paparan Umum</span>
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#D7FF00] hover:bg-[#c2e600] text-xs font-black text-zinc-950 shrink-0 cursor-pointer active:scale-95 transition"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-zinc-950" />
+                    <span>Log Masuk</span>
+                  </button>
                 )}
               </div>
 
@@ -10622,19 +10628,29 @@ export default function App() {
                   className="min-h-[280px] flex flex-col items-center justify-center py-12 px-6 text-center space-y-3 animate-filter-reveal"
                 >
                   <Clock className="w-8 h-8 mx-auto opacity-30 text-zinc-500" />
-                  <h3 className="font-semibold text-white text-sm">Tiada Rekod Lagi</h3>
+                  <h3 className="font-semibold text-white text-sm">
+                    {currentUser ? 'Tiada Rekod Lagi' : 'Log Masuk untuk Rekod Anda'}
+                  </h3>
                   <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
                     {currentUser
-                      ? 'Tak ada rekod untuk filter ni. Boleh buat sesi baru kat Portal Host.'
-                      : 'Tak ada rekod untuk filter ni buat masa ni.'}
+                      ? 'Belum ada sesi scrim atau tournament anda untuk filter ni. Boleh buat sesi baru kat Portal Host.'
+                      : 'Tab Rekod cuma paparkan scrim & tournament yang anda buat sendiri.'}
                   </p>
-                  {currentUser && (
+                  {currentUser ? (
                     <button
                       type="button"
                       onClick={() => navigateToTab('admin')}
                       className="px-3.5 py-1.5 rounded-lg border border-[#D7FF00]/40 bg-[#D7FF00]/[0.08] hover:bg-[#D7FF00]/[0.15] text-[#D7FF00] font-medium text-xs transition cursor-pointer"
                     >
                       Buka Portal Host →
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-[#D7FF00] hover:bg-[#c2e600] text-black font-bold text-xs transition cursor-pointer"
+                    >
+                      Log Masuk Sekarang
                     </button>
                   )}
                 </div>
