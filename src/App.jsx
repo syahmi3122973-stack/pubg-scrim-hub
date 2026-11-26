@@ -7973,6 +7973,17 @@ export default function App() {
                     <div className="py-1">
                       <button
                         type="button"
+                        onClick={() => {
+                          navigateToTab('register');
+                          setIsNavMenuOpen(false);
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-white/5 text-[#D7FF00] transition font-bold cursor-pointer flex items-center gap-2"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                        <span>Portal Tournament</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleOpenGuide(0)}
                         className="w-full px-4 py-2 text-left hover:bg-white/5 text-zinc-200 transition font-bold cursor-pointer"
                       >
