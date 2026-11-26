@@ -1761,6 +1761,7 @@ export default function App() {
   const [canInstallPwa, setCanInstallPwa] = useState(() => Boolean(typeof window !== 'undefined' && window.__pwaInstallPrompt));
   const [isAppUpdateAvailable, setIsAppUpdateAvailable] = useState(false);
   const [isAppUpdateDismissed, setIsAppUpdateDismissed] = useState(false);
+  const [isAppUpdateConfirmOpen, setIsAppUpdateConfirmOpen] = useState(false);
   const [isRefreshingApp, setIsRefreshingApp] = useState(false);
 
   useEffect(() => {
@@ -6950,39 +6951,81 @@ export default function App() {
         onNavigateBackTab={handleNavigateBackTab}
       />
       
-      {/* App Update Prompt Pill (Floating Top Pill — Clean & Minimal) */}
+      {/* App Update Prompt Pill (Compact Floating Top Pill + Save-Before-Refresh Warning Banner) */}
       {isAppUpdateAvailable && !isAppUpdateDismissed && (
         <div
           role="region"
           aria-live="polite"
           aria-label="Refresh to Update"
-          className="fixed top-16 md:top-5 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[65] max-w-[calc(100vw-1.5rem)] animate-feedback-pop"
+          className="fixed top-14 md:top-4 left-1/2 md:left-[calc(50%+7.5rem)] lg:left-[calc(50%+8rem)] -translate-x-1/2 z-[65] max-w-[calc(100vw-1.5rem)] animate-feedback-pop"
         >
-          <div className="rounded-full bg-[#141418]/95 backdrop-blur-md border border-[#D7FF00]/30 shadow-[0_18px_48px_rgba(0,0,0,0.8)] pl-4 pr-1.5 py-1.5 flex items-center gap-2.5">
-            <span className="text-xs font-semibold text-white whitespace-nowrap">
-              Refresh to Update
-            </span>
+          {!isAppUpdateConfirmOpen ? (
+            <div className="rounded-full bg-[#141418]/95 backdrop-blur-md border border-[#D7FF00]/30 shadow-[0_12px_32px_rgba(0,0,0,0.75)] pl-3 pr-1 py-1 flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-zinc-100 whitespace-nowrap">
+                Refresh to Update
+              </span>
 
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                disabled={isRefreshingApp}
-                onClick={handleApplyAppUpdate}
-                className="min-h-[40px] px-3.5 py-1.5 rounded-full bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-95 text-zinc-950 text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingApp ? 'animate-spin' : ''}`} />
-                <span>{isRefreshingApp ? 'Refreshing...' : 'Refresh'}</span>
-              </button>
-              <button
-                type="button"
-                aria-label="Tutup notifikasi kemas kini"
-                onClick={() => setIsAppUpdateDismissed(true)}
-                className="min-w-[40px] min-h-[40px] rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAppUpdateConfirmOpen(true)}
+                  className="h-7 px-2.5 rounded-full bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-95 text-zinc-950 text-[11px] font-bold inline-flex items-center gap-1 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF00]"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Tutup notifikasi kemas kini"
+                  onClick={() => {
+                    setIsAppUpdateConfirmOpen(false);
+                    setIsAppUpdateDismissed(true);
+                  }}
+                  className="w-7 h-7 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              role="alertdialog"
+              aria-labelledby="update-save-warning-title"
+              className="w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl bg-[#141418]/95 backdrop-blur-xl border border-amber-400/35 shadow-[0_18px_48px_rgba(0,0,0,0.85)] p-3.5 space-y-2.5"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" aria-hidden="true" />
+                <div className="space-y-0.5 min-w-0 flex-1">
+                  <p id="update-save-warning-title" className="text-xs font-bold text-amber-300 leading-snug">
+                    Save match dulu sebelum refresh
+                  </p>
+                  <p className="text-[11px] text-zinc-300 leading-relaxed">
+                    Pastikan semua markah atau import yang belum disimpan telah di-save ke Cloud supaya data tidak hilang.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-0.5">
+                <button
+                  type="button"
+                  disabled={isRefreshingApp}
+                  onClick={() => setIsAppUpdateConfirmOpen(false)}
+                  className="h-8 px-3 rounded-xl border border-white/10 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-[11px] font-semibold transition cursor-pointer disabled:opacity-50"
+                >
+                  Kembali &amp; Save
+                </button>
+                <button
+                  type="button"
+                  disabled={isRefreshingApp}
+                  onClick={handleApplyAppUpdate}
+                  className="h-8 px-3 rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] active:scale-95 text-zinc-950 text-[11px] font-black inline-flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshingApp ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshingApp ? 'Refreshing...' : 'Dah Save, Refresh'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
