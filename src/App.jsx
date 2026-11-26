@@ -1496,7 +1496,7 @@ export default function App() {
         quality: 0.99,
         pixelRatio: 3,
         cacheBust: true,
-        backgroundColor: '#000000'
+        backgroundColor: '#070709'
       });
       const link = document.createElement('a');
       const cleanTitle = (activeAdminScrim.title || 'scrim-hub')
@@ -12327,7 +12327,7 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Esports Visual Poster Card — 1:1 Square Hierarchy Matching Reference */}
+                    {/* Esports Visual Poster Card — 1:1 Square Hierarchy with SCRIMHUB Matrix / About Design */}
                     {(() => {
                       const rawDate = String(activeAdminScrim?.date || '').trim();
                       let formattedPosterDate = rawDate ? rawDate.toUpperCase() : '';
@@ -12349,51 +12349,69 @@ export default function App() {
                       return (
                         <div
                           ref={adminPosterRef}
-                          className="w-full aspect-square bg-black text-white p-2.5 sm:p-3.5 shadow-2xl relative font-sans select-none overflow-hidden"
-                          style={{ backgroundColor: '#000000' }}
+                          className="w-full aspect-square text-white rounded-2xl p-2.5 sm:p-3 shadow-2xl relative font-sans select-none overflow-hidden"
+                          style={{
+                            backgroundColor: '#070709',
+                            backgroundImage: [
+                              'radial-gradient(ellipse 85% 42% at 50% 0%, rgba(215, 255, 0, 0.14), transparent 70%)',
+                              'radial-gradient(ellipse 70% 35% at 50% 100%, rgba(16, 185, 129, 0.10), transparent 70%)',
+                              'linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px)',
+                              'linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px)'
+                            ].join(', '),
+                            backgroundSize: '100% 100%, 100% 100%, 24px 24px, 24px 24px'
+                          }}
                         >
-                          <div className="w-full h-full border border-white/85 px-3 py-2.5 sm:px-4 sm:py-3.5 flex flex-col justify-between overflow-hidden">
-                            {/* Centered Hero Header */}
-                            <div className="text-center space-y-0.5 shrink-0">
+                          {/* Outer SCRIMHUB Hairline Box Frame */}
+                          <div className="w-full h-full rounded-xl border border-white/[0.14] bg-[#09090B]/70 p-2.5 sm:p-3 flex flex-col justify-between gap-2 overflow-hidden relative">
+                            {/* Subtle Top Volt-Lime Accent Bar */}
+                            <div
+                              aria-hidden="true"
+                              className="absolute inset-x-10 top-0 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#D7FF00]/80 to-transparent"
+                            />
+
+                            {/* Level 1-3: Centered Hero Header Box */}
+                            <div className="rounded-xl border border-white/[0.08] bg-[#101014]/90 px-3 py-2 text-center space-y-0.5 shrink-0">
                               {hasCustomLogo ? (
                                 <img
                                   src={rawLogo}
                                   alt={hostBrandMark}
                                   crossOrigin="anonymous"
-                                  className="h-9 sm:h-11 w-auto max-w-[160px] object-contain mx-auto mb-1"
+                                  className="h-8 sm:h-10 w-auto max-w-[150px] object-contain mx-auto mb-1"
                                 />
                               ) : (
-                                <div className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-white leading-none pb-0.5 truncate">
+                                <div className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-white leading-none pb-0.5 truncate">
                                   {hostBrandMark}
                                 </div>
                               )}
 
-                              <h3 className="text-[11px] sm:text-sm font-black uppercase tracking-wider text-[#F5D66B] leading-tight truncate px-1">
+                              <h3 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-[#D7FF00] leading-tight truncate px-1">
                                 {activeAdminScrim?.title ? activeAdminScrim.title.toUpperCase() : 'SCRIM EDITION'}
                               </h3>
 
-                              <p className="text-[8px] sm:text-[9.5px] font-bold uppercase tracking-wider text-white/95 leading-tight truncate px-1">
-                                {adminPosterViewMode === 'match'
-                                  ? `${formattedPosterDate ? `${formattedPosterDate} • ` : ''}MATCH ${selectedMatchIdx + 1} (${(inputMap || 'ERANGEL').toUpperCase()})`
-                                  : (formattedPosterDate || (activeAdminScrim?.event_type === 'Tour' ? 'OFFICIAL TOURNAMENT' : 'OFFICIAL SCRIM'))}
-                              </p>
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5">
+                                <span className="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-200 leading-tight truncate">
+                                  {adminPosterViewMode === 'match'
+                                    ? `${formattedPosterDate ? `${formattedPosterDate} • ` : ''}MATCH ${selectedMatchIdx + 1} (${(inputMap || 'ERANGEL').toUpperCase()})`
+                                    : (formattedPosterDate || (activeAdminScrim?.event_type === 'Tour' ? 'OFFICIAL TOURNAMENT' : 'OFFICIAL SCRIM'))}
+                                </span>
+                              </div>
                             </div>
 
-                            {/* Centered Leaderboard Standings */}
-                            <div className="my-auto py-1 flex-1 flex flex-col justify-center overflow-hidden">
+                            {/* Level 4: Boxed 6-Column Leaderboard Table */}
+                            <div className="flex-1 min-h-0 rounded-xl border border-white/[0.09] bg-[#0B0B0F]/92 overflow-hidden flex flex-col justify-center">
                               {adminLiveStandings.length === 0 ? (
                                 <div className="text-center text-[11px] text-zinc-500 font-medium py-6">
                                   Isi markah untuk jana poster standings 1:1.
                                 </div>
                               ) : (
-                                <table className="w-full table-fixed border-collapse text-center">
+                                <table className="w-full h-full table-fixed border-collapse text-center">
                                   <thead>
-                                    <tr className="text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider text-white">
-                                      <th className="w-[8%] pb-1 font-black">#</th>
-                                      <th className="w-[44%] pb-1 font-black">TEAM NAME</th>
-                                      <th className="w-[10%] pb-1 font-black">
+                                    <tr className="bg-[#14141A] border-b border-white/[0.08] text-[7.5px] sm:text-[9px] font-mono font-black uppercase tracking-wider text-zinc-300">
+                                      <th className="w-[8%] py-1 font-black">#</th>
+                                      <th className="w-[44%] py-1 font-black">TEAM NAME</th>
+                                      <th className="w-[10%] py-1 font-black">
                                         <span className="inline-flex items-center justify-center" title="WWCD">
-                                          <svg className="w-3 h-3" viewBox="0 0 24 24" aria-hidden="true">
+                                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" viewBox="0 0 24 24" aria-hidden="true">
                                             <path fill="#EF4444" d="M12 2c1.2 0 2.1.8 2.3 1.9.6-.2 1.3.1 1.6.7.4.7.1 1.5-.6 1.8l-.6.3H9.3l-.6-.3c-.7-.3-1-1.1-.6-1.8.3-.6 1-.9 1.6-.7C9.9 2.8 10.8 2 12 2z" />
                                             <circle cx="12" cy="13" r="7" fill="#FFFFFF" />
                                             <polygon points="12,14 15,15.5 12,17" fill="#F59E0B" />
@@ -12401,28 +12419,41 @@ export default function App() {
                                           </svg>
                                         </span>
                                       </th>
-                                      <th className="w-[13%] pb-1 font-black">PLACE</th>
-                                      <th className="w-[12%] pb-1 font-black">KILLS</th>
-                                      <th className="w-[13%] pb-1 font-black">TOTAL</th>
+                                      <th className="w-[13%] py-1 font-black">PLACE</th>
+                                      <th className="w-[12%] py-1 font-black">KILLS</th>
+                                      <th className="w-[13%] py-1 font-black text-[#D7FF00]">TOTAL</th>
                                     </tr>
                                   </thead>
-                                  <tbody className={isCompactRows ? 'text-[8px] sm:text-[9.5px] leading-tight' : 'text-[9px] sm:text-[10.5px] leading-snug'}>
+                                  <tbody className={'divide-y divide-white/[0.05] font-mono tabular-nums ' + (isCompactRows ? 'text-[7.5px] sm:text-[9px] leading-tight' : 'text-[8.5px] sm:text-[10px] leading-tight')}>
                                     {adminLiveStandings.map((row, pos) => {
+                                      const isTop1 = pos === 0;
                                       const isTop3 = pos < 3;
-                                      const rowColor = isTop3 ? 'text-[#F5D66B]' : 'text-white/95';
+                                      const rowBg = isTop1
+                                        ? 'bg-[#D7FF00]/[0.10]'
+                                        : isTop3
+                                        ? 'bg-white/[0.03]'
+                                        : '';
+                                      const rowText = isTop1
+                                        ? 'text-[#D7FF00]'
+                                        : isTop3
+                                        ? 'text-[#F5D66B]'
+                                        : 'text-zinc-100';
                                       const wwcdVal = Number(row.wwcd) || 0;
+                                      const cellPad = isCompactRows ? 'py-[1px]' : 'py-[2px]';
                                       return (
-                                        <tr key={pos} className={`${rowColor} font-bold tabular-nums`}>
-                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{pos + 1}</td>
-                                          <td className={`${isCompactRows ? 'py-[1px]' : 'py-[1.5px]'} px-1 truncate uppercase tracking-tight`}>
+                                        <tr key={pos} className={`${rowBg} ${rowText} font-bold`}>
+                                          <td className={cellPad}>{pos + 1}</td>
+                                          <td className={`${cellPad} px-1 font-sans font-extrabold truncate uppercase tracking-tight`}>
                                             {row.teamName}
                                           </td>
-                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>
+                                          <td className={cellPad}>
                                             {wwcdVal > 0 ? wwcdVal : ''}
                                           </td>
-                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{row.placePts}</td>
-                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{row.killPts}</td>
-                                          <td className={isCompactRows ? 'py-[1px]' : 'py-[1.5px]'}>{row.totalPts}</td>
+                                          <td className={cellPad}>{row.placePts}</td>
+                                          <td className={cellPad}>{row.killPts}</td>
+                                          <td className={`${cellPad} font-black ${isTop1 ? 'text-[#D7FF00]' : isTop3 ? 'text-[#F5D66B]' : 'text-[#D7FF00]/90'}`}>
+                                            {row.totalPts}
+                                          </td>
                                         </tr>
                                       );
                                     })}
@@ -12431,10 +12462,13 @@ export default function App() {
                               )}
                             </div>
 
-                            {/* Centered Gold Footer */}
-                            <div className="text-center pt-1 shrink-0">
-                              <p className="text-[8px] sm:text-[9.5px] font-black uppercase tracking-wide text-[#F5D66B] leading-tight">
+                            {/* Level 5: Boxed Footer Tagline + Branding */}
+                            <div className="rounded-lg border border-white/[0.08] bg-[#101014]/90 px-2.5 py-1.5 text-center shrink-0 space-y-0.5">
+                              <p className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wide text-[#D7FF00] leading-tight">
                                 CONGRATULATIONS TO ALL THE TEAMS &amp; KEEP GRINDING!
+                              </p>
+                              <p className="text-[6.5px] sm:text-[7.5px] font-mono uppercase tracking-widest text-zinc-400 leading-none">
+                                POWERED BY SCRIMHUB · scrim.rykhor.my
                               </p>
                             </div>
                           </div>
