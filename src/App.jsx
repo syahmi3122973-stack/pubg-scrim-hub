@@ -60,6 +60,7 @@ import {
   Crop,
   MoreVertical,
   GitMerge,
+  Ticket,
   Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
@@ -68,6 +69,8 @@ import LegacyGuestLandingView from './components/LegacyGuestLandingView';
 import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments, buildSvgLinePath } from './components/ScrimDualLineChart';
 import TeamLogoCropper from './components/TeamLogoCropper';
 import AuroraPetalCanvas from './components/AuroraPetalCanvas';
+import PortalTournamentView from './components/PortalTournamentView';
+import RegistrationManagerTab from './components/RegistrationManagerTab';
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 import {
   safeExternalUrl,
@@ -600,7 +603,7 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   if (!sessionData?.session?.user) {
     throw new Error('Sila log masuk dulu sebelum muat naik fail.');
   }
-  const safeFolder = ['avatars', 'logos', 'team-logos', 'showcase', 'uploads'].includes(folder)
+  const safeFolder = ['avatars', 'logos', 'team-logos', 'showcase', 'uploads', 'receipts', 'qr-codes'].includes(folder)
     ? folder
     : 'uploads';
   const check = validateUploadFile(file, {
@@ -677,8 +680,12 @@ const WHY_SWITCH_FAQS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     try {
+      const path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+      if (path === '/register') return 'register';
+      if (path === '/status') return 'status';
+      if (path === '/portal-tournament') return 'portal-tournament';
       const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'privacy', 'terms', 'admin', 'scrim-data'].includes(hash)) {
+      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'privacy', 'terms', 'admin', 'scrim-data', 'register', 'status', 'portal-tournament'].includes(hash)) {
         if (hash === 'standings' || hash === 'leaderboard') return 'history';
         if (hash === 'database') return 'teams';
         if (hash === 'home') return 'playground';
@@ -689,6 +696,16 @@ export default function App() {
     }
     return 'playground';
   });
+  const [portalSection, setPortalSection] = useState(() => {
+    try {
+      const path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+      if (path === '/status') return 'status';
+    } catch {
+      // ignore
+    }
+    return 'register';
+  });
+  const [adminWorkspaceTab, setAdminWorkspaceTab] = useState('scorer');
 
   // Page / Tab History Stack & OCR Inner Overlay State for Mobile Back-Button Navigation
   const [tabHistory, setTabHistory] = useState([]);
@@ -1922,6 +1939,12 @@ export default function App() {
   const [newScrimTitle, setNewScrimTitle] = useState('');
   const [newHostName, setNewHostName] = useState('');
   const [newEventType, setNewEventType] = useState('Scrim');
+  const [newEventCategory, setNewEventCategory] = useState('Night Scrim');
+  const [newSessionTiming, setNewSessionTiming] = useState('');
+  const [newEntryFee, setNewEntryFee] = useState('0');
+  const [newMaxSlots, setNewMaxSlots] = useState(16);
+  const [newWhatsappLobbyLink, setNewWhatsappLobbyLink] = useState('');
+  const [newQrFile, setNewQrFile] = useState(null);
   const [newScrimTier, setNewScrimTier] = useState('Tier 1 (Pro)');
   const [newScrimDesc, setNewScrimDesc] = useState('');
   const [newScrimDate, setNewScrimDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -2616,6 +2639,12 @@ export default function App() {
       id: 'scrim_' + Date.now(),
       title: `Official Scrim - Session ${sessionNum}`,
       event_type: 'Scrim',
+      event_category: 'Night Scrim',
+      session_timing: '',
+      entry_fee: 0,
+      max_slots: 16,
+      whatsapp_lobby_link: null,
+      qr_image_url: null,
       tier: 'Tier 1 (Pro)',
       description: 'Official PUBG Mobile Scrim Session.',
       date: new Date().toISOString().split('T')[0],
@@ -2813,6 +2842,13 @@ export default function App() {
   const [editTitle, setEditTitle] = useState('');
   const [editHostName, setEditHostName] = useState('');
   const [editEventType, setEditEventType] = useState('Scrim');
+  const [editEventCategory, setEditEventCategory] = useState('Night Scrim');
+  const [editSessionTiming, setEditSessionTiming] = useState('');
+  const [editEntryFee, setEditEntryFee] = useState('0');
+  const [editMaxSlots, setEditMaxSlots] = useState(16);
+  const [editWhatsappLobbyLink, setEditWhatsappLobbyLink] = useState('');
+  const [editQrFile, setEditQrFile] = useState(null);
+  const [editRemoveQr, setEditRemoveQr] = useState(false);
   const [editTier, setEditTier] = useState('Tier 1 (Pro)');
   const [editDate, setEditDate] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -2988,6 +3024,13 @@ export default function App() {
     setEditTitle(targetScrim.title || '');
     setEditHostName(targetScrim.host_name || '');
     setEditEventType(targetScrim.event_type || 'Scrim');
+    setEditEventCategory(targetScrim.event_category || 'Night Scrim');
+    setEditSessionTiming(targetScrim.session_timing || '');
+    setEditEntryFee(String(targetScrim.entry_fee ?? 0));
+    setEditMaxSlots(Math.min(25, Math.max(2, Number(targetScrim.max_slots || 16))));
+    setEditWhatsappLobbyLink(targetScrim.whatsapp_lobby_link || '');
+    setEditQrFile(null);
+    setEditRemoveQr(false);
     setEditTier(targetScrim.tier || 'Tier 1 (Pro)');
     setEditDate(targetScrim.date || new Date().toISOString().split('T')[0]);
     setEditDesc(targetScrim.description || '');
@@ -3015,10 +3058,27 @@ export default function App() {
         updatedLogoUrl = '';
       }
 
+      let updatedQrUrl = editingScrim.qr_image_url || null;
+      if (editQrFile) {
+        updatedQrUrl = await uploadMediaToSupabase(editQrFile, 'qr-codes');
+      } else if (editRemoveQr) {
+        updatedQrUrl = null;
+      }
+
+      const parsedFee = Math.max(0, Number.parseFloat(editEntryFee) || 0);
+      const parsedSlots = Math.min(25, Math.max(2, Number.parseInt(editMaxSlots, 10) || 16));
+      const allowedCategories = ['Night Scrim', 'Mid Scrim', 'Fast Tour'];
+
       const updatedData = {
         title: sanitizeTextInput(editTitle, 120),
         host_name: sanitizeTextInput(editHostName, 80) || editingScrim.host_name || 'Tournament Organizer',
         event_type: editEventType === 'Tour' ? 'Tour' : 'Scrim',
+        event_category: allowedCategories.includes(editEventCategory) ? editEventCategory : 'Night Scrim',
+        session_timing: sanitizeTextInput(editSessionTiming, 40) || null,
+        entry_fee: Number(parsedFee.toFixed(2)),
+        max_slots: parsedSlots,
+        whatsapp_lobby_link: safeExternalUrl(editWhatsappLobbyLink),
+        qr_image_url: safeMediaUrl(updatedQrUrl),
         tier: sanitizeTextInput(editTier, 40) || 'Tier 1 (Pro)',
         date: editDate || editingScrim.date || new Date().toISOString().split('T')[0],
         description: sanitizeTextInput(editDesc, 400),
@@ -3597,6 +3657,15 @@ export default function App() {
         uploadedLogoUrl = await uploadMediaToSupabase(logoFile, 'logos');
       }
 
+      let uploadedQrUrl = null;
+      if (newQrFile) {
+        uploadedQrUrl = await uploadMediaToSupabase(newQrFile, 'qr-codes');
+      }
+
+      const parsedFee = Math.max(0, Number.parseFloat(newEntryFee) || 0);
+      const parsedSlots = Math.min(25, Math.max(2, Number.parseInt(newMaxSlots, 10) || 16));
+      const allowedCategories = ['Night Scrim', 'Mid Scrim', 'Fast Tour'];
+
       const generatedToken = generateSecureToken('token_');
       const hostDisplayName = sanitizeTextInput(newHostName, 80) || profileName || currentUser.email.split('@')[0];
 
@@ -3610,6 +3679,12 @@ export default function App() {
         id: 'scrim_' + Date.now(),
         title: sanitizeTextInput(newScrimTitle, 120),
         event_type: newEventType === 'Tour' ? 'Tour' : 'Scrim',
+        event_category: allowedCategories.includes(newEventCategory) ? newEventCategory : 'Night Scrim',
+        session_timing: sanitizeTextInput(newSessionTiming, 40) || null,
+        entry_fee: Number(parsedFee.toFixed(2)),
+        max_slots: parsedSlots,
+        whatsapp_lobby_link: safeExternalUrl(newWhatsappLobbyLink),
+        qr_image_url: safeMediaUrl(uploadedQrUrl),
         tier: sanitizeTextInput(newScrimTier, 40) || 'Tier 1 (Pro)',
         description: sanitizeTextInput(newScrimDesc, 400) || `Official PUBG Mobile ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} Session.`,
         date: newScrimDate || new Date().toISOString().split('T')[0],
@@ -3637,6 +3712,11 @@ export default function App() {
         setNewHostName('');
         setNewScrimDesc('');
         setNewHostContact('');
+        setNewSessionTiming('');
+        setNewEntryFee('0');
+        setNewMaxSlots(16);
+        setNewWhatsappLobbyLink('');
+        setNewQrFile(null);
         setLogoFile(null);
         setIsCreateScrimOpen(false);
         showToast(`Sesi ${newEventType === 'Tour' ? 'Tournament' : 'Scrim'} dah siap!`);
@@ -3647,6 +3727,107 @@ export default function App() {
       setIsUploadingLogo(false);
     }
   };
+
+  const handleAutoSeedSession = useCallback(async (targetScrim, reg) => {
+    if (!targetScrim || !reg) {
+      return { error: 'Maklumat sesi atau pendaftaran tidak lengkap.' };
+    }
+
+    const cleanName = sanitizeTextInput(reg.team_name, 80);
+    const cleanTag = sanitizeTextInput(reg.team_tag, 10).toUpperCase() || cleanName.slice(0, 4).toUpperCase();
+    const canonicalKey = getCanonicalTeamKey(cleanName);
+    let existingTeam = teams.find((t) => getCanonicalTeamKey(t.name) === canonicalKey);
+
+    if (!existingTeam) {
+      const createdTeam = {
+        id: 'tm_' + cleanName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now().toString(36),
+        name: cleanName,
+        tag: cleanTag
+      };
+      setTeams((prev) => [...prev, createdTeam]);
+      try {
+        await supabase.from('teams').insert([createdTeam]);
+      } catch {
+        // Non-fatal if duplicate or network note
+      }
+      existingTeam = createdTeam;
+    }
+
+    const maxSlots = Math.min(25, Math.max(2, Number(targetScrim.max_slots || 16)));
+    const existingMatches = Array.isArray(targetScrim.matches) && targetScrim.matches.length > 0
+      ? targetScrim.matches.map((m) => ({
+          ...m,
+          results: Array.isArray(m?.results) ? [...m.results] : []
+        }))
+      : PLAYGROUND_DEFAULT_MAPS.map((mapName, idx) => ({
+          matchNo: idx + 1,
+          map: mapName,
+          results: []
+        }));
+
+    // Check if team already has a slot in Match 1; reuse it or pick first empty slot 1..maxSlots
+    const matchZeroResults = existingMatches[0]?.results || [];
+    const alreadySeated = matchZeroResults.find(
+      (r) => getCanonicalTeamKey(r?.teamName) === canonicalKey || (existingTeam.id && r?.teamId === existingTeam.id)
+    );
+    let assignedSlot = alreadySeated?.slot ? Number(alreadySeated.slot) : null;
+
+    if (!assignedSlot) {
+      const occupiedSlots = new Set(
+        matchZeroResults
+          .filter((r) => r && (r.teamName || r.teamId))
+          .map((r) => Number(r.slot))
+      );
+      for (let slot = 1; slot <= maxSlots; slot += 1) {
+        if (!occupiedSlots.has(slot)) {
+          assignedSlot = slot;
+          break;
+        }
+      }
+    }
+
+    if (!assignedSlot) {
+      return { error: `Semua ${maxSlots} slot leaderboard untuk sesi ini sudah penuh.` };
+    }
+
+    const seededRow = {
+      slot: assignedSlot,
+      teamId: existingTeam.id,
+      teamName: existingTeam.name,
+      tag: existingTeam.tag || cleanTag,
+      players: '',
+      placement: '',
+      kills: 0,
+      placePts: 0,
+      totalPts: 0,
+      wwcd: 0
+    };
+
+    const nextMatches = existingMatches.map((m, idx) => {
+      const hasSlot = m.results.some((r) => Number(r?.slot) === assignedSlot);
+      if (idx === 0 || !hasSlot) {
+        const filtered = m.results.filter((r) => Number(r?.slot) !== assignedSlot);
+        filtered.push({ ...seededRow });
+        filtered.sort((a, b) => Number(a.slot) - Number(b.slot));
+        return { ...m, results: filtered };
+      }
+      return m;
+    });
+
+    const updatedScrim = toCloudScrimPayload({
+      ...targetScrim,
+      matches: nextMatches,
+      total_matches: nextMatches.length
+    });
+
+    const { error } = await supabase.from('scrims').upsert(updatedScrim);
+    if (error) {
+      return { error: error.message };
+    }
+
+    setScrims((prev) => prev.map((s) => (s.id === updatedScrim.id ? updatedScrim : s)));
+    return { assignedSlot };
+  }, [teams]);
 
   const handleCopyHostShareLink = () => {
     if (!activeAdminScrim) return;
@@ -6253,6 +6434,24 @@ export default function App() {
     const applyTabNavigation = () => {
       setSelectedTeamProfile('');
       setNavDirection('forward');
+      if (normalizedNext === 'register' || normalizedNext === 'status' || normalizedNext === 'portal-tournament') {
+        setPortalSection(normalizedNext === 'status' ? 'status' : 'register');
+      }
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        const currentPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+        if (normalizedNext === 'register' && currentPath !== '/register') {
+          window.history.pushState({ tab: 'register' }, '', '/register');
+        } else if (normalizedNext === 'status' && currentPath !== '/status') {
+          window.history.pushState({ tab: 'status' }, '', '/status');
+        } else if (normalizedNext === 'portal-tournament' && currentPath !== '/portal-tournament') {
+          window.history.pushState({ tab: 'portal-tournament' }, '', '/portal-tournament');
+        } else if (
+          !['register', 'status', 'portal-tournament'].includes(normalizedNext) &&
+          ['/register', '/status', '/portal-tournament'].includes(currentPath)
+        ) {
+          window.history.pushState({ tab: normalizedNext }, '', '/');
+        }
+      }
       setActiveTab((prevTab) => {
         const normalizedPrev = prevTab === 'home' ? 'playground' : prevTab;
         if (normalizedNext === 'playground') {
@@ -6604,9 +6803,32 @@ export default function App() {
       privacy: 'Dasar Privasi — SCRIMHUB',
       terms: 'Terma Penggunaan — SCRIMHUB',
       profile: 'Profil Pengguna — SCRIMHUB',
+      register: 'Portal Tournament — Daftar Sesi | SCRIMHUB',
+      status: 'Portal Tournament — Semak Status | SCRIMHUB',
+      'portal-tournament': 'Portal Tournament — SCRIMHUB'
     };
     document.title = titleMap[activeTab] || 'SCRIMHUB (SCRIM HUB) — by ry.khor';
   }, [activeTab, selectedTeamProfile]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+      if (path === '/register') {
+        setPortalSection('register');
+        setActiveTab('register');
+      } else if (path === '/status') {
+        setPortalSection('status');
+        setActiveTab('status');
+      } else if (path === '/portal-tournament') {
+        setPortalSection('register');
+        setActiveTab('portal-tournament');
+      } else if (['register', 'status', 'portal-tournament'].includes(activeTabRef.current)) {
+        setActiveTab('playground');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // --- MOBILE BACK BUTTON, MODAL SAFETY & PAGE HISTORY NAVIGATION ---
   const activeOverlayCount =
@@ -7076,10 +7298,41 @@ export default function App() {
         </div>
       )}
 
+      {/* STANDALONE PORTAL TOURNAMENT SHELL (Separate from main Scrim Hub nav) */}
+      {['register', 'status', 'portal-tournament'].includes(activeTab) && (
+        <div className="relative z-10 flex-1 w-full">
+          <PortalTournamentView
+            supabase={supabase}
+            scrims={scrims}
+            currentUser={currentUser}
+            authGateNode={renderAuthPortalBody({
+              idPrefix: 'portal-auth',
+              headingId: 'portal-auth-heading',
+              subtitleDefault: 'Log masuk atau daftar akaun untuk menghantar pendaftaran & resit pasukan.'
+            })}
+            uploadMediaToSupabase={uploadMediaToSupabase}
+            showToast={showToast}
+            portalSection={portalSection}
+            onChangePortalSection={(nextSection) => {
+              setPortalSection(nextSection);
+              if (nextSection === 'register' || nextSection === 'status') {
+                navigateToTab(nextSection);
+              }
+            }}
+            onExitPortal={() => navigateToTab('playground')}
+            canManageRegistrations={Boolean(currentUser && (isMasterAdmin || adminHostedScrims.length > 0))}
+            authorizedScrims={adminHostedScrims}
+            onAutoSeedSession={handleAutoSeedSession}
+          />
+        </div>
+      )}
+
       {/* PC / DESKTOP FIXED LEFT VERCEL GEIST SIDEBAR NAVIGATION */}
       <aside
         aria-label="Desktop Sidebar Navigation"
-        className="vt-desktop-nav geist-sidebar hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64"
+        className={'vt-desktop-nav geist-sidebar hidden md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 lg:w-64 ' + (
+          ['register', 'status', 'portal-tournament'].includes(activeTab) ? 'md:hidden' : 'md:flex'
+        )}
       >
         {(() => {
           const getNavBtnClass = (isActive) =>
@@ -7104,6 +7357,7 @@ export default function App() {
           ];
 
           const toolItems = [
+            { id: 'register', label: 'Portal Tournament', Icon: Ticket, active: ['register', 'status', 'portal-tournament'].includes(activeTab) },
             { id: 'scorer', label: 'Quick Scorer', Icon: Edit3, active: activeTab === 'scorer' },
             { id: 'scrim-data', label: 'Imbas Keputusan', Icon: currentUser ? Upload : Lock, active: activeTab === 'scrim-data' }
           ];
@@ -7394,7 +7648,7 @@ export default function App() {
       })()}
 
       {/* MOBILE STICKY HEADER BAR (Hidden on PC since desktop uses left SaaS sidebar) */}
-      <header style={{ '--open-delay': '0ms' }} className={`bg-black/55 backdrop-blur-sm sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${(activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
+      <header style={{ '--open-delay': '0ms' }} className={`bg-black/55 backdrop-blur-sm sticky top-0 z-40 px-4 sm:px-6 pt-3 pb-2 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'} ${!['register', 'status', 'portal-tournament'].includes(activeTab) && (activeTab === 'playground' || activeTab === 'home') ? 'block md:hidden' : 'hidden'}`}>
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
           
           {/* TOP LEFT: Circular User Profile Avatar Button (when authenticated) or Brand Home Button */}
@@ -7636,6 +7890,17 @@ export default function App() {
                     <div className="py-1">
                       <button
                         type="button"
+                        onClick={() => {
+                          navigateToTab('register');
+                          setIsNavMenuOpen(false);
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-white/5 text-[#D7FF00] transition font-bold cursor-pointer flex items-center gap-2"
+                      >
+                        <Ticket className="w-3.5 h-3.5 shrink-0" />
+                        <span>Portal Tournament</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleOpenGuide(0)}
                         className="w-full px-4 py-2 text-left hover:bg-white/5 text-zinc-200 transition font-bold cursor-pointer"
                       >
@@ -7725,7 +7990,7 @@ export default function App() {
       </header>
 
       {/* MAIN CONTAINER (Shifted right on md+ for Fixed Left Sidebar) */}
-      <main style={{ '--open-delay': '90ms' }} className={`relative z-10 flex-1 w-full md:pl-60 lg:pl-64 ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'}`}>
+      <main style={{ '--open-delay': '90ms' }} className={`relative z-10 flex-1 w-full md:pl-60 lg:pl-64 ${['register', 'status', 'portal-tournament'].includes(activeTab) ? 'hidden' : ''} ${isCardMorphSettled || homeMorphState || teamMorphState ? '' : 'animate-linear-open'}`}>
         <div className="max-w-[1440px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 pb-28 md:pb-10">
         <div
           ref={mainStageRef}
@@ -12010,8 +12275,58 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* ADMIN WORKSPACE SUB-TABS: SCORER vs REGISTRATION MANAGER */}
+                {activeTab === 'admin' && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 rounded-2xl bg-[#111114] border border-white/[0.06]">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setAdminWorkspaceTab('scorer')}
+                        className={`px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                          adminWorkspaceTab === 'scorer'
+                            ? 'bg-[#D7FF00] text-black'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        Scorer &amp; Poster
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdminWorkspaceTab('registrations')}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-extrabold transition cursor-pointer ${
+                          adminWorkspaceTab === 'registrations'
+                            ? 'bg-[#D7FF00] text-black'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        <Ticket className="w-3.5 h-3.5" />
+                        <span>Registration Manager</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('register')}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-[#D7FF00]" />
+                      <span>Buka Portal Tournament</span>
+                    </button>
+                  </div>
+                )}
+
+                {activeTab === 'admin' && adminWorkspaceTab === 'registrations' && (
+                  <RegistrationManagerTab
+                    supabase={supabase}
+                    authorizedScrims={adminHostedScrims}
+                    onAutoSeedSession={handleAutoSeedSession}
+                    showToast={showToast}
+                    currentUser={currentUser}
+                  />
+                )}
+
                 {/* SPLIT-SCREEN WORKSPACE (SEPERTI SCORER: INPUT SEBELAH KIRI, LIVE LEADERBOARD SEBELAH KANAN) */}
-                <div id="admin-workspace-grid" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20">
+                <div id="admin-workspace-grid" className={`${activeTab === 'admin' && adminWorkspaceTab === 'registrations' ? 'hidden ' : ''}grid grid-cols-1 lg:grid-cols-12 gap-6 items-start scroll-mt-20`}>
                   
                   {/* LEFT PANEL: Match Rounds & Scoring Table (Identikal seperti Scorer) */}
                   <div className="lg:col-span-7 space-y-4">
@@ -14862,6 +15177,92 @@ export default function App() {
                 </label>
               </div>
 
+              {/* Portal Tournament Registration Settings */}
+              <div className="pt-2 border-t border-white/10 space-y-3">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[#D7FF00] font-bold">
+                  Tetapan Pendaftaran Portal Tournament
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Kategori Sesi</label>
+                    <select
+                      value={newEventCategory}
+                      onChange={(e) => setNewEventCategory(e.target.value)}
+                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-2.5 py-2 text-white focus:outline-none focus:border-[#D7FF00] font-semibold"
+                    >
+                      <option value="Night Scrim" className="bg-zinc-950 text-white">Night Scrim</option>
+                      <option value="Mid Scrim" className="bg-zinc-950 text-white">Mid Scrim</option>
+                      <option value="Fast Tour" className="bg-zinc-950 text-white">Fast Tour</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Masa Sesi (Custom)</label>
+                    <input
+                      type="text"
+                      maxLength={40}
+                      placeholder="cth: 9:30 PM / 3:00 PM"
+                      value={newSessionTiming}
+                      onChange={(e) => setNewSessionTiming(e.target.value)}
+                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00] font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Yuran Penyertaan (RM)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newEntryFee}
+                      onChange={(e) => setNewEntryFee(e.target.value)}
+                      placeholder="0 = Percuma"
+                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#D7FF00]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Maksimum Slot (2–25)</label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="25"
+                      value={newMaxSlots}
+                      onChange={(e) => setNewMaxSlots(e.target.value)}
+                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#D7FF00]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Link WhatsApp Lobby (Opsional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://chat.whatsapp.com/..."
+                    value={newWhatsappLobbyLink}
+                    onChange={(e) => setNewWhatsappLobbyLink(e.target.value)}
+                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D7FF00]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-zinc-300 mb-1">Kod QR DuitNow (Opsional)</label>
+                  <label className="flex items-center justify-center gap-1.5 w-full bg-zinc-900 hover:bg-zinc-850 border border-dashed border-white/15 rounded-xl px-3 py-2.5 text-zinc-300 cursor-pointer transition">
+                    <Upload className="w-3.5 h-3.5 text-[#D7FF00]" />
+                    <span className="truncate">{newQrFile ? newQrFile.name : 'Muat Naik Gambar QR Bayaran'}</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => setNewQrFile(e.target.files[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
                 <button
                   type="button"
@@ -15121,6 +15522,123 @@ export default function App() {
                     onChange={(e) => setEditDesc(e.target.value)}
                     className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 text-base sm:text-xs text-white placeholder-zinc-500 resize-y focus:outline-none focus-visible:border-[#D7FF00] focus-visible:ring-1 focus-visible:ring-[#D7FF00]"
                   />
+                </div>
+
+                {/* Portal Tournament Registration Settings (Edit) */}
+                <div className="pt-2 border-t border-white/10 space-y-3">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-[#D7FF00] font-bold">
+                    Tetapan Pendaftaran Portal Tournament
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label htmlFor="edit-event-category" className="block text-zinc-400 uppercase font-bold mb-1">Kategori Sesi</label>
+                      <select
+                        id="edit-event-category"
+                        value={editEventCategory}
+                        onChange={(e) => setEditEventCategory(e.target.value)}
+                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white focus:outline-none focus-visible:border-[#D7FF00]"
+                      >
+                        <option value="Night Scrim" className="bg-zinc-950 text-white">Night Scrim</option>
+                        <option value="Mid Scrim" className="bg-zinc-950 text-white">Mid Scrim</option>
+                        <option value="Fast Tour" className="bg-zinc-950 text-white">Fast Tour</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="edit-session-timing" className="block text-zinc-400 uppercase font-bold mb-1">Masa Sesi (Custom)</label>
+                      <input
+                        id="edit-session-timing"
+                        type="text"
+                        maxLength={40}
+                        value={editSessionTiming}
+                        onChange={(e) => setEditSessionTiming(e.target.value)}
+                        placeholder="cth: 9:30 PM / 3:00 PM"
+                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label htmlFor="edit-entry-fee" className="block text-zinc-400 uppercase font-bold mb-1">Yuran (RM)</label>
+                      <input
+                        id="edit-entry-fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editEntryFee}
+                        onChange={(e) => setEditEntryFee(e.target.value)}
+                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs font-mono text-white focus:outline-none focus-visible:border-[#D7FF00]"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="edit-max-slots" className="block text-zinc-400 uppercase font-bold mb-1">Maksimum Slot</label>
+                      <input
+                        id="edit-max-slots"
+                        type="number"
+                        min="2"
+                        max="25"
+                        value={editMaxSlots}
+                        onChange={(e) => setEditMaxSlots(e.target.value)}
+                        className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs font-mono text-white focus:outline-none focus-visible:border-[#D7FF00]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="edit-wa-lobby" className="block text-zinc-400 uppercase font-bold mb-1">Link WhatsApp Lobby</label>
+                    <input
+                      id="edit-wa-lobby"
+                      type="url"
+                      value={editWhatsappLobbyLink}
+                      onChange={(e) => setEditWhatsappLobbyLink(e.target.value)}
+                      placeholder="https://chat.whatsapp.com/..."
+                      className="w-full bg-zinc-900/90 border border-white/10 rounded-xl p-2.5 min-h-[44px] sm:min-h-[40px] text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus-visible:border-[#D7FF00]"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="block text-zinc-400 uppercase font-bold mb-1">Kod QR DuitNow</span>
+                    {Boolean((editTargetScrim || activeAdminScrim)?.qr_image_url) && !editRemoveQr && !editQrFile && (
+                      <div className="flex items-center justify-between gap-2 p-2 mb-2 rounded-xl bg-zinc-900/70 border border-white/10">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={(editTargetScrim || activeAdminScrim)?.qr_image_url}
+                            alt="QR Bayaran Aktif"
+                            className="w-9 h-9 rounded-lg object-contain bg-white p-0.5 shrink-0"
+                          />
+                          <span className="text-[11px] font-medium text-zinc-200 truncate">Kod QR aktif</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditQrFile(null);
+                            setEditRemoveQr(true);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Padam QR</span>
+                        </button>
+                      </div>
+                    )}
+                    <label className="flex items-center justify-center gap-2 w-full bg-zinc-900/80 hover:bg-zinc-800 border border-dashed border-white/15 rounded-xl p-2.5 min-h-[44px] text-zinc-300 cursor-pointer transition">
+                      <Upload className="w-4 h-4 text-[#D7FF00]" />
+                      <span className="truncate">{editQrFile ? editQrFile.name : 'Pilih Gambar QR DuitNow Baharu'}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={(e) => {
+                          const picked = e.target.files[0] || null;
+                          setEditQrFile(picked);
+                          if (picked) setEditRemoveQr(false);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -16008,7 +16526,7 @@ export default function App() {
       {/* MINIMALIST FLOATING PILL MOBILE NAVBAR (FIXED SLOTS, ZERO JITTER, SLEEK & THIN) */}
       <nav
         aria-label="Mobile Navigation"
-        className={'vt-mobile-nav md:hidden fixed bottom-3 sm:bottom-4 inset-x-0 mx-auto z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen ? 'hidden pointer-events-none' : '')}
+        className={'vt-mobile-nav md:hidden fixed bottom-3 sm:bottom-4 inset-x-0 mx-auto z-50 w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto ' + (isEditScrimModalOpen || ['register', 'status', 'portal-tournament'].includes(activeTab) ? 'hidden pointer-events-none' : '')}
       >
         <div className="glass-dock rounded-full px-2 py-1.5 flex items-center justify-between [text-shadow:0_1px_4px_rgba(0,0,0,0.65)]">
           
