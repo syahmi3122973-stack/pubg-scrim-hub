@@ -78,6 +78,26 @@ function hasAuthenticatedBearer(req: Request): boolean {
   }
 }
 
+async function verifyAuthenticatedUser(req: Request): Promise<boolean> {
+  if (!hasAuthenticatedBearer(req)) return false;
+  const authHeader = req.headers.get("authorization") || "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")?.trim() || "";
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")?.trim() || "";
+  if (!supabaseUrl || !supabaseAnonKey) return true;
+  try {
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: "GET",
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: authHeader,
+      },
+    });
+    return userRes.ok;
+  } catch {
+    return false;
+  }
+}
+
 function checkRateLimit(req: Request): { allowed: boolean; retryAfterSec: number } {
   const now = Date.now();
   const isAuthed = hasAuthenticatedBearer(req);
@@ -818,6 +838,14 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ error: "Method not allowed. Use POST." }),
       { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const isAuthedUser = await verifyAuthenticatedUser(req);
+  if (!isAuthedUser) {
+    return new Response(
+      JSON.stringify({ error: "Sila sign up atau log masuk untuk guna OCR Scanner." }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 

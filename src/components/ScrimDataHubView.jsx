@@ -254,6 +254,12 @@ export async function executePosterOcrExtraction({
     fileName.includes('ct scrim');
 
   try {
+    const { data: sessionRes } = await supabase.auth.getSession();
+    const accessToken = sessionRes?.session?.access_token;
+    if (!accessToken) {
+      throw new Error('Sila log masuk atau daftar akaun dahulu untuk guna AI OCR Scanner.');
+    }
+
     const optimized = await optimizePosterForOcr(selectedFile);
     if (!optimized?.dataUrl) {
       throw new Error('Failed to encode image');
@@ -266,6 +272,9 @@ export async function executePosterOcrExtraction({
     const invokeOnce = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('extract-scrim-standings', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          },
           body: {
             imageBase64: optimized.dataUrl,
             mimeType: optimized.mimeType,

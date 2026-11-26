@@ -5166,6 +5166,11 @@ export default function App() {
   }, []);
 
   const startBackgroundOcrScan = useCallback(async (selectedFile, { onSuccess } = {}) => {
+    if (!currentUser) {
+      showToast('Sila log masuk atau daftar akaun dulu untuk guna AI OCR Scanner.');
+      setIsAuthModalOpen(true);
+      return;
+    }
     if (!selectedFile) return;
     const runId = ocrRunIdRef.current + 1;
     ocrRunIdRef.current = runId;
@@ -7100,7 +7105,7 @@ export default function App() {
 
           const toolItems = [
             { id: 'scorer', label: 'Quick Scorer', Icon: Edit3, active: activeTab === 'scorer' },
-            { id: 'scrim-data', label: 'Imbas Keputusan', Icon: Upload, active: activeTab === 'scrim-data' }
+            { id: 'scrim-data', label: 'Imbas Keputusan', Icon: currentUser ? Upload : Lock, active: activeTab === 'scrim-data' }
           ];
 
           const otherItems = [
@@ -11574,26 +11579,47 @@ export default function App() {
           );
         })()}
 
-        {/* VIEW 5B: RESULTS SCANNER (AI POSTER OCR) */}
+        {/* VIEW 5B: RESULTS SCANNER (AI POSTER OCR — AUTHENTICATED USERS ONLY) */}
         {(activeTab === 'scrim-data' || homeMorphState?.targetTab === 'scrim-data') && renderMorphFgWindow(
           homeMorphState?.targetTab === 'scrim-data' ? homeMorphState : null,
-          <ScrimDataHubView
-            navigateToTab={navigateToTab}
-            onBack={handleNavigateBackTab}
-            onActiveOverlayChange={setOcrOverlayCount}
-            closeOverlayRef={closeOcrOverlayRef}
-            supabase={supabase}
-            currentUser={currentUser}
-            profileName={activeOrganizationName || profileName}
-            scrims={scrims}
-            setScrims={setScrims}
-            knownTeams={allManageableTeams}
-            showToast={showToast}
-            ocrJob={ocrJob}
-            setOcrJob={setOcrJob}
-            onStartBackgroundScan={startBackgroundOcrScan}
-            onResetOcrJob={resetOcrJob}
-          />
+          !currentUser ? (
+            <div data-aurora-target="scrim-data" className="glass-modal rounded-3xl max-w-md mx-auto my-6 sm:my-10 p-6 sm:p-7 space-y-5">
+              {renderAuthPortalBody({
+                idPrefix: 'ocr-auth',
+                headingId: 'ocr-login-heading',
+                subtitleDefault: 'Log masuk atau daftar akaun untuk guna AI Imbas Keputusan (OCR).',
+                footerSlot: (
+                  <div className="pt-3 border-t border-white/10 text-center">
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('playground')}
+                      className="text-xs text-zinc-400 hover:text-white font-semibold transition cursor-pointer"
+                    >
+                      Kembali ke Laman Utama →
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <ScrimDataHubView
+              navigateToTab={navigateToTab}
+              onBack={handleNavigateBackTab}
+              onActiveOverlayChange={setOcrOverlayCount}
+              closeOverlayRef={closeOcrOverlayRef}
+              supabase={supabase}
+              currentUser={currentUser}
+              profileName={activeOrganizationName || profileName}
+              scrims={scrims}
+              setScrims={setScrims}
+              knownTeams={allManageableTeams}
+              showToast={showToast}
+              ocrJob={ocrJob}
+              setOcrJob={setOcrJob}
+              onStartBackgroundScan={startBackgroundOcrScan}
+              onResetOcrJob={resetOcrJob}
+            />
+          )
         )}
 
         {/* VIEW 6: QUICK SCORER (POWERED BY FULL ADMIN SCORER ENGINE) */}
