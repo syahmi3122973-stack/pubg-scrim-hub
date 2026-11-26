@@ -2847,11 +2847,11 @@ export default function App() {
     });
   }, [activeAdminScrim, selectedMatchIdx]);
 
-  // Rekod Scrim: paparkan hanya sesi Scrim & Tournament yang user buat sendiri (atau co-host) dalam tab Rekod
+  // Rekod Scrim: paparkan sesi milik user sendiri/co-host, manakala Master Admin (syahmi3122973@gmail.com) akses semua rekod
   const filteredScrims = useMemo(() => {
     if (!currentUser) return [];
     return scrims.filter(s => {
-      if (!isUserOwnScrim(s)) return false;
+      if (!isAuthorizedAdmin(s)) return false;
       const matchTier = tierFilter === 'All' || s.tier === tierFilter;
       const matchType = leaderboardEventTypeFilter === 'All' || (s.event_type || 'Scrim') === leaderboardEventTypeFilter;
       const matchStatus =
@@ -2868,7 +2868,7 @@ export default function App() {
         (s.host_name && s.host_name.toLowerCase().includes(q));
       return matchTier && matchType && matchStatus && matchSearch;
     });
-  }, [scrims, currentUser, isUserOwnScrim, tierFilter, leaderboardEventTypeFilter, historyStatusFilter, searchScrimQuery]);
+  }, [scrims, currentUser, isAuthorizedAdmin, tierFilter, leaderboardEventTypeFilter, historyStatusFilter, searchScrimQuery]);
 
   const activePublicScrim = useMemo(() => {
     if (!filteredScrims.length) return null;
