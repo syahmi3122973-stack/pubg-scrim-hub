@@ -2718,11 +2718,17 @@ export default function App() {
     }
   }, [currentUser, profileName, profileContact, adminHostedScrims.length]);
 
+  const profilesRef = useRef(profiles);
+  useEffect(() => {
+    profilesRef.current = profiles;
+  }, [profiles]);
+
   useEffect(() => {
     let isMounted = true;
+    const activeUserId = currentUser?.id || '';
 
     async function syncUserProfile() {
-      if (!currentUser) {
+      if (!activeUserId) {
         setProfileName('');
         setProfileContact('');
         setProfileBio('');
@@ -2731,24 +2737,19 @@ export default function App() {
         return;
       }
 
-      const cached = profiles.find(p => p.id === currentUser.id);
+      const cached = profilesRef.current.find(p => p.id === activeUserId);
       if (cached) {
         setProfileName(cached.display_name || '');
         setProfileContact(cached.contact || '');
         setProfileBio(cached.bio || '');
         setProfileAvatarUrl(cached.avatar_url || '');
-      } else {
-        setProfileName('');
-        setProfileContact('');
-        setProfileBio('');
-        setProfileAvatarUrl('');
       }
 
       try {
         const { data: userProf } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', currentUser.id)
+          .eq('id', activeUserId)
           .maybeSingle();
 
         if (isMounted) {
@@ -2761,7 +2762,7 @@ export default function App() {
               const filtered = prev.filter(p => p.id !== userProf.id);
               return [...filtered, userProf];
             });
-          } else {
+          } else if (!cached) {
             setProfileName('');
             setProfileContact('');
             setProfileBio('');
@@ -2778,7 +2779,7 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [currentUser, profiles]);
+  }, [currentUser?.id]);
 
   const toggleEditProfileMode = useCallback(() => {
     setIsEditProfileMode((prev) => {
@@ -2813,7 +2814,7 @@ export default function App() {
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase.from('profiles').upsert(payload);
+      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
 
       if (error) {
         showToast('Profile error: ' + error.message);
@@ -2822,6 +2823,9 @@ export default function App() {
           const filtered = prev.filter(p => p.id !== currentUser.id);
           return [...filtered, payload];
         });
+        setProfileName(payload.display_name);
+        setProfileContact(payload.contact);
+        setProfileBio(payload.bio);
         setProfileAvatarUrl(newAvatarUrl);
         setAvatarFile(null);
         setIsEditProfileMode(false);
@@ -8412,6 +8416,15 @@ export default function App() {
                   <div className="px-2.5 pb-1 text-[11px] font-medium text-zinc-500">
                     Lain-lain
                   </div>
+                  <button
+                    type="button"
+                    aria-current={['register', 'status', 'portal-tournament'].includes(activeTab) ? 'page' : undefined}
+                    onClick={() => navigateToTab('register')}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-1.5 min-h-[34px] rounded-md text-[13px] text-[#D7FF00] hover:bg-white/[0.04] font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span className="truncate">Portal Tournament</span>
+                  </button>
                   {otherItems.map(({ id, label, Icon, active }) => (
                     <button
                       key={id}
