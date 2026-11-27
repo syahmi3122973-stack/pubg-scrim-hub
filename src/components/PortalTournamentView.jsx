@@ -8,6 +8,7 @@ import {
   Clock,
   ExternalLink,
   FileCheck2,
+  FileText,
   Gamepad2,
   ImagePlus,
   Loader2,
@@ -31,6 +32,28 @@ import { scanReceiptImage } from '../utils/receiptOcr';
 import { safeExternalUrl, safeMediaUrl, sanitizeTextInput, validateUploadFile } from '../utils/security';
 
 const LEGACY_PLACEHOLDER_LOGO = 'photo-1542751371-adc38448a05e';
+const DEFAULT_PORTAL_RULES_URL = '/rules/fast-tournament-rules.pdf';
+
+function getPortalSessionRulesMeta(scrim) {
+  const rawUrl = scrim?.matches?.[0]?.rulesUrl;
+  const rawName = sanitizeTextInput(scrim?.matches?.[0]?.rulesFileName || '', 90);
+  const customUrl = rawUrl && !String(rawUrl).startsWith('data:') ? safeMediaUrl(rawUrl) : null;
+  if (customUrl) {
+    const isImage = /\.(png|jpe?g|webp)(\?|$)/i.test(customUrl);
+    return {
+      url: customUrl,
+      label: rawName || 'Peraturan Tournament',
+      isCustom: true,
+      isImage
+    };
+  }
+  return {
+    url: DEFAULT_PORTAL_RULES_URL,
+    label: 'Fast Tournament Rules & Regulations (PDF)',
+    isCustom: false,
+    isImage: false
+  };
+}
 
 function getPortalSessionPosterUrl(scrim) {
   const rawLogo = String(scrim?.logo_url || '').trim();
@@ -116,6 +139,9 @@ export default function PortalTournamentView({
   const [ptPosterFile, setPtPosterFile] = useState(null);
   const [ptPosterPreviewUrl, setPtPosterPreviewUrl] = useState('');
   const [ptRemovePoster, setPtRemovePoster] = useState(false);
+  const [ptRulesFile, setPtRulesFile] = useState(null);
+  const [ptRemoveRules, setPtRemoveRules] = useState(false);
+  const [rulesModalMeta, setRulesModalMeta] = useState(null);
   const [ptQrFile, setPtQrFile] = useState(null);
   const [ptRemoveQr, setPtRemoveQr] = useState(false);
   const [isSavingPortal, setIsSavingPortal] = useState(false);
@@ -260,6 +286,8 @@ export default function PortalTournamentView({
     setPtPosterFile(null);
     setPtPosterPreviewUrl('');
     setPtRemovePoster(false);
+    setPtRulesFile(null);
+    setPtRemoveRules(false);
     setPtQrFile(null);
     setPtRemoveQr(false);
     setIsPortalFormOpen(true);
@@ -281,6 +309,8 @@ export default function PortalTournamentView({
     setPtPosterFile(null);
     setPtPosterPreviewUrl('');
     setPtRemovePoster(false);
+    setPtRulesFile(null);
+    setPtRemoveRules(false);
     setPtQrFile(null);
     setPtRemoveQr(false);
     setIsPortalFormOpen(true);
@@ -307,6 +337,16 @@ export default function PortalTournamentView({
         posterUrl = null;
       }
 
+      let rulesUrl = editingPortalScrim?.matches?.[0]?.rulesUrl || null;
+      let rulesFileName = editingPortalScrim?.matches?.[0]?.rulesFileName || '';
+      if (ptRulesFile) {
+        rulesUrl = await uploadMediaToSupabase(ptRulesFile, 'rules');
+        rulesFileName = sanitizeTextInput(ptRulesFile.name || 'Peraturan Tournament', 90);
+      } else if (ptRemoveRules) {
+        rulesUrl = null;
+        rulesFileName = '';
+      }
+
       let qrUrl = editingPortalScrim?.qr_image_url || null;
       if (ptQrFile) {
         qrUrl = await uploadMediaToSupabase(ptQrFile, 'qr-codes');
@@ -328,6 +368,8 @@ export default function PortalTournamentView({
         description: sanitizeTextInput(ptDesc, 1200),
         logo_url: safeMediaUrl(posterUrl),
         qr_image_url: safeMediaUrl(qrUrl),
+        rules_url: safeMediaUrl(rulesUrl),
+        rules_file_name: rulesUrl ? rulesFileName : '',
         portal_enabled: true
       };
 
@@ -485,6 +527,15 @@ export default function PortalTournamentView({
     () => (selectedSession ? getPortalSessionPosterUrl(selectedSession) : null),
     [selectedSession]
   );
+  const selectedRulesMeta = useMemo(
+    () => getPortalSessionRulesMeta(selectedSession),
+    [selectedSession]
+  );
+  const editingCustomRulesMeta = useMemo(() => {
+    const raw = editingPortalScrim?.matches?.[0]?.rulesUrl;
+    if (!raw || ptRemoveRules) return null;
+    return getPortalSessionRulesMeta(editingPortalScrim);
+  }, [editingPortalScrim, ptRemoveRules]);
   const modalPosterPreviewUrl =
     ptPosterPreviewUrl ||
     (!ptRemovePoster && editingPortalScrim ? getPortalSessionPosterUrl(editingPortalScrim) : null);
@@ -1172,6 +1223,27 @@ export default function PortalTournamentView({
                       <p className="text-sm sm:text-base font-mono font-extrabold text-[#D7FF00]">
                         {selectedSession.prize_pool || 'Akan Diumumkan'}
                       </p>
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-3 p-4 border-t border-white/[0.08] bg-white/[0.02] flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-mono uppercase text-zinc-400 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-[#D7FF00]" />
+                          Peraturan &amp; Regulasi
+                        </span>
+                        <p className="text-xs font-semibold text-zinc-200 truncate mt-0.5">
+                          {selectedRulesMeta.label}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setRulesModalMeta(selectedRulesMeta)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl border border-[#D7FF00]/40 bg-[#D7FF00]/12 hover:bg-[#D7FF00]/22 text-xs font-extrabold text-[#D7FF00] transition cursor-pointer shrink-0"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Rules</span>
+                      </button>
                     </div>
                   </div>
                 </section>
@@ -2055,6 +2127,58 @@ export default function PortalTournamentView({
               </div>
 
               <div>
+                <span className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
+                  Fail Rules &amp; Peraturan (Opsional — PDF / Gambar)
+                </span>
+                {(ptRulesFile || editingCustomRulesMeta?.isCustom) && (
+                  <div className="flex items-center justify-between gap-2 p-2.5 mb-2 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-[#D7FF00] shrink-0" />
+                      <span className="text-xs text-zinc-200 truncate">
+                        {ptRulesFile ? ptRulesFile.name : editingCustomRulesMeta?.label}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPtRulesFile(null);
+                        setPtRemoveRules(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/15 border border-red-500/35 text-red-200 text-[11px] font-bold cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Padam</span>
+                    </button>
+                  </div>
+                )}
+                <label className="flex items-center justify-center gap-2 w-full bg-black/60 hover:bg-white/[0.04] border border-dashed border-white/[0.16] rounded-xl p-3 min-h-[44px] text-zinc-300 cursor-pointer transition">
+                  <FileText className="w-4 h-4 text-[#D7FF00]" />
+                  <span className="truncate">
+                    {ptRulesFile ? ptRulesFile.name : 'Muat Naik Fail Rules (PDF / PNG / JPG)'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0] || null;
+                      if (!picked) return;
+                      const check = validateUploadFile(picked, { allowPdf: true, maxMb: 10 });
+                      if (!check.ok) {
+                        showToast?.(check.error);
+                        return;
+                      }
+                      setPtRulesFile(picked);
+                      setPtRemoveRules(false);
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-[11px] text-zinc-500 mt-1.5">
+                  Biarkan kosong untuk guna dokumen Fast Tournament Rules rasmi secara lalai.
+                </p>
+              </div>
+
+              <div>
                 <label className="block text-[11px] font-mono uppercase font-bold text-zinc-300 mb-1.5">
                   Deskripsi, Peraturan &amp; Jadual Tournament
                 </label>
@@ -2085,6 +2209,68 @@ export default function PortalTournamentView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal: Paparan Dokumen Rules Tournament */}
+      {rulesModalMeta && (
+        <div
+          className="fixed inset-0 z-[130] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
+          onClick={() => setRulesModalMeta(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Peraturan Tournament"
+        >
+          <div
+            className="w-full max-w-3xl max-h-[90vh] flex flex-col glass-modal rounded-3xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[#D7FF00] font-bold">
+                  Peraturan Rasmi
+                </p>
+                <h2 className="text-sm sm:text-base font-extrabold text-white truncate">
+                  {rulesModalMeta.label}
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={rulesModalMeta.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[38px] rounded-xl bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-xs font-extrabold transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka / Muat Turun</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setRulesModalMeta(null)}
+                  aria-label="Tutup paparan rules"
+                  className="w-9 h-9 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 sm:p-4 flex-1 overflow-y-auto bg-black/40">
+              {rulesModalMeta.isImage ? (
+                <img
+                  src={rulesModalMeta.url}
+                  alt={rulesModalMeta.label}
+                  className="w-full max-h-[70vh] object-contain mx-auto rounded-xl border border-white/[0.08]"
+                />
+              ) : (
+                <iframe
+                  src={rulesModalMeta.url}
+                  title={rulesModalMeta.label}
+                  className="w-full h-[68vh] rounded-xl bg-white border border-white/[0.08]"
+                />
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -604,21 +604,23 @@ const uploadMediaToSupabase = async (file, folder = 'uploads') => {
   if (!sessionData?.session?.user) {
     throw new Error('Sila log masuk dulu sebelum muat naik fail.');
   }
-  const safeFolder = ['avatars', 'logos', 'team-logos', 'showcase', 'uploads', 'receipts', 'qr-codes'].includes(folder)
+  const safeFolder = ['avatars', 'logos', 'team-logos', 'showcase', 'uploads', 'receipts', 'qr-codes', 'rules'].includes(folder)
     ? folder
     : 'uploads';
   const check = validateUploadFile(file, {
     allowVideo: safeFolder === 'showcase',
-    maxMb: safeFolder === 'showcase' ? 20 : 5
+    allowPdf: safeFolder === 'rules',
+    maxMb: safeFolder === 'showcase' ? 20 : safeFolder === 'rules' ? 10 : 5
   });
   if (!check.ok) {
     throw new Error(check.error);
   }
   const fileName = `${safeFolder}/${generateSecureToken(`${Date.now()}_`)}.${check.ext}`;
+  const resolvedContentType = file.type || (check.ext === 'pdf' ? 'application/pdf' : undefined);
 
   const { error: uploadError } = await supabase.storage
     .from('scrim-assets')
-    .upload(fileName, file, { contentType: file.type, upsert: false });
+    .upload(fileName, file, { contentType: resolvedContentType, upsert: false });
 
   if (uploadError) throw uploadError;
 
@@ -3719,13 +3721,33 @@ export default function App() {
       return { error: `Akses ditolak. Akaun anda perlukan kelulusan ${MASTER_ADMIN_EMAIL} untuk membuka tournament.` };
     }
 
+    const { rules_url: rulesUrl, rules_file_name: rulesFileName, ...scrimPayload } = payload || {};
+    const applyRulesToMatches = (baseMatches) => {
+      if (rulesUrl === undefined) return baseMatches;
+      const list = Array.isArray(baseMatches) && baseMatches.length > 0
+        ? baseMatches.map((m) => ({ ...m }))
+        : [{ matchNo: 1, map: PLAYGROUND_DEFAULT_MAPS[0] || 'Erangel', results: [] }];
+      const first = { ...list[0] };
+      if (rulesUrl) {
+        first.rulesUrl = rulesUrl;
+        first.rulesFileName = rulesFileName || 'Peraturan Tournament';
+      } else {
+        delete first.rulesUrl;
+        delete first.rulesFileName;
+      }
+      list[0] = first;
+      return list;
+    };
+
     if (existingScrimId) {
       const target = scrims.find((s) => s.id === existingScrimId);
       if (!target || !isAuthorizedAdmin(target)) {
         return { error: 'Akses edit tournament ini tidak dibenarkan.' };
       }
+      const nextMatches = applyRulesToMatches(target.matches);
       const updatePatch = {
-        ...payload,
+        ...scrimPayload,
+        ...(rulesUrl !== undefined ? { matches: nextMatches } : {}),
         portal_enabled: true
       };
       const { error } = await supabase
@@ -3739,12 +3761,14 @@ export default function App() {
       return { ok: true };
     }
 
-    const requestedMatches = Math.min(12, Math.max(1, Number.parseInt(payload?.total_matches, 10) || 5));
-    const defaultMatches = Array.from({ length: requestedMatches }, (_, idx) => ({
-      matchNo: idx + 1,
-      map: PLAYGROUND_DEFAULT_MAPS[idx % PLAYGROUND_DEFAULT_MAPS.length] || 'Erangel',
-      results: []
-    }));
+    const requestedMatches = Math.min(12, Math.max(1, Number.parseInt(scrimPayload?.total_matches, 10) || 5));
+    const defaultMatches = applyRulesToMatches(
+      Array.from({ length: requestedMatches }, (_, idx) => ({
+        matchNo: idx + 1,
+        map: PLAYGROUND_DEFAULT_MAPS[idx % PLAYGROUND_DEFAULT_MAPS.length] || 'Erangel',
+        results: []
+      }))
+    );
 
     const newPortalSession = {
       id: 'portal_' + Date.now(),
@@ -3754,12 +3778,12 @@ export default function App() {
       host_name: profileName || currentUser.email?.split('@')[0] || 'Host Admin',
       host_contact: profileContact || '',
       logo_url: null,
-      matches: defaultMatches,
       created_by: currentUser.id,
       co_hosts: [],
       claim_token: generateSecureToken('token_'),
       is_finished: false,
-      ...payload,
+      ...scrimPayload,
+      matches: defaultMatches,
       total_matches: requestedMatches,
       portal_enabled: true
     };

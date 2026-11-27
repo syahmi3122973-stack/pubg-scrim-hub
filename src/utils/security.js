@@ -105,29 +105,35 @@ const MIME_TO_SAFE_EXT = {
   'image/jpg': 'jpg',
   'image/webp': 'webp',
   'video/mp4': 'mp4',
-  'video/webm': 'webm'
+  'video/webm': 'webm',
+  'application/pdf': 'pdf'
 };
 
 /**
  * Validates file type and size before uploading to Supabase Storage.
  * Blocks SVG/HTML scriptable files and oversized payloads.
  */
-export function validateUploadFile(file, { allowVideo = false, maxMb = 5 } = {}) {
+export function validateUploadFile(file, { allowVideo = false, allowPdf = false, maxMb = 5 } = {}) {
   if (!file) return { ok: false, error: 'Tiada fail dipilih.' };
   const mime = String(file.type || '').toLowerCase();
   const isImage = IMAGE_UPLOAD_MIMES.has(mime);
   const isVideo = allowVideo && VIDEO_UPLOAD_MIMES.has(mime);
-  if (!isImage && !isVideo) {
+  const isPdf =
+    allowPdf &&
+    (mime === 'application/pdf' || (!mime && String(file.name || '').toLowerCase().endsWith('.pdf')));
+  if (!isImage && !isVideo && !isPdf) {
     return {
       ok: false,
-      error: allowVideo
-        ? 'Format tak disokong. Guna PNG, JPG, WEBP, MP4 atau WEBM sahaja.'
-        : 'Format tak disokong. Guna gambar PNG, JPG atau WEBP sahaja (SVG disekat).'
+      error: allowPdf
+        ? 'Format tak disokong. Guna fail PDF atau gambar PNG, JPG, WEBP sahaja.'
+        : allowVideo
+          ? 'Format tak disokong. Guna PNG, JPG, WEBP, MP4 atau WEBM sahaja.'
+          : 'Format tak disokong. Guna gambar PNG, JPG atau WEBP sahaja (SVG disekat).'
     };
   }
   const maxBytes = maxMb * 1024 * 1024;
   if (file.size > maxBytes) {
     return { ok: false, error: `Saiz fail terlalu besar (had maksimum ${maxMb}MB).` };
   }
-  return { ok: true, ext: MIME_TO_SAFE_EXT[mime] || 'jpg' };
+  return { ok: true, ext: isPdf ? 'pdf' : (MIME_TO_SAFE_EXT[mime] || 'jpg') };
 }
