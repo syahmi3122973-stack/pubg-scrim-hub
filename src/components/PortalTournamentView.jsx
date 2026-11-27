@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -168,8 +168,12 @@ export default function PortalTournamentView({
     };
   }, [ptPosterPreviewUrl]);
 
-  const fetchSlotCounts = useCallback(async () => {
+  const lastSlotCountsSyncRef = useRef(0);
+  const fetchSlotCounts = useCallback(async (force = false) => {
     if (!supabase) return;
+    const now = Date.now();
+    if (!force && now - lastSlotCountsSyncRef.current < 30_000) return;
+    lastSlotCountsSyncRef.current = now;
     try {
       const { data, error } = await supabase.rpc('get_open_registration_slot_counts');
       if (error || !Array.isArray(data)) return;
@@ -190,11 +194,19 @@ export default function PortalTournamentView({
     fetchSlotCounts();
   }, [fetchSlotCounts]);
 
-  const fetchMyRegistrations = useCallback(async () => {
+  const lastMyRegSyncRef = useRef({ userId: '', ts: 0 });
+  const fetchMyRegistrations = useCallback(async (force = false) => {
     if (!supabase || !currentUser?.id) {
+      lastMyRegSyncRef.current = { userId: '', ts: 0 };
       setMyRegistrations([]);
       return;
     }
+    const now = Date.now();
+    const prevSync = lastMyRegSyncRef.current;
+    if (!force && prevSync.userId === currentUser.id && now - prevSync.ts < 30_000) {
+      return;
+    }
+    lastMyRegSyncRef.current = { userId: currentUser.id, ts: now };
     try {
       const { data, error } = await supabase
         .from('tournament_registrations')
@@ -325,7 +337,7 @@ export default function PortalTournamentView({
       }
       setIsPortalFormOpen(false);
       setEditingPortalScrim(null);
-      await fetchSlotCounts();
+      await fetchSlotCounts(true);
     } catch (err) {
       showToast?.(`Gagal simpan tournament portal: ${err?.message || 'ralat'}`);
     } finally {
@@ -580,7 +592,7 @@ export default function PortalTournamentView({
           ? existingRows.find((r) => r.scrim_id === selectedSession.id && r.status !== 'rejected')
           : null;
         if (dupInSession) {
-          await fetchMyRegistrations();
+          await fetchMyRegistrations(true);
           showToast?.('Team anda sudah berdaftar untuk sesi ini.');
           return;
         }
@@ -688,7 +700,7 @@ export default function PortalTournamentView({
         isDuplicateRef: false,
         error: ''
       });
-      await Promise.all([fetchSlotCounts(), fetchMyRegistrations()]);
+      await Promise.all([fetchSlotCounts(true), fetchMyRegistrations(true)]);
       showToast?.('Pendaftaran berjaya dihantar! Menunggu pengesahan admin.');
     } catch (err) {
       showToast?.(`Pendaftaran gagal: ${err?.message || 'ralat'}`);

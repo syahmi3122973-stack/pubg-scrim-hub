@@ -1996,7 +1996,7 @@ export default function App() {
   const lastScrimSyncRef = useRef(0);
   const refreshScrimsFromCloud = useCallback(async (force = false) => {
     const now = Date.now();
-    if (!force && now - lastScrimSyncRef.current < 2000) return;
+    if (!force && now - lastScrimSyncRef.current < 45_000) return;
     lastScrimSyncRef.current = now;
     try {
       const { data: scrimData, error } = await supabase
@@ -2021,7 +2021,11 @@ export default function App() {
     }
   }, []);
 
-  const refreshProfilesFromCloud = useCallback(async () => {
+  const lastProfileSyncRef = useRef(0);
+  const refreshProfilesFromCloud = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastProfileSyncRef.current < 45_000) return;
+    lastProfileSyncRef.current = now;
     try {
       const { data: profileData, error } = await supabase
         .from('profiles')
