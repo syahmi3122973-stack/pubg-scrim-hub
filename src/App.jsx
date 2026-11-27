@@ -9026,7 +9026,7 @@ export default function App() {
               {/* TIER 1: Authenticated Header OR Vercel-Inspired Guest Intro Showcase (!currentUser) */}
               {currentUser ? (
                 <div
-                  className="relative z-10 flex gap-3 px-1.5 md:px-1 py-2.5 sm:py-4 animate-home-tier items-center justify-between"
+                  className="relative z-10 flex flex-wrap gap-3 px-1.5 md:px-1 py-2.5 sm:py-4 animate-home-tier items-center justify-between"
                   style={{ '--home-delay': '0ms' }}
                 >
                   <div className="min-w-0">
@@ -9038,7 +9038,7 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="items-center gap-2.5 shrink-0 flex">
+                  <div className="items-center gap-2 shrink-0 flex flex-wrap">
                     <div className="hidden lg:flex items-center gap-2">
                       <div className="px-3.5 py-2 rounded-full glass-pill text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
                         <Users className="w-3.5 h-3.5 text-[#D7FF00]" />
@@ -9049,6 +9049,15 @@ export default function App() {
                         <span><strong className="text-white">{scrims.length}</strong> Rekod</span>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigateToTab('register')}
+                      className="px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-[#D7FF00] hover:bg-[#e5ff47] text-[11px] md:text-xs font-extrabold text-zinc-950 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 stroke-[2.2]" />
+                      <span>Portal Tournament</span>
+                    </button>
 
                     <button
                       type="button"
@@ -9440,6 +9449,7 @@ export default function App() {
                           </span>
                           <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
                             {[
+                              { label: 'Portal Tournament & Daftar Sesi', tab: 'register' },
                               { label: 'Team Matrix Leaderboard', tab: 'teams' },
                               { label: 'Quick Scorer 5-Match', tab: 'scorer' },
                               { label: 'AI Poster OCR Scanner', tab: 'scrim-data' },
@@ -9458,7 +9468,15 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5 pt-1">
+                        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => navigateToTab('register')}
+                            className="min-h-[40px] px-4 py-2 rounded-lg bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 transition cursor-pointer active:scale-[0.98]"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 stroke-[2.2]" />
+                            <span>Portal Tournament</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
