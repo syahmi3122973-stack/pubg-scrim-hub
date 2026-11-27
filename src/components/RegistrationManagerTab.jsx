@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Plus,
   RefreshCw,
+  Share2,
   ShieldCheck,
   Swords,
   Unlock,
@@ -41,6 +42,7 @@ export default function RegistrationManagerTab({
   onOpenEditModal = null,
   onTogglePortalRegistration = null,
   onOpenPortalQuickScore = null,
+  onShareSessionLink = null,
   renderQuickScorer = null,
   urusResetKey = 0
 }) {
@@ -691,6 +693,16 @@ export default function RegistrationManagerTab({
                                 <span>Tutup Daftar</span>
                               </>
                             )}
+                          </button>
+                        )}
+                        {typeof onShareSessionLink === 'function' && (
+                          <button
+                            type="button"
+                            onClick={() => onShareSessionLink(s)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[38px] rounded-xl border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-[#D7FF00]" />
+                            <span>Share Link</span>
                           </button>
                         )}
                         {typeof onOpenEditModal === 'function' && (

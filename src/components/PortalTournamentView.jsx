@@ -15,6 +15,7 @@ import {
   MessageCircle,
   QrCode,
   Search,
+  Share2,
   ShieldCheck,
   Swords,
   Ticket,
@@ -80,6 +81,14 @@ export default function PortalTournamentView({
 }) {
   const [timingFilter, setTimingFilter] = useState('Semua Masa');
   const [registerStep, setRegisterStep] = useState('list'); // 'list' -> 'detail' -> 'form'
+  const [pendingDeepLinkSessionId, setPendingDeepLinkSessionId] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return sanitizeTextInput(params.get('sesi') || '', 120);
+    } catch {
+      return '';
+    }
+  });
   const [urusResetKey, setUrusResetKey] = useState(0);
   const [isRequestingAccess, setIsRequestingAccess] = useState(false);
 
@@ -373,6 +382,74 @@ export default function PortalTournamentView({
       setRegisterStep('list');
     }
   }, [openSessions, selectedSessionId]);
+
+  const syncSessionQueryParam = useCallback((sessionId) => {
+    if (typeof window === 'undefined' || !window.history?.replaceState) return;
+    const path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+    if (path !== '/portal-tournament' && path !== '/register') return;
+    const nextUrl = sessionId
+      ? `${path}?sesi=${encodeURIComponent(sessionId)}`
+      : path;
+    window.history.replaceState(window.history.state, '', nextUrl);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingDeepLinkSessionId) return;
+    const matchedOpen = openSessions.find((s) => s.id === pendingDeepLinkSessionId);
+    if (matchedOpen) {
+      setTimingFilter('Semua Masa');
+      setSelectedSessionId(matchedOpen.id);
+      setSubmittedRecord(null);
+      setRegisterStep('detail');
+      setPendingDeepLinkSessionId('');
+      return;
+    }
+    if (scrims.length > 0) {
+      const matchedClosed = scrims.find((s) => s.id === pendingDeepLinkSessionId);
+      setPendingDeepLinkSessionId('');
+      if (matchedClosed) {
+        showToast?.('Sesi tournament ini telah ditutup atau belum dibuka.');
+      }
+    }
+  }, [pendingDeepLinkSessionId, openSessions, scrims, showToast]);
+
+  const handleShareSessionLink = useCallback(
+    async (session) => {
+      if (!session?.id || typeof window === 'undefined') return;
+      const shareUrl = `${window.location.origin}/portal-tournament?sesi=${encodeURIComponent(session.id)}`;
+      const feeVal = Number(session.entry_fee || 0);
+      const totalM = Number(session.total_matches || session.matches?.length || 5);
+      const summaryParts = [
+        session.session_timing ? `Masa: ${session.session_timing}` : null,
+        session.date ? `Tarikh: ${session.date}` : null,
+        `${session.room_type || 'Squad TPP'} · ${totalM} Match`,
+        feeVal > 0 ? `Yuran: RM ${feeVal.toFixed(2)}` : 'Yuran: PERCUMA',
+        session.prize_pool ? `Prize Pool: ${session.prize_pool}` : null
+      ].filter(Boolean);
+      const shareText = `${session.title}\n${summaryParts.join(' · ')}\n\nTekan link untuk info penuh & daftar pasukan:\n${shareUrl}`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `${session.title} — Portal Tournament`,
+            text: shareText,
+            url: shareUrl
+          });
+          return;
+        } catch (err) {
+          if (err?.name === 'AbortError') return;
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showToast?.('Link sesi disalin! Sedia dikongsi ke group.');
+      } catch {
+        showToast?.(`Salin link sesi: ${shareUrl}`);
+      }
+    },
+    [showToast]
+  );
 
   const selectedSession = useMemo(
     () => filteredSessions.find((s) => s.id === selectedSessionId) || null,
@@ -697,6 +774,7 @@ export default function PortalTournamentView({
             onOpenEditModal={onSavePortalTournament ? openPortalEditModal : null}
             onTogglePortalRegistration={onTogglePortalRegistration}
             onOpenPortalQuickScore={onOpenPortalQuickScore}
+            onShareSessionLink={handleShareSessionLink}
             renderQuickScorer={renderQuickScorer}
             urusResetKey={urusResetKey}
           />
@@ -709,7 +787,10 @@ export default function PortalTournamentView({
               <div className="flex items-center gap-1.5 text-[11px] font-mono">
                 <button
                   type="button"
-                  onClick={() => setRegisterStep('list')}
+                  onClick={() => {
+                    setRegisterStep('list');
+                    syncSessionQueryParam('');
+                  }}
                   className={`px-2 py-1 rounded-md transition cursor-pointer ${
                     registerStep === 'list'
                       ? 'bg-[#D7FF00] text-zinc-950 font-bold'
@@ -841,6 +922,7 @@ export default function PortalTournamentView({
                               setSelectedSessionId(session.id);
                               setSubmittedRecord(null);
                               setRegisterStep('detail');
+                              syncSessionQueryParam(session.id);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
                             className={`group w-full text-left hover:bg-white/[0.03] active:bg-white/[0.04] transition cursor-pointer flex flex-col overflow-hidden border-white/[0.08] ${
@@ -933,14 +1015,28 @@ export default function PortalTournamentView({
             {/* STEP 2: MAKLUMAT SESI */}
             {registerStep === 'detail' && selectedSession && (
               <div className="space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setRegisterStep('list')}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.08] bg-[#111113] hover:bg-[#17171A] text-xs font-semibold text-zinc-200 transition cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Kembali ke Senarai Sesi</span>
-                </button>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegisterStep('list');
+                      syncSessionQueryParam('');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl border border-white/[0.08] bg-[#111113] hover:bg-[#17171A] text-xs font-semibold text-zinc-200 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Kembali ke Senarai Sesi</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleShareSessionLink(selectedSession)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl border border-[#D7FF00]/35 bg-[#D7FF00]/10 hover:bg-[#D7FF00]/20 text-xs font-bold text-[#D7FF00] transition cursor-pointer shrink-0"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Share Link</span>
+                  </button>
+                </div>
 
                 <section className="rounded-2xl border border-white/[0.08] bg-[#09090B] overflow-hidden">
                   <div
