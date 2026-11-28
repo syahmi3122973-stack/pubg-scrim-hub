@@ -366,7 +366,7 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
   const logoBox = getLogoTransformBox(config);
   const cx = standalone ? ELEMENT_BOXES['logo-only'].width / 2 : logoBox.cx;
   const cy = standalone ? ELEMENT_BOXES['logo-only'].height / 2 : logoBox.cy;
-  const userScale = standalone ? 1 : logoBox.scale;
+  const userScale = standalone ? clamp(logoBox.scale, 0.35, 1.15) : logoBox.scale;
   const showBox = config?.loop?.logoBoxEnabled !== false;
   const boxW = 320;
   const boxH = 144;

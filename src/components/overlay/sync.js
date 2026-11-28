@@ -77,7 +77,7 @@ export function postSyncMessage(channel, msg) {
  * Subscribe to Supabase Realtime Broadcast so Studio edits in Chrome
  * immediately sync to external OBS Browser Source instances.
  */
-export function createRemoteSyncChannel(roomId, onMessage) {
+export function createRemoteSyncChannel(roomId, onMessage, onSubscribed) {
   if (!supabase || !roomId) return null;
   const channel = supabase.channel(`overlay-live-${roomId}`, {
     config: { broadcast: { self: false } },
@@ -86,17 +86,33 @@ export function createRemoteSyncChannel(roomId, onMessage) {
     .on('broadcast', { event: 'overlay-sync' }, ({ payload }) => {
       if (payload) onMessage?.(payload);
     })
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        onSubscribed?.(channel);
+      }
+    });
   return channel;
 }
 
 export function sendRemoteSyncMessage(remoteChannel, msg) {
   if (!remoteChannel || !msg) return;
   try {
+    let payloadToSend = msg;
+    if (msg.type === 'CONFIG_UPDATE' && msg.payload) {
+      const approxLen = JSON.stringify(msg.payload).length;
+      if (approxLen > 75000) {
+        const trimmed = buildCompactConfigForTransport(msg.payload, 18000);
+        const safePayload =
+          JSON.stringify(trimmed).length > 75000
+            ? buildCompactConfigForTransport(msg.payload, 0)
+            : trimmed;
+        payloadToSend = { ...msg, payload: safePayload };
+      }
+    }
     remoteChannel.send({
       type: 'broadcast',
       event: 'overlay-sync',
-      payload: msg,
+      payload: payloadToSend,
     });
   } catch {
     // Non-fatal if socket is not ready
@@ -118,7 +134,13 @@ function fromBase64Url(b64) {
   return new TextDecoder().decode(bytes);
 }
 
-export function buildCompactConfigForTransport(config) {
+function keepTransportUrl(url, maxInlineLen) {
+  if (!url) return null;
+  if (!String(url).startsWith('data:')) return url;
+  return url.length <= maxInlineLen ? url : null;
+}
+
+export function buildCompactConfigForTransport(config, maxInlineLen = 4000) {
   return {
     ...config,
     scenes: (config.scenes || []).map((sc) => ({
@@ -126,22 +148,20 @@ export function buildCompactConfigForTransport(config) {
       imageDataUrl:
         sc.imageDataUrl === null
           ? null
-          : sc.imageDataUrl && sc.imageDataUrl.length < 18000
-          ? sc.imageDataUrl
-          : sc.id === 'starting-soon'
-          ? PRESETS.tournament.scenes[0]?.imageDataUrl || null
-          : null,
+          : keepTransportUrl(sc.imageDataUrl, maxInlineLen) ??
+            (sc.id === 'starting-soon'
+              ? PRESETS.tournament.scenes[0]?.imageDataUrl || null
+              : null),
     })),
     sponsors: (config.sponsors || []).map((s) => ({
       ...s,
-      logoDataUrl: s.logoDataUrl && s.logoDataUrl.length < 18000 ? s.logoDataUrl : null,
+      logoDataUrl: keepTransportUrl(s.logoDataUrl, maxInlineLen),
     })),
     stinger: {
       ...config.stinger,
       emblemDataUrl:
-        config.stinger?.emblemDataUrl && config.stinger.emblemDataUrl.length < 18000
-          ? config.stinger.emblemDataUrl
-          : PRESETS.tournament.stinger.emblemDataUrl,
+        keepTransportUrl(config.stinger?.emblemDataUrl, maxInlineLen) ||
+        PRESETS.tournament.stinger.emblemDataUrl,
     },
   };
 }
@@ -160,11 +180,14 @@ export function buildObsUrl(
   if (sceneId) url.searchParams.set('scene', sceneId);
   if (roomId) url.searchParams.set('room', roomId);
 
-  const compact = buildCompactConfigForTransport(config);
-
   try {
-    const encoded = toBase64Url(JSON.stringify(compact));
-    if (encoded.length < 14000) url.searchParams.set('cfg', encoded);
+    let encoded = toBase64Url(JSON.stringify(buildCompactConfigForTransport(config, 4000)));
+    if (encoded.length >= 14000) {
+      encoded = toBase64Url(JSON.stringify(buildCompactConfigForTransport(config, 0)));
+    }
+    if (encoded.length < 16000) {
+      url.searchParams.set('cfg', encoded);
+    }
   } catch {
     // Keep clean preset params
   }

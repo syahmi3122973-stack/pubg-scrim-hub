@@ -160,8 +160,13 @@ export default function OverlayMotionStudioView() {
   const channelRef = useRef(null);
   const remoteChannelRef = useRef(null);
   const remoteTimerRef = useRef(null);
+  const latestConfigRef = useRef(config);
   const tabRefs = useRef([]);
   const abortRef = useRef(null);
+
+  useEffect(() => {
+    latestConfigRef.current = config;
+  }, [config]);
 
   useEffect(() => {
     if (!route.isObs) return undefined;
@@ -181,6 +186,14 @@ export default function OverlayMotionStudioView() {
   useEffect(() => {
     const applyIncomingMsg = (msg) => {
       if (!msg || !msg.type) return;
+      if (msg.type === 'REQUEST_STATE' && !route.isObs) {
+        sendRemoteSyncMessage(remoteChannelRef.current, {
+          type: 'CONFIG_UPDATE',
+          payload: latestConfigRef.current,
+          timestamp: Date.now(),
+        });
+        return;
+      }
       if (msg.type === 'CONFIG_UPDATE' && msg.payload && msg.payload.sponsors) {
         const normalized = normalizeOverlayConfig(msg.payload);
         if (route.isObs && route.lockedSceneId) {
@@ -203,7 +216,14 @@ export default function OverlayMotionStudioView() {
     const handleMsg = (ev) => applyIncomingMsg(ev.data);
     channel?.addEventListener('message', handleMsg);
 
-    const remoteChannel = createRemoteSyncChannel(roomId, applyIncomingMsg);
+    const remoteChannel = createRemoteSyncChannel(roomId, applyIncomingMsg, (ch) => {
+      if (route.isObs) {
+        sendRemoteSyncMessage(ch, {
+          type: 'REQUEST_STATE',
+          timestamp: Date.now(),
+        });
+      }
+    });
     remoteChannelRef.current = remoteChannel;
 
     const handleStorage = (ev) => {
@@ -329,20 +349,22 @@ export default function OverlayMotionStudioView() {
   };
 
   const handleUpdateLogoTransform = (patch) => {
+    const cur = latestConfigRef.current;
     updateConfig(
       {
-        ...config,
-        loop: { ...config.loop, ...patch },
+        ...cur,
+        loop: { ...cur.loop, ...patch },
       },
       { immediateRemote: false }
     );
   };
 
   const handleUpdateCornerTransform = (patch) => {
+    const cur = latestConfigRef.current;
     updateConfig(
       {
-        ...config,
-        loop: { ...config.loop, ...patch },
+        ...cur,
+        loop: { ...cur.loop, ...patch },
       },
       { immediateRemote: false }
     );
