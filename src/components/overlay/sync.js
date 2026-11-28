@@ -181,8 +181,8 @@ export function buildObsUrl(
   if (roomId) url.searchParams.set('room', roomId);
 
   try {
-    let encoded = toBase64Url(JSON.stringify(buildCompactConfigForTransport(config, 4000)));
-    if (encoded.length >= 14000) {
+    let encoded = toBase64Url(JSON.stringify(buildCompactConfigForTransport(config, 7500)));
+    if (encoded.length >= 15000) {
       encoded = toBase64Url(JSON.stringify(buildCompactConfigForTransport(config, 0)));
     }
     if (encoded.length < 16000) {

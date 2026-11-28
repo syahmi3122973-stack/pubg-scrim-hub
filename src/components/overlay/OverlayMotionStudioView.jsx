@@ -64,6 +64,8 @@ import {
 } from './sync';
 import { exportOverlayWebm, getSupportedWebmMimeType } from './webmExporter';
 
+const CURRENT_BUILD_ID = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : null;
+
 const TABS = [
   { id: 'scenes', label: 'Scenes', Icon: LayoutGrid },
   { id: 'standings', label: 'Standings', Icon: Trophy },
@@ -186,14 +188,48 @@ export default function OverlayMotionStudioView() {
   }, [route.isObs]);
 
   useEffect(() => {
+    if (!route.isObs || !CURRENT_BUILD_ID) return undefined;
+    let active = true;
+    const checkVersion = async () => {
+      try {
+        const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (active && data?.buildId && data.buildId !== CURRENT_BUILD_ID) {
+          window.location.reload();
+        }
+      } catch {
+        // Ignore network check glitches
+      }
+    };
+    const timer = setInterval(checkVersion, 20000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [route.isObs]);
+
+  useEffect(() => {
     const applyIncomingMsg = (msg) => {
       if (!msg || !msg.type) return;
+      if (
+        route.isObs &&
+        msg.buildId &&
+        CURRENT_BUILD_ID &&
+        msg.buildId !== CURRENT_BUILD_ID
+      ) {
+        window.location.reload();
+        return;
+      }
       if (msg.type === 'REQUEST_STATE' && !route.isObs) {
-        sendRemoteSyncMessage(remoteChannelRef.current, {
+        const syncMsg = {
           type: 'CONFIG_UPDATE',
           payload: latestConfigRef.current,
+          buildId: CURRENT_BUILD_ID,
           timestamp: Date.now(),
-        });
+        };
+        postSyncMessage(channelRef.current, syncMsg);
+        sendRemoteSyncMessage(remoteChannelRef.current, syncMsg);
         return;
       }
       if (msg.type === 'CONFIG_UPDATE' && msg.payload && msg.payload.sponsors) {
@@ -201,6 +237,7 @@ export default function OverlayMotionStudioView() {
         if (route.isObs && route.lockedSceneId) {
           normalized.activeSceneId = route.lockedSceneId;
         }
+        latestConfigRef.current = normalized;
         setConfig(normalized);
       } else if (msg.type === 'TRIGGER_STINGER') {
         setStingerRunKey((k) => k + 1);
@@ -217,11 +254,28 @@ export default function OverlayMotionStudioView() {
     channelRef.current = channel;
     const handleMsg = (ev) => applyIncomingMsg(ev.data);
     channel?.addEventListener('message', handleMsg);
+    if (route.isObs) {
+      postSyncMessage(channel, { type: 'REQUEST_STATE', timestamp: Date.now() });
+    } else {
+      postSyncMessage(channel, {
+        type: 'CONFIG_UPDATE',
+        payload: latestConfigRef.current,
+        buildId: CURRENT_BUILD_ID,
+        timestamp: Date.now(),
+      });
+    }
 
     const remoteChannel = createRemoteSyncChannel(roomId, applyIncomingMsg, (ch) => {
       if (route.isObs) {
         sendRemoteSyncMessage(ch, {
           type: 'REQUEST_STATE',
+          timestamp: Date.now(),
+        });
+      } else {
+        sendRemoteSyncMessage(ch, {
+          type: 'CONFIG_UPDATE',
+          payload: latestConfigRef.current,
+          buildId: CURRENT_BUILD_ID,
           timestamp: Date.now(),
         });
       }
@@ -237,6 +291,7 @@ export default function OverlayMotionStudioView() {
             if (route.isObs && route.lockedSceneId) {
               normalized.activeSceneId = route.lockedSceneId;
             }
+            latestConfigRef.current = normalized;
             setConfig(normalized);
           }
         } catch {
@@ -256,11 +311,13 @@ export default function OverlayMotionStudioView() {
   }, [roomId, route.isObs, route.lockedSceneId]);
 
   const updateConfig = useCallback((next, { immediateRemote = true } = {}) => {
+    latestConfigRef.current = next;
     setConfig(next);
     saveStoredConfig(next);
     const msg = {
       type: 'CONFIG_UPDATE',
       payload: next,
+      buildId: CURRENT_BUILD_ID,
       timestamp: Date.now(),
     };
     postSyncMessage(channelRef.current, msg);

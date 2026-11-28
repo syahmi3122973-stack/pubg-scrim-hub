@@ -162,6 +162,10 @@ export async function fileToOptimizedDataUrl(file, maxDim = 512) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D context tidak tersedia.');
     ctx.drawImage(img, 0, 0, width, height);
+    const webp = canvas.toDataURL('image/webp', 0.88);
+    if (webp.startsWith('data:image/webp') && webp.length < 28000) {
+      return webp;
+    }
     return canvas.toDataURL('image/png');
   } finally {
     URL.revokeObjectURL(objectUrl);

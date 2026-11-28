@@ -39,9 +39,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Only cache same-origin static assets & shell; never intercept Supabase/external APIs or version checks
+  // Only cache same-origin static assets & shell; never intercept Supabase/external APIs, version checks, or live OBS views
   if (url.origin !== self.location.origin) return;
-  if (url.pathname === '/version.json') return;
+  if (url.pathname === '/version.json' || url.searchParams.get('obs') === '1') return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
