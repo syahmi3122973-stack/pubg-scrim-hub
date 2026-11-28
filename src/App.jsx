@@ -69,6 +69,7 @@ import ScrimDualLineChart, { buildScrimTrendSeries, computeSmoothBezierSegments,
 import TeamLogoCropper from './components/TeamLogoCropper';
 import AuroraPetalCanvas from './components/AuroraPetalCanvas';
 import PortalTournamentView from './components/PortalTournamentView';
+const OverlayMotionStudioView = React.lazy(() => import('./components/overlay/OverlayMotionStudioView'));
 import { BackButtonHandler } from './hooks/useMobileBackButton';
 import {
   safeExternalUrl,
@@ -687,8 +688,9 @@ export default function App() {
       if (path === '/register') return 'register';
       if (path === '/status') return 'status';
       if (path === '/portal-tournament') return 'portal-tournament';
+      if (path === '/overlay-studio') return 'overlay-studio';
       const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'privacy', 'terms', 'admin', 'scrim-data', 'register', 'status', 'portal-tournament'].includes(hash)) {
+      if (['playground', 'home', 'standings', 'leaderboard', 'history', 'teams', 'database', 'hosts', 'showcase', 'about', 'privacy', 'terms', 'admin', 'scrim-data', 'register', 'status', 'portal-tournament', 'overlay-studio'].includes(hash)) {
         if (hash === 'standings' || hash === 'leaderboard') return 'history';
         if (hash === 'database') return 'teams';
         if (hash === 'home') return 'playground';
@@ -7058,7 +7060,8 @@ export default function App() {
       profile: 'Profil Pengguna — SCRIMHUB',
       register: 'Portal Tournament — Daftar Sesi | SCRIMHUB',
       status: 'Portal Tournament — Semak Status | SCRIMHUB',
-      'portal-tournament': 'Portal Tournament — SCRIMHUB'
+      'portal-tournament': 'Portal Tournament — SCRIMHUB',
+      'overlay-studio': 'Overlay Motion Studio — SCRIMHUB'
     };
     document.title = titleMap[activeTab] || 'SCRIMHUB (SCRIM HUB) — by ry.khor';
   }, [activeTab, selectedTeamProfile]);
@@ -7075,7 +7078,9 @@ export default function App() {
       } else if (path === '/portal-tournament') {
         setPortalSection('register');
         setActiveTab('portal-tournament');
-      } else if (['register', 'status', 'portal-tournament'].includes(activeTabRef.current)) {
+      } else if (path === '/overlay-studio') {
+        setActiveTab('overlay-studio');
+      } else if (['register', 'status', 'portal-tournament', 'overlay-studio'].includes(activeTabRef.current)) {
         setActiveTab('playground');
       }
     };
@@ -8111,6 +8116,14 @@ export default function App() {
 
                 </div>
   );
+
+  if (activeTab === 'overlay-studio') {
+    return (
+      <React.Suspense fallback={<div className="min-h-screen bg-black" />}>
+        <OverlayMotionStudioView />
+      </React.Suspense>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans antialiased selection:bg-[#D7FF00] selection:text-black pb-24 md:pb-8 relative overflow-x-clip">
