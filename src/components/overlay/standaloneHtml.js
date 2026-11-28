@@ -431,22 +431,36 @@ function drawCenterCrest(ctx, stinger, scale, alpha) {
   ctx.scale(scale, scale);
 
   const img = getCachedImage(stinger.emblemDataUrl);
-  drawRoundedRect(ctx, -72, -110, 144, 144, 22);
-  ctx.fillStyle = '#070709';
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-  ctx.stroke();
+  const titleText = String(stinger.brandTitle || '').trim();
+  const subText = String(stinger.brandSubtitle || '').trim();
 
   if (img) {
-    const ratio = Math.min(108 / img.naturalWidth, 108 / img.naturalHeight);
+    const glow = ctx.createRadialGradient(0, -18, 16, 0, -18, 220);
+    glow.addColorStop(0, 'rgba(250, 204, 21, 0.22)');
+    glow.addColorStop(1, 'rgba(250, 204, 21, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, -18, 220, 0, Math.PI * 2);
+    ctx.fill();
+
+    const ratio = Math.min(380 / img.naturalWidth, 230 / img.naturalHeight);
     const dw = img.naturalWidth * ratio, dh = img.naturalHeight * ratio;
-    ctx.drawImage(img, -dw / 2, -38 - dh / 2, dw, dh);
+    const centerY = titleText ? -56 : -14;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+    ctx.shadowBlur = 28;
+    ctx.drawImage(img, -dw / 2, centerY - dh / 2, dw, dh);
+    ctx.shadowColor = 'transparent';
   } else {
+    drawRoundedRect(ctx, -72, -110, 144, 144, 22);
+    ctx.fillStyle = '#070709';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.stroke();
     drawRoundedRect(ctx, -46, -84, 92, 92, 16);
     ctx.fillStyle = stinger.primaryColor;
     ctx.fill();
-    const initials = (stinger.brandTitle || 'SH').split(/\\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'SH';
+    const initials = (titleText || 'DIY').split(/\\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'DIY';
     ctx.fillStyle = '#09090B';
     ctx.font = '900 44px "Geist", system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -454,24 +468,29 @@ function drawCenterCrest(ctx, stinger, scale, alpha) {
     ctx.fillText(initials, 0, -37);
   }
 
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = '800 58px "Geist", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(stinger.brandTitle.toUpperCase(), 0, 56);
-  if (stinger.brandSubtitle.trim()) {
-    const sub = stinger.brandSubtitle.toUpperCase();
-    ctx.font = '600 18px "Geist Mono", monospace';
-    const subW = Math.min(720, ctx.measureText(sub).width + 36);
-    drawRoundedRect(ctx, -subW / 2, 128, subW, 34, 17);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  let subY = img ? 132 : 70;
+  if (titleText) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 56px "Geist", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(titleText.toUpperCase(), 0, img ? 74 : 56);
+    subY = img ? 148 : 128;
+  }
+  if (subText) {
+    const sub = subText.toUpperCase();
+    ctx.font = '700 17px "Geist Mono", monospace';
+    const subW = Math.min(720, ctx.measureText(sub).width + 40);
+    drawRoundedRect(ctx, -subW / 2, subY, subW, 34, 17);
+    ctx.fillStyle = 'rgba(10, 10, 12, 0.78)';
     ctx.fill();
     ctx.lineWidth = 1.25;
     ctx.strokeStyle = stinger.primaryColor;
     ctx.stroke();
     ctx.fillStyle = stinger.primaryColor;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(sub, 0, 145);
+    ctx.fillText(sub, 0, subY + 17);
   }
   ctx.restore();
 }

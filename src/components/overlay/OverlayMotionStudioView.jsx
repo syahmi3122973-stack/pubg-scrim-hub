@@ -12,43 +12,64 @@ import {
   Grid3X3,
   ImagePlus,
   Layers,
+  LayoutGrid,
+  Link2,
+  Minus,
   Pause,
   Play,
   Plus,
   Radio,
   RotateCcw,
+  Settings,
   ShieldCheck,
   Sliders,
   Sparkles,
   Trash2,
+  Trophy,
   Tv,
   Upload,
   X,
   Zap,
 } from 'lucide-react';
 import OverlayStage from './OverlayStage';
-import { ELEMENT_BOXES, fileToOptimizedDataUrl } from './overlayEngine';
-import { PRESETS } from './presets';
+import {
+  ELEMENT_BOXES,
+  computeStandingsSorted,
+  fileToOptimizedDataUrl,
+} from './overlayEngine';
+import {
+  PRESETS,
+  SCENE_KIND_OPTIONS,
+  diyStingerLogo,
+  getPlacementPoints,
+  normalizeOverlayConfig,
+} from './presets';
 import {
   buildClientPackZip,
   generateStandaloneHtml,
   inlineConfigAssets,
 } from './standaloneHtml';
 import {
+  OVERLAY_STORAGE_KEY,
+  PRODUCTION_ORIGIN,
   buildObsUrl,
+  createRemoteSyncChannel,
   createSyncChannel,
+  getOrCreateSyncRoomId,
   parseObsRouteParams,
   postSyncMessage,
-  PRODUCTION_ORIGIN,
   saveStoredConfig,
+  sendRemoteSyncMessage,
 } from './sync';
 import { exportOverlayWebm, getSupportedWebmMimeType } from './webmExporter';
 
 const TABS = [
+  { id: 'scenes', label: 'Scenes', Icon: LayoutGrid },
+  { id: 'standings', label: 'Standings', Icon: Trophy },
   { id: 'sponsors', label: 'Sponsors', Icon: Layers },
   { id: 'loop', label: 'Loop', Icon: Sliders },
   { id: 'stinger', label: 'Stinger', Icon: Zap },
-  { id: 'obs', label: 'Client Export', Icon: Film },
+  { id: 'obs', label: 'OBS Links', Icon: Film },
 ];
 
 const STINGER_STYLES = [
@@ -94,16 +115,25 @@ function triggerBlobDownload(blob, filename) {
 
 export default function OverlayMotionStudioView() {
   const route = useMemo(() => parseObsRouteParams(), []);
+  const roomId = useMemo(() => route.roomId || getOrCreateSyncRoomId(), [route.roomId]);
   const [config, setConfig] = useState(route.initialConfig);
-  const [activeTab, setActiveTab] = useState('sponsors');
+  const [activeTab, setActiveTab] = useState('scenes');
   const [backdrop, setBackdrop] = useState('erangel');
   const [customBackdropUrl, setCustomBackdropUrl] = useState(null);
   const [showSafeZones, setShowSafeZones] = useState(true);
+  const [showSceneOverlay, setShowSceneOverlay] = useState(true);
   const [loopPaused, setLoopPaused] = useState(false);
   const [stingerRunKey, setStingerRunKey] = useState(0);
   const [stingerActive, setStingerActive] = useState(false);
   const [activeSponsorIdx, setActiveSponsorIdx] = useState(0);
   const [copiedTopUrl, setCopiedTopUrl] = useState(false);
+  const [copiedSceneId, setCopiedSceneId] = useState(null);
+
+  // Scene switcher local states
+  const [editingSceneId, setEditingSceneId] = useState(null);
+  const [addingScene, setAddingScene] = useState(false);
+  const [newSceneName, setNewSceneName] = useState('');
+  const [newSceneKind, setNewSceneKind] = useState('custom');
 
   // Sponsor panel local states
   const [dragOverId, setDragOverId] = useState(null);
@@ -127,6 +157,8 @@ export default function OverlayMotionStudioView() {
   });
 
   const channelRef = useRef(null);
+  const remoteChannelRef = useRef(null);
+  const remoteTimerRef = useRef(null);
   const tabRefs = useRef([]);
   const abortRef = useRef(null);
 
@@ -146,28 +178,44 @@ export default function OverlayMotionStudioView() {
   }, [route.isObs]);
 
   useEffect(() => {
-    const channel = createSyncChannel();
-    channelRef.current = channel;
-
-    const handleMsg = (ev) => {
-      const msg = ev.data;
+    const applyIncomingMsg = (msg) => {
       if (!msg || !msg.type) return;
       if (msg.type === 'CONFIG_UPDATE' && msg.payload && msg.payload.sponsors) {
-        setConfig(msg.payload);
+        const normalized = normalizeOverlayConfig(msg.payload);
+        if (route.isObs && route.lockedSceneId) {
+          normalized.activeSceneId = route.lockedSceneId;
+        }
+        setConfig(normalized);
       } else if (msg.type === 'TRIGGER_STINGER') {
         setStingerRunKey((k) => k + 1);
-      } else if (msg.type === 'TOGGLE_LOOP' && msg.payload && typeof msg.payload.paused === 'boolean') {
+      } else if (
+        msg.type === 'TOGGLE_LOOP' &&
+        msg.payload &&
+        typeof msg.payload.paused === 'boolean'
+      ) {
         setLoopPaused(msg.payload.paused);
       }
     };
 
+    const channel = createSyncChannel();
+    channelRef.current = channel;
+    const handleMsg = (ev) => applyIncomingMsg(ev.data);
     channel?.addEventListener('message', handleMsg);
 
+    const remoteChannel = createRemoteSyncChannel(roomId, applyIncomingMsg);
+    remoteChannelRef.current = remoteChannel;
+
     const handleStorage = (ev) => {
-      if (ev.key === 'scrimhub:overlay-motion:v1' && ev.newValue) {
+      if (ev.key === OVERLAY_STORAGE_KEY && ev.newValue) {
         try {
           const parsed = JSON.parse(ev.newValue);
-          if (parsed?.sponsors) setConfig(parsed);
+          if (parsed?.sponsors) {
+            const normalized = normalizeOverlayConfig(parsed);
+            if (route.isObs && route.lockedSceneId) {
+              normalized.activeSceneId = route.lockedSceneId;
+            }
+            setConfig(normalized);
+          }
         } catch {
           // Ignore malformed storage payload
         }
@@ -176,38 +224,57 @@ export default function OverlayMotionStudioView() {
     window.addEventListener('storage', handleStorage);
 
     return () => {
+      if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
       channel?.removeEventListener('message', handleMsg);
       channel?.close();
+      remoteChannel?.unsubscribe?.();
       window.removeEventListener('storage', handleStorage);
     };
-  }, []);
+  }, [roomId, route.isObs, route.lockedSceneId]);
 
-  const updateConfig = useCallback((next) => {
+  const updateConfig = useCallback((next, { immediateRemote = true } = {}) => {
     setConfig(next);
     saveStoredConfig(next);
-    postSyncMessage(channelRef.current, {
+    const msg = {
       type: 'CONFIG_UPDATE',
       payload: next,
       timestamp: Date.now(),
-    });
+    };
+    postSyncMessage(channelRef.current, msg);
+
+    if (remoteTimerRef.current) {
+      clearTimeout(remoteTimerRef.current);
+      remoteTimerRef.current = null;
+    }
+    if (immediateRemote) {
+      sendRemoteSyncMessage(remoteChannelRef.current, msg);
+    } else {
+      remoteTimerRef.current = setTimeout(() => {
+        sendRemoteSyncMessage(remoteChannelRef.current, msg);
+      }, 90);
+    }
   }, []);
 
   const triggerStinger = useCallback(() => {
     setStingerRunKey((k) => k + 1);
-    postSyncMessage(channelRef.current, {
+    const msg = {
       type: 'TRIGGER_STINGER',
       timestamp: Date.now(),
-    });
+    };
+    postSyncMessage(channelRef.current, msg);
+    sendRemoteSyncMessage(remoteChannelRef.current, msg);
   }, []);
 
   const toggleLoopPaused = useCallback(() => {
     setLoopPaused((prev) => {
       const next = !prev;
-      postSyncMessage(channelRef.current, {
+      const msg = {
         type: 'TOGGLE_LOOP',
         payload: { paused: next },
         timestamp: Date.now(),
-      });
+      };
+      postSyncMessage(channelRef.current, msg);
+      sendRemoteSyncMessage(remoteChannelRef.current, msg);
       return next;
     });
   }, []);
@@ -225,7 +292,10 @@ export default function OverlayMotionStudioView() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [route.isObs, triggerStinger]);
 
-  const obsUrl = useMemo(() => buildObsUrl(config, obsLayer, obsOrigin), [config, obsLayer, obsOrigin]);
+  const obsUrl = useMemo(
+    () => buildObsUrl(config, obsLayer, obsOrigin, config.activeSceneId, roomId),
+    [config, obsLayer, obsOrigin, roomId]
+  );
   const supportedMime = useMemo(() => getSupportedWebmMimeType(), []);
 
   // Pure OBS Browser Source view
@@ -238,6 +308,7 @@ export default function OverlayMotionStudioView() {
         loopPaused={loopPaused}
         stingerRunKey={stingerRunKey}
         layer={route.layer}
+        activeSceneId={route.lockedSceneId || config.activeSceneId}
         isObs
       />
     );
@@ -246,14 +317,160 @@ export default function OverlayMotionStudioView() {
   const activeSponsors = config.sponsors.filter((s) => s.active);
   const currentSponsor = activeSponsors[activeSponsorIdx % Math.max(1, activeSponsors.length)];
   const cutPointMs = Math.round(config.stinger.durationMs * config.stinger.cutPointRatio);
+  const activeSceneObj =
+    (config.scenes || []).find((s) => s.id === config.activeSceneId) ||
+    (config.scenes || [])[0] ||
+    null;
+  const sortedStandings = computeStandingsSorted(config.standings);
 
   const switchPreset = (mode) => {
-    updateConfig(structuredClone(PRESETS[mode]));
+    updateConfig(normalizeOverlayConfig(structuredClone(PRESETS[mode])));
+  };
+
+  const handleUpdateLogoTransform = (patch) => {
+    updateConfig(
+      {
+        ...config,
+        loop: { ...config.loop, ...patch },
+      },
+      { immediateRemote: false }
+    );
+  };
+
+  const handleUpdateCornerTransform = (patch) => {
+    updateConfig(
+      {
+        ...config,
+        loop: { ...config.loop, ...patch },
+      },
+      { immediateRemote: false }
+    );
+  };
+
+  const selectScene = (sceneId) => {
+    updateConfig({ ...config, activeSceneId: sceneId });
+  };
+
+  const updateSceneProps = (sceneId, patch) => {
+    updateConfig({
+      ...config,
+      scenes: (config.scenes || []).map((s) => (s.id === sceneId ? { ...s, ...patch } : s)),
+    });
+  };
+
+  const handleCreateScene = (e) => {
+    e.preventDefault();
+    const trimmed = newSceneName.trim();
+    if (!trimmed) return;
+    const id = `scene-${Date.now()}`;
+    const newScene = {
+      id,
+      name: trimmed.slice(0, 32),
+      kind: newSceneKind || 'custom',
+      subtitle: 'SIARAN LANGSUNG PUBG MOBILE',
+      builtIn: false,
+    };
+    updateConfig({
+      ...config,
+      scenes: [...(config.scenes || []), newScene],
+      activeSceneId: id,
+    });
+    setNewSceneName('');
+    setNewSceneKind('custom');
+    setAddingScene(false);
+  };
+
+  const removeCustomScene = (sceneId) => {
+    const remaining = (config.scenes || []).filter((s) => s.id !== sceneId);
+    if (remaining.length === 0) return;
+    const nextActive =
+      config.activeSceneId === sceneId ? remaining[0].id : config.activeSceneId;
+    updateConfig({
+      ...config,
+      scenes: remaining,
+      activeSceneId: nextActive,
+    });
+    if (editingSceneId === sceneId) setEditingSceneId(null);
+  };
+
+  const updateStandingsRow = (rowId, patch, { immediateRemote = true } = {}) => {
+    updateConfig(
+      {
+        ...config,
+        standings: {
+          ...config.standings,
+          rows: (config.standings?.rows || []).map((row) =>
+            row.id === rowId ? { ...row, ...patch } : row
+          ),
+        },
+      },
+      { immediateRemote }
+    );
+  };
+
+  const addStandingsTeam = () => {
+    const rows = config.standings?.rows || [];
+    const nextNum = rows.length + 1;
+    updateConfig({
+      ...config,
+      standings: {
+        ...config.standings,
+        rows: [
+          ...rows,
+          {
+            id: `st-slot-${Date.now()}`,
+            slot: nextNum,
+            teamName: `TEAM ${nextNum}`,
+            rank: '',
+            kills: 0,
+          },
+        ],
+      },
+    });
+  };
+
+  const removeStandingsTeam = (rowId) => {
+    const rows = config.standings?.rows || [];
+    if (rows.length <= 1) return;
+    updateConfig({
+      ...config,
+      standings: {
+        ...config.standings,
+        rows: rows.filter((r) => r.id !== rowId),
+      },
+    });
+  };
+
+  const resetStandingsScores = () => {
+    updateConfig({
+      ...config,
+      standings: {
+        ...config.standings,
+        rows: (config.standings?.rows || []).map((r) => ({
+          ...r,
+          rank: '',
+          kills: 0,
+        })),
+      },
+    });
+  };
+
+  const handleCopySceneObsUrl = async (sceneId) => {
+    try {
+      const url = buildObsUrl(config, 'all', obsOrigin, sceneId, roomId);
+      await navigator.clipboard.writeText(url);
+      setCopiedSceneId(sceneId);
+      setTimeout(() => setCopiedSceneId(null), 1800);
+    } catch {
+      // Ignore clipboard failures
+    }
   };
 
   const handleCopyTopObsUrl = async () => {
     try {
-      await navigator.clipboard.writeText(buildObsUrl(config, 'all', obsOrigin));
+      await navigator.clipboard.writeText(
+        buildObsUrl(config, 'all', obsOrigin, config.activeSceneId, roomId)
+      );
       setCopiedTopUrl(true);
       setTimeout(() => setCopiedTopUrl(false), 1800);
     } catch {
@@ -653,8 +870,12 @@ export default function OverlayMotionStudioView() {
             showSafeZones={showSafeZones}
             loopPaused={loopPaused}
             stingerRunKey={stingerRunKey}
+            activeSceneId={config.activeSceneId}
+            showSceneOverlay={showSceneOverlay}
             onActiveSponsorChange={setActiveSponsorIdx}
             onStingerActiveChange={setStingerActive}
+            onUpdateLogoTransform={handleUpdateLogoTransform}
+            onUpdateCornerTransform={handleUpdateCornerTransform}
           />
 
           {/* Cue & Telemetry Bar */}
@@ -677,9 +898,29 @@ export default function OverlayMotionStudioView() {
                 <Zap className="w-3.5 h-3.5" />
                 {stingerActive ? 'Stinger Aktif…' : 'Uji Stinger [Space]'}
               </button>
+
+              {activeSceneObj?.kind === 'standings' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('standings')}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#FACC15]/40 bg-[#FACC15]/10 hover:bg-[#FACC15]/20 text-xs font-bold text-[#FDE047] transition cursor-pointer"
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  Edit Mata Live
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-5 flex-wrap">
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                  Scene Aktif
+                </div>
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {activeSceneObj?.name || 'Default'}
+                </div>
+              </div>
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
                   On Air Sponsor
@@ -703,8 +944,19 @@ export default function OverlayMotionStudioView() {
           <div className="bg-[#0A0A0A] border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs text-zinc-400 mr-1">Layer Aktif:</span>
+              <button
+                type="button"
+                onClick={() => setShowSceneOverlay((v) => !v)}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                  showSceneOverlay
+                    ? 'bg-amber-400 text-zinc-950 font-bold'
+                    : 'bg-[#111114] border border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Scene GFX
+              </button>
               {[
-                { key: 'logoOnlyEnabled', label: 'Logo Only' },
+                { key: 'logoOnlyEnabled', label: 'Logo Drag' },
                 { key: 'cornerEnabled', label: 'Corner Badge' },
                 { key: 'tickerEnabled', label: 'Ticker Bar' },
                 { key: 'podiumEnabled', label: 'Podium Card' },
@@ -779,6 +1031,416 @@ export default function OverlayMotionStudioView() {
                 </button>
               );
             })}
+          </div>
+
+          {/* TAB 0: SCENES (OBS-Style Scene Switcher) */}
+          <div
+            role="tabpanel"
+            aria-labelledby="scrim-overlay-tab-scenes"
+            hidden={activeTab !== 'scenes'}
+            className="p-4 overflow-y-auto flex-1 space-y-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-tight">
+                  Scene Siaran ({(config.scenes || []).length})
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Pilih scene untuk stage atau salin URL Browser OBS bagi setiap scene.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddingScene((v) => !v)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-xs font-extrabold transition cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah Scene
+              </button>
+            </div>
+
+            {addingScene && (
+              <form
+                onSubmit={handleCreateScene}
+                className="rounded-xl bg-[#0A0A0C] border border-[#D7FF00]/40 p-3 space-y-2.5"
+              >
+                <div className="text-xs font-bold text-[#D7FF00]">Cipta Scene Baru</div>
+                <div className="grid grid-cols-1 gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={newSceneName}
+                    onChange={(e) => setNewSceneName(e.target.value)}
+                    placeholder="Nama scene (cth: Winner Interview)"
+                    maxLength={32}
+                    className={inputClass}
+                  />
+                  <select
+                    value={newSceneKind}
+                    onChange={(e) => setNewSceneKind(e.target.value)}
+                    className={inputClass}
+                  >
+                    {SCENE_KIND_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        Template: {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAddingScene(false)}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#141418] border border-white/[0.10] text-xs text-zinc-300 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 rounded-lg bg-[#D7FF00] text-zinc-950 text-xs font-bold cursor-pointer"
+                  >
+                    Simpan Scene
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="space-y-2">
+              {(config.scenes || []).map((scene) => {
+                const isActive = scene.id === config.activeSceneId;
+                const isEditing = editingSceneId === scene.id;
+                const isCopied = copiedSceneId === scene.id;
+                const sceneObsUrl = buildObsUrl(config, 'all', obsOrigin, scene.id, roomId);
+                return (
+                  <div
+                    key={scene.id}
+                    className={`rounded-xl border p-3 transition ${
+                      isActive
+                        ? 'bg-[#12130c] border-[#D7FF00]/65 shadow-[0_0_0_1px_rgba(215,255,0,0.18)]'
+                        : 'bg-[#0A0A0C] border-white/[0.10] hover:border-white/[0.22]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selectScene(scene.id)}
+                        className="flex-1 min-w-0 text-left flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                            isActive ? 'bg-[#D7FF00] shadow-[0_0_8px_#D7FF00]' : 'bg-zinc-700'
+                          }`}
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white truncate">
+                              {scene.name}
+                            </span>
+                            {isActive && (
+                              <span className="px-1.5 py-0.5 rounded bg-[#D7FF00]/15 text-[#D7FF00] text-[10px] font-mono font-bold">
+                                ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          {scene.subtitle && (
+                            <div className="text-[11px] text-zinc-400 truncate">
+                              {scene.subtitle}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleCopySceneObsUrl(scene.id)}
+                          title={`Salin OBS Browser URL untuk ${scene.name}`}
+                          className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[11px] font-semibold transition cursor-pointer ${
+                            isCopied
+                              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                              : 'bg-[#141418] border-white/[0.10] hover:border-white/[0.24] text-zinc-200'
+                          }`}
+                        >
+                          {isCopied ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <Link2 className="w-3.5 h-3.5 text-[#D7FF00]" />
+                          )}
+                          <span>{isCopied ? 'Disalin' : 'OBS'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          aria-label={`Properties ${scene.name}`}
+                          title={`Properties ${scene.name}`}
+                          onClick={() => setEditingSceneId(isEditing ? null : scene.id)}
+                          className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                            isEditing
+                              ? 'bg-[#D7FF00] border-[#D7FF00] text-zinc-950'
+                              : 'bg-[#141418] border-white/[0.10] hover:border-white/[0.24] text-zinc-300'
+                          }`}
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {scene.kind === 'standings' && (
+                      <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-zinc-400">
+                          {sortedStandings[0]
+                            ? `#1 Semasa: ${sortedStandings[0].teamName} (${sortedStandings[0].totalPoints} pts)`
+                            : 'Kemas kini kedudukan live'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            selectScene(scene.id);
+                            setActiveTab('standings');
+                          }}
+                          className="text-[11px] font-bold text-[#FACC15] hover:underline cursor-pointer"
+                        >
+                          Edit Mata Standings →
+                        </button>
+                      </div>
+                    )}
+
+                    {isEditing && (
+                      <div className="mt-2.5 pt-2.5 border-t border-white/[0.08] space-y-2">
+                        <div className="grid grid-cols-1 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-zinc-400 mb-1">
+                              Tukar Nama Scene
+                            </label>
+                            <input
+                              type="text"
+                              value={scene.name}
+                              maxLength={32}
+                              onChange={(e) =>
+                                updateSceneProps(scene.id, { name: e.target.value })
+                              }
+                              className={inputClass}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-zinc-400 mb-1">
+                              Subtajuk Banner
+                            </label>
+                            <input
+                              type="text"
+                              value={scene.subtitle || ''}
+                              maxLength={54}
+                              onChange={(e) =>
+                                updateSceneProps(scene.id, { subtitle: e.target.value })
+                              }
+                              className={inputClass}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <a
+                            href={sceneObsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-zinc-300 hover:text-[#D7FF00] no-underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Buka Tab OBS Scene Ini
+                          </a>
+                          {!scene.builtIn && (
+                            <button
+                              type="button"
+                              onClick={() => removeCustomScene(scene.id)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-rose-500/10 border border-rose-500/25 text-rose-300 text-[11px] font-semibold cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Padam
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* TAB 0.5: STANDINGS LIVE EDITOR */}
+          <div
+            role="tabpanel"
+            aria-labelledby="scrim-overlay-tab-standings"
+            hidden={activeTab !== 'standings'}
+            className="p-4 overflow-y-auto flex-1 space-y-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-tight">
+                  Standings Match Live
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Isi Rank &amp; Kill sahaja — mata &amp; OBS overlay terus dikemas kini.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={resetStandingsScores}
+                  className="px-2.5 py-1.5 rounded-lg bg-[#141418] border border-white/[0.10] hover:border-white/[0.24] text-xs font-semibold text-zinc-300 cursor-pointer"
+                >
+                  Reset 0
+                </button>
+                <button
+                  type="button"
+                  onClick={addStandingsTeam}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-xs font-extrabold cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Team
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+              <div>
+                <label className="block text-[11px] text-zinc-400 mb-1">Label Match</label>
+                <input
+                  type="text"
+                  value={config.standings?.matchLabel || ''}
+                  maxLength={32}
+                  onChange={(e) =>
+                    updateConfig(
+                      {
+                        ...config,
+                        standings: { ...config.standings, matchLabel: e.target.value },
+                      },
+                      { immediateRemote: false }
+                    )
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => selectScene('standings')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  config.activeSceneId === 'standings'
+                    ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                    : 'bg-[#141418] border border-white/[0.12] text-zinc-200 hover:border-[#D7FF00]'
+                }`}
+              >
+                {config.activeSceneId === 'standings' ? 'Live di Stage' : 'Papar Standings'}
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-[#0A0A0C] border border-white/[0.10] overflow-hidden">
+              <div className="grid grid-cols-[1fr_64px_92px_54px_28px] gap-1.5 px-3 py-2 border-b border-white/[0.08] text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                <span>Pasukan</span>
+                <span className="text-center">Rank</span>
+                <span className="text-center">Kills</span>
+                <span className="text-right">Total</span>
+                <span />
+              </div>
+
+              <div className="divide-y divide-white/[0.06]">
+                {(config.standings?.rows || []).map((row) => {
+                  const rankNum = row.rank === '' || row.rank === null ? 0 : Number(row.rank);
+                  const placePts = getPlacementPoints(rankNum);
+                  const kills = Math.max(0, Number(row.kills) || 0);
+                  const total = placePts + kills;
+                  return (
+                    <div
+                      key={row.id}
+                      className="grid grid-cols-[1fr_64px_92px_54px_28px] gap-1.5 px-2.5 py-2 items-center"
+                    >
+                      <input
+                        type="text"
+                        value={row.teamName}
+                        maxLength={22}
+                        aria-label={`Nama pasukan ${row.slot}`}
+                        onChange={(e) =>
+                          updateStandingsRow(
+                            row.id,
+                            { teamName: e.target.value },
+                            { immediateRemote: false }
+                          )
+                        }
+                        className="w-full px-2 py-1.5 bg-[#070709] border border-white/[0.10] rounded-md text-xs font-semibold text-white focus:outline-none focus:border-[#D7FF00]"
+                      />
+
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={1}
+                          max={25}
+                          placeholder="—"
+                          value={row.rank ?? ''}
+                          aria-label={`Ranking ${row.teamName}`}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : Math.max(1, Math.min(25, Number(e.target.value)));
+                            updateStandingsRow(row.id, { rank: val });
+                          }}
+                          className="w-full px-1.5 py-1.5 bg-[#070709] border border-white/[0.10] rounded-md text-xs font-mono font-bold text-center text-white focus:outline-none focus:border-[#D7FF00]"
+                        />
+                        {placePts > 0 && (
+                          <span className="block text-[9px] font-mono text-center text-emerald-400 leading-tight mt-0.5">
+                            +{placePts}p
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center bg-[#070709] border border-white/[0.10] rounded-md overflow-hidden">
+                        <button
+                          type="button"
+                          aria-label={`Kurangkan kill ${row.teamName}`}
+                          onClick={() =>
+                            updateStandingsRow(row.id, { kills: Math.max(0, kills - 1) })
+                          }
+                          className="px-1.5 py-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.06] cursor-pointer"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          value={kills}
+                          aria-label={`Bilangan kill ${row.teamName}`}
+                          onChange={(e) =>
+                            updateStandingsRow(row.id, {
+                              kills: Math.max(0, Math.min(99, Number(e.target.value) || 0)),
+                            })
+                          }
+                          className="w-full bg-transparent text-xs font-mono font-bold text-center text-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Tambah kill ${row.teamName}`}
+                          onClick={() => updateStandingsRow(row.id, { kills: kills + 1 })}
+                          className="px-1.5 py-1.5 text-zinc-400 hover:text-[#D7FF00] hover:bg-white/[0.06] cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <div className="text-right font-mono font-black text-sm tabular-nums text-[#FACC15]">
+                        {total}
+                      </div>
+
+                      <button
+                        type="button"
+                        aria-label={`Buang ${row.teamName}`}
+                        disabled={(config.standings?.rows || []).length <= 1}
+                        onClick={() => removeStandingsTeam(row.id)}
+                        className="p-1 text-zinc-500 hover:text-rose-400 disabled:opacity-25 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* TAB 1: SPONSORS */}
@@ -1153,14 +1815,14 @@ export default function OverlayMotionStudioView() {
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Posisi Y (Preview)</span>
-                    <span className="font-mono tabular-nums">{config.loop.logoStageY ?? 9}%</span>
+                    <span className="font-mono tabular-nums">{config.loop.logoStageY ?? 14}%</span>
                   </div>
                   <input
                     type="range"
                     min={5}
                     max={92}
                     step={1}
-                    value={config.loop.logoStageY ?? 9}
+                    value={config.loop.logoStageY ?? 14}
                     onChange={(e) =>
                       updateConfig({
                         ...config,
@@ -1170,6 +1832,31 @@ export default function OverlayMotionStudioView() {
                     className="w-full accent-[#D7FF00]"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.06]">
+                <span className="text-[11px] text-zinc-400">
+                  Tip: Drag terus logo &amp; bucu pada stage utama
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateConfig({
+                      ...config,
+                      loop: {
+                        ...config.loop,
+                        logoStageX: 16,
+                        logoStageY: 14,
+                        logoStageScale: 0.9,
+                        cornerStageX: null,
+                        cornerStageY: null,
+                      },
+                    })
+                  }
+                  className="px-2 py-1 rounded bg-[#141418] border border-white/[0.10] text-[11px] font-semibold text-zinc-300 hover:text-white cursor-pointer"
+                >
+                  Reset Posisi
+                </button>
               </div>
             </div>
 
@@ -1504,18 +2191,18 @@ export default function OverlayMotionStudioView() {
                     }}
                   />
                 </label>
-                {config.stinger.emblemDataUrl && (
+                {config.stinger.emblemDataUrl !== diyStingerLogo && (
                   <button
                     type="button"
                     onClick={() =>
                       updateConfig({
                         ...config,
-                        stinger: { ...config.stinger, emblemDataUrl: null },
+                        stinger: { ...config.stinger, emblemDataUrl: diyStingerLogo },
                       })
                     }
                     className="px-2.5 py-1.5 rounded-lg bg-[#141418] border border-white/[0.10] text-xs text-zinc-300 cursor-pointer"
                   >
-                    Reset
+                    Logo DIY
                   </button>
                 )}
               </div>
@@ -1598,13 +2285,76 @@ export default function OverlayMotionStudioView() {
             </div>
           </div>
 
-          {/* TAB 4: CLIENT EXPORT */}
+          {/* TAB 4: OBS LINKS & CLIENT EXPORT */}
           <div
             role="tabpanel"
             aria-labelledby="scrim-overlay-tab-obs"
             hidden={activeTab !== 'obs'}
             className="p-4 overflow-y-auto flex-1 space-y-3"
           >
+            {/* Dedicated OBS Browser Source Link Per Scene */}
+            <div className="rounded-xl bg-[#0A0A0C] border border-[#D7FF00]/30 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                  Pautan Browser Source Setiap Scene (OBS)
+                </h3>
+                <span className="text-[10px] font-mono text-emerald-300">
+                  ROOM {roomId}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
+                Setiap scene di bawah mempunyai pautan OBS sendiri (1920×1080 transparan). Perubahan
+                Standings, posisi logo &amp; rename akan terus disegerakkan secara live ke OBS.
+              </p>
+
+              <div className="space-y-1.5">
+                {(config.scenes || []).map((scene) => {
+                  const perSceneUrl = buildObsUrl(config, 'all', obsOrigin, scene.id, roomId);
+                  const isCopied = copiedSceneId === scene.id;
+                  return (
+                    <div
+                      key={scene.id}
+                      className="rounded-lg bg-[#070709] border border-white/[0.08] px-2.5 py-2 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white truncate">{scene.name}</div>
+                        <div className="text-[10px] font-mono text-zinc-500 truncate">
+                          {perSceneUrl}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleCopySceneObsUrl(scene.id)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                            isCopied
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950'
+                          }`}
+                        >
+                          {isCopied ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                          {isCopied ? 'Disalin' : 'Salin'}
+                        </button>
+                        <a
+                          href={perSceneUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`Buka OBS URL ${scene.name}`}
+                          className="p-1.5 rounded-md bg-[#141418] border border-white/[0.10] hover:border-white/[0.24] text-zinc-300"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="rounded-xl bg-[#0A0A0C] border border-white/[0.10] p-3.5 space-y-2.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-white">
                 Client Delivery Pack (.ZIP)

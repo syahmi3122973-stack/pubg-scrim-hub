@@ -1,18 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ELEMENT_BOXES,
   drawErangelSimulation,
   drawSafeZones,
-  ELEMENT_BOXES,
+  getActiveSponsors,
   getCachedImage,
+  getCornerStageRect,
+  getLogoTransformBox,
+  renderActiveScene,
   renderCornerBadgeStandalone,
   renderLogoOnlyStandalone,
   renderPodiumCardStandalone,
   renderSponsorLoops,
   renderStingerFrame,
   renderTickerBarStandalone,
-  STAGE_HEIGHT,
-  STAGE_WIDTH,
 } from './overlayEngine';
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
 
 export default function OverlayStage({
   config,
@@ -23,84 +29,119 @@ export default function OverlayStage({
   stingerRunKey,
   layer = 'all',
   isObs = false,
+  activeSceneId = null,
+  showSceneOverlay = true,
   onActiveSponsorChange,
   onStingerActiveChange,
+  onUpdateLogoTransform = null,
+  onUpdateCornerTransform = null,
 }) {
   const canvasRef = useRef(null);
-  const loopElapsedRef = useRef(0);
-  const lastRafTimeRef = useRef(null);
-  const stingerStartRef = useRef(null);
-  const prevTriggerKeyRef = useRef(stingerRunKey);
-  const lastReportedSponsorRef = useRef(-1);
+  const stageRef = useRef(null);
+
+  const [dragState, setDragState] = useState(null);
+  const [hoveredTarget, setHoveredTarget] = useState(null);
 
   const configRef = useRef(config);
   const backdropRef = useRef(backdrop);
-  const customBackdropRef = useRef(customBackdropUrl);
-  const showSafeZonesRef = useRef(showSafeZones);
+  const customBackdropUrlRef = useRef(customBackdropUrl);
   const loopPausedRef = useRef(loopPaused);
+  const showSafeZonesRef = useRef(showSafeZones);
   const layerRef = useRef(layer);
+  const activeSceneIdRef = useRef(activeSceneId);
+  const showSceneOverlayRef = useRef(showSceneOverlay);
+  const onActiveSponsorChangeRef = useRef(onActiveSponsorChange);
+  const onStingerActiveChangeRef = useRef(onStingerActiveChange);
 
   useEffect(() => {
     configRef.current = config;
     backdropRef.current = backdrop;
-    customBackdropRef.current = customBackdropUrl;
-    showSafeZonesRef.current = showSafeZones;
+    customBackdropUrlRef.current = customBackdropUrl;
     loopPausedRef.current = loopPaused;
+    showSafeZonesRef.current = showSafeZones;
     layerRef.current = layer;
-  }, [config, backdrop, customBackdropUrl, showSafeZones, loopPaused, layer]);
+    activeSceneIdRef.current = activeSceneId;
+    showSceneOverlayRef.current = showSceneOverlay;
+    onActiveSponsorChangeRef.current = onActiveSponsorChange;
+    onStingerActiveChangeRef.current = onStingerActiveChange;
+  });
 
-  const obsBox =
-    isObs &&
-    (layer === 'logo-only' || layer === 'corner' || layer === 'ticker' || layer === 'podium')
-      ? ELEMENT_BOXES[layer]
-      : { width: STAGE_WIDTH, height: STAGE_HEIGHT };
+  const obsBox = ELEMENT_BOXES[layer] || ELEMENT_BOXES.all;
+
+  const stingerStartRef = useRef(null);
+  const lastStingerKeyRef = useRef(stingerRunKey);
+  const wasStingerActiveRef = useRef(false);
+  const lastSponsorIdxRef = useRef(-1);
 
   useEffect(() => {
-    if (stingerRunKey !== prevTriggerKeyRef.current && stingerRunKey > 0) {
-      prevTriggerKeyRef.current = stingerRunKey;
-      stingerStartRef.current = performance.now();
-      onStingerActiveChange?.(true);
+    (config?.sponsors || []).forEach((sp) => {
+      if (sp?.logoDataUrl) getCachedImage(sp.logoDataUrl);
+    });
+  }, [config?.sponsors]);
+
+  useEffect(() => {
+    if (config?.stinger?.emblemDataUrl) {
+      getCachedImage(config.stinger.emblemDataUrl);
     }
-  }, [stingerRunKey, onStingerActiveChange]);
+  }, [config?.stinger?.emblemDataUrl]);
+
+  useEffect(() => {
+    if (stingerRunKey !== lastStingerKeyRef.current) {
+      lastStingerKeyRef.current = stingerRunKey;
+      if (stingerRunKey > 0) {
+        stingerStartRef.current = performance.now();
+      }
+    }
+  }, [stingerRunKey]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) return;
+    if (!canvas) return undefined;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
 
     let rafId = 0;
+    let lastNow = performance.now();
+    let elapsed = 0;
 
-    const frame = (now) => {
-      if (lastRafTimeRef.current === null) lastRafTimeRef.current = now;
-      const dt = Math.min(100, now - lastRafTimeRef.current);
-      lastRafTimeRef.current = now;
-
+    const tick = (now) => {
+      const dt = Math.min(100, now - lastNow);
+      lastNow = now;
       if (!loopPausedRef.current) {
-        loopElapsedRef.current += dt;
+        elapsed += dt;
       }
 
       const cfg = configRef.current;
-      const activeLayer = layerRef.current;
-      const elapsed = loopElapsedRef.current;
+      const activeLayer = layerRef.current || 'all';
+      const box = ELEMENT_BOXES[activeLayer] || ELEMENT_BOXES.all;
+      const stageW = canvas.width;
+      const stageH = canvas.height;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, stageW, stageH);
 
-      if (!isObs) {
-        if (backdropRef.current === 'erangel') {
-          drawErangelSimulation(ctx, STAGE_WIDTH, STAGE_HEIGHT, elapsed);
-        } else if (backdropRef.current === 'chroma') {
-          ctx.fillStyle = '#00B140';
-          ctx.fillRect(0, 0, STAGE_WIDTH, STAGE_HEIGHT);
-        } else if (backdropRef.current === 'custom' && customBackdropRef.current) {
-          const bgImg = getCachedImage(customBackdropRef.current);
-          if (bgImg) {
-            const ratio = Math.min(STAGE_WIDTH / bgImg.naturalWidth, STAGE_HEIGHT / bgImg.naturalHeight);
-            const dw = bgImg.naturalWidth * ratio;
-            const dh = bgImg.naturalHeight * ratio;
-            ctx.drawImage(bgImg, (STAGE_WIDTH - dw) / 2, (STAGE_HEIGHT - dh) / 2, dw, dh);
+      if (!isObs && activeLayer === 'all') {
+        const bgMode = backdropRef.current;
+        if (bgMode === 'erangel') {
+          drawErangelSimulation(ctx, stageW, stageH, elapsed);
+        } else if (bgMode === 'custom' && customBackdropUrlRef.current) {
+          const customImg = getCachedImage(customBackdropUrlRef.current);
+          if (customImg) {
+            ctx.drawImage(customImg, 0, 0, stageW, stageH);
           }
         }
+      }
+
+      const scenes = cfg?.scenes || [];
+      const targetSceneId = activeSceneIdRef.current || cfg?.activeSceneId;
+      const activeScene =
+        scenes.find((s) => s.id === targetSceneId) || scenes[0] || null;
+
+      if (
+        showSceneOverlayRef.current &&
+        activeScene &&
+        (activeLayer === 'all' || activeLayer === 'scene' || activeLayer === 'loop')
+      ) {
+        renderActiveScene(ctx, cfg, activeScene, elapsed);
       }
 
       if (activeLayer === 'all' || activeLayer === 'loop') {
@@ -115,68 +156,275 @@ export default function OverlayStage({
         renderPodiumCardStandalone(ctx, cfg, elapsed);
       }
 
-      const activeSponsors = cfg.sponsors.filter((s) => s.active);
-      if (activeSponsors.length > 0 && onActiveSponsorChange) {
-        const durMs = cfg.loop.logoOnlyEnabled
-          ? Math.max(1500, (cfg.loop.logoDurationSec ?? 3.5) * 1000)
-          : Math.max(2000, cfg.loop.cornerDurationSec * 1000);
-        const total = durMs * activeSponsors.length;
-        const wrapped = ((elapsed % total) + total) % total;
-        const idx = Math.floor(wrapped / durMs);
-        if (idx !== lastReportedSponsorRef.current) {
-          lastReportedSponsorRef.current = idx;
-          onActiveSponsorChange(idx);
+      const activeSponsors = getActiveSponsors(cfg);
+      if (activeSponsors.length > 0 && onActiveSponsorChangeRef.current) {
+        const hold = Math.max(1500, (Number(cfg?.loop?.cornerDurationSec) || 6) * 1000);
+        const idx = Math.floor(elapsed / hold) % activeSponsors.length;
+        if (idx !== lastSponsorIdxRef.current) {
+          lastSponsorIdxRef.current = idx;
+          onActiveSponsorChangeRef.current(idx);
         }
       }
 
-      if ((activeLayer === 'all' || activeLayer === 'stinger') && stingerStartRef.current !== null) {
-        const stingerElapsed = now - stingerStartRef.current;
-        const t = stingerElapsed / Math.max(400, cfg.stinger.durationMs);
-        if (t >= 1) {
-          stingerStartRef.current = null;
-          onStingerActiveChange?.(false);
+      if (
+        (activeLayer === 'all' || activeLayer === 'stinger') &&
+        stingerStartRef.current !== null &&
+        cfg?.stinger
+      ) {
+        const duration = Math.max(400, Number(cfg.stinger.durationMs) || 1400);
+        const sElapsed = now - stingerStartRef.current;
+        if (sElapsed < duration) {
+          renderStingerFrame(ctx, cfg.stinger, sElapsed / duration);
+          if (!wasStingerActiveRef.current) {
+            wasStingerActiveRef.current = true;
+            onStingerActiveChangeRef.current?.(true);
+          }
         } else {
-          renderStingerFrame(ctx, cfg.stinger, t);
+          stingerStartRef.current = null;
+          if (wasStingerActiveRef.current) {
+            wasStingerActiveRef.current = false;
+            onStingerActiveChangeRef.current?.(false);
+          }
         }
       }
 
       if (!isObs && showSafeZonesRef.current) {
-        drawSafeZones(ctx, STAGE_WIDTH, STAGE_HEIGHT);
+        drawSafeZones(ctx, box.width, box.height);
       }
 
-      rafId = requestAnimationFrame(frame);
+      rafId = window.requestAnimationFrame(tick);
     };
 
-    rafId = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(rafId);
-  }, [isObs, onActiveSponsorChange, onStingerActiveChange]);
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isObs]);
 
-  const checkerStyle =
-    !isObs && backdrop === 'alpha'
-      ? {
-          backgroundColor: '#0c0c0f',
-          backgroundImage:
-            'linear-gradient(45deg, #16161b 25%, transparent 25%), linear-gradient(-45deg, #16161b 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #16161b 75%), linear-gradient(-45deg, transparent 75%, #16161b 75%)',
-          backgroundSize: '28px 28px',
-          backgroundPosition: '0 0, 0 14px, 14px -14px, -14px 0',
-        }
-      : undefined;
+  const stageStyle = useMemo(() => {
+    if (isObs) return { background: 'transparent' };
+    if (backdrop === 'chroma') {
+      return { backgroundColor: '#00b140' };
+    }
+    if (backdrop === 'alpha') {
+      return {
+        backgroundColor: '#0c0c10',
+        backgroundImage:
+          'linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.05) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.05) 75%)',
+        backgroundSize: '24px 24px',
+        backgroundPosition: '0 0, 0 12px, 12px -12px, -12px 0',
+      };
+    }
+    return { backgroundColor: '#070709' };
+  }, [isObs, backdrop]);
+
+  const interactiveLogoAllowed =
+    !isObs &&
+    (layer === 'all' || layer === 'loop' || layer === 'logo-only') &&
+    Boolean(config?.loop?.logoOnlyEnabled) &&
+    typeof onUpdateLogoTransform === 'function';
+
+  const interactiveCornerAllowed =
+    !isObs &&
+    (layer === 'all' || layer === 'loop' || layer === 'corner') &&
+    Boolean(config?.loop?.cornerEnabled) &&
+    typeof onUpdateCornerTransform === 'function';
+
+  const logoRectPct = useMemo(() => {
+    if (!interactiveLogoAllowed) return null;
+    const box = getLogoTransformBox(config);
+    return {
+      left: ((box.cx - box.halfW) / 1920) * 100,
+      top: ((box.cy - box.halfH) / 1080) * 100,
+      width: ((box.halfW * 2) / 1920) * 100,
+      height: ((box.halfH * 2) / 1080) * 100,
+      xPct: Math.round((box.cx / 1920) * 1000) / 10,
+      yPct: Math.round((box.cy / 1080) * 1000) / 10,
+      scalePct: Math.round(box.scale * 100),
+    };
+  }, [interactiveLogoAllowed, config]);
+
+  const cornerRectPct = useMemo(() => {
+    if (!interactiveCornerAllowed) return null;
+    const rect = getCornerStageRect(config);
+    return {
+      left: (rect.x / 1920) * 100,
+      top: (rect.y / 1080) * 100,
+      width: (rect.w / 1920) * 100,
+      height: (rect.h / 1080) * 100,
+      xPct: Math.round((rect.cx / 1920) * 1000) / 10,
+      yPct: Math.round((rect.cy / 1080) * 1000) / 10,
+    };
+  }, [interactiveCornerAllowed, config]);
+
+  const beginLogoPointerAction = (mode, corner, e) => {
+    if (!stageRef.current || !onUpdateLogoTransform) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = stageRef.current.getBoundingClientRect();
+    const box = getLogoTransformBox(config);
+    const origX = (box.cx / 1920) * 100;
+    const origY = (box.cy / 1080) * 100;
+    const origScale = box.scale;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const centerPxX = rect.left + (origX / 100) * rect.width;
+    const centerPxY = rect.top + (origY / 100) * rect.height;
+    const origDist = Math.max(18, Math.hypot(startX - centerPxX, startY - centerPxY));
+
+    setDragState({ target: 'logo', mode, corner });
+
+    const onMove = (ev) => {
+      if (mode === 'move') {
+        const dxPct = ((ev.clientX - startX) / rect.width) * 100;
+        const dyPct = ((ev.clientY - startY) / rect.height) * 100;
+        const nextX = clamp(Math.round((origX + dxPct) * 10) / 10, 4, 96);
+        const nextY = clamp(Math.round((origY + dyPct) * 10) / 10, 4, 96);
+        onUpdateLogoTransform({ logoStageX: nextX, logoStageY: nextY });
+      } else {
+        const curDist = Math.max(10, Math.hypot(ev.clientX - centerPxX, ev.clientY - centerPxY));
+        const nextScale = clamp(Math.round(origScale * (curDist / origDist) * 100) / 100, 0.25, 2.5);
+        onUpdateLogoTransform({ logoStageScale: nextScale });
+      }
+    };
+
+    const onUp = () => {
+      setDragState(null);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
+  const beginCornerPointerAction = (e) => {
+    if (!stageRef.current || !onUpdateCornerTransform) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = stageRef.current.getBoundingClientRect();
+    const cornerBox = getCornerStageRect(config);
+    const origX = (cornerBox.cx / 1920) * 100;
+    const origY = (cornerBox.cy / 1080) * 100;
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    setDragState({ target: 'corner', mode: 'move' });
+
+    const onMove = (ev) => {
+      const dxPct = ((ev.clientX - startX) / rect.width) * 100;
+      const dyPct = ((ev.clientY - startY) / rect.height) * 100;
+      const nextX = clamp(Math.round((origX + dxPct) * 10) / 10, 8, 92);
+      const nextY = clamp(Math.round((origY + dyPct) * 10) / 10, 6, 94);
+      onUpdateCornerTransform({ cornerStageX: nextX, cornerStageY: nextY });
+    };
+
+    const onUp = () => {
+      setDragState(null);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
+  const logoActive = hoveredTarget === 'logo' || dragState?.target === 'logo';
+  const cornerActive = hoveredTarget === 'corner' || dragState?.target === 'corner';
 
   return (
     <div
+      ref={stageRef}
       className={
         isObs
           ? 'w-screen h-screen bg-transparent overflow-hidden'
-          : 'relative w-full aspect-video rounded-xl overflow-hidden border border-white/[0.12] bg-[#070709]'
+          : 'relative w-full aspect-video rounded-xl overflow-hidden border border-white/[0.12] bg-[#070709] select-none'
       }
-      style={checkerStyle}
+      style={stageStyle}
     >
       <canvas
         ref={canvasRef}
         width={obsBox.width}
         height={obsBox.height}
-        className="w-full h-full block object-contain"
+        className="w-full h-full block object-contain pointer-events-none"
       />
+
+      {cornerRectPct && (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Seret posisi Corner Sponsor Badge"
+          onPointerEnter={() => setHoveredTarget('corner')}
+          onPointerLeave={() => setHoveredTarget((prev) => (prev === 'corner' ? null : prev))}
+          onPointerDown={beginCornerPointerAction}
+          style={{
+            left: `${cornerRectPct.left}%`,
+            top: `${cornerRectPct.top}%`,
+            width: `${cornerRectPct.width}%`,
+            height: `${cornerRectPct.height}%`,
+          }}
+          className={`absolute cursor-move rounded-lg transition-colors ${
+            cornerActive
+              ? 'border border-dashed border-sky-400/90 bg-sky-400/[0.06]'
+              : 'border border-dashed border-transparent hover:border-sky-400/50'
+          }`}
+        >
+          {cornerActive && (
+            <div className="absolute -top-6 left-0 px-2 py-0.5 rounded bg-black/85 border border-sky-400/40 text-[10px] font-medium text-sky-200 whitespace-nowrap pointer-events-none shadow-md">
+              Corner · {cornerRectPct.xPct}% · {cornerRectPct.yPct}%
+            </div>
+          )}
+        </div>
+      )}
+
+      {logoRectPct && (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Seret untuk ubah posisi logo sponsor, atau tarik bucu untuk saiz"
+          onPointerEnter={() => setHoveredTarget('logo')}
+          onPointerLeave={() => setHoveredTarget((prev) => (prev === 'logo' ? null : prev))}
+          onPointerDown={(e) => beginLogoPointerAction('move', null, e)}
+          style={{
+            left: `${logoRectPct.left}%`,
+            top: `${logoRectPct.top}%`,
+            width: `${logoRectPct.width}%`,
+            height: `${logoRectPct.height}%`,
+          }}
+          className={`absolute cursor-move rounded-lg transition-colors ${
+            logoActive
+              ? 'border-2 border-dashed border-[#FACC15] bg-[#FACC15]/[0.05] shadow-[0_0_0_1px_rgba(0,0,0,0.6)]'
+              : 'border border-dashed border-[#FACC15]/35 hover:border-[#FACC15]/80'
+          }`}
+        >
+          {logoActive && (
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/90 border border-[#FACC15]/45 text-[10px] font-semibold text-[#FDE047] whitespace-nowrap pointer-events-none shadow-lg">
+              X {logoRectPct.xPct}% · Y {logoRectPct.yPct}% · {logoRectPct.scalePct}%
+            </div>
+          )}
+
+          {[
+            { id: 'nw', pos: '-top-1.5 -left-1.5', cursor: 'cursor-nwse-resize' },
+            { id: 'ne', pos: '-top-1.5 -right-1.5', cursor: 'cursor-nesw-resize' },
+            { id: 'sw', pos: '-bottom-1.5 -left-1.5', cursor: 'cursor-nesw-resize' },
+            { id: 'se', pos: '-bottom-1.5 -right-1.5', cursor: 'cursor-nwse-resize' },
+          ].map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              aria-label={`Ubah saiz logo dari bucu ${h.id.toUpperCase()}`}
+              onPointerDown={(e) => beginLogoPointerAction('resize', h.id, e)}
+              className={`absolute ${h.pos} ${h.cursor} w-3.5 h-3.5 rounded-full bg-white border-2 border-[#FACC15] shadow-md transition-transform hover:scale-125 focus:outline-none ${
+                logoActive ? 'opacity-100 scale-100' : 'opacity-70 scale-90'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

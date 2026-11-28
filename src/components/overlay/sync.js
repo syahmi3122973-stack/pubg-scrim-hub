@@ -1,8 +1,25 @@
-import { PRESETS } from './presets';
+import { supabase } from '../../supabaseClient';
+import { normalizeOverlayConfig, PRESETS } from './presets';
 
-export const OVERLAY_STORAGE_KEY = 'scrimhub:overlay-motion:v1';
+export const OVERLAY_STORAGE_KEY = 'scrimhub:overlay-motion:v2';
+const LEGACY_STORAGE_KEY = 'scrimhub:overlay-motion:v1';
+const OVERLAY_ROOM_STORAGE_KEY = 'scrimhub:overlay-room-id';
 export const PRODUCTION_ORIGIN = 'https://scrim.rykhor.my';
-const CHANNEL_NAME = 'scrimhub-overlay-motion';
+const CHANNEL_NAME = 'scrimhub-overlay-motion-v2';
+
+export function getOrCreateSyncRoomId() {
+  try {
+    const existing = localStorage.getItem(OVERLAY_ROOM_STORAGE_KEY);
+    if (existing && /^[a-z0-9_-]{4,32}$/i.test(existing)) {
+      return existing;
+    }
+    const generated = `diy_${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(OVERLAY_ROOM_STORAGE_KEY, generated);
+    return generated;
+  } catch {
+    return 'diy_default';
+  }
+}
 
 export function loadStoredConfig() {
   try {
@@ -10,7 +27,22 @@ export function loadStoredConfig() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.sponsors && parsed.loop && parsed.stinger) {
-        return parsed;
+        return normalizeOverlayConfig(parsed);
+      }
+    }
+    const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyRaw) {
+      const parsedLegacy = JSON.parse(legacyRaw);
+      if (parsedLegacy && parsedLegacy.sponsors && parsedLegacy.loop && parsedLegacy.stinger) {
+        return normalizeOverlayConfig({
+          ...parsedLegacy,
+          stinger: {
+            ...parsedLegacy.stinger,
+            emblemDataUrl: PRESETS.tournament.stinger.emblemDataUrl,
+            brandTitle: '',
+            primaryColor: '#FACC15',
+          },
+        });
       }
     }
   } catch {
@@ -41,6 +73,36 @@ export function postSyncMessage(channel, msg) {
   }
 }
 
+/**
+ * Subscribe to Supabase Realtime Broadcast so Studio edits in Chrome
+ * immediately sync to external OBS Browser Source instances.
+ */
+export function createRemoteSyncChannel(roomId, onMessage) {
+  if (!supabase || !roomId) return null;
+  const channel = supabase.channel(`overlay-live-${roomId}`, {
+    config: { broadcast: { self: false } },
+  });
+  channel
+    .on('broadcast', { event: 'overlay-sync' }, ({ payload }) => {
+      if (payload) onMessage?.(payload);
+    })
+    .subscribe();
+  return channel;
+}
+
+export function sendRemoteSyncMessage(remoteChannel, msg) {
+  if (!remoteChannel || !msg) return;
+  try {
+    remoteChannel.send({
+      type: 'broadcast',
+      event: 'overlay-sync',
+      payload: msg,
+    });
+  } catch {
+    // Non-fatal if socket is not ready
+  }
+}
+
 function toBase64Url(str) {
   const bytes = new TextEncoder().encode(str);
   let bin = '';
@@ -56,26 +118,38 @@ function fromBase64Url(b64) {
   return new TextDecoder().decode(bytes);
 }
 
-export function buildObsUrl(config, layer, baseOrigin = PRODUCTION_ORIGIN) {
-  const url = new URL('/overlay-studio', baseOrigin || window.location.origin);
-  url.searchParams.set('obs', '1');
-  url.searchParams.set('layer', layer);
-  url.searchParams.set('preset', config.presetMode);
-
-  const compact = {
+export function buildCompactConfigForTransport(config) {
+  return {
     ...config,
-    sponsors: config.sponsors.map((s) => ({
+    sponsors: (config.sponsors || []).map((s) => ({
       ...s,
       logoDataUrl: s.logoDataUrl && s.logoDataUrl.length < 18000 ? s.logoDataUrl : null,
     })),
     stinger: {
       ...config.stinger,
       emblemDataUrl:
-        config.stinger.emblemDataUrl && config.stinger.emblemDataUrl.length < 18000
+        config.stinger?.emblemDataUrl && config.stinger.emblemDataUrl.length < 18000
           ? config.stinger.emblemDataUrl
-          : null,
+          : PRESETS.tournament.stinger.emblemDataUrl,
     },
   };
+}
+
+export function buildObsUrl(
+  config,
+  layer = 'all',
+  baseOrigin = PRODUCTION_ORIGIN,
+  sceneId = null,
+  roomId = null
+) {
+  const url = new URL('/overlay-studio', baseOrigin || window.location.origin);
+  url.searchParams.set('obs', '1');
+  url.searchParams.set('layer', layer);
+  url.searchParams.set('preset', config.presetMode || 'tournament');
+  if (sceneId) url.searchParams.set('scene', sceneId);
+  if (roomId) url.searchParams.set('room', roomId);
+
+  const compact = buildCompactConfigForTransport(config);
 
   try {
     const encoded = toBase64Url(JSON.stringify(compact));
@@ -97,16 +171,30 @@ export function parseObsRouteParams() {
     rawLayer === 'corner' ||
     rawLayer === 'ticker' ||
     rawLayer === 'podium' ||
+    rawLayer === 'scene' ||
     rawLayer === 'all'
       ? rawLayer
       : 'all';
+
+  const sceneParam = params.get('scene') || '';
+  const roomParam = params.get('room') || '';
 
   const cfgParam = params.get('cfg');
   if (cfgParam) {
     try {
       const parsed = JSON.parse(fromBase64Url(cfgParam));
       if (parsed && parsed.sponsors && parsed.loop && parsed.stinger) {
-        return { isObs, layer, initialConfig: parsed };
+        const normalized = normalizeOverlayConfig(parsed);
+        if (sceneParam && normalized.scenes.some((s) => s.id === sceneParam)) {
+          normalized.activeSceneId = sceneParam;
+        }
+        return {
+          isObs,
+          layer,
+          lockedSceneId: sceneParam || null,
+          roomId: roomParam || null,
+          initialConfig: normalized,
+        };
       }
     } catch {
       // Fallback below
@@ -116,11 +204,29 @@ export function parseObsRouteParams() {
   const presetParam = params.get('preset');
   if (isObs && (presetParam === 'tournament' || presetParam === 'streamer' || presetParam === 'logo-only')) {
     const stored = loadStoredConfig();
-    if (stored.presetMode === presetParam) {
-      return { isObs, layer, initialConfig: stored };
+    const resolved =
+      stored.presetMode === presetParam ? stored : structuredClone(PRESETS[presetParam]);
+    if (sceneParam && resolved.scenes.some((s) => s.id === sceneParam)) {
+      resolved.activeSceneId = sceneParam;
     }
-    return { isObs, layer, initialConfig: structuredClone(PRESETS[presetParam]) };
+    return {
+      isObs,
+      layer,
+      lockedSceneId: sceneParam || null,
+      roomId: roomParam || null,
+      initialConfig: resolved,
+    };
   }
 
-  return { isObs, layer, initialConfig: loadStoredConfig() };
+  const fallback = loadStoredConfig();
+  if (sceneParam && fallback.scenes.some((s) => s.id === sceneParam)) {
+    fallback.activeSceneId = sceneParam;
+  }
+  return {
+    isObs,
+    layer,
+    lockedSceneId: isObs && sceneParam ? sceneParam : null,
+    roomId: roomParam || null,
+    initialConfig: fallback,
+  };
 }

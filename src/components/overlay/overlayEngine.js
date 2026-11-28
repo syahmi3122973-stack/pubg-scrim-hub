@@ -1,3 +1,5 @@
+import { getPlacementPoints } from './presets';
+
 export const STAGE_WIDTH = 1920;
 export const STAGE_HEIGHT = 1080;
 
@@ -7,8 +9,44 @@ export const ELEMENT_BOXES = {
   ticker: { width: 1832, height: 84 },
   podium: { width: 736, height: 304 },
   stinger: { width: STAGE_WIDTH, height: STAGE_HEIGHT },
+  scene: { width: STAGE_WIDTH, height: STAGE_HEIGHT },
   all: { width: STAGE_WIDTH, height: STAGE_HEIGHT },
 };
+
+export function getLogoTransformBox(config) {
+  const scale = clamp(config?.loop?.logoStageScale ?? 0.9, 0.25, 2.5);
+  const cx = STAGE_WIDTH * (clamp(config?.loop?.logoStageX ?? 16, 4, 96) / 100);
+  const cy = STAGE_HEIGHT * (clamp(config?.loop?.logoStageY ?? 14, 4, 96) / 100);
+  const halfW = (320 * scale) / 2;
+  const halfH = (144 * scale) / 2;
+  return { cx, cy, halfW, halfH, scale };
+}
+
+export function getCornerStageRect(config) {
+  const baseW = 436;
+  const baseH = 114;
+  const scale = clamp(config?.loop?.cornerScale ?? 1, 0.6, 1.5);
+  const w = baseW * scale;
+  const h = baseH * scale;
+  if (
+    Number.isFinite(Number(config?.loop?.cornerStageX)) &&
+    config?.loop?.cornerStageX !== null &&
+    Number.isFinite(Number(config?.loop?.cornerStageY)) &&
+    config?.loop?.cornerStageY !== null
+  ) {
+    const cx = STAGE_WIDTH * (clamp(Number(config.loop.cornerStageX), 5, 95) / 100);
+    const cy = STAGE_HEIGHT * (clamp(Number(config.loop.cornerStageY), 5, 95) / 100);
+    return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy, scale };
+  }
+  const pos = config?.loop?.cornerPosition || 'top-right';
+  const isRight = pos === 'top-right' || pos === 'bottom-right';
+  const isBottom = pos === 'bottom-left' || pos === 'bottom-right';
+  const marginX = 56;
+  const marginY = config?.loop?.tickerEnabled ? 116 : 52;
+  const x = isRight ? STAGE_WIDTH - marginX - w : marginX;
+  const y = isBottom ? STAGE_HEIGHT - marginY - h : 52;
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, scale };
+}
 
 const imageCache = new Map();
 const failedImages = new Set();
@@ -325,13 +363,10 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
     animScale = 0.84 + 0.16 * enterT - 0.14 * exitT;
   }
 
-  const cx = standalone
-    ? ELEMENT_BOXES['logo-only'].width / 2
-    : STAGE_WIDTH * (clamp(config.loop.logoStageX ?? 29, 5, 95) / 100);
-  const cy = standalone
-    ? ELEMENT_BOXES['logo-only'].height / 2
-    : STAGE_HEIGHT * (clamp(config.loop.logoStageY ?? 9, 5, 95) / 100);
-  const userScale = standalone ? 1 : clamp(config.loop.logoStageScale ?? 0.72, 0.35, 2.0);
+  const logoBox = getLogoTransformBox(config);
+  const cx = standalone ? ELEMENT_BOXES['logo-only'].width / 2 : logoBox.cx;
+  const cy = standalone ? ELEMENT_BOXES['logo-only'].height / 2 : logoBox.cy;
+  const userScale = standalone ? 1 : logoBox.scale;
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -384,24 +419,19 @@ function renderCornerBadge(ctx, config, sponsors, timeMs, standalone) {
 
   const baseW = 436;
   const baseH = 114;
-  const scale = standalone ? 1 : clamp(config.loop.cornerScale, 0.7, 1.35);
-  const w = baseW * scale;
-  const h = baseH * scale;
+  const cornerRect = getCornerStageRect(config);
+  const scale = standalone ? 1 : cornerRect.scale;
 
   const pos = config.loop.cornerPosition;
   const isRight = pos === 'top-right' || pos === 'bottom-right';
-  const isBottom = pos === 'bottom-left' || pos === 'bottom-right';
 
   let targetX = 18;
   let targetY = 17;
   let slideOffset = (1 - enterT) * -32 + exitT * 32;
 
   if (!standalone) {
-    const marginX = 56;
-    const marginY = config.loop.tickerEnabled ? 116 : 52;
-    const topMarginY = 52;
-    targetX = isRight ? STAGE_WIDTH - marginX - w : marginX;
-    targetY = isBottom ? STAGE_HEIGHT - marginY - h : topMarginY;
+    targetX = cornerRect.x;
+    targetY = cornerRect.y;
     slideOffset = (isRight ? 1 : -1) * ((1 - enterT) * 70 + exitT * 70);
   }
 
@@ -745,33 +775,46 @@ function drawCenterCrest(ctx, stinger, scale, alpha) {
   ctx.scale(scale, scale);
 
   const img = getCachedImage(stinger.emblemDataUrl);
-  // ScrimHub rounded square icon container
-  drawRoundedRect(ctx, -72, -110, 144, 144, 22);
-  ctx.fillStyle = '#070709';
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-  ctx.stroke();
+  const titleText = String(stinger.brandTitle || '').trim();
+  const subText = String(stinger.brandSubtitle || '').trim();
 
   if (img) {
-    const ratio = Math.min(108 / img.naturalWidth, 108 / img.naturalHeight);
+    const glow = ctx.createRadialGradient(0, -18, 16, 0, -18, 220);
+    glow.addColorStop(0, 'rgba(250, 204, 21, 0.24)');
+    glow.addColorStop(1, 'rgba(250, 204, 21, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, -18, 220, 0, Math.PI * 2);
+    ctx.fill();
+
+    const ratio = Math.min(380 / img.naturalWidth, 230 / img.naturalHeight);
     const dw = img.naturalWidth * ratio;
     const dh = img.naturalHeight * ratio;
-    ctx.drawImage(img, -dw / 2, -38 - dh / 2, dw, dh);
+    const centerY = titleText ? -56 : -14;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+    ctx.shadowBlur = 28;
+    ctx.drawImage(img, -dw / 2, centerY - dh / 2, dw, dh);
+    ctx.shadowColor = 'transparent';
   } else {
-    // ScrimHub-style Electric Lime inner badge mark
+    drawRoundedRect(ctx, -72, -110, 144, 144, 22);
+    ctx.fillStyle = '#070709';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.stroke();
+
     drawRoundedRect(ctx, -46, -84, 92, 92, 16);
     ctx.fillStyle = stinger.primaryColor;
     ctx.fill();
 
     const initials =
-      (stinger.brandTitle || 'SH')
+      (titleText || 'DIY')
         .split(/\s+/)
         .filter(Boolean)
         .slice(0, 2)
         .map((w) => w[0])
         .join('')
-        .toUpperCase() || 'SH';
+        .toUpperCase() || 'DIY';
 
     ctx.fillStyle = '#09090B';
     ctx.font = '900 44px "Geist", system-ui, sans-serif';
@@ -780,27 +823,31 @@ function drawCenterCrest(ctx, stinger, scale, alpha) {
     ctx.fillText(initials, 0, -37);
   }
 
-  // Brand title in crisp Geist display weight
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = '800 58px "Geist", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(stinger.brandTitle.toUpperCase(), 0, 56);
+  let subY = img ? 132 : 70;
+  if (titleText) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 56px "Geist", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(titleText.toUpperCase(), 0, img ? 74 : 56);
+    subY = img ? 148 : 128;
+  }
 
-  if (stinger.brandSubtitle.trim()) {
-    const sub = stinger.brandSubtitle.toUpperCase();
-    ctx.font = '600 18px "Geist Mono", monospace';
-    const subW = Math.min(720, ctx.measureText(sub).width + 36);
-    drawRoundedRect(ctx, -subW / 2, 128, subW, 34, 17);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  if (subText) {
+    const sub = subText.toUpperCase();
+    ctx.font = '700 17px "Geist Mono", monospace';
+    const subW = Math.min(720, ctx.measureText(sub).width + 40);
+    drawRoundedRect(ctx, -subW / 2, subY, subW, 34, 17);
+    ctx.fillStyle = 'rgba(10, 10, 12, 0.78)';
     ctx.fill();
     ctx.lineWidth = 1.25;
     ctx.strokeStyle = stinger.primaryColor;
     ctx.stroke();
 
     ctx.fillStyle = stinger.primaryColor;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(sub, 0, 145);
+    ctx.fillText(sub, 0, subY + 17);
   }
 
   ctx.restore();
@@ -1001,6 +1048,498 @@ export function renderStingerFrame(ctx, stinger, t) {
       ctx.restore();
 
       drawCenterCrest(ctx, stinger, emblemScale, emblemAlpha);
+      break;
+    }
+  }
+}
+
+// ============================================================================
+// OBS BROADCAST SCENE RENDERERS (7 Preset Scenes + Custom Scene)
+// ============================================================================
+
+export function computeStandingsSorted(standings) {
+  const rows = Array.isArray(standings?.rows) ? standings.rows : [];
+  return rows
+    .map((r, idx) => {
+      const rankNum = r?.rank === '' || r?.rank === null || r?.rank === undefined ? 0 : Number(r.rank);
+      const kills = Math.max(0, Number(r?.kills) || 0);
+      const placePts = getPlacementPoints(rankNum);
+      const wwcd = rankNum === 1 ? 1 : 0;
+      const totalPts = placePts + kills;
+      return {
+        id: r?.id || `row-${idx + 1}`,
+        slot: Number(r?.slot) || idx + 1,
+        teamName: String(r?.teamName || `SQUAD ${idx + 1}`),
+        rank: rankNum,
+        wwcd,
+        placePts,
+        kills,
+        totalPts,
+      };
+    })
+    .sort((a, b) => {
+      if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
+      if (b.wwcd !== a.wwcd) return b.wwcd - a.wwcd;
+      if (b.placePts !== a.placePts) return b.placePts - a.placePts;
+      if (b.kills !== a.kills) return b.kills - a.kills;
+      const aRank = a.rank > 0 ? a.rank : 999;
+      const bRank = b.rank > 0 ? b.rank : 999;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.slot - b.slot;
+    });
+}
+
+function drawBroadcastHeaderPill(ctx, accent, sceneName, subtitle, eventTitle, y = 44) {
+  ctx.save();
+  const titleStr = String(sceneName || 'LIVE').toUpperCase();
+  const subStr = String(subtitle || eventTitle || '').toUpperCase();
+  ctx.font = '800 20px "Geist", system-ui, sans-serif';
+  const titleW = ctx.measureText(titleStr).width;
+  ctx.font = '600 13px "Geist Mono", monospace';
+  const subW = subStr ? ctx.measureText(subStr).width : 0;
+  const pillW = Math.min(920, Math.max(360, titleW + subW + 110));
+  const x = (STAGE_WIDTH - pillW) / 2;
+  const h = 54;
+
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+  ctx.shadowBlur = 22;
+  drawRoundedRect(ctx, x, y, pillW, h, 14);
+  ctx.fillStyle = 'rgba(10, 10, 12, 0.92)';
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 1.25;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+  ctx.stroke();
+
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(x + 24, y + h / 2, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 19px "Geist", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(titleStr, x + 40, y + h / 2 + 0.5);
+
+  if (subStr) {
+    ctx.fillStyle = accent;
+    ctx.font = '600 13px "Geist Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(subStr, x + pillW - 22, y + h / 2 + 0.5);
+  }
+  ctx.restore();
+}
+
+export function renderActiveScene(ctx, config, scene, timeMs) {
+  if (!scene) return;
+  const accent = config?.primaryAccent || config?.stinger?.primaryColor || '#FACC15';
+  const eventTitle = String(config?.eventTitle || 'TOURNAMENT BROADCAST').toUpperCase();
+  const sceneName = String(scene.name || 'SCENE').toUpperCase();
+  const subtitle = String(scene.subtitle || '').toUpperCase();
+  const kind = scene.kind || 'custom';
+  const emblemImg = getCachedImage(config?.stinger?.emblemDataUrl);
+  const pulse = 0.5 + 0.5 * Math.sin(timeMs / 650);
+
+  switch (kind) {
+    case 'starting-soon': {
+      const boxW = 920;
+      const boxH = 350;
+      const x = (STAGE_WIDTH - boxW) / 2;
+      const y = 340;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.78)';
+      ctx.shadowBlur = 40;
+      drawRoundedRect(ctx, x, y, boxW, boxH, 24);
+      ctx.fillStyle = 'rgba(9, 9, 11, 0.90)';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.stroke();
+
+      // Top accent line
+      ctx.fillStyle = accent;
+      drawRoundedRect(ctx, x + 28, y + 26, 86, 6, 3);
+      ctx.fill();
+
+      ctx.fillStyle = '#A1A1AA';
+      ctx.font = '700 14px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(eventTitle, x + 128, y + 29);
+
+      if (emblemImg) {
+        const ratio = Math.min(180 / emblemImg.naturalWidth, 110 / emblemImg.naturalHeight);
+        const dw = emblemImg.naturalWidth * ratio;
+        const dh = emblemImg.naturalHeight * ratio;
+        ctx.drawImage(emblemImg, x + boxW - dw - 34, y + 24, dw, dh);
+      }
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 72px "Geist", system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(sceneName, x + 36, y + 102);
+
+      ctx.fillStyle = accent;
+      ctx.font = '700 20px "Geist Mono", monospace';
+      ctx.fillText(subtitle || 'BERSIAP SEDIA • LOBBY AKAN BERMULA', x + 38, y + 194);
+
+      // Live status footer strip inside card
+      drawRoundedRect(ctx, x + 36, y + boxH - 68, boxW - 72, 40, 10);
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fill();
+      ctx.fillStyle = `rgba(250, 204, 21, ${0.55 + pulse * 0.45})`;
+      ctx.beginPath();
+      ctx.arc(x + 60, y + boxH - 48, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#E4E4E7';
+      ctx.font = '600 14px "Geist Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('STANDBY BROADCAST FEED • SILA KEKAL DI SALURAN INI', x + 78, y + boxH - 47.5);
+      ctx.restore();
+      break;
+    }
+
+    case 'in-game-flight': {
+      drawBroadcastHeaderPill(
+        ctx,
+        accent,
+        sceneName,
+        `${config?.standings?.matchLabel || 'MATCH LIVE'} • ${subtitle || 'FLIGHT PATH'}`,
+        eventTitle,
+        42
+      );
+      break;
+    }
+
+    case 'caster': {
+      drawBroadcastHeaderPill(ctx, accent, sceneName, subtitle || eventTitle, eventTitle, 38);
+      // Dual transparent camera frame cutouts for OBS camera sources underneath
+      const frameW = 790;
+      const frameH = 540;
+      const gap = 80;
+      const startX = (STAGE_WIDTH - (frameW * 2 + gap)) / 2;
+      const frameY = 180;
+      ['CASTER 1', 'CASTER 2'].forEach((label, i) => {
+        const fx = startX + i * (frameW + gap);
+        ctx.save();
+        drawRoundedRect(ctx, fx, frameY, frameW, frameH, 22);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+        ctx.stroke();
+
+        // Top corner accent edge
+        ctx.fillStyle = accent;
+        drawRoundedRect(ctx, fx + 24, frameY - 3, 120, 6, 3);
+        ctx.fill();
+
+        // Lower nameplate bar
+        drawRoundedRect(ctx, fx + 24, frameY + frameH - 72, 290, 48, 12);
+        ctx.fillStyle = 'rgba(10, 10, 12, 0.92)';
+        ctx.fill();
+        ctx.lineWidth = 1.25;
+        ctx.strokeStyle = accent;
+        ctx.stroke();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 18px "Geist", system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, fx + 44, frameY + frameH - 48);
+        ctx.restore();
+      });
+      break;
+    }
+
+    case 'ingame-map': {
+      // Compact side & top tactical frame keeping center map transparent for OBS capture
+      drawBroadcastHeaderPill(ctx, accent, sceneName, subtitle || 'TACTICAL ZONE FEED', eventTitle, 38);
+      const panelW = 300;
+      const panelH = 210;
+      const px = 56;
+      const py = STAGE_HEIGHT - panelH - 110;
+      ctx.save();
+      drawRoundedRect(ctx, px, py, panelW, panelH, 16);
+      ctx.fillStyle = 'rgba(10, 10, 12, 0.88)';
+      ctx.fill();
+      ctx.lineWidth = 1.25;
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.stroke();
+
+      ctx.fillStyle = accent;
+      ctx.font = '700 12px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('MAP TELEMETRY', px + 20, py + 18);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 22px "Geist", system-ui, sans-serif';
+      ctx.fillText(config?.standings?.matchLabel || 'ERANGEL • LIVE', px + 20, py + 44);
+
+      ctx.fillStyle = '#A1A1AA';
+      ctx.font = '500 13px "Geist", system-ui, sans-serif';
+      ctx.fillText('Letak Map Capture di bawah layer ini.', px + 20, py + 84);
+      ctx.fillText('Safe zone & rotasi pasukan live.', px + 20, py + 106);
+
+      if (emblemImg) {
+        const ratio = Math.min(110 / emblemImg.naturalWidth, 44 / emblemImg.naturalHeight);
+        ctx.drawImage(emblemImg, px + 20, py + panelH - 60, emblemImg.naturalWidth * ratio, emblemImg.naturalHeight * ratio);
+      }
+      ctx.restore();
+      break;
+    }
+
+    case 'standings': {
+      const sorted = computeStandingsSorted(config?.standings).slice(0, 16);
+      const boardW = 1540;
+      const boardH = 740;
+      const bx = (STAGE_WIDTH - boardW) / 2;
+      const by = 160;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.85)';
+      ctx.shadowBlur = 42;
+      drawRoundedRect(ctx, bx, by, boardW, boardH, 22);
+      ctx.fillStyle = 'rgba(9, 9, 12, 0.94)';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.stroke();
+
+      // Header bar
+      ctx.save();
+      drawRoundedRect(ctx, bx, by, boardW, boardH, 22);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillRect(bx, by, boardW, 92);
+      ctx.fillStyle = accent;
+      ctx.fillRect(bx, by, 8, 92);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(bx, by + 92, boardW, 1);
+      ctx.restore();
+
+      ctx.fillStyle = accent;
+      ctx.font = '700 13px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(config?.standings?.matchLabel || 'MATCH STANDINGS', bx + 28, by + 20);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 34px "Geist", system-ui, sans-serif';
+      ctx.fillText(sceneName, bx + 28, by + 40);
+
+      if (emblemImg) {
+        const ratio = Math.min(140 / emblemImg.naturalWidth, 62 / emblemImg.naturalHeight);
+        const dw = emblemImg.naturalWidth * ratio;
+        const dh = emblemImg.naturalHeight * ratio;
+        ctx.drawImage(emblemImg, bx + boardW - dw - 28, by + (92 - dh) / 2, dw, dh);
+      }
+
+      // Split into 2 clean columns (1-8 Left, 9-16 Right)
+      const colW = (boardW - 76) / 2;
+      const startY = by + 114;
+      const rowH = 66;
+      const gapY = 8;
+
+      for (let c = 0; c < 2; c++) {
+        const colX = bx + 24 + c * (colW + 28);
+        // Column header
+        ctx.fillStyle = '#71717A';
+        ctx.font = '700 12px "Geist Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('#', colX + 18, startY + 12);
+        ctx.fillText('SQUAD', colX + 66, startY + 12);
+        ctx.textAlign = 'right';
+        ctx.fillText('WWCD', colX + colW - 210, startY + 12);
+        ctx.fillText('PLACE', colX + colW - 140, startY + 12);
+        ctx.fillText('KILL', colX + colW - 76, startY + 12);
+        ctx.fillText('PTS', colX + colW - 18, startY + 12);
+
+        const slice = sorted.slice(c * 8, c * 8 + 8);
+        slice.forEach((row, rIdx) => {
+          const overallRank = c * 8 + rIdx + 1;
+          const ry = startY + 28 + rIdx * (rowH + gapY);
+          const isTop1 = overallRank === 1;
+          drawRoundedRect(ctx, colX, ry, colW, rowH, 12);
+          ctx.fillStyle = isTop1 ? 'rgba(250, 204, 21, 0.14)' : 'rgba(255, 255, 255, 0.03)';
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = isTop1 ? accent : 'rgba(255, 255, 255, 0.08)';
+          ctx.stroke();
+
+          ctx.fillStyle = isTop1 ? accent : overallRank <= 3 ? '#FFFFFF' : '#A1A1AA';
+          ctx.font = '800 20px "Geist Mono", monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(String(overallRank).padStart(2, '0'), colX + 16, ry + rowH / 2 + 1);
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '800 21px "Geist", system-ui, sans-serif';
+          const name = row.teamName.toUpperCase().slice(0, 18);
+          ctx.fillText(name, colX + 66, ry + rowH / 2 + 1);
+
+          ctx.font = '700 18px "Geist Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillStyle = row.wwcd > 0 ? accent : '#52525B';
+          ctx.fillText(String(row.wwcd), colX + colW - 210, ry + rowH / 2 + 1);
+
+          ctx.fillStyle = '#D4D4D8';
+          ctx.fillText(String(row.placePts), colX + colW - 140, ry + rowH / 2 + 1);
+
+          ctx.fillStyle = '#D4D4D8';
+          ctx.fillText(String(row.kills), colX + colW - 76, ry + rowH / 2 + 1);
+
+          ctx.fillStyle = isTop1 ? accent : '#FFFFFF';
+          ctx.font = '900 22px "Geist Mono", monospace';
+          ctx.fillText(String(row.totalPts), colX + colW - 18, ry + rowH / 2 + 1);
+        });
+      }
+      ctx.restore();
+      break;
+    }
+
+    case 'point-system': {
+      const cardW = 1220;
+      const cardH = 600;
+      const cx = (STAGE_WIDTH - cardW) / 2;
+      const cy = 200;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.85)';
+      ctx.shadowBlur = 40;
+      drawRoundedRect(ctx, cx, cy, cardW, cardH, 24);
+      ctx.fillStyle = 'rgba(9, 9, 12, 0.94)';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.stroke();
+
+      ctx.fillStyle = accent;
+      ctx.font = '700 14px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(eventTitle, cx + 40, cy + 32);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 40px "Geist", system-ui, sans-serif';
+      ctx.fillText(sceneName, cx + 40, cy + 58);
+
+      if (emblemImg) {
+        const ratio = Math.min(150 / emblemImg.naturalWidth, 72 / emblemImg.naturalHeight);
+        ctx.drawImage(emblemImg, cx + cardW - emblemImg.naturalWidth * ratio - 40, cy + 32, emblemImg.naturalWidth * ratio, emblemImg.naturalHeight * ratio);
+      }
+
+      const items = [
+        { pos: '#1 WWCD', pts: '10 PTS', highlight: true },
+        { pos: '#2 PLACE', pts: '6 PTS' },
+        { pos: '#3 PLACE', pts: '5 PTS' },
+        { pos: '#4 PLACE', pts: '4 PTS' },
+        { pos: '#5 PLACE', pts: '3 PTS' },
+        { pos: '#6 PLACE', pts: '2 PTS' },
+        { pos: '#7 – #8', pts: '1 PT' },
+        { pos: '#9 – #16+', pts: '0 PTS' },
+      ];
+      const tileW = (cardW - 120) / 4;
+      const tileH = 112;
+      items.forEach((it, idx) => {
+        const col = idx % 4;
+        const row = Math.floor(idx / 4);
+        const tx = cx + 40 + col * (tileW + 13);
+        const ty = cy + 134 + row * (tileH + 14);
+        drawRoundedRect(ctx, tx, ty, tileW, tileH, 14);
+        ctx.fillStyle = it.highlight ? 'rgba(250, 204, 21, 0.16)' : 'rgba(255,255,255,0.035)';
+        ctx.fill();
+        ctx.lineWidth = 1.25;
+        ctx.strokeStyle = it.highlight ? accent : 'rgba(255,255,255,0.09)';
+        ctx.stroke();
+
+        ctx.fillStyle = it.highlight ? accent : '#A1A1AA';
+        ctx.font = '700 14px "Geist Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(it.pos, tx + 20, ty + 20);
+
+        ctx.fillStyle = it.highlight ? accent : '#FFFFFF';
+        ctx.font = '900 34px "Geist Mono", monospace';
+        ctx.fillText(it.pts, tx + 20, ty + 50);
+      });
+
+      // Elimination Point Banner + Tiebreaker note
+      drawRoundedRect(ctx, cx + 40, cy + 394, cardW - 80, 92, 16);
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.fillStyle = '#09090B';
+      ctx.font = '900 30px "Geist", system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ELIMINATION = 1 POINT PER KILL', cx + 70, cy + 440);
+
+      ctx.font = '700 16px "Geist Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('OFFICIAL PMGC SCORING', cx + cardW - 70, cy + 440);
+
+      ctx.fillStyle = '#A1A1AA';
+      ctx.font = '600 15px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('TIEBREAKER: TOTAL PTS → PLACEMENT PTS → ELIMS → WWCD → BEST RANK', cx + 42, cy + 536);
+      ctx.restore();
+      break;
+    }
+
+    case 'intermission': {
+      const cardW = 860;
+      const cardH = 300;
+      const x = (STAGE_WIDTH - cardW) / 2;
+      const y = 170;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 36;
+      drawRoundedRect(ctx, x, y, cardW, cardH, 22);
+      ctx.fillStyle = 'rgba(9, 9, 12, 0.90)';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.stroke();
+
+      if (emblemImg) {
+        const ratio = Math.min(180 / emblemImg.naturalWidth, 100 / emblemImg.naturalHeight);
+        const dw = emblemImg.naturalWidth * ratio;
+        const dh = emblemImg.naturalHeight * ratio;
+        ctx.drawImage(emblemImg, x + cardW - dw - 34, y + 32, dw, dh);
+      }
+
+      ctx.fillStyle = accent;
+      ctx.font = '700 14px "Geist Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(eventTitle, x + 36, y + 34);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 60px "Geist", system-ui, sans-serif';
+      ctx.fillText(sceneName, x + 36, y + 66);
+
+      ctx.fillStyle = '#D4D4D8';
+      ctx.font = '600 18px "Geist Mono", monospace';
+      ctx.fillText(subtitle || 'REHAT SEBENTAR • MATCH SETERUSNYA AKAN BERMULA', x + 36, y + 148);
+
+      drawRoundedRect(ctx, x + 36, y + 210, 310, 42, 10);
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fill();
+      ctx.fillStyle = accent;
+      ctx.font = '700 15px "Geist Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(config?.standings?.matchLabel || 'UP NEXT • ERANGEL', x + 56, y + 231);
+      ctx.restore();
+      break;
+    }
+
+    default: {
+      drawBroadcastHeaderPill(ctx, accent, sceneName, subtitle || eventTitle, eventTitle, 42);
       break;
     }
   }
