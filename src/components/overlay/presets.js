@@ -117,7 +117,19 @@ export function normalizeOverlayConfig(raw) {
   const base = structuredClone(PRESETS.tournament);
   if (!raw || typeof raw !== 'object') return base;
 
-  const sponsors = Array.isArray(raw.sponsors) && raw.sponsors.length > 0 ? raw.sponsors : base.sponsors;
+  const rawSponsors = Array.isArray(raw.sponsors) && raw.sponsors.length > 0 ? raw.sponsors : base.sponsors;
+  const legacyPlaceholderIds = new Set(['sp-diy-main', 'sp-kestrel', 'sp-hypernet', 'sp-aegis']);
+  let sponsors = rawSponsors;
+  if (!raw.loop?.startingSoonSponsorsSeeded) {
+    const customSponsors = rawSponsors.filter((sp) => !legacyPlaceholderIds.has(sp?.id));
+    const hasRk = customSponsors.some((sp) => sp?.id === 'sp-rykhor-media');
+    const hasBbc = customSponsors.some((sp) => sp?.id === 'sp-bbc-cltv');
+    const seededDefaults = [
+      ...(hasRk ? [] : [base.sponsors[0]]),
+      ...(hasBbc ? [] : [base.sponsors[1]]),
+    ];
+    sponsors = [...seededDefaults, ...customSponsors];
+  }
   const rawScenes = Array.isArray(raw.scenes) && raw.scenes.length > 0 ? raw.scenes : createDefaultScenes();
   const scenes = rawScenes.map((sc) =>
     sc?.id === 'starting-soon' && sc.imageDataUrl === undefined
@@ -143,6 +155,18 @@ export function normalizeOverlayConfig(raw) {
         }
       : createDefaultStandings();
 
+  const mergedLoop = {
+    ...base.loop,
+    ...(raw.loop || {}),
+    logoBoxEnabled: raw.loop?.logoBoxEnabled ?? true,
+    startingSoonSponsorsSeeded: true,
+  };
+  if (!raw.loop?.startingSoonSponsorsSeeded && mergedLoop.logoStageX === 16 && mergedLoop.logoStageY === 14) {
+    mergedLoop.logoStageX = 54;
+    mergedLoop.logoStageY = 89;
+    mergedLoop.logoStageScale = 0.88;
+  }
+
   return {
     ...base,
     ...raw,
@@ -150,10 +174,7 @@ export function normalizeOverlayConfig(raw) {
     scenes,
     activeSceneId,
     standings,
-    loop: {
-      ...base.loop,
-      ...(raw.loop || {}),
-    },
+    loop: mergedLoop,
     stinger: {
       ...base.stinger,
       ...(raw.stinger || {}),
@@ -172,58 +193,36 @@ export const PRESETS = {
     standings: createDefaultStandings(),
     sponsors: [
       {
-        id: 'sp-diy-main',
-        name: 'DIY',
-        tier: 'OFFICIAL PARTNER',
-        tagline: 'DO IT YOURSELF',
-        accentColor: '#FACC15',
-        logoDataUrl: diyStingerLogo,
-        monogram: 'DIY',
+        id: 'sp-rykhor-media',
+        name: 'RY.KHOR MEDIA',
+        tier: 'OFFICIAL MEDIA',
+        tagline: 'CREW VS CREW • SEASON 10',
+        accentColor: '#76B900',
+        logoDataUrl: rykhorMediaLogo,
+        monogram: 'RK',
         active: true,
         isSample: false,
       },
       {
-        id: 'sp-kestrel',
-        name: 'KESTREL GEAR',
-        tier: 'PERIPHERAL PARTNER',
-        tagline: 'PRO-GRADE 8000HZ WIRELESS',
-        accentColor: '#34D399',
-        logoDataUrl: null,
-        monogram: 'KG',
+        id: 'sp-bbc-cltv',
+        name: 'BBC CLTV',
+        tier: 'OFFICIAL PARTNER',
+        tagline: 'CLOTHING & APPAREL PARTNER',
+        accentColor: '#FACC15',
+        logoDataUrl: bbcCltvLogo,
+        monogram: 'BBC',
         active: true,
-        isSample: true,
-      },
-      {
-        id: 'sp-hypernet',
-        name: 'HYPERNET FIBER',
-        tier: 'OFFICIAL TELECOM',
-        tagline: 'SUB-8MS TOURNAMENT ROUTING',
-        accentColor: '#8CC4FF',
-        logoDataUrl: null,
-        monogram: 'HN',
-        active: true,
-        isSample: true,
-      },
-      {
-        id: 'sp-aegis',
-        name: 'AEGIS PAY',
-        tier: 'PRESENTING SPONSOR',
-        tagline: 'INSTANT TOP-UP & REWARDS',
-        accentColor: '#FCD34D',
-        logoDataUrl: null,
-        monogram: 'AP',
-        active: true,
-        isSample: true,
+        isSample: false,
       },
     ],
     loop: {
-      cornerEnabled: true,
+      cornerEnabled: false,
       cornerPosition: 'top-right',
       cornerStageX: null,
       cornerStageY: null,
       cornerDurationSec: 5,
       cornerScale: 1,
-      tickerEnabled: true,
+      tickerEnabled: false,
       tickerLabel: 'OFFICIAL PARTNERS',
       tickerMessage: 'ERANGEL • MATCH 1 • LIVE BROADCAST',
       tickerSpeed: 105,
@@ -231,11 +230,13 @@ export const PRESETS = {
       podiumTitle: 'BROUGHT TO YOU BY',
       podiumDurationSec: 6,
       logoOnlyEnabled: true,
-      logoDurationSec: 3.5,
+      logoBoxEnabled: true,
+      logoDurationSec: 3.2,
       logoTransition: 'crossfade',
-      logoStageX: 16,
-      logoStageY: 14,
-      logoStageScale: 0.9,
+      logoStageX: 54,
+      logoStageY: 89,
+      logoStageScale: 0.88,
+      startingSoonSponsorsSeeded: true,
     },
     stinger: {
       style: 'volt-slash',

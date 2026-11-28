@@ -971,7 +971,7 @@ export default function OverlayMotionStudioView() {
                 Scene GFX
               </button>
               {[
-                { key: 'logoOnlyEnabled', label: 'Logo Drag' },
+                { key: 'logoOnlyEnabled', label: 'Kotak Logo Loop' },
                 { key: 'cornerEnabled', label: 'Corner Badge' },
                 { key: 'tickerEnabled', label: 'Ticker Bar' },
                 { key: 'podiumEnabled', label: 'Podium Card' },
@@ -1199,6 +1199,98 @@ export default function OverlayMotionStudioView() {
                         </button>
                       </div>
                     </div>
+
+                    {scene.kind === 'starting-soon' && (
+                      <div className="mt-2 pt-2 border-t border-white/[0.06] space-y-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(config.loop.logoOnlyEnabled)}
+                              onChange={(e) =>
+                                updateConfig({
+                                  ...config,
+                                  loop: { ...config.loop, logoOnlyEnabled: e.target.checked },
+                                })
+                              }
+                              className="accent-[#D7FF00]"
+                            />
+                            <span className="text-[11px] font-bold text-white">
+                              Kotak Logo Sponsor ({activeSponsors.length} aktif)
+                            </span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <label className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#D7FF00] hover:bg-[#e5ff47] text-zinc-950 text-[10px] font-extrabold cursor-pointer">
+                              <Plus className="w-3 h-3" />
+                              Tambah Logo
+                              <input
+                                type="file"
+                                accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                                hidden
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleAddSponsor(f);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('loop')}
+                              className="px-2 py-0.5 rounded bg-[#141418] border border-white/[0.10] text-[10px] font-semibold text-zinc-300 hover:text-white cursor-pointer"
+                            >
+                              Animasi
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {config.sponsors.map((sp) => (
+                            <div
+                              key={sp.id}
+                              className={`inline-flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-lg border text-[11px] transition ${
+                                sp.active
+                                  ? 'bg-[#070709] border-white/[0.14] text-zinc-100'
+                                  : 'bg-[#070709]/50 border-white/[0.06] text-zinc-500 opacity-60'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                title={sp.active ? `Sembunyikan ${sp.name}` : `Papar ${sp.name}`}
+                                onClick={() => updateSponsor(sp.id, { active: !sp.active })}
+                                className="inline-flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <span className="w-5 h-5 rounded bg-black/70 flex items-center justify-center overflow-hidden shrink-0">
+                                  {sp.logoDataUrl ? (
+                                    <img
+                                      src={sp.logoDataUrl}
+                                      alt={sp.name}
+                                      className="w-full h-full object-contain"
+                                    />
+                                  ) : (
+                                    <span className="text-[9px] font-bold">{sp.monogram}</span>
+                                  )}
+                                </span>
+                                <span className="max-w-[92px] truncate font-semibold">
+                                  {sp.name}
+                                </span>
+                              </button>
+                              {config.sponsors.length > 1 && (
+                                <button
+                                  type="button"
+                                  aria-label={`Buang ${sp.name}`}
+                                  title={`Buang ${sp.name}`}
+                                  onClick={() => removeSponsor(sp.id)}
+                                  className="p-0.5 rounded text-zinc-500 hover:text-rose-400 cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {scene.kind === 'standings' && (
                       <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2">
@@ -1767,10 +1859,23 @@ export default function OverlayMotionStudioView() {
                     className="accent-[#D7FF00]"
                   />
                   <span className="text-xs font-bold uppercase tracking-wider text-white">
-                    Pure Logo Loop
+                    Kotak Logo Sponsor Loop
                   </span>
                 </label>
-                <span className="text-[10px] font-mono text-[#D7FF00]">Tanpa Kad / Teks</span>
+                <label className="inline-flex items-center gap-1.5 text-[11px] text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.loop.logoBoxEnabled !== false}
+                    onChange={(e) =>
+                      updateConfig({
+                        ...config,
+                        loop: { ...config.loop, logoBoxEnabled: e.target.checked },
+                      })
+                    }
+                    className="accent-[#D7FF00]"
+                  />
+                  Bingkai Kotak
+                </label>
               </div>
 
               <div className="grid grid-cols-2 gap-1.5">
@@ -1808,7 +1913,7 @@ export default function OverlayMotionStudioView() {
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Hold / Logo</span>
                     <span className="font-mono tabular-nums">
-                      {config.loop.logoDurationSec ?? 3.5}s
+                      {config.loop.logoDurationSec ?? 3.2}s
                     </span>
                   </div>
                   <input
@@ -1816,7 +1921,7 @@ export default function OverlayMotionStudioView() {
                     min={1.5}
                     max={12}
                     step={0.5}
-                    value={config.loop.logoDurationSec ?? 3.5}
+                    value={config.loop.logoDurationSec ?? 3.2}
                     onChange={(e) =>
                       updateConfig({
                         ...config,
@@ -1828,17 +1933,17 @@ export default function OverlayMotionStudioView() {
                 </div>
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Saiz Preview</span>
+                    <span>Saiz Kotak</span>
                     <span className="font-mono tabular-nums">
-                      {Math.round((config.loop.logoStageScale ?? 0.72) * 100)}%
+                      {Math.round((config.loop.logoStageScale ?? 0.88) * 100)}%
                     </span>
                   </div>
                   <input
                     type="range"
-                    min={0.35}
-                    max={1.8}
+                    min={0.25}
+                    max={2.5}
                     step={0.05}
-                    value={config.loop.logoStageScale ?? 0.72}
+                    value={config.loop.logoStageScale ?? 0.88}
                     onChange={(e) =>
                       updateConfig({
                         ...config,
@@ -1853,15 +1958,15 @@ export default function OverlayMotionStudioView() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Posisi X (Preview)</span>
-                    <span className="font-mono tabular-nums">{config.loop.logoStageX ?? 29}%</span>
+                    <span>Posisi X</span>
+                    <span className="font-mono tabular-nums">{config.loop.logoStageX ?? 54}%</span>
                   </div>
                   <input
                     type="range"
-                    min={8}
-                    max={92}
+                    min={4}
+                    max={96}
                     step={1}
-                    value={config.loop.logoStageX ?? 29}
+                    value={config.loop.logoStageX ?? 54}
                     onChange={(e) =>
                       updateConfig({
                         ...config,
@@ -1873,15 +1978,15 @@ export default function OverlayMotionStudioView() {
                 </div>
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Posisi Y (Preview)</span>
-                    <span className="font-mono tabular-nums">{config.loop.logoStageY ?? 14}%</span>
+                    <span>Posisi Y</span>
+                    <span className="font-mono tabular-nums">{config.loop.logoStageY ?? 89}%</span>
                   </div>
                   <input
                     type="range"
-                    min={5}
-                    max={92}
+                    min={4}
+                    max={96}
                     step={1}
-                    value={config.loop.logoStageY ?? 14}
+                    value={config.loop.logoStageY ?? 89}
                     onChange={(e) =>
                       updateConfig({
                         ...config,
@@ -1895,7 +2000,7 @@ export default function OverlayMotionStudioView() {
 
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.06]">
                 <span className="text-[11px] text-zinc-400">
-                  Tip: Drag terus logo &amp; bucu pada stage utama
+                  Tip: Drag terus kotak &amp; bucu pada stage utama
                 </span>
                 <button
                   type="button"
@@ -1904,9 +2009,9 @@ export default function OverlayMotionStudioView() {
                       ...config,
                       loop: {
                         ...config.loop,
-                        logoStageX: 16,
-                        logoStageY: 14,
-                        logoStageScale: 0.9,
+                        logoStageX: 54,
+                        logoStageY: 89,
+                        logoStageScale: 0.88,
                         cornerStageX: null,
                         cornerStageY: null,
                       },

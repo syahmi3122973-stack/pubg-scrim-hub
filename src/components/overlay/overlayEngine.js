@@ -367,12 +367,51 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
   const cx = standalone ? ELEMENT_BOXES['logo-only'].width / 2 : logoBox.cx;
   const cy = standalone ? ELEMENT_BOXES['logo-only'].height / 2 : logoBox.cy;
   const userScale = standalone ? 1 : logoBox.scale;
+  const showBox = config?.loop?.logoBoxEnabled !== false;
+  const boxW = 320;
+  const boxH = 144;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(userScale, userScale);
+
+  if (showBox) {
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 6;
+    drawRoundedRect(ctx, -boxW / 2, -boxH / 2, boxW, boxH, 16);
+    ctx.fillStyle = 'rgba(10, 10, 14, 0.90)';
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.stroke();
+
+    // Accent bar on left inner edge + tiny slot dots on top-right
+    ctx.fillStyle = sponsor.accentColor || config?.primaryAccent || '#FACC15';
+    drawRoundedRect(ctx, -boxW / 2 + 12, -boxH / 2 + 16, 4, boxH - 32, 2);
+    ctx.fill();
+
+    if (sponsors.length > 1) {
+      for (let i = 0; i < sponsors.length; i++) {
+        const dx = boxW / 2 - 18 - (sponsors.length - 1 - i) * 11;
+        ctx.fillStyle = i === idx ? (sponsor.accentColor || '#FACC15') : 'rgba(255,255,255,0.22)';
+        drawRoundedRect(ctx, dx, -boxH / 2 + 14, i === idx ? 7 : 4, 4, 2);
+        ctx.fill();
+      }
+    }
+
+    drawRoundedRect(ctx, -boxW / 2 + 2, -boxH / 2 + 2, boxW - 4, boxH - 4, 14);
+    ctx.clip();
+  }
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.translate(cx + offsetX, cy + offsetY);
-  ctx.scale(userScale * animScale, userScale * animScale);
-  drawPureLogoMark(ctx, sponsor, 320, 144);
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(animScale, animScale);
+  drawPureLogoMark(ctx, sponsor, showBox ? 250 : 320, showBox ? 96 : 144);
+  ctx.restore();
+
   ctx.restore();
 }
 
