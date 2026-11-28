@@ -206,9 +206,8 @@ export default function OverlayStage({
   }, [isObs]);
 
   const stageStyle = useMemo(() => {
-    if (isObs) return { background: 'transparent' };
-    if (backdrop === 'chroma') {
-      return { backgroundColor: '#00b140' };
+    if (isObs || backdrop === 'chroma' || backdrop === 'transparent') {
+      return { background: 'transparent', backgroundColor: 'transparent' };
     }
     if (backdrop === 'alpha') {
       return {
@@ -348,7 +347,9 @@ export default function OverlayStage({
       className={
         isObs
           ? 'w-screen h-screen bg-transparent overflow-hidden'
-          : 'relative w-full aspect-video rounded-xl overflow-hidden border border-white/[0.12] bg-[#070709] select-none'
+          : `relative w-full aspect-video rounded-xl overflow-hidden border border-white/[0.12] select-none ${
+              backdrop === 'chroma' || backdrop === 'transparent' ? 'bg-transparent' : 'bg-[#070709]'
+            }`
       }
       style={stageStyle}
     >

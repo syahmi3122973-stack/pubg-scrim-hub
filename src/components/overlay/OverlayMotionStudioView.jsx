@@ -165,15 +165,15 @@ export default function OverlayMotionStudioView() {
 
   useEffect(() => {
     if (!route.isObs) return undefined;
-    const prevHtmlBg = document.documentElement.style.backgroundColor;
-    const prevBodyBg = document.body.style.backgroundColor;
+    const prevHtmlBg = document.documentElement.style.background;
+    const prevBodyBg = document.body.style.background;
     const prevBodyOverflow = document.body.style.overflow;
-    document.documentElement.style.backgroundColor = 'transparent';
-    document.body.style.backgroundColor = 'transparent';
+    document.documentElement.style.background = 'transparent';
+    document.body.style.background = 'transparent';
     document.body.style.overflow = 'hidden';
     return () => {
-      document.documentElement.style.backgroundColor = prevHtmlBg;
-      document.body.style.backgroundColor = prevBodyBg;
+      document.documentElement.style.background = prevHtmlBg;
+      document.body.style.background = prevBodyBg;
       document.body.style.overflow = prevBodyOverflow;
     };
   }, [route.isObs]);
@@ -823,7 +823,7 @@ export default function OverlayMotionStudioView() {
               {[
                 { id: 'erangel', label: 'PUBG Sim', Icon: Eye },
                 { id: 'alpha', label: 'Alpha Grid', Icon: Grid3X3 },
-                { id: 'chroma', label: 'Chroma', Icon: ShieldCheck },
+                { id: 'chroma', label: 'Transparent', Icon: ShieldCheck },
               ].map((b) => (
                 <button
                   key={b.id}
