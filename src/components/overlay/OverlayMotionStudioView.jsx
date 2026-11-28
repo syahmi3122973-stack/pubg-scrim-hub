@@ -123,6 +123,7 @@ export default function OverlayMotionStudioView() {
   const [customBackdropUrl, setCustomBackdropUrl] = useState(null);
   const [showSafeZones, setShowSafeZones] = useState(true);
   const [showSceneOverlay, setShowSceneOverlay] = useState(true);
+  const [selectedLayerKey, setSelectedLayerKey] = useState('logo');
   const [loopPaused, setLoopPaused] = useState(false);
   const [stingerRunKey, setStingerRunKey] = useState(0);
   const [stingerActive, setStingerActive] = useState(false);
@@ -898,6 +899,8 @@ export default function OverlayMotionStudioView() {
             stingerRunKey={stingerRunKey}
             activeSceneId={config.activeSceneId}
             showSceneOverlay={showSceneOverlay}
+            selectedLayerKey={selectedLayerKey}
+            onSelectLayer={setSelectedLayerKey}
             onActiveSponsorChange={setActiveSponsorIdx}
             onStingerActiveChange={setStingerActive}
             onUpdateLoopTransform={handleUpdateLogoTransform}
@@ -1298,6 +1301,78 @@ export default function OverlayMotionStudioView() {
                               )}
                             </div>
                           ))}
+                        </div>
+
+                        {/* Layer selector directly below Kotak Logo Sponsor */}
+                        <div className="pt-2 border-t border-white/[0.06] space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                              Pilih Layer (Ubah Posisi &amp; Saiz di Skrin Utama)
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {[
+                              { key: 'logo', enabledKey: 'logoOnlyEnabled', label: 'Kotak Logo Loop', dot: '#FACC15' },
+                              { key: 'corner', enabledKey: 'cornerEnabled', label: 'Corner Badge', dot: '#38BDF8' },
+                              { key: 'ticker', enabledKey: 'tickerEnabled', label: 'Ticker Bar', dot: '#34D399' },
+                              { key: 'podium', enabledKey: 'podiumEnabled', label: 'Podium Card', dot: '#A78BFA' },
+                            ].map((lt) => {
+                              const isOn = Boolean(config.loop[lt.enabledKey]);
+                              const isSel = selectedLayerKey === lt.key;
+                              return (
+                                <div
+                                  key={lt.key}
+                                  className={`flex items-center justify-between gap-1 rounded-lg border px-2 py-1.5 transition ${
+                                    isSel && isOn
+                                      ? 'bg-white/[0.07] border-[#D7FF00] text-white'
+                                      : isOn
+                                      ? 'bg-[#070709] border-white/[0.14] text-zinc-200 hover:border-white/[0.28]'
+                                      : 'bg-[#070709]/50 border-white/[0.06] text-zinc-500'
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedLayerKey(lt.key);
+                                      if (!isOn) {
+                                        updateConfig({
+                                          ...config,
+                                          loop: { ...config.loop, [lt.enabledKey]: true },
+                                        });
+                                      }
+                                    }}
+                                    className="flex-1 min-w-0 flex items-center gap-1.5 text-left cursor-pointer"
+                                  >
+                                    <span
+                                      className="w-2 h-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: isOn ? lt.dot : '#52525B' }}
+                                    />
+                                    <span className="text-[11px] font-semibold truncate">
+                                      {lt.label}
+                                    </span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title={isOn ? `Sembunyikan ${lt.label}` : `Aktifkan ${lt.label}`}
+                                    aria-label={isOn ? `Sembunyikan ${lt.label}` : `Aktifkan ${lt.label}`}
+                                    onClick={() =>
+                                      updateConfig({
+                                        ...config,
+                                        loop: { ...config.loop, [lt.enabledKey]: !isOn },
+                                      })
+                                    }
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold cursor-pointer ${
+                                      isOn
+                                        ? 'bg-emerald-500/20 text-emerald-300'
+                                        : 'bg-white/[0.05] text-zinc-500'
+                                    }`}
+                                  >
+                                    {isOn ? 'ON' : 'OFF'}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}

@@ -31,6 +31,8 @@ export default function OverlayStage({
   isObs = false,
   activeSceneId = null,
   showSceneOverlay = true,
+  selectedLayerKey = 'logo',
+  onSelectLayer = null,
   onActiveSponsorChange,
   onStingerActiveChange,
   onUpdateLoopTransform = null,
@@ -315,6 +317,7 @@ export default function OverlayStage({
     if (!stageRef.current || !onUpdateLoopTransform) return;
     e.preventDefault();
     e.stopPropagation();
+    onSelectLayer?.(item.key);
 
     const rect = stageRef.current.getBoundingClientRect();
     const origX = (item.box.cx / STAGE_WIDTH) * 100;
@@ -378,7 +381,9 @@ export default function OverlayStage({
       />
 
       {interactiveLayers.map((item) => {
-        const isActive = hoveredTarget === item.key || dragState?.target === item.key;
+        const isSelected = selectedLayerKey === item.key;
+        const isActive =
+          isSelected || hoveredTarget === item.key || dragState?.target === item.key;
         return (
           <div
             key={item.key}
@@ -399,7 +404,11 @@ export default function OverlayStage({
               backgroundColor: isActive ? `${item.accent}0D` : 'transparent',
             }}
             className={`absolute cursor-move rounded-lg border border-dashed transition-colors ${
-              isActive ? 'border-2 shadow-[0_0_0_1px_rgba(0,0,0,0.6)] z-20' : 'z-10'
+              isSelected
+                ? 'border-2 shadow-[0_0_0_1px_rgba(0,0,0,0.65)] z-30'
+                : isActive
+                ? 'border-2 shadow-[0_0_0_1px_rgba(0,0,0,0.6)] z-20'
+                : 'z-10'
             }`}
           >
             {isActive && (
