@@ -31,6 +31,71 @@ export const SCENE_KIND_OPTIONS = [
   { kind: 'custom', label: 'Custom Scene', subtitle: 'SIARAN LANGSUNG KEJOHANAN' },
 ];
 
+export function createDefaultSceneLoop(sceneId) {
+  const isStartingSoon = sceneId === 'starting-soon';
+  return {
+    logoOnlyEnabled: isStartingSoon,
+    logoBoxEnabled: true,
+    logoDurationSec: 3.2,
+    logoTransition: 'crossfade',
+    logoStageX: 54,
+    logoStageY: 89,
+    logoStageScale: 0.88,
+    cornerEnabled: false,
+    cornerPosition: 'top-right',
+    cornerStageX: null,
+    cornerStageY: null,
+    cornerDurationSec: 5,
+    cornerScale: 1,
+    tickerEnabled: false,
+    tickerLabel: 'OFFICIAL PARTNERS',
+    tickerMessage: 'ERANGEL • MATCH 1 • LIVE BROADCAST',
+    tickerSpeed: 105,
+    tickerStageX: null,
+    tickerStageY: null,
+    tickerScale: 1,
+    podiumEnabled: false,
+    podiumTitle: 'BROUGHT TO YOU BY',
+    podiumDurationSec: 6,
+    podiumStageX: null,
+    podiumStageY: null,
+    podiumScale: 1,
+  };
+}
+
+export function resolveConfigForScene(config, sceneId = null) {
+  if (!config) return config;
+  const scenes = config.scenes || [];
+  const targetId = sceneId || config.activeSceneId;
+  const scene = scenes.find((s) => s.id === targetId) || scenes[0] || null;
+  const resolvedLoop = {
+    ...(config.loop || {}),
+    ...(scene?.loop || {}),
+  };
+  const txMap = scene?.sponsorTransforms || {};
+  const resolvedSponsors = (config.sponsors || []).map((sp) => {
+    const tx = txMap[sp.id];
+    if (!tx) return sp;
+    return {
+      ...sp,
+      active: typeof tx.active === 'boolean' ? tx.active : sp.active,
+      imgOffsetX: Number.isFinite(Number(tx.imgOffsetX))
+        ? Number(tx.imgOffsetX)
+        : sp.imgOffsetX || 0,
+      imgOffsetY: Number.isFinite(Number(tx.imgOffsetY))
+        ? Number(tx.imgOffsetY)
+        : sp.imgOffsetY || 0,
+      imgScale: Number.isFinite(Number(tx.imgScale)) ? Number(tx.imgScale) : sp.imgScale ?? 1,
+    };
+  });
+  return {
+    ...config,
+    activeSceneId: scene ? scene.id : targetId,
+    loop: resolvedLoop,
+    sponsors: resolvedSponsors,
+  };
+}
+
 export function createDefaultScenes() {
   return [
     {
@@ -39,6 +104,8 @@ export function createDefaultScenes() {
       kind: 'starting-soon',
       subtitle: 'BERSIAP SEDIA • LOBBY AKAN BERMULA',
       imageDataUrl: defaultStartingSoonImage,
+      loop: createDefaultSceneLoop('starting-soon'),
+      sponsorTransforms: {},
       builtIn: true,
     },
     {
@@ -46,6 +113,8 @@ export function createDefaultScenes() {
       name: 'In game flight',
       kind: 'in-game-flight',
       subtitle: 'FLIGHT PATH • DROP ZONE PHASE',
+      loop: createDefaultSceneLoop('in-game-flight'),
+      sponsorTransforms: {},
       builtIn: true,
     },
     {
@@ -53,6 +122,8 @@ export function createDefaultScenes() {
       name: 'Caster Scene',
       kind: 'caster',
       subtitle: 'ANALISIS & ULASAN PENYIAR',
+      loop: createDefaultSceneLoop('caster'),
+      sponsorTransforms: {},
       builtIn: true,
     },
     {
@@ -60,6 +131,8 @@ export function createDefaultScenes() {
       name: 'Ingame Map',
       kind: 'ingame-map',
       subtitle: 'PAPARAN PETA & ZON SEMASA',
+      loop: createDefaultSceneLoop('ingame-map'),
+      sponsorTransforms: {},
       builtIn: true,
     },
     {
@@ -67,6 +140,8 @@ export function createDefaultScenes() {
       name: 'Standings Match',
       kind: 'standings',
       subtitle: 'KEDUDUKAN MATA RASMI',
+      loop: createDefaultSceneLoop('standings'),
+      sponsorTransforms: {},
       builtIn: true,
     },
     {
@@ -74,6 +149,8 @@ export function createDefaultScenes() {
       name: 'Point System',
       kind: 'point-system',
       subtitle: 'FORMAT PEMARKAHAN PMGC',
+      loop: createDefaultSceneLoop('point-system'),
+      sponsorTransforms: {},
       builtIn: true,
     },
     {
@@ -81,6 +158,8 @@ export function createDefaultScenes() {
       name: 'Intermission',
       kind: 'intermission',
       subtitle: 'REHAT SEBENTAR • MATCH SETERUSNYA',
+      loop: createDefaultSceneLoop('intermission'),
+      sponsorTransforms: {},
       builtIn: true,
     },
   ];
@@ -137,11 +216,42 @@ export function normalizeOverlayConfig(raw) {
     imgScale: Number.isFinite(Number(sp?.imgScale)) ? Number(sp.imgScale) : 1,
   }));
   const rawScenes = Array.isArray(raw.scenes) && raw.scenes.length > 0 ? raw.scenes : createDefaultScenes();
-  const scenes = rawScenes.map((sc) =>
-    sc?.id === 'starting-soon' && sc.imageDataUrl === undefined
-      ? { ...sc, imageDataUrl: defaultStartingSoonImage }
-      : sc
-  );
+  const scenes = rawScenes.map((sc) => {
+    const baseLoop = createDefaultSceneLoop(sc?.id || sc?.kind);
+    let sceneLoop = sc?.loop;
+    let sceneSponsorTx = sc?.sponsorTransforms;
+
+    if (!sceneLoop) {
+      if (sc?.id === 'starting-soon' && raw.loop) {
+        sceneLoop = { ...baseLoop, ...raw.loop, logoOnlyEnabled: true };
+        sceneSponsorTx = {};
+        sponsors.forEach((sp) => {
+          if (sp.imgOffsetX || sp.imgOffsetY || (sp.imgScale && sp.imgScale !== 1) || sp.active === false) {
+            sceneSponsorTx[sp.id] = {
+              active: sp.active !== false,
+              imgOffsetX: sp.imgOffsetX || 0,
+              imgOffsetY: sp.imgOffsetY || 0,
+              imgScale: sp.imgScale ?? 1,
+            };
+          }
+        });
+      } else {
+        sceneLoop = baseLoop;
+      }
+    } else {
+      sceneLoop = { ...baseLoop, ...sceneLoop };
+    }
+
+    return {
+      ...sc,
+      imageDataUrl:
+        sc?.id === 'starting-soon' && sc.imageDataUrl === undefined
+          ? defaultStartingSoonImage
+          : sc?.imageDataUrl,
+      loop: sceneLoop,
+      sponsorTransforms: sceneSponsorTx || {},
+    };
+  });
   const activeSceneId =
     raw.activeSceneId && scenes.some((sc) => sc.id === raw.activeSceneId)
       ? raw.activeSceneId

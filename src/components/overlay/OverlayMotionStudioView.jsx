@@ -40,10 +40,12 @@ import {
 import {
   PRESETS,
   SCENE_KIND_OPTIONS,
+  createDefaultSceneLoop,
   defaultStartingSoonImage,
   diyStingerLogo,
   getPlacementPoints,
   normalizeOverlayConfig,
+  resolveConfigForScene,
 } from './presets';
 import {
   buildClientPackZip,
@@ -377,6 +379,10 @@ export default function OverlayMotionStudioView() {
     [config, obsLayer, obsOrigin, roomId]
   );
   const supportedMime = useMemo(() => getSupportedWebmMimeType(), []);
+  const activeSceneConfig = useMemo(
+    () => resolveConfigForScene(config, config.activeSceneId),
+    [config]
+  );
 
   // Pure OBS Browser Source view
   if (route.isObs) {
@@ -394,7 +400,7 @@ export default function OverlayMotionStudioView() {
     );
   }
 
-  const activeSponsors = config.sponsors.filter((s) => s.active);
+  const activeSponsors = activeSceneConfig.sponsors.filter((s) => s.active);
   const currentSponsor = activeSponsors[activeSponsorIdx % Math.max(1, activeSponsors.length)];
   const cutPointMs = Math.round(config.stinger.durationMs * config.stinger.cutPointRatio);
   const activeSceneObj =
@@ -407,31 +413,45 @@ export default function OverlayMotionStudioView() {
     updateConfig(normalizeOverlayConfig(structuredClone(PRESETS[mode])));
   };
 
-  const handleUpdateLogoTransform = (patch) => {
+  const updateActiveSceneLoop = (patch, opts = { immediateRemote: true }) => {
     const cur = latestConfigRef.current;
-    updateConfig(
-      {
-        ...cur,
-        loop: { ...cur.loop, ...patch },
-      },
-      { immediateRemote: false }
-    );
+    const targetId = cur.activeSceneId || cur.scenes?.[0]?.id;
+    const nextScenes = (cur.scenes || []).map((sc) => {
+      if (sc.id !== targetId) return sc;
+      const baseLoop = sc.loop || createDefaultSceneLoop(sc.id);
+      return { ...sc, loop: { ...baseLoop, ...patch } };
+    });
+    updateConfig({ ...cur, scenes: nextScenes }, opts);
+  };
+
+  const updateActiveSceneSponsor = (sponsorId, patch, opts = { immediateRemote: true }) => {
+    const cur = latestConfigRef.current;
+    const targetId = cur.activeSceneId || cur.scenes?.[0]?.id;
+    const nextScenes = (cur.scenes || []).map((sc) => {
+      if (sc.id !== targetId) return sc;
+      const prevMap = sc.sponsorTransforms || {};
+      const prevTx = prevMap[sponsorId] || {};
+      return {
+        ...sc,
+        sponsorTransforms: {
+          ...prevMap,
+          [sponsorId]: { ...prevTx, ...patch },
+        },
+      };
+    });
+    updateConfig({ ...cur, scenes: nextScenes }, opts);
+  };
+
+  const handleUpdateLogoTransform = (patch) => {
+    updateActiveSceneLoop(patch, { immediateRemote: false });
   };
 
   const handleUpdateSponsorTransform = (sponsorId, patch) => {
-    const cur = latestConfigRef.current;
-    updateConfig(
-      {
-        ...cur,
-        sponsors: (cur.sponsors || []).map((s) =>
-          s.id === sponsorId ? { ...s, ...patch } : s
-        ),
-      },
-      { immediateRemote: false }
-    );
+    updateActiveSceneSponsor(sponsorId, patch, { immediateRemote: false });
   };
 
   const selectScene = (sceneId) => {
+    setEditingSponsorImgId(null);
     updateConfig({ ...config, activeSceneId: sceneId });
   };
 
@@ -466,6 +486,8 @@ export default function OverlayMotionStudioView() {
       name: trimmed.slice(0, 32),
       kind: newSceneKind || 'custom',
       subtitle: 'SIARAN LANGSUNG PUBG MOBILE',
+      loop: createDefaultSceneLoop(id),
+      sponsorTransforms: {},
       builtIn: false,
     };
     updateConfig({
@@ -1062,17 +1084,12 @@ export default function OverlayMotionStudioView() {
                 { key: 'tickerEnabled', label: 'Ticker Bar' },
                 { key: 'podiumEnabled', label: 'Podium Card' },
               ].map((item) => {
-                const enabled = config.loop[item.key];
+                const enabled = activeSceneConfig.loop[item.key];
                 return (
                   <button
                     key={item.key}
                     type="button"
-                    onClick={() =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, [item.key]: !enabled },
-                      })
-                    }
+                    onClick={() => updateActiveSceneLoop({ [item.key]: !enabled })}
                     className={`px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
                       enabled
                         ? 'bg-[#D7FF00] text-zinc-950 font-bold'
@@ -1286,23 +1303,20 @@ export default function OverlayMotionStudioView() {
                       </div>
                     </div>
 
-                    {scene.kind === 'starting-soon' && (
+                    {isActive && (
                       <div className="mt-2 pt-2 border-t border-white/[0.06] space-y-2">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <label className="inline-flex items-center gap-1.5 cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={Boolean(config.loop.logoOnlyEnabled)}
+                              checked={Boolean(activeSceneConfig.loop.logoOnlyEnabled)}
                               onChange={(e) =>
-                                updateConfig({
-                                  ...config,
-                                  loop: { ...config.loop, logoOnlyEnabled: e.target.checked },
-                                })
+                                updateActiveSceneLoop({ logoOnlyEnabled: e.target.checked })
                               }
                               className="accent-[#D7FF00]"
                             />
                             <span className="text-[11px] font-bold text-white">
-                              Kotak Logo Sponsor ({activeSponsors.length} aktif)
+                              Kotak Logo Sponsor ({activeSponsors.length} aktif di scene ini)
                             </span>
                           </label>
                           <div className="flex items-center gap-1.5">
@@ -1331,7 +1345,7 @@ export default function OverlayMotionStudioView() {
                         </div>
 
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {config.sponsors.map((sp) => (
+                          {activeSceneConfig.sponsors.map((sp) => (
                             <div
                               key={sp.id}
                               className={`inline-flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-lg border text-[11px] transition ${
@@ -1342,8 +1356,14 @@ export default function OverlayMotionStudioView() {
                             >
                               <button
                                 type="button"
-                                title={sp.active ? `Sembunyikan ${sp.name}` : `Papar ${sp.name}`}
-                                onClick={() => updateSponsor(sp.id, { active: !sp.active })}
+                                title={
+                                  sp.active
+                                    ? `Sembunyikan ${sp.name} di scene ini`
+                                    : `Papar ${sp.name} di scene ini`
+                                }
+                                onClick={() =>
+                                  updateActiveSceneSponsor(sp.id, { active: !sp.active })
+                                }
                                 className="inline-flex items-center gap-1.5 cursor-pointer"
                               >
                                 <span className="w-5 h-5 rounded bg-black/70 flex items-center justify-center overflow-hidden shrink-0">
@@ -1376,11 +1396,11 @@ export default function OverlayMotionStudioView() {
                           ))}
                         </div>
 
-                        {/* Uploaded sponsor logo image selector directly below Kotak Logo Sponsor */}
+                        {/* Uploaded sponsor logo image selector for this scene */}
                         <div className="pt-2 border-t border-white/[0.06] space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
-                              Pilih Logo (Drag Posisi &amp; Saiz Individu)
+                              Pilih Logo ({scene.name} — Posisi &amp; Saiz)
                             </span>
                             {editingSponsorImgId && (
                               <button
@@ -1398,15 +1418,13 @@ export default function OverlayMotionStudioView() {
                               onClick={() => {
                                 setEditingSponsorImgId(null);
                                 setSelectedLayerKey('logo');
-                                if (!config.loop.logoOnlyEnabled) {
-                                  updateConfig({
-                                    ...config,
-                                    loop: { ...config.loop, logoOnlyEnabled: true },
-                                  });
+                                if (!activeSceneConfig.loop.logoOnlyEnabled) {
+                                  updateActiveSceneLoop({ logoOnlyEnabled: true });
                                 }
                               }}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition cursor-pointer ${
-                                editingSponsorImgId === null
+                                editingSponsorImgId === null &&
+                                activeSceneConfig.loop.logoOnlyEnabled
                                   ? 'bg-white/[0.08] border-[#D7FF00] text-[#D7FF00]'
                                   : 'bg-[#070709] border-white/[0.12] text-zinc-300 hover:border-white/[0.26]'
                               }`}
@@ -1414,7 +1432,7 @@ export default function OverlayMotionStudioView() {
                               Kotak Luar (Loop)
                             </button>
 
-                            {config.sponsors.map((sp) => {
+                            {activeSceneConfig.sponsors.map((sp) => {
                               const isSel = editingSponsorImgId === sp.id;
                               const pct = Math.round((sp.imgScale ?? 1) * 100);
                               const hasOffset =
@@ -1432,14 +1450,11 @@ export default function OverlayMotionStudioView() {
                                     type="button"
                                     onClick={() => {
                                       setEditingSponsorImgId(sp.id);
-                                      if (!config.loop.logoOnlyEnabled || !sp.active) {
-                                        updateConfig({
-                                          ...config,
-                                          loop: { ...config.loop, logoOnlyEnabled: true },
-                                          sponsors: config.sponsors.map((row) =>
-                                            row.id === sp.id ? { ...row, active: true } : row
-                                          ),
-                                        });
+                                      if (!activeSceneConfig.loop.logoOnlyEnabled) {
+                                        updateActiveSceneLoop({ logoOnlyEnabled: true });
+                                      }
+                                      if (!sp.active) {
+                                        updateActiveSceneSponsor(sp.id, { active: true });
                                       }
                                     }}
                                     className="inline-flex items-center gap-1.5 text-[11px] font-semibold cursor-pointer"
@@ -1468,7 +1483,7 @@ export default function OverlayMotionStudioView() {
                                       aria-label={`Reset saiz dan posisi ${sp.name}`}
                                       title={`Reset posisi & saiz ${sp.name}`}
                                       onClick={() =>
-                                        updateSponsor(sp.id, {
+                                        updateActiveSceneSponsor(sp.id, {
                                           imgOffsetX: 0,
                                           imgOffsetY: 0,
                                           imgScale: 1,
@@ -2038,18 +2053,22 @@ export default function OverlayMotionStudioView() {
             hidden={activeTab !== 'loop'}
             className="p-4 overflow-y-auto flex-1 space-y-3"
           >
-            {/* Pure Logo Loop (Starting Soon / Custom Scene) */}
+            <div className="rounded-lg bg-[#0A0A0C] border border-[#D7FF00]/25 px-3 py-2 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-zinc-400">Profil Scene Semasa:</span>
+              <span className="text-xs font-bold text-[#D7FF00] truncate">
+                {activeSceneObj?.name || 'Scene'}
+              </span>
+            </div>
+
+            {/* Kotak Logo Sponsor Loop (Per-Scene) */}
             <div className="rounded-xl bg-[#0A0A0C] border border-white/[0.10] p-3.5 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={Boolean(config.loop.logoOnlyEnabled)}
+                    checked={Boolean(activeSceneConfig.loop.logoOnlyEnabled)}
                     onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, logoOnlyEnabled: e.target.checked },
-                      })
+                      updateActiveSceneLoop({ logoOnlyEnabled: e.target.checked })
                     }
                     className="accent-[#D7FF00]"
                   />
@@ -2060,12 +2079,9 @@ export default function OverlayMotionStudioView() {
                 <label className="inline-flex items-center gap-1.5 text-[11px] text-zinc-300 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={config.loop.logoBoxEnabled !== false}
+                    checked={activeSceneConfig.loop.logoBoxEnabled !== false}
                     onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, logoBoxEnabled: e.target.checked },
-                      })
+                      updateActiveSceneLoop({ logoBoxEnabled: e.target.checked })
                     }
                     className="accent-[#D7FF00]"
                   />
@@ -2080,17 +2096,12 @@ export default function OverlayMotionStudioView() {
                   { value: 'zoom', label: 'Zoom Pop' },
                   { value: 'slide-left', label: 'Slide Left' },
                 ].map((anim) => {
-                  const active = (config.loop.logoTransition || 'crossfade') === anim.value;
+                  const active = (activeSceneConfig.loop.logoTransition || 'crossfade') === anim.value;
                   return (
                     <button
                       key={anim.value}
                       type="button"
-                      onClick={() =>
-                        updateConfig({
-                          ...config,
-                          loop: { ...config.loop, logoTransition: anim.value },
-                        })
-                      }
+                      onClick={() => updateActiveSceneLoop({ logoTransition: anim.value })}
                       className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                         active
                           ? 'bg-[#D7FF00] text-zinc-950 font-bold'
@@ -2108,7 +2119,7 @@ export default function OverlayMotionStudioView() {
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Hold / Logo</span>
                     <span className="font-mono tabular-nums">
-                      {config.loop.logoDurationSec ?? 3.2}s
+                      {activeSceneConfig.loop.logoDurationSec ?? 3.2}s
                     </span>
                   </div>
                   <input
@@ -2116,12 +2127,9 @@ export default function OverlayMotionStudioView() {
                     min={1.5}
                     max={12}
                     step={0.5}
-                    value={config.loop.logoDurationSec ?? 3.2}
+                    value={activeSceneConfig.loop.logoDurationSec ?? 3.2}
                     onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, logoDurationSec: Number(e.target.value) },
-                      })
+                      updateActiveSceneLoop({ logoDurationSec: Number(e.target.value) })
                     }
                     className="w-full accent-[#D7FF00]"
                   />
@@ -2130,7 +2138,7 @@ export default function OverlayMotionStudioView() {
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Saiz Kotak</span>
                     <span className="font-mono tabular-nums">
-                      {Math.round((config.loop.logoStageScale ?? 0.88) * 100)}%
+                      {Math.round((activeSceneConfig.loop.logoStageScale ?? 0.88) * 100)}%
                     </span>
                   </div>
                   <input
@@ -2138,12 +2146,9 @@ export default function OverlayMotionStudioView() {
                     min={0.25}
                     max={2.5}
                     step={0.05}
-                    value={config.loop.logoStageScale ?? 0.88}
+                    value={activeSceneConfig.loop.logoStageScale ?? 0.88}
                     onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, logoStageScale: Number(e.target.value) },
-                      })
+                      updateActiveSceneLoop({ logoStageScale: Number(e.target.value) })
                     }
                     className="w-full accent-[#D7FF00]"
                   />
@@ -2154,40 +2159,34 @@ export default function OverlayMotionStudioView() {
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Posisi X</span>
-                    <span className="font-mono tabular-nums">{config.loop.logoStageX ?? 54}%</span>
+                    <span className="font-mono tabular-nums">
+                      {activeSceneConfig.loop.logoStageX ?? 54}%
+                    </span>
                   </div>
                   <input
                     type="range"
                     min={4}
                     max={96}
                     step={1}
-                    value={config.loop.logoStageX ?? 54}
-                    onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, logoStageX: Number(e.target.value) },
-                      })
-                    }
+                    value={activeSceneConfig.loop.logoStageX ?? 54}
+                    onChange={(e) => updateActiveSceneLoop({ logoStageX: Number(e.target.value) })}
                     className="w-full accent-[#D7FF00]"
                   />
                 </div>
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Posisi Y</span>
-                    <span className="font-mono tabular-nums">{config.loop.logoStageY ?? 89}%</span>
+                    <span className="font-mono tabular-nums">
+                      {activeSceneConfig.loop.logoStageY ?? 89}%
+                    </span>
                   </div>
                   <input
                     type="range"
                     min={4}
                     max={96}
                     step={1}
-                    value={config.loop.logoStageY ?? 89}
-                    onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, logoStageY: Number(e.target.value) },
-                      })
-                    }
+                    value={activeSceneConfig.loop.logoStageY ?? 89}
+                    onChange={(e) => updateActiveSceneLoop({ logoStageY: Number(e.target.value) })}
                     className="w-full accent-[#D7FF00]"
                   />
                 </div>
@@ -2200,23 +2199,19 @@ export default function OverlayMotionStudioView() {
                 <button
                   type="button"
                   onClick={() =>
-                    updateConfig({
-                      ...config,
-                      loop: {
-                        ...config.loop,
-                        logoStageX: 54,
-                        logoStageY: 89,
-                        logoStageScale: 0.88,
-                        cornerStageX: null,
-                        cornerStageY: null,
-                        cornerScale: 1,
-                        tickerStageX: null,
-                        tickerStageY: null,
-                        tickerScale: 1,
-                        podiumStageX: null,
-                        podiumStageY: null,
-                        podiumScale: 1,
-                      },
+                    updateActiveSceneLoop({
+                      logoStageX: 54,
+                      logoStageY: 89,
+                      logoStageScale: 0.88,
+                      cornerStageX: null,
+                      cornerStageY: null,
+                      cornerScale: 1,
+                      tickerStageX: null,
+                      tickerStageY: null,
+                      tickerScale: 1,
+                      podiumStageX: null,
+                      podiumStageY: null,
+                      podiumScale: 1,
                     })
                   }
                   className="px-2 py-1 rounded bg-[#141418] border border-white/[0.10] text-[11px] font-semibold text-zinc-300 hover:text-white cursor-pointer"
@@ -2231,13 +2226,8 @@ export default function OverlayMotionStudioView() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={config.loop.cornerEnabled}
-                  onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, cornerEnabled: e.target.checked },
-                    })
-                  }
+                  checked={Boolean(activeSceneConfig.loop.cornerEnabled)}
+                  onChange={(e) => updateActiveSceneLoop({ cornerEnabled: e.target.checked })}
                   className="accent-[#D7FF00]"
                 />
                 <span className="text-xs font-bold uppercase tracking-wider text-white">
@@ -2247,17 +2237,12 @@ export default function OverlayMotionStudioView() {
 
               <div className="grid grid-cols-2 gap-1.5">
                 {CORNERS.map((c) => {
-                  const active = config.loop.cornerPosition === c.value;
+                  const active = activeSceneConfig.loop.cornerPosition === c.value;
                   return (
                     <button
                       key={c.value}
                       type="button"
-                      onClick={() =>
-                        updateConfig({
-                          ...config,
-                          loop: { ...config.loop, cornerPosition: c.value },
-                        })
-                      }
+                      onClick={() => updateActiveSceneLoop({ cornerPosition: c.value })}
                       className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                         active
                           ? 'bg-[#D7FF00] text-zinc-950 font-bold'
@@ -2274,19 +2259,18 @@ export default function OverlayMotionStudioView() {
                 <div>
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Hold / Sponsor</span>
-                    <span className="font-mono tabular-nums">{config.loop.cornerDurationSec}s</span>
+                    <span className="font-mono tabular-nums">
+                      {activeSceneConfig.loop.cornerDurationSec}s
+                    </span>
                   </div>
                   <input
                     type="range"
                     min={2}
                     max={15}
                     step={0.5}
-                    value={config.loop.cornerDurationSec}
+                    value={activeSceneConfig.loop.cornerDurationSec}
                     onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, cornerDurationSec: Number(e.target.value) },
-                      })
+                      updateActiveSceneLoop({ cornerDurationSec: Number(e.target.value) })
                     }
                     className="w-full accent-[#D7FF00]"
                   />
@@ -2295,21 +2279,16 @@ export default function OverlayMotionStudioView() {
                   <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                     <span>Saiz</span>
                     <span className="font-mono tabular-nums">
-                      {Math.round(config.loop.cornerScale * 100)}%
+                      {Math.round(activeSceneConfig.loop.cornerScale * 100)}%
                     </span>
                   </div>
                   <input
                     type="range"
-                    min={0.75}
-                    max={1.3}
+                    min={0.35}
+                    max={2.2}
                     step={0.05}
-                    value={config.loop.cornerScale}
-                    onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, cornerScale: Number(e.target.value) },
-                      })
-                    }
+                    value={activeSceneConfig.loop.cornerScale}
+                    onChange={(e) => updateActiveSceneLoop({ cornerScale: Number(e.target.value) })}
                     className="w-full accent-[#D7FF00]"
                   />
                 </div>
@@ -2321,13 +2300,8 @@ export default function OverlayMotionStudioView() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={config.loop.tickerEnabled}
-                  onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, tickerEnabled: e.target.checked },
-                    })
-                  }
+                  checked={Boolean(activeSceneConfig.loop.tickerEnabled)}
+                  onChange={(e) => updateActiveSceneLoop({ tickerEnabled: e.target.checked })}
                   className="accent-[#D7FF00]"
                 />
                 <span className="text-xs font-bold uppercase tracking-wider text-white">
@@ -2339,15 +2313,10 @@ export default function OverlayMotionStudioView() {
                 <label className="block text-[11px] text-zinc-400 mb-1">Label Pill Kiri</label>
                 <input
                   type="text"
-                  value={config.loop.tickerLabel}
+                  value={activeSceneConfig.loop.tickerLabel}
                   maxLength={22}
                   className={inputClass}
-                  onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, tickerLabel: e.target.value },
-                    })
-                  }
+                  onChange={(e) => updateActiveSceneLoop({ tickerLabel: e.target.value })}
                 />
               </div>
 
@@ -2357,35 +2326,27 @@ export default function OverlayMotionStudioView() {
                 </label>
                 <input
                   type="text"
-                  value={config.loop.tickerMessage}
+                  value={activeSceneConfig.loop.tickerMessage}
                   maxLength={44}
                   className={inputClass}
-                  onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, tickerMessage: e.target.value },
-                    })
-                  }
+                  onChange={(e) => updateActiveSceneLoop({ tickerMessage: e.target.value })}
                 />
               </div>
 
               <div>
                 <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                   <span>Kelajuan Marquee</span>
-                  <span className="font-mono tabular-nums">{config.loop.tickerSpeed} px/s</span>
+                  <span className="font-mono tabular-nums">
+                    {activeSceneConfig.loop.tickerSpeed} px/s
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={50}
                   max={220}
                   step={10}
-                  value={config.loop.tickerSpeed}
-                  onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, tickerSpeed: Number(e.target.value) },
-                    })
-                  }
+                  value={activeSceneConfig.loop.tickerSpeed}
+                  onChange={(e) => updateActiveSceneLoop({ tickerSpeed: Number(e.target.value) })}
                   className="w-full accent-[#D7FF00]"
                 />
               </div>
@@ -2397,13 +2358,8 @@ export default function OverlayMotionStudioView() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={config.loop.podiumEnabled}
-                    onChange={(e) =>
-                      updateConfig({
-                        ...config,
-                        loop: { ...config.loop, podiumEnabled: e.target.checked },
-                      })
-                    }
+                    checked={Boolean(activeSceneConfig.loop.podiumEnabled)}
+                    onChange={(e) => updateActiveSceneLoop({ podiumEnabled: e.target.checked })}
                     className="accent-[#D7FF00]"
                   />
                   <span className="text-xs font-bold uppercase tracking-wider text-white">
@@ -2417,34 +2373,28 @@ export default function OverlayMotionStudioView() {
                 <label className="block text-[11px] text-zinc-400 mb-1">Tajuk Header Kad</label>
                 <input
                   type="text"
-                  value={config.loop.podiumTitle}
+                  value={activeSceneConfig.loop.podiumTitle}
                   maxLength={24}
                   className={inputClass}
-                  onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, podiumTitle: e.target.value },
-                    })
-                  }
+                  onChange={(e) => updateActiveSceneLoop({ podiumTitle: e.target.value })}
                 />
               </div>
 
               <div>
                 <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
                   <span>Hold / Kad</span>
-                  <span className="font-mono tabular-nums">{config.loop.podiumDurationSec}s</span>
+                  <span className="font-mono tabular-nums">
+                    {activeSceneConfig.loop.podiumDurationSec}s
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={3}
                   max={15}
                   step={0.5}
-                  value={config.loop.podiumDurationSec}
+                  value={activeSceneConfig.loop.podiumDurationSec}
                   onChange={(e) =>
-                    updateConfig({
-                      ...config,
-                      loop: { ...config.loop, podiumDurationSec: Number(e.target.value) },
-                    })
+                    updateActiveSceneLoop({ podiumDurationSec: Number(e.target.value) })
                   }
                   className="w-full accent-[#D7FF00]"
                 />

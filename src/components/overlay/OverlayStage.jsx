@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { resolveConfigForScene } from './presets';
 import {
   STAGE_HEIGHT,
   STAGE_WIDTH,
@@ -144,30 +145,31 @@ export default function OverlayStage({
       const targetSceneId = activeSceneIdRef.current || cfg?.activeSceneId;
       const activeScene =
         scenes.find((s) => s.id === targetSceneId) || scenes[0] || null;
+      const sceneCfg = resolveConfigForScene(cfg, targetSceneId);
 
       if (
         showSceneOverlayRef.current &&
         activeScene &&
         (activeLayer === 'all' || activeLayer === 'scene')
       ) {
-        renderActiveScene(ctx, cfg, activeScene, elapsed);
+        renderActiveScene(ctx, sceneCfg, activeScene, elapsed);
       }
 
       const previewId = !isObs ? previewSponsorIdRef.current : null;
       if (activeLayer === 'all' || activeLayer === 'loop') {
-        renderSponsorLoops(ctx, cfg, elapsed, previewId);
+        renderSponsorLoops(ctx, sceneCfg, elapsed, previewId);
       } else if (
         activeLayer === 'logo-only' ||
         activeLayer === 'corner' ||
         activeLayer === 'ticker' ||
         activeLayer === 'podium'
       ) {
-        renderLayerOnStage(ctx, cfg, activeLayer, elapsed, previewId);
+        renderLayerOnStage(ctx, sceneCfg, activeLayer, elapsed, previewId);
       }
 
-      const activeSponsors = getActiveSponsors(cfg);
+      const activeSponsors = getActiveSponsors(sceneCfg);
       if (activeSponsors.length > 0 && onActiveSponsorChangeRef.current) {
-        const hold = Math.max(1500, (Number(cfg?.loop?.logoDurationSec) || 3.5) * 1000);
+        const hold = Math.max(1500, (Number(sceneCfg?.loop?.logoDurationSec) || 3.5) * 1000);
         const idx = Math.floor(elapsed / hold) % activeSponsors.length;
         if (idx !== lastSponsorIdxRef.current) {
           lastSponsorIdxRef.current = idx;
@@ -226,16 +228,17 @@ export default function OverlayStage({
 
   const interactiveLayers = useMemo(() => {
     if (isObs || typeof onUpdateLoopTransform !== 'function') return [];
+    const sceneCfg = resolveConfigForScene(config, activeSceneId);
     const items = [];
     const allowAll = layer === 'all' || layer === 'loop';
 
-    if ((allowAll || layer === 'logo-only') && config?.loop?.logoOnlyEnabled) {
+    if ((allowAll || layer === 'logo-only') && sceneCfg?.loop?.logoOnlyEnabled) {
       const targetSponsor = previewSponsorId
-        ? (config?.sponsors || []).find((s) => s.id === previewSponsorId && s.active) ||
-          (config?.sponsors || []).find((s) => s.id === previewSponsorId)
+        ? (sceneCfg?.sponsors || []).find((s) => s.id === previewSponsorId && s.active) ||
+          (sceneCfg?.sponsors || []).find((s) => s.id === previewSponsorId)
         : null;
       if (targetSponsor && typeof onUpdateSponsorTransform === 'function') {
-        const imgBox = getSponsorImageTransformBox(config, targetSponsor);
+        const imgBox = getSponsorImageTransformBox(sceneCfg, targetSponsor);
         items.push({
           key: 'sponsor-img',
           sponsorId: targetSponsor.id,
@@ -246,7 +249,7 @@ export default function OverlayStage({
           accent: targetSponsor.accentColor || '#FACC15',
         });
       } else {
-        const box = getLogoTransformBox(config);
+        const box = getLogoTransformBox(sceneCfg);
         items.push({
           key: 'logo',
           label: 'Kotak Logo',
@@ -261,8 +264,8 @@ export default function OverlayStage({
       }
     }
 
-    if ((allowAll || layer === 'corner') && config?.loop?.cornerEnabled) {
-      const rect = getCornerStageRect(config);
+    if ((allowAll || layer === 'corner') && sceneCfg?.loop?.cornerEnabled) {
+      const rect = getCornerStageRect(sceneCfg);
       items.push({
         key: 'corner',
         label: 'Corner Badge',
@@ -282,8 +285,8 @@ export default function OverlayStage({
       });
     }
 
-    if ((allowAll || layer === 'ticker') && config?.loop?.tickerEnabled) {
-      const rect = getTickerStageRect(config);
+    if ((allowAll || layer === 'ticker') && sceneCfg?.loop?.tickerEnabled) {
+      const rect = getTickerStageRect(sceneCfg);
       items.push({
         key: 'ticker',
         label: 'Ticker Bar',
@@ -303,8 +306,8 @@ export default function OverlayStage({
       });
     }
 
-    if ((allowAll || layer === 'podium') && config?.loop?.podiumEnabled) {
-      const rect = getPodiumStageRect(config);
+    if ((allowAll || layer === 'podium') && sceneCfg?.loop?.podiumEnabled) {
+      const rect = getPodiumStageRect(sceneCfg);
       items.push({
         key: 'podium',
         label: 'Podium Card',
@@ -334,7 +337,7 @@ export default function OverlayStage({
       yPct: Math.round((it.box.cy / STAGE_HEIGHT) * 1000) / 10,
       scalePct: Math.round((it.sponsorId ? it.box.imgScale : it.box.scale) * 100),
     }));
-  }, [isObs, layer, config, previewSponsorId, onUpdateLoopTransform, onUpdateSponsorTransform]);
+  }, [isObs, layer, config, activeSceneId, previewSponsorId, onUpdateLoopTransform, onUpdateSponsorTransform]);
 
   const beginLayerPointerAction = (item, mode, corner, e) => {
     if (!stageRef.current || (!onUpdateLoopTransform && !onUpdateSponsorTransform)) return;
