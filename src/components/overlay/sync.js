@@ -121,6 +121,17 @@ function fromBase64Url(b64) {
 export function buildCompactConfigForTransport(config) {
   return {
     ...config,
+    scenes: (config.scenes || []).map((sc) => ({
+      ...sc,
+      imageDataUrl:
+        sc.imageDataUrl === null
+          ? null
+          : sc.imageDataUrl && sc.imageDataUrl.length < 18000
+          ? sc.imageDataUrl
+          : sc.id === 'starting-soon'
+          ? PRESETS.tournament.scenes[0]?.imageDataUrl || null
+          : null,
+    })),
     sponsors: (config.sponsors || []).map((s) => ({
       ...s,
       logoDataUrl: s.logoDataUrl && s.logoDataUrl.length < 18000 ? s.logoDataUrl : null,

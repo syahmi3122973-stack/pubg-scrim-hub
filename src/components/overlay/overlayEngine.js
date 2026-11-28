@@ -1133,6 +1133,14 @@ function drawBroadcastHeaderPill(ctx, accent, sceneName, subtitle, eventTitle, y
 
 export function renderActiveScene(ctx, config, scene, timeMs) {
   if (!scene) return;
+  if (scene.imageDataUrl) {
+    const sceneImg = getCachedImage(scene.imageDataUrl);
+    if (sceneImg) {
+      ctx.drawImage(sceneImg, 0, 0, STAGE_WIDTH, STAGE_HEIGHT);
+    }
+    return;
+  }
+
   const accent = config?.primaryAccent || config?.stinger?.primaryColor || '#FACC15';
   const eventTitle = String(config?.eventTitle || 'TOURNAMENT BROADCAST').toUpperCase();
   const sceneName = String(scene.name || 'SCENE').toUpperCase();

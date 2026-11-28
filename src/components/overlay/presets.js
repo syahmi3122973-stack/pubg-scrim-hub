@@ -1,6 +1,7 @@
 const rykhorMediaLogo = '/overlay/rykhor-media.png';
 const bbcCltvLogo = '/overlay/bbc-cltv.png';
 export const diyStingerLogo = '/overlay/diy-stinger-logo.png';
+export const defaultStartingSoonImage = '/overlay/starting-soon-bg.png';
 
 export const PLACEMENT_POINTS_TABLE = {
   1: 10,
@@ -37,6 +38,7 @@ export function createDefaultScenes() {
       name: 'Starting Soon',
       kind: 'starting-soon',
       subtitle: 'BERSIAP SEDIA • LOBBY AKAN BERMULA',
+      imageDataUrl: defaultStartingSoonImage,
       builtIn: true,
     },
     {
@@ -116,7 +118,12 @@ export function normalizeOverlayConfig(raw) {
   if (!raw || typeof raw !== 'object') return base;
 
   const sponsors = Array.isArray(raw.sponsors) && raw.sponsors.length > 0 ? raw.sponsors : base.sponsors;
-  const scenes = Array.isArray(raw.scenes) && raw.scenes.length > 0 ? raw.scenes : createDefaultScenes();
+  const rawScenes = Array.isArray(raw.scenes) && raw.scenes.length > 0 ? raw.scenes : createDefaultScenes();
+  const scenes = rawScenes.map((sc) =>
+    sc?.id === 'starting-soon' && sc.imageDataUrl === undefined
+      ? { ...sc, imageDataUrl: defaultStartingSoonImage }
+      : sc
+  );
   const activeSceneId =
     raw.activeSceneId && scenes.some((sc) => sc.id === raw.activeSceneId)
       ? raw.activeSceneId

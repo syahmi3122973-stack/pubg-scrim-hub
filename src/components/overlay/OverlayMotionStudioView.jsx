@@ -40,6 +40,7 @@ import {
 import {
   PRESETS,
   SCENE_KIND_OPTIONS,
+  defaultStartingSoonImage,
   diyStingerLogo,
   getPlacementPoints,
   normalizeOverlayConfig,
@@ -356,6 +357,20 @@ export default function OverlayMotionStudioView() {
       ...config,
       scenes: (config.scenes || []).map((s) => (s.id === sceneId ? { ...s, ...patch } : s)),
     });
+  };
+
+  const handleSceneImageUpload = async (sceneId, file) => {
+    setUploadError(null);
+    if (!file || !file.type.startsWith('image/')) {
+      setUploadError('Fail imej scene mestilah PNG, WebP, atau JPG.');
+      return;
+    }
+    try {
+      const dataUrl = await fileToOptimizedDataUrl(file, 1600);
+      updateSceneProps(sceneId, { imageDataUrl: dataUrl });
+    } catch {
+      setUploadError('Gagal membaca imej scene.');
+    }
   };
 
   const handleCreateScene = (e) => {
@@ -1235,6 +1250,50 @@ export default function OverlayMotionStudioView() {
                               }
                               className={inputClass}
                             />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-zinc-400 mb-1">
+                              Imej Design Scene (16:9 PNG/WebP)
+                            </label>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#141418] border border-white/[0.10] hover:border-white/[0.24] text-xs font-medium text-zinc-200 cursor-pointer">
+                                <ImagePlus className="w-3.5 h-3.5 text-[#D7FF00]" />
+                                {scene.imageDataUrl ? 'Ganti Imej Scene' : 'Muat Naik Imej Scene'}
+                                <input
+                                  type="file"
+                                  accept="image/png,image/webp,image/jpeg"
+                                  hidden
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f) handleSceneImageUpload(scene.id, f);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                              {scene.id === 'starting-soon' &&
+                                scene.imageDataUrl !== defaultStartingSoonImage && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateSceneProps(scene.id, {
+                                        imageDataUrl: defaultStartingSoonImage,
+                                      })
+                                    }
+                                    className="px-2 py-1.5 rounded-lg bg-[#141418] border border-white/[0.10] text-[11px] text-zinc-300 cursor-pointer"
+                                  >
+                                    Design Asal DIY
+                                  </button>
+                                )}
+                              {scene.imageDataUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateSceneProps(scene.id, { imageDataUrl: null })}
+                                  className="px-2 py-1.5 rounded-lg bg-[#141418] border border-white/[0.10] text-[11px] text-zinc-400 hover:text-white cursor-pointer"
+                                >
+                                  Guna Template GFX
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-2 pt-1">

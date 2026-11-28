@@ -86,6 +86,12 @@ export default function OverlayStage({
   }, [config?.stinger?.emblemDataUrl]);
 
   useEffect(() => {
+    (config?.scenes || []).forEach((sc) => {
+      if (sc?.imageDataUrl) getCachedImage(sc.imageDataUrl);
+    });
+  }, [config?.scenes]);
+
+  useEffect(() => {
     if (stingerRunKey !== lastStingerKeyRef.current) {
       lastStingerKeyRef.current = stingerRunKey;
       if (stingerRunKey > 0) {
