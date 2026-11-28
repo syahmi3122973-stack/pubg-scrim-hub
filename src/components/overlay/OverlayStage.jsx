@@ -9,6 +9,7 @@ import {
   getCornerStageRect,
   getLogoTransformBox,
   getPodiumStageRect,
+  getSponsorImageTransformBox,
   getTickerStageRect,
   renderActiveScene,
   renderLayerOnStage,
@@ -32,10 +33,12 @@ export default function OverlayStage({
   activeSceneId = null,
   showSceneOverlay = true,
   selectedLayerKey = 'logo',
+  previewSponsorId = null,
   onSelectLayer = null,
   onActiveSponsorChange,
   onStingerActiveChange,
   onUpdateLoopTransform = null,
+  onUpdateSponsorTransform = null,
 }) {
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -51,6 +54,7 @@ export default function OverlayStage({
   const layerRef = useRef(layer);
   const activeSceneIdRef = useRef(activeSceneId);
   const showSceneOverlayRef = useRef(showSceneOverlay);
+  const previewSponsorIdRef = useRef(previewSponsorId);
   const onActiveSponsorChangeRef = useRef(onActiveSponsorChange);
   const onStingerActiveChangeRef = useRef(onStingerActiveChange);
 
@@ -63,6 +67,7 @@ export default function OverlayStage({
     layerRef.current = layer;
     activeSceneIdRef.current = activeSceneId;
     showSceneOverlayRef.current = showSceneOverlay;
+    previewSponsorIdRef.current = previewSponsorId;
     onActiveSponsorChangeRef.current = onActiveSponsorChange;
     onStingerActiveChangeRef.current = onStingerActiveChange;
   });
@@ -148,15 +153,16 @@ export default function OverlayStage({
         renderActiveScene(ctx, cfg, activeScene, elapsed);
       }
 
+      const previewId = !isObs ? previewSponsorIdRef.current : null;
       if (activeLayer === 'all' || activeLayer === 'loop') {
-        renderSponsorLoops(ctx, cfg, elapsed);
+        renderSponsorLoops(ctx, cfg, elapsed, previewId);
       } else if (
         activeLayer === 'logo-only' ||
         activeLayer === 'corner' ||
         activeLayer === 'ticker' ||
         activeLayer === 'podium'
       ) {
-        renderLayerOnStage(ctx, cfg, activeLayer, elapsed);
+        renderLayerOnStage(ctx, cfg, activeLayer, elapsed, previewId);
       }
 
       const activeSponsors = getActiveSponsors(cfg);
@@ -224,18 +230,35 @@ export default function OverlayStage({
     const allowAll = layer === 'all' || layer === 'loop';
 
     if ((allowAll || layer === 'logo-only') && config?.loop?.logoOnlyEnabled) {
-      const box = getLogoTransformBox(config);
-      items.push({
-        key: 'logo',
-        label: 'Kotak Logo',
-        box,
-        xKey: 'logoStageX',
-        yKey: 'logoStageY',
-        sKey: 'logoStageScale',
-        minS: 0.25,
-        maxS: 2.5,
-        accent: '#FACC15',
-      });
+      const targetSponsor = previewSponsorId
+        ? (config?.sponsors || []).find((s) => s.id === previewSponsorId && s.active) ||
+          (config?.sponsors || []).find((s) => s.id === previewSponsorId)
+        : null;
+      if (targetSponsor && typeof onUpdateSponsorTransform === 'function') {
+        const imgBox = getSponsorImageTransformBox(config, targetSponsor);
+        items.push({
+          key: 'sponsor-img',
+          sponsorId: targetSponsor.id,
+          label: targetSponsor.name || 'Logo Imej',
+          box: imgBox,
+          minS: 0.25,
+          maxS: 3.0,
+          accent: targetSponsor.accentColor || '#FACC15',
+        });
+      } else {
+        const box = getLogoTransformBox(config);
+        items.push({
+          key: 'logo',
+          label: 'Kotak Logo',
+          box,
+          xKey: 'logoStageX',
+          yKey: 'logoStageY',
+          sKey: 'logoStageScale',
+          minS: 0.25,
+          maxS: 2.5,
+          accent: '#FACC15',
+        });
+      }
     }
 
     if ((allowAll || layer === 'corner') && config?.loop?.cornerEnabled) {
@@ -309,12 +332,12 @@ export default function OverlayStage({
       height: ((it.box.halfH * 2) / STAGE_HEIGHT) * 100,
       xPct: Math.round((it.box.cx / STAGE_WIDTH) * 1000) / 10,
       yPct: Math.round((it.box.cy / STAGE_HEIGHT) * 1000) / 10,
-      scalePct: Math.round(it.box.scale * 100),
+      scalePct: Math.round((it.sponsorId ? it.box.imgScale : it.box.scale) * 100),
     }));
-  }, [isObs, layer, config, onUpdateLoopTransform]);
+  }, [isObs, layer, config, previewSponsorId, onUpdateLoopTransform, onUpdateSponsorTransform]);
 
   const beginLayerPointerAction = (item, mode, corner, e) => {
-    if (!stageRef.current || !onUpdateLoopTransform) return;
+    if (!stageRef.current || (!onUpdateLoopTransform && !onUpdateSponsorTransform)) return;
     e.preventDefault();
     e.stopPropagation();
     onSelectLayer?.(item.key);
@@ -322,7 +345,10 @@ export default function OverlayStage({
     const rect = stageRef.current.getBoundingClientRect();
     const origX = (item.box.cx / STAGE_WIDTH) * 100;
     const origY = (item.box.cy / STAGE_HEIGHT) * 100;
-    const origScale = item.box.scale;
+    const origScale = item.sponsorId ? item.box.imgScale : item.box.scale;
+    const origOffX = item.box.imgOffsetX || 0;
+    const origOffY = item.box.imgOffsetY || 0;
+    const boxScale = item.box.boxScale || 1;
     const startX = e.clientX;
     const startY = e.clientY;
     const centerPxX = rect.left + (origX / 100) * rect.width;
@@ -332,12 +358,34 @@ export default function OverlayStage({
     setDragState({ target: item.key, mode, corner });
 
     const onMove = (ev) => {
+      if (item.sponsorId && onUpdateSponsorTransform) {
+        if (mode === 'move') {
+          const dxStage = ((ev.clientX - startX) / rect.width) * STAGE_WIDTH;
+          const dyStage = ((ev.clientY - startY) / rect.height) * STAGE_HEIGHT;
+          const nextOffX = Math.round(clamp(origOffX + dxStage / boxScale, -900, 900));
+          const nextOffY = Math.round(clamp(origOffY + dyStage / boxScale, -500, 500));
+          onUpdateSponsorTransform(item.sponsorId, {
+            imgOffsetX: nextOffX,
+            imgOffsetY: nextOffY,
+          });
+        } else {
+          const curDist = Math.max(10, Math.hypot(ev.clientX - centerPxX, ev.clientY - centerPxY));
+          const nextScale = clamp(
+            Math.round(origScale * (curDist / origDist) * 100) / 100,
+            item.minS,
+            item.maxS
+          );
+          onUpdateSponsorTransform(item.sponsorId, { imgScale: nextScale });
+        }
+        return;
+      }
+
       if (mode === 'move') {
         const dxPct = ((ev.clientX - startX) / rect.width) * 100;
         const dyPct = ((ev.clientY - startY) / rect.height) * 100;
         const nextX = clamp(Math.round((origX + dxPct) * 10) / 10, 4, 96);
         const nextY = clamp(Math.round((origY + dyPct) * 10) / 10, 4, 96);
-        onUpdateLoopTransform({ [item.xKey]: nextX, [item.yKey]: nextY });
+        onUpdateLoopTransform?.({ [item.xKey]: nextX, [item.yKey]: nextY });
       } else {
         const curDist = Math.max(10, Math.hypot(ev.clientX - centerPxX, ev.clientY - centerPxY));
         const nextScale = clamp(
@@ -345,7 +393,7 @@ export default function OverlayStage({
           item.minS,
           item.maxS
         );
-        onUpdateLoopTransform({ [item.sKey]: nextScale });
+        onUpdateLoopTransform?.({ [item.sKey]: nextScale });
       }
     };
 

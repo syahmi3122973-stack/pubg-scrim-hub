@@ -22,6 +22,30 @@ export function getLogoTransformBox(config) {
   return { cx, cy, halfW, halfH, scale };
 }
 
+export function getSponsorImageTransformBox(config, sponsor) {
+  const logoBox = getLogoTransformBox(config);
+  const showBox = config?.loop?.logoBoxEnabled !== false;
+  const baseW = showBox ? 250 : 320;
+  const baseH = showBox ? 96 : 144;
+  const imgScale = clamp(sponsor?.imgScale ?? 1, 0.25, 3.0);
+  const imgOffsetX = Number.isFinite(Number(sponsor?.imgOffsetX)) ? Number(sponsor.imgOffsetX) : 0;
+  const imgOffsetY = Number.isFinite(Number(sponsor?.imgOffsetY)) ? Number(sponsor.imgOffsetY) : 0;
+  const cx = logoBox.cx + imgOffsetX * logoBox.scale;
+  const cy = logoBox.cy + imgOffsetY * logoBox.scale;
+  const scale = logoBox.scale * imgScale;
+  return {
+    cx,
+    cy,
+    halfW: (baseW * scale) / 2,
+    halfH: (baseH * scale) / 2,
+    scale,
+    imgScale,
+    imgOffsetX,
+    imgOffsetY,
+    boxScale: logoBox.scale,
+  };
+}
+
 export function getCornerStageRect(config) {
   const baseW = 436;
   const baseH = 114;
@@ -327,12 +351,12 @@ export function drawSafeZones(ctx, w, h) {
 // SPONSOR LOOP RENDERERS (ScrimHub Design Language)
 // ============================================================================
 
-export function renderSponsorLoops(ctx, config, timeMs) {
+export function renderSponsorLoops(ctx, config, timeMs, previewSponsorId = null) {
   const sponsors = getActiveSponsors(config);
   if (sponsors.length === 0) return;
 
   if (config.loop.logoOnlyEnabled) {
-    renderLogoOnly(ctx, config, sponsors, timeMs, false);
+    renderLogoOnly(ctx, config, sponsors, timeMs, false, previewSponsorId);
   }
   if (config.loop.cornerEnabled) {
     renderCornerBadge(ctx, config, sponsors, timeMs, false);
@@ -368,11 +392,14 @@ function drawPureLogoMark(ctx, sponsor, maxW, maxH) {
   ctx.fillText((sponsor.name || sponsor.monogram || 'LOGO').toUpperCase(), 0, 2);
 }
 
-function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
+function renderLogoOnly(ctx, config, sponsors, timeMs, standalone, previewSponsorId = null) {
   const durMs = Math.max(1500, (config.loop.logoDurationSec ?? 3.5) * 1000);
   const totalCycle = durMs * sponsors.length;
   const wrappedMs = ((timeMs % totalCycle) + totalCycle) % totalCycle;
-  const idx = Math.floor(wrappedMs / durMs);
+  const previewIdx = previewSponsorId
+    ? sponsors.findIndex((s) => s.id === previewSponsorId)
+    : -1;
+  const idx = previewIdx >= 0 ? previewIdx : Math.floor(wrappedMs / durMs);
   const localMs = wrappedMs - idx * durMs;
   const sponsor = sponsors[idx];
 
@@ -380,7 +407,10 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
   let enterT = 1;
   let exitT = 0;
 
-  if (sponsors.length > 1) {
+  if (previewIdx >= 0) {
+    enterT = 1;
+    exitT = 0;
+  } else if (sponsors.length > 1) {
     if (localMs < transMs) enterT = easeOutExpo(localMs / transMs);
     if (localMs > durMs - transMs) {
       exitT = easeInExpo((localMs - (durMs - transMs)) / transMs);
@@ -395,12 +425,14 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
   let offsetY = 0;
   let animScale = 1;
 
-  if (transition === 'slide-up') {
-    offsetY = (1 - enterT) * 26 - exitT * 26;
-  } else if (transition === 'slide-left') {
-    offsetX = (1 - enterT) * 44 - exitT * 44;
-  } else if (transition === 'zoom') {
-    animScale = 0.84 + 0.16 * enterT - 0.14 * exitT;
+  if (previewIdx < 0) {
+    if (transition === 'slide-up') {
+      offsetY = (1 - enterT) * 26 - exitT * 26;
+    } else if (transition === 'slide-left') {
+      offsetX = (1 - enterT) * 44 - exitT * 44;
+    } else if (transition === 'zoom') {
+      animScale = 0.84 + 0.16 * enterT - 0.14 * exitT;
+    }
   }
 
   const logoBox = getLogoTransformBox(config);
@@ -410,6 +442,9 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
   const showBox = config?.loop?.logoBoxEnabled !== false;
   const boxW = 320;
   const boxH = 144;
+  const imgOffsetX = Number.isFinite(Number(sponsor?.imgOffsetX)) ? Number(sponsor.imgOffsetX) : 0;
+  const imgOffsetY = Number.isFinite(Number(sponsor?.imgOffsetY)) ? Number(sponsor.imgOffsetY) : 0;
+  const imgScale = clamp(sponsor?.imgScale ?? 1, 0.25, 3.0);
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -441,14 +476,22 @@ function renderLogoOnly(ctx, config, sponsors, timeMs, standalone) {
       }
     }
 
-    drawRoundedRect(ctx, -boxW / 2 + 2, -boxH / 2 + 2, boxW - 4, boxH - 4, 14);
-    ctx.clip();
+    if (
+      previewIdx < 0 &&
+      (transition === 'slide-up' || transition === 'slide-left') &&
+      Math.abs(imgOffsetX) < 12 &&
+      Math.abs(imgOffsetY) < 12 &&
+      imgScale <= 1.08
+    ) {
+      drawRoundedRect(ctx, -boxW / 2 + 2, -boxH / 2 + 2, boxW - 4, boxH - 4, 14);
+      ctx.clip();
+    }
   }
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(animScale, animScale);
+  ctx.translate(imgOffsetX + offsetX, imgOffsetY + offsetY);
+  ctx.scale(imgScale * animScale, imgScale * animScale);
   drawPureLogoMark(ctx, sponsor, showBox ? 250 : 320, showBox ? 96 : 144);
   ctx.restore();
 
@@ -473,11 +516,11 @@ export function renderPodiumCardStandalone(ctx, config, timeMs) {
   renderPodiumCard(ctx, config, sponsors, timeMs, true);
 }
 
-export function renderLayerOnStage(ctx, config, layer, timeMs) {
+export function renderLayerOnStage(ctx, config, layer, timeMs, previewSponsorId = null) {
   const sponsors = getActiveSponsors(config);
   if (sponsors.length === 0) return;
   if (layer === 'logo-only') {
-    renderLogoOnly(ctx, config, sponsors, timeMs, false);
+    renderLogoOnly(ctx, config, sponsors, timeMs, false, previewSponsorId);
   } else if (layer === 'corner') {
     renderCornerBadge(ctx, config, sponsors, timeMs, false);
   } else if (layer === 'ticker') {

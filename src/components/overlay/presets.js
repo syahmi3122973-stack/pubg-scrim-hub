@@ -130,6 +130,12 @@ export function normalizeOverlayConfig(raw) {
     ];
     sponsors = [...seededDefaults, ...customSponsors];
   }
+  sponsors = sponsors.map((sp) => ({
+    ...sp,
+    imgOffsetX: Number.isFinite(Number(sp?.imgOffsetX)) ? Number(sp.imgOffsetX) : 0,
+    imgOffsetY: Number.isFinite(Number(sp?.imgOffsetY)) ? Number(sp.imgOffsetY) : 0,
+    imgScale: Number.isFinite(Number(sp?.imgScale)) ? Number(sp.imgScale) : 1,
+  }));
   const rawScenes = Array.isArray(raw.scenes) && raw.scenes.length > 0 ? raw.scenes : createDefaultScenes();
   const scenes = rawScenes.map((sc) =>
     sc?.id === 'starting-soon' && sc.imageDataUrl === undefined

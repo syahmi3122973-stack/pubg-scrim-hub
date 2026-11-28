@@ -124,6 +124,7 @@ export default function OverlayMotionStudioView() {
   const [showSafeZones, setShowSafeZones] = useState(true);
   const [showSceneOverlay, setShowSceneOverlay] = useState(true);
   const [selectedLayerKey, setSelectedLayerKey] = useState('logo');
+  const [editingSponsorImgId, setEditingSponsorImgId] = useState(null);
   const [loopPaused, setLoopPaused] = useState(false);
   const [stingerRunKey, setStingerRunKey] = useState(0);
   const [stingerActive, setStingerActive] = useState(false);
@@ -355,6 +356,19 @@ export default function OverlayMotionStudioView() {
       {
         ...cur,
         loop: { ...cur.loop, ...patch },
+      },
+      { immediateRemote: false }
+    );
+  };
+
+  const handleUpdateSponsorTransform = (sponsorId, patch) => {
+    const cur = latestConfigRef.current;
+    updateConfig(
+      {
+        ...cur,
+        sponsors: (cur.sponsors || []).map((s) =>
+          s.id === sponsorId ? { ...s, ...patch } : s
+        ),
       },
       { immediateRemote: false }
     );
@@ -899,11 +913,13 @@ export default function OverlayMotionStudioView() {
             stingerRunKey={stingerRunKey}
             activeSceneId={config.activeSceneId}
             showSceneOverlay={showSceneOverlay}
-            selectedLayerKey={selectedLayerKey}
+            selectedLayerKey={editingSponsorImgId ? 'sponsor-img' : selectedLayerKey}
+            previewSponsorId={editingSponsorImgId}
             onSelectLayer={setSelectedLayerKey}
             onActiveSponsorChange={setActiveSponsorIdx}
             onStingerActiveChange={setStingerActive}
             onUpdateLoopTransform={handleUpdateLogoTransform}
+            onUpdateSponsorTransform={handleUpdateSponsorTransform}
           />
 
           {/* Cue & Telemetry Bar */}
@@ -1303,72 +1319,109 @@ export default function OverlayMotionStudioView() {
                           ))}
                         </div>
 
-                        {/* Layer selector directly below Kotak Logo Sponsor */}
+                        {/* Uploaded sponsor logo image selector directly below Kotak Logo Sponsor */}
                         <div className="pt-2 border-t border-white/[0.06] space-y-1.5">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
-                              Pilih Layer (Ubah Posisi &amp; Saiz di Skrin Utama)
+                              Pilih Logo (Drag Posisi &amp; Saiz Individu)
                             </span>
+                            {editingSponsorImgId && (
+                              <button
+                                type="button"
+                                onClick={() => setEditingSponsorImgId(null)}
+                                className="text-[10px] font-bold text-[#D7FF00] hover:underline cursor-pointer"
+                              >
+                                Resume Auto Loop
+                              </button>
+                            )}
                           </div>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {[
-                              { key: 'logo', enabledKey: 'logoOnlyEnabled', label: 'Kotak Logo Loop', dot: '#FACC15' },
-                              { key: 'corner', enabledKey: 'cornerEnabled', label: 'Corner Badge', dot: '#38BDF8' },
-                              { key: 'ticker', enabledKey: 'tickerEnabled', label: 'Ticker Bar', dot: '#34D399' },
-                              { key: 'podium', enabledKey: 'podiumEnabled', label: 'Podium Card', dot: '#A78BFA' },
-                            ].map((lt) => {
-                              const isOn = Boolean(config.loop[lt.enabledKey]);
-                              const isSel = selectedLayerKey === lt.key;
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSponsorImgId(null);
+                                setSelectedLayerKey('logo');
+                                if (!config.loop.logoOnlyEnabled) {
+                                  updateConfig({
+                                    ...config,
+                                    loop: { ...config.loop, logoOnlyEnabled: true },
+                                  });
+                                }
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition cursor-pointer ${
+                                editingSponsorImgId === null
+                                  ? 'bg-white/[0.08] border-[#D7FF00] text-[#D7FF00]'
+                                  : 'bg-[#070709] border-white/[0.12] text-zinc-300 hover:border-white/[0.26]'
+                              }`}
+                            >
+                              Kotak Luar (Loop)
+                            </button>
+
+                            {config.sponsors.map((sp) => {
+                              const isSel = editingSponsorImgId === sp.id;
+                              const pct = Math.round((sp.imgScale ?? 1) * 100);
+                              const hasOffset =
+                                Boolean(sp.imgOffsetX) || Boolean(sp.imgOffsetY) || pct !== 100;
                               return (
                                 <div
-                                  key={lt.key}
-                                  className={`flex items-center justify-between gap-1 rounded-lg border px-2 py-1.5 transition ${
-                                    isSel && isOn
-                                      ? 'bg-white/[0.07] border-[#D7FF00] text-white'
-                                      : isOn
-                                      ? 'bg-[#070709] border-white/[0.14] text-zinc-200 hover:border-white/[0.28]'
-                                      : 'bg-[#070709]/50 border-white/[0.06] text-zinc-500'
+                                  key={`img-layer-${sp.id}`}
+                                  className={`inline-flex items-center gap-1 rounded-lg border pl-1.5 pr-1 py-1 transition ${
+                                    isSel
+                                      ? 'bg-white/[0.08] border-[#FACC15] text-white'
+                                      : 'bg-[#070709] border-white/[0.12] text-zinc-300 hover:border-white/[0.26]'
                                   }`}
                                 >
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedLayerKey(lt.key);
-                                      if (!isOn) {
+                                      setEditingSponsorImgId(sp.id);
+                                      if (!config.loop.logoOnlyEnabled || !sp.active) {
                                         updateConfig({
                                           ...config,
-                                          loop: { ...config.loop, [lt.enabledKey]: true },
+                                          loop: { ...config.loop, logoOnlyEnabled: true },
+                                          sponsors: config.sponsors.map((row) =>
+                                            row.id === sp.id ? { ...row, active: true } : row
+                                          ),
                                         });
                                       }
                                     }}
-                                    className="flex-1 min-w-0 flex items-center gap-1.5 text-left cursor-pointer"
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold cursor-pointer"
                                   >
-                                    <span
-                                      className="w-2 h-2 rounded-full shrink-0"
-                                      style={{ backgroundColor: isOn ? lt.dot : '#52525B' }}
-                                    />
-                                    <span className="text-[11px] font-semibold truncate">
-                                      {lt.label}
+                                    <span className="w-4 h-4 rounded bg-black/70 flex items-center justify-center overflow-hidden shrink-0">
+                                      {sp.logoDataUrl ? (
+                                        <img
+                                          src={sp.logoDataUrl}
+                                          alt={sp.name}
+                                          className="w-full h-full object-contain"
+                                        />
+                                      ) : (
+                                        <span className="text-[8px] font-bold">{sp.monogram}</span>
+                                      )}
                                     </span>
+                                    <span className="max-w-[84px] truncate">{sp.name}</span>
+                                    {hasOffset && (
+                                      <span className="text-[9px] font-mono text-[#FACC15]">
+                                        {pct}%
+                                      </span>
+                                    )}
                                   </button>
-                                  <button
-                                    type="button"
-                                    title={isOn ? `Sembunyikan ${lt.label}` : `Aktifkan ${lt.label}`}
-                                    aria-label={isOn ? `Sembunyikan ${lt.label}` : `Aktifkan ${lt.label}`}
-                                    onClick={() =>
-                                      updateConfig({
-                                        ...config,
-                                        loop: { ...config.loop, [lt.enabledKey]: !isOn },
-                                      })
-                                    }
-                                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold cursor-pointer ${
-                                      isOn
-                                        ? 'bg-emerald-500/20 text-emerald-300'
-                                        : 'bg-white/[0.05] text-zinc-500'
-                                    }`}
-                                  >
-                                    {isOn ? 'ON' : 'OFF'}
-                                  </button>
+                                  {hasOffset && (
+                                    <button
+                                      type="button"
+                                      aria-label={`Reset saiz dan posisi ${sp.name}`}
+                                      title={`Reset posisi & saiz ${sp.name}`}
+                                      onClick={() =>
+                                        updateSponsor(sp.id, {
+                                          imgOffsetX: 0,
+                                          imgOffsetY: 0,
+                                          imgScale: 1,
+                                        })
+                                      }
+                                      className="p-0.5 rounded text-zinc-400 hover:text-white cursor-pointer"
+                                    >
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                    </button>
+                                  )}
                                 </div>
                               );
                             })}
