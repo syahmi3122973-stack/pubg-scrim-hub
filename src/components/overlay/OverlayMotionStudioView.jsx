@@ -359,17 +359,6 @@ export default function OverlayMotionStudioView() {
     );
   };
 
-  const handleUpdateCornerTransform = (patch) => {
-    const cur = latestConfigRef.current;
-    updateConfig(
-      {
-        ...cur,
-        loop: { ...cur.loop, ...patch },
-      },
-      { immediateRemote: false }
-    );
-  };
-
   const selectScene = (sceneId) => {
     updateConfig({ ...config, activeSceneId: sceneId });
   };
@@ -911,8 +900,7 @@ export default function OverlayMotionStudioView() {
             showSceneOverlay={showSceneOverlay}
             onActiveSponsorChange={setActiveSponsorIdx}
             onStingerActiveChange={setStingerActive}
-            onUpdateLogoTransform={handleUpdateLogoTransform}
-            onUpdateCornerTransform={handleUpdateCornerTransform}
+            onUpdateLoopTransform={handleUpdateLogoTransform}
           />
 
           {/* Cue & Telemetry Bar */}
@@ -2036,6 +2024,13 @@ export default function OverlayMotionStudioView() {
                         logoStageScale: 0.88,
                         cornerStageX: null,
                         cornerStageY: null,
+                        cornerScale: 1,
+                        tickerStageX: null,
+                        tickerStageY: null,
+                        tickerScale: 1,
+                        podiumStageX: null,
+                        podiumStageY: null,
+                        podiumScale: 1,
                       },
                     })
                   }
@@ -2701,10 +2696,10 @@ export default function OverlayMotionStudioView() {
                   >
                     <option value="all">Semua Overlay (1920×1080)</option>
                     <option value="loop">Semua Sponsor Loop (1920×1080)</option>
-                    <option value="logo-only">Pure Logo Loop Sahaja (360×180)</option>
-                    <option value="corner">Sponsor Corner Sahaja (472×148)</option>
-                    <option value="ticker">Sponsor Ticker Sahaja (1832×84)</option>
-                    <option value="podium">Sponsor Podium Sahaja (736×304)</option>
+                    <option value="logo-only">Kotak Logo Loop Sahaja (1920×1080 • Ikut Drag)</option>
+                    <option value="corner">Sponsor Corner Sahaja (1920×1080 • Ikut Drag)</option>
+                    <option value="ticker">Sponsor Ticker Sahaja (1920×1080 • Ikut Drag)</option>
+                    <option value="podium">Sponsor Podium Sahaja (1920×1080 • Ikut Drag)</option>
                     <option value="stinger">Stinger Sahaja (1920×1080)</option>
                   </select>
                 </div>

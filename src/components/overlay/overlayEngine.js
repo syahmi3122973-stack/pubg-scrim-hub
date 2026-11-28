@@ -25,7 +25,7 @@ export function getLogoTransformBox(config) {
 export function getCornerStageRect(config) {
   const baseW = 436;
   const baseH = 114;
-  const scale = clamp(config?.loop?.cornerScale ?? 1, 0.6, 1.5);
+  const scale = clamp(config?.loop?.cornerScale ?? 1, 0.35, 2.2);
   const w = baseW * scale;
   const h = baseH * scale;
   if (
@@ -34,8 +34,8 @@ export function getCornerStageRect(config) {
     Number.isFinite(Number(config?.loop?.cornerStageY)) &&
     config?.loop?.cornerStageY !== null
   ) {
-    const cx = STAGE_WIDTH * (clamp(Number(config.loop.cornerStageX), 5, 95) / 100);
-    const cy = STAGE_HEIGHT * (clamp(Number(config.loop.cornerStageY), 5, 95) / 100);
+    const cx = STAGE_WIDTH * (clamp(Number(config.loop.cornerStageX), 4, 96) / 100);
+    const cy = STAGE_HEIGHT * (clamp(Number(config.loop.cornerStageY), 4, 96) / 100);
     return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy, scale };
   }
   const pos = config?.loop?.cornerPosition || 'top-right';
@@ -46,6 +46,46 @@ export function getCornerStageRect(config) {
   const x = isRight ? STAGE_WIDTH - marginX - w : marginX;
   const y = isBottom ? STAGE_HEIGHT - marginY - h : 52;
   return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, scale };
+}
+
+export function getTickerStageRect(config) {
+  const baseW = 1808;
+  const baseH = 56;
+  const scale = clamp(config?.loop?.tickerScale ?? 1, 0.35, 1.5);
+  const w = baseW * scale;
+  const h = baseH * scale;
+  const hasCustom =
+    Number.isFinite(Number(config?.loop?.tickerStageX)) &&
+    config?.loop?.tickerStageX !== null &&
+    Number.isFinite(Number(config?.loop?.tickerStageY)) &&
+    config?.loop?.tickerStageY !== null;
+  const cx = hasCustom
+    ? STAGE_WIDTH * (clamp(Number(config.loop.tickerStageX), 4, 96) / 100)
+    : 56 + baseW / 2;
+  const cy = hasCustom
+    ? STAGE_HEIGHT * (clamp(Number(config.loop.tickerStageY), 4, 96) / 100)
+    : STAGE_HEIGHT - baseH - 28 + baseH / 2;
+  return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy, scale };
+}
+
+export function getPodiumStageRect(config) {
+  const baseW = 688;
+  const baseH = 252;
+  const scale = clamp(config?.loop?.podiumScale ?? 1, 0.35, 2.2);
+  const w = baseW * scale;
+  const h = baseH * scale;
+  const hasCustom =
+    Number.isFinite(Number(config?.loop?.podiumStageX)) &&
+    config?.loop?.podiumStageX !== null &&
+    Number.isFinite(Number(config?.loop?.podiumStageY)) &&
+    config?.loop?.podiumStageY !== null;
+  const cx = hasCustom
+    ? STAGE_WIDTH * (clamp(Number(config.loop.podiumStageX), 4, 96) / 100)
+    : STAGE_WIDTH / 2;
+  const cy = hasCustom
+    ? STAGE_HEIGHT * (clamp(Number(config.loop.podiumStageY), 4, 96) / 100)
+    : STAGE_HEIGHT * 0.56;
+  return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy, scale };
 }
 
 const imageCache = new Map();
@@ -433,6 +473,20 @@ export function renderPodiumCardStandalone(ctx, config, timeMs) {
   renderPodiumCard(ctx, config, sponsors, timeMs, true);
 }
 
+export function renderLayerOnStage(ctx, config, layer, timeMs) {
+  const sponsors = getActiveSponsors(config);
+  if (sponsors.length === 0) return;
+  if (layer === 'logo-only') {
+    renderLogoOnly(ctx, config, sponsors, timeMs, false);
+  } else if (layer === 'corner') {
+    renderCornerBadge(ctx, config, sponsors, timeMs, false);
+  } else if (layer === 'ticker') {
+    renderTickerBar(ctx, config, sponsors, timeMs, false);
+  } else if (layer === 'podium') {
+    renderPodiumCard(ctx, config, sponsors, timeMs, false);
+  }
+}
+
 function renderCornerBadge(ctx, config, sponsors, timeMs, standalone) {
   const durMs = Math.max(2000, config.loop.cornerDurationSec * 1000);
   const totalCycle = durMs * sponsors.length;
@@ -570,6 +624,12 @@ function renderTickerBar(ctx, config, sponsors, timeMs, standalone) {
   const labelW = 248;
 
   ctx.save();
+  if (!standalone) {
+    const tRect = getTickerStageRect(config);
+    ctx.translate(tRect.cx, tRect.cy);
+    ctx.scale(tRect.scale, tRect.scale);
+    ctx.translate(-(barX + barW / 2), -(barY + barH / 2));
+  }
   ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
   ctx.shadowBlur = 18;
   ctx.shadowOffsetY = 6;
@@ -705,13 +765,17 @@ function renderPodiumCard(ctx, config, sponsors, timeMs, standalone) {
 
   const cardW = 688;
   const cardH = 252;
-  const cx = standalone ? ELEMENT_BOXES.podium.width / 2 : STAGE_WIDTH / 2;
-  const baseY = standalone ? ELEMENT_BOXES.podium.height / 2 : STAGE_HEIGHT * 0.56;
+  const pRect = getPodiumStageRect(config);
+  const cx = standalone ? ELEMENT_BOXES.podium.width / 2 : pRect.cx;
+  const baseY = standalone ? ELEMENT_BOXES.podium.height / 2 : pRect.cy;
+  const scale = standalone ? 1 : pRect.scale;
   const cy = baseY + (1 - enterT) * 24 + exitT * -18;
 
   ctx.save();
   ctx.globalAlpha = clamp(enterT * (1 - exitT));
-  ctx.translate(cx - cardW / 2, cy - cardH / 2);
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  ctx.translate(-cardW / 2, -cardH / 2);
 
   ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
   ctx.shadowBlur = 36;
